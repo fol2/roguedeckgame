@@ -37,11 +37,11 @@ export function ActionEffect({ cue, triggerKey }: ActionEffectProps) {
     ringRef.current.scale.setScalar(0.45 + progress * effect.ringRadius);
     auraRef.current.scale.setScalar(effect.auraRadius * (0.8 + bloom * 0.35));
     auraRef.current.position.y = 0.45 + bloom * 0.2;
-    particlesRef.current.rotation.y += 0.035;
+    particlesRef.current.rotation.y = progress * Math.PI * 1.6;
 
-    for (const particle of particlesRef.current.children) {
-      particle.position.y += 0.006 * bloom;
-    }
+    particlesRef.current.children.forEach((particle, index) => {
+      particle.position.y = 0.28 + (index % 4) * 0.12 + bloom * 0.22;
+    });
   });
 
   const effect = getEffectDefinition(cue);
