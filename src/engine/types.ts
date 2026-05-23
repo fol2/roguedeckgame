@@ -74,6 +74,7 @@ export interface GameAsset {
   placeholderColour?: string;
   placeholderShape?: "box" | "capsule" | "cone" | "sphere";
   scale?: [number, number, number];
+  facingRotationY?: number;
 }
 
 export interface WorldSceneDefinition {

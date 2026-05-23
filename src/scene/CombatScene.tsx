@@ -1,11 +1,13 @@
-import { ContactShadows, Float, OrbitControls, Sparkles } from "@react-three/drei";
+import { OrbitControls, Sparkles } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import type { Group } from "three";
 import { getClass } from "../data/classes";
-import type { AnimationCue, ClassId, CombatEvent, CombatState, EncounterDefinition } from "../engine/types";
+import type { ClassId, CombatEvent, CombatState, EncounterDefinition } from "../engine/types";
 import { AssetRenderer } from "./AssetRenderer";
 import { WorldScene } from "./WorldScene";
+import { ActionEffect } from "./effects/ActionEffect";
+import { getEffectDefinition, sampleActorMotion } from "./effects/effectLibrary";
 
 interface CombatSceneProps {
   combat: CombatState | null;
@@ -36,25 +38,26 @@ export function CombatScene({ combat, selectedClassId, previewEncounter }: Comba
 
       <ActorModel
         assetId={role.assetId}
-        cue={cueForPlayer(events)}
+        event={eventForPlayer(events)}
         healthRatio={combat ? combat.player.health / combat.player.maxHealth : 1}
         name={role.name}
         position={[-2.25, 0.65, 0]}
+        side="player"
       />
 
       {enemies.map((enemy, index) => (
         <ActorModel
           key={enemy.id}
           assetId={enemy.assetId}
-          cue={cueForActor(events, enemy.id)}
+          event={eventForActor(events, enemy.id)}
           healthRatio={enemy.health / enemy.maxHealth}
           name={enemy.name}
           position={[1.45 + index * 1.25, 0.65, -0.1 * index]}
+          side="enemy"
         />
       ))}
 
       <Sparkles color="#e9d99a" count={52} opacity={0.35} scale={[6, 2.2, 4]} size={2.4} />
-      <ContactShadows opacity={0.42} scale={7} blur={2.5} far={3} position={[0, 0.01, 0]} />
       <OrbitControls
         autoRotate={!combat}
         autoRotateSpeed={0.45}
@@ -70,76 +73,67 @@ export function CombatScene({ combat, selectedClassId, previewEncounter }: Comba
 
 interface ActorModelProps {
   assetId: string;
-  cue?: AnimationCue;
+  event?: CombatEvent;
   healthRatio: number;
   name: string;
   position: [number, number, number];
+  side: "player" | "enemy";
 }
 
-function ActorModel({ assetId, cue, healthRatio, name, position }: ActorModelProps) {
+function ActorModel({ assetId, event, healthRatio, name, position, side }: ActorModelProps) {
   const groupRef = useRef<Group>(null);
-  const cueStrength = useMemo(() => cueWeight(cue), [cue]);
+  const lastTriggerRef = useRef<string | undefined>(undefined);
+  const startedAtRef = useRef(-100);
+  const cue = event?.cue;
+  const baseRotationY = side === "player" ? Math.PI / 2 : -Math.PI / 2;
+  const sideSign = side === "player" ? 1 : -1;
 
   useFrame(({ clock }) => {
     if (!groupRef.current) {
       return;
     }
 
-    const pulse = cueStrength * Math.sin(clock.elapsedTime * 8) * 0.04;
-    groupRef.current.scale.setScalar(1 + pulse);
-    groupRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.55 + position[0]) * 0.12;
+    if (lastTriggerRef.current !== event?.id) {
+      lastTriggerRef.current = event?.id;
+      startedAtRef.current = clock.elapsedTime;
+    }
+
+    const effect = getEffectDefinition(cue);
+    const progress = effect
+      ? Math.min((clock.elapsedTime - startedAtRef.current) / effect.duration, 1)
+      : 1;
+    const motion = sampleActorMotion(cue, progress, sideSign);
+    const idle = Math.sin(clock.elapsedTime * 0.65 + position[0]) * 0.025;
+
+    groupRef.current.position.set(
+      position[0] + motion.position[0],
+      position[1] + motion.position[1] + idle,
+      position[2] + motion.position[2],
+    );
+    groupRef.current.rotation.y = baseRotationY + motion.rotationY;
   });
 
   return (
     <group ref={groupRef} position={position}>
-      <Float floatIntensity={0.16} rotationIntensity={0.08} speed={1.4}>
-        <AssetRenderer assetId={assetId} />
-        <mesh position={[0, 1.08, 0]}>
-          <boxGeometry args={[0.72 * healthRatio, 0.035, 0.035]} />
-          <meshStandardMaterial
-            color={healthRatio > 0.45 ? "#84d38b" : "#e5695f"}
-            emissive={healthRatio > 0.45 ? "#183f1c" : "#4a1410"}
-            emissiveIntensity={0.45}
-          />
-        </mesh>
-      </Float>
-      <pointLight color={cueLight(cue)} intensity={cue ? 7 : 2.2} distance={2.8} position={[0, 1, 0.3]} />
+      <AssetRenderer assetId={assetId} />
+      <ActionEffect cue={cue} triggerKey={event?.id} />
+      <mesh position={[0, 1.08, 0]}>
+        <boxGeometry args={[0.72 * healthRatio, 0.035, 0.035]} />
+        <meshBasicMaterial color={healthRatio > 0.45 ? "#84d38b" : "#e5695f"} />
+      </mesh>
       <group name={name} />
     </group>
   );
 }
 
-function cueForActor(events: CombatEvent[], actorId: string): AnimationCue | undefined {
-  return [...events].reverse().find((event) => event.targetActorId === actorId || event.sourceActorId === actorId)
-    ?.cue;
-}
-
-function cueForPlayer(events: CombatEvent[]): AnimationCue | undefined {
+function eventForActor(events: CombatEvent[], actorId: string): CombatEvent | undefined {
   return [...events]
     .reverse()
-    .find((event) => event.cue && !event.targetActorId && event.type !== "enemy-intent")?.cue;
+    .find((event) => event.targetActorId === actorId || event.sourceActorId === actorId);
 }
 
-function cueWeight(cue?: AnimationCue) {
-  if (!cue) {
-    return 0;
-  }
-
-  return cue === "super-attack" ? 1.8 : 1;
-}
-
-function cueLight(cue?: AnimationCue) {
-  if (cue === "heal") {
-    return "#8dffb2";
-  }
-
-  if (cue === "shield" || cue === "defend") {
-    return "#8ec8ff";
-  }
-
-  if (cue === "destroy") {
-    return "#ff7a7a";
-  }
-
-  return "#f7d36f";
+function eventForPlayer(events: CombatEvent[]): CombatEvent | undefined {
+  return [...events]
+    .reverse()
+    .find((event) => event.cue && !event.targetActorId && event.type !== "enemy-intent");
 }

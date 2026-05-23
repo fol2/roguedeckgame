@@ -16,11 +16,11 @@ export function WorldScene({ sceneId }: WorldSceneProps) {
         <AssetRenderer key={asset.id} assetId={asset.id} />
       ))}
       {collider.source ? <AssetRenderer assetId={collider.id} /> : null}
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
         <circleGeometry args={[7.4, 80]} />
         <meshStandardMaterial color="#30352a" roughness={0.9} />
       </mesh>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
         <ringGeometry args={[1.7, 4.8, 80]} />
         <meshStandardMaterial color="#596146" roughness={0.95} metalness={0.05} />
       </mesh>
