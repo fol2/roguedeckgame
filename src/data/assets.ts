@@ -1,53 +1,71 @@
 import type { GameAsset, WorldSceneDefinition } from "../engine/types";
+import ironWardenUrl from "../../assets/class/actor-iron-warden.glb?url";
+import spellbladeUrl from "../../assets/class/actor-spellblade.glb?url";
+import bossObsidianDrakeUrl from "../../assets/monsters/boss-obsidian-drake.glb?url";
+import monsterAshenGoblinUrl from "../../assets/monsters/monster-ashen-goblin.glb?url";
+import monsterCrystalWolfUrl from "../../assets/monsters/monster-crystal-wolf.glb?url";
+import monsterMireShamanUrl from "../../assets/monsters/monster-mire-shaman.glb?url";
 
 export const GAME_ASSETS: GameAsset[] = [
   {
     id: "actor-iron-warden",
-    kind: "primitive",
-    label: "Iron Warden placeholder",
+    kind: "glb",
+    label: "Iron Warden",
+    source: ironWardenUrl,
     placeholderColour: "#d8d0b0",
     placeholderShape: "capsule",
     scale: [0.9, 1.35, 0.9],
+    facingRotationY: 0,
   },
   {
     id: "actor-spellblade",
-    kind: "primitive",
-    label: "Spellblade placeholder",
+    kind: "glb",
+    label: "Spellblade",
+    source: spellbladeUrl,
     placeholderColour: "#8bd3dd",
     placeholderShape: "capsule",
     scale: [0.82, 1.25, 0.82],
+    facingRotationY: 0,
   },
   {
     id: "monster-ashen-goblin",
-    kind: "primitive",
-    label: "Ashen goblin placeholder",
+    kind: "glb",
+    label: "Ashen goblin",
+    source: monsterAshenGoblinUrl,
     placeholderColour: "#b7c56f",
     placeholderShape: "cone",
     scale: [0.85, 1, 0.85],
+    facingRotationY: 0,
   },
   {
     id: "monster-crystal-wolf",
-    kind: "primitive",
-    label: "Crystal wolf placeholder",
+    kind: "glb",
+    label: "Crystal wolf",
+    source: monsterCrystalWolfUrl,
     placeholderColour: "#79b7d9",
     placeholderShape: "box",
     scale: [1.2, 0.75, 0.8],
+    facingRotationY: 0,
   },
   {
     id: "monster-mire-shaman",
-    kind: "primitive",
-    label: "Mire shaman placeholder",
+    kind: "glb",
+    label: "Mire shaman",
+    source: monsterMireShamanUrl,
     placeholderColour: "#c083b8",
     placeholderShape: "sphere",
     scale: [0.95, 1.2, 0.95],
+    facingRotationY: 0,
   },
   {
     id: "boss-obsidian-drake",
-    kind: "primitive",
-    label: "Obsidian drake placeholder",
+    kind: "glb",
+    label: "Obsidian drake",
+    source: bossObsidianDrakeUrl,
     placeholderColour: "#db6b5f",
     placeholderShape: "cone",
     scale: [1.45, 1.6, 1.45],
+    facingRotationY: 0,
   },
   {
     id: "world-everfrost-spz",

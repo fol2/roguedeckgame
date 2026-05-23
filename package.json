@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "assets:optimise": "node scripts/optimise-gltf-assets.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
@@ -21,6 +22,7 @@
     "three": "latest"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.3.0",
     "@testing-library/jest-dom": "latest",
     "@testing-library/react": "latest",
     "@types/react": "latest",
