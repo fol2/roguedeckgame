@@ -53,6 +53,22 @@ describe("catalogue integrity", () => {
     expect(CLASSES.every((role) => assetIds.has(role.assetId))).toBe(true);
   });
 
+  it("loads class and monster actors from GLB sources", () => {
+    const assetById = new Map(GAME_ASSETS.map((asset) => [asset.id, asset]));
+    const actorAssetIds = [
+      ...CLASSES.map((role) => role.assetId),
+      ...ENCOUNTERS.map((encounter) => encounter.assetId),
+    ];
+
+    for (const assetId of actorAssetIds) {
+      const asset = assetById.get(assetId);
+
+      expect(asset?.kind).toBe("glb");
+      expect(asset?.source).toMatch(/\.glb/);
+      expect(typeof asset?.facingRotationY).toBe("number");
+    }
+  });
+
   it("defines world scenes with SPZ, PLY, and collider asset support", () => {
     const assetById = new Map(GAME_ASSETS.map((asset) => [asset.id, asset]));
 

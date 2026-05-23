@@ -1,6 +1,7 @@
 import { Clone, useGLTF } from "@react-three/drei";
 import { useLoader } from "@react-three/fiber";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Box3, Vector3 } from "three";
 import type { BufferGeometry, Object3D } from "three";
 import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
 import { getAsset } from "../data/assets";
@@ -30,8 +31,31 @@ export function AssetRenderer({ assetId }: AssetRendererProps) {
 
 function GlbAsset({ asset }: { asset: GameAsset }) {
   const gltf = useGLTF(asset.source!);
+  const transform = useMemo(() => {
+    const bounds = new Box3().setFromObject(gltf.scene);
+    const size = bounds.getSize(new Vector3());
+    const centre = bounds.getCenter(new Vector3());
+    const desiredHeight = asset.scale?.[1] ?? 1;
+    const uniformScale = desiredHeight / Math.max(size.y, 0.001);
 
-  return <Clone object={gltf.scene as Object3D} scale={asset.scale ?? [1, 1, 1]} />;
+    return {
+      position: [
+        -centre.x * uniformScale,
+        -bounds.min.y * uniformScale,
+        -centre.z * uniformScale,
+      ] as [number, number, number],
+      scale: uniformScale,
+    };
+  }, [asset.scale, gltf.scene]);
+
+  return (
+    <Clone
+      object={gltf.scene as Object3D}
+      position={transform.position}
+      rotation-y={asset.facingRotationY ?? 0}
+      scale={transform.scale}
+    />
+  );
 }
 
 function PlyAsset({ asset }: { asset: GameAsset }) {
@@ -40,7 +64,7 @@ function PlyAsset({ asset }: { asset: GameAsset }) {
   geometry.computeVertexNormals();
 
   return (
-    <mesh castShadow receiveShadow geometry={geometry} scale={asset.scale ?? [1, 1, 1]}>
+    <mesh geometry={geometry} rotation-y={asset.facingRotationY ?? 0} scale={asset.scale ?? [1, 1, 1]}>
       <meshStandardMaterial color={asset.placeholderColour ?? "#b8cab2"} roughness={0.86} />
     </mesh>
   );
@@ -72,7 +96,7 @@ function SpzAsset({ asset }: { asset: GameAsset }) {
     return <PrimitiveAsset asset={{ ...asset, kind: "primitive", placeholderShape: "sphere" }} />;
   }
 
-  return <primitive object={splat} scale={asset.scale ?? [1, 1, 1]} />;
+  return <primitive object={splat} rotation-y={asset.facingRotationY ?? 0} scale={asset.scale ?? [1, 1, 1]} />;
 }
 
 function PrimitiveAsset({ asset }: { asset: GameAsset }) {
@@ -80,7 +104,7 @@ function PrimitiveAsset({ asset }: { asset: GameAsset }) {
   const scale = asset.scale ?? [1, 1, 1];
 
   return (
-    <mesh castShadow receiveShadow scale={scale}>
+    <mesh rotation-y={asset.facingRotationY ?? 0} scale={scale}>
       {asset.placeholderShape === "box" ? <boxGeometry args={[0.9, 0.9, 0.9]} /> : null}
       {asset.placeholderShape === "cone" ? <coneGeometry args={[0.48, 1.35, 7]} /> : null}
       {asset.placeholderShape === "sphere" ? <sphereGeometry args={[0.58, 24, 18]} /> : null}
