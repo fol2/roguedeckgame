@@ -70,7 +70,7 @@ Result: direct dev dependencies are typescript and vitest
 ## Review Status
 
 - Independent code reviewer: GREEN after fixes.
-- Independent contract auditor: pending final post-report and post-push audit.
+- Independent contract auditor: GREEN after final post-push audit.
 
 ## Commit SHA
 
