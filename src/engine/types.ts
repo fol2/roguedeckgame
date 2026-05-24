@@ -65,25 +65,79 @@ export interface EncounterDefinition {
 
 export type AssetKind = "primitive" | "glb" | "spz" | "ply" | "collider";
 
+export type Vector3Tuple = [number, number, number];
+
 export interface GameAsset {
   id: string;
   kind: AssetKind;
   label: string;
   source?: string;
   colliderSource?: string;
+  depthWrite?: boolean;
+  opacity?: number;
   placeholderColour?: string;
   placeholderShape?: "box" | "capsule" | "cone" | "sphere";
-  position?: [number, number, number];
-  rotation?: [number, number, number];
-  scale?: [number, number, number];
+  position?: Vector3Tuple;
+  rotation?: Vector3Tuple;
+  scale?: Vector3Tuple;
   facingRotationY?: number;
+}
+
+export interface SceneAssetPlacement {
+  assetId: string;
+  position: Vector3Tuple;
+  rotation: Vector3Tuple;
+  scale: Vector3Tuple;
+}
+
+export interface SceneCameraConfig {
+  position: Vector3Tuple;
+  fov: number;
+  near: number;
+  far: number;
+}
+
+export interface SceneControlsConfig {
+  target: Vector3Tuple;
+  minPolarAngle: number;
+  maxPolarAngle: number;
+  minAzimuthAngle: number;
+  maxAzimuthAngle: number;
+  minDistance: number;
+  maxDistance: number;
+  autoRotatePreview: boolean;
+  autoRotateSpeed: number;
+}
+
+export interface SceneActorSlots {
+  player: Vector3Tuple;
+  enemyStart: Vector3Tuple;
+  enemySpacing: Vector3Tuple;
+}
+
+export interface SceneArenaConfig {
+  floorRadius: number;
+  floorOpacity: number;
+  ringInnerRadius: number;
+  ringOuterRadius: number;
+  ringOpacity: number;
+}
+
+export interface ScenePhysicsConfig {
+  enabled: boolean;
+  debug: boolean;
+  colliderAssetId: string;
 }
 
 export interface WorldSceneDefinition {
   id: string;
   label: string;
-  visualAssetIds: string[];
-  colliderAssetId: string;
+  visualAssets: SceneAssetPlacement[];
+  camera: SceneCameraConfig;
+  controls: SceneControlsConfig;
+  actorSlots: SceneActorSlots;
+  arena: SceneArenaConfig;
+  physics: ScenePhysicsConfig;
 }
 
 export interface CardInstance {

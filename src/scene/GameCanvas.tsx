@@ -1,5 +1,7 @@
 import { Canvas } from "@react-three/fiber";
+import { Physics } from "@react-three/rapier";
 import { Suspense } from "react";
+import { getWorldScene } from "../data/assets";
 import type { ClassId, CombatState, EncounterDefinition } from "../engine/types";
 import { CombatScene } from "./CombatScene";
 import { GlobalLighting } from "./GlobalLighting";
@@ -11,9 +13,16 @@ interface GameCanvasProps {
 }
 
 export function GameCanvas({ combat, selectedClassId, previewEncounter }: GameCanvasProps) {
+  const activeScene = getWorldScene("everfrost-ruins");
+
   return (
     <Canvas
-      camera={{ position: [0, 3.2, 6.4], fov: 46 }}
+      camera={{
+        position: activeScene.camera.position,
+        fov: activeScene.camera.fov,
+        near: activeScene.camera.near,
+        far: activeScene.camera.far,
+      }}
       dpr={[1, 2]}
       gl={{ antialias: true }}
     >
@@ -21,11 +30,13 @@ export function GameCanvas({ combat, selectedClassId, previewEncounter }: GameCa
       <fog attach="fog" args={["#151713", 6, 16]} />
       <GlobalLighting />
       <Suspense fallback={null}>
-        <CombatScene
-          combat={combat}
-          selectedClassId={selectedClassId}
-          previewEncounter={previewEncounter}
-        />
+        <Physics colliders={false} debug={activeScene.physics.debug} gravity={[0, -9.81, 0]}>
+          <CombatScene
+            combat={combat}
+            selectedClassId={selectedClassId}
+            previewEncounter={previewEncounter}
+          />
+        </Physics>
       </Suspense>
     </Canvas>
   );

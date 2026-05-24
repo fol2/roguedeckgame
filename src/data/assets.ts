@@ -6,6 +6,7 @@ import monsterAshenGoblinUrl from "../../assets/monsters/monster-ashen-goblin.gl
 import monsterCrystalWolfUrl from "../../assets/monsters/monster-crystal-wolf.glb?url";
 import monsterMireShamanUrl from "../../assets/monsters/monster-mire-shaman.glb?url";
 import everfrostSceneMeshUrl from "../../assets/scenes/mesh.ply?url";
+import worldScenesData from "./worldScenes.json";
 
 export const GAME_ASSETS: GameAsset[] = [
   {
@@ -73,9 +74,8 @@ export const GAME_ASSETS: GameAsset[] = [
     kind: "ply",
     label: "Everfrost mesh world scene",
     source: everfrostSceneMeshUrl,
-    position: [-0.28, 0.58, -2.1],
-    rotation: [-Math.PI / 2, 0, 0],
-    scale: [0.44, 0.44, 0.44],
+    depthWrite: false,
+    opacity: 0.74,
   },
   {
     id: "world-everfrost-spz",
@@ -94,14 +94,7 @@ export const GAME_ASSETS: GameAsset[] = [
 
 export const ASSET_BY_ID = Object.fromEntries(GAME_ASSETS.map((asset) => [asset.id, asset]));
 
-export const WORLD_SCENES: WorldSceneDefinition[] = [
-  {
-    id: "everfrost-ruins",
-    label: "Everfrost Ruins",
-    visualAssetIds: ["world-everfrost-mesh"],
-    colliderAssetId: "collider-demo-mesh",
-  },
-];
+export const WORLD_SCENES = worldScenesData as WorldSceneDefinition[];
 
 export const WORLD_SCENE_BY_ID = Object.fromEntries(
   WORLD_SCENES.map((scene) => [scene.id, scene]),

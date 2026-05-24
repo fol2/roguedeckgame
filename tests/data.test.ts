@@ -75,19 +75,39 @@ describe("catalogue integrity", () => {
     expect(WORLD_SCENES).toHaveLength(1);
 
     for (const scene of WORLD_SCENES) {
-      const visualKinds = scene.visualAssetIds.map((assetId) => assetById.get(assetId)?.kind);
+      const visualKinds = scene.visualAssets.map((visualAsset) => assetById.get(visualAsset.assetId)?.kind);
 
       expect(visualKinds).toContain("ply");
       expect(visualKinds).not.toContain("spz");
 
-      const meshScene = scene.visualAssetIds
-        .map((assetId) => assetById.get(assetId))
-        .find((asset) => asset?.kind === "ply");
+      const meshPlacement = scene.visualAssets.find((visualAsset) => (
+        assetById.get(visualAsset.assetId)?.kind === "ply"
+      ));
+      const meshScene = meshPlacement ? assetById.get(meshPlacement.assetId) : undefined;
 
       expect(meshScene?.source).toMatch(/\.ply/);
-      expect(meshScene?.position).toHaveLength(3);
-      expect(meshScene?.rotation).toHaveLength(3);
-      expect(meshScene?.scale).toHaveLength(3);
+      expect(meshPlacement?.position).toHaveLength(3);
+      expect(meshPlacement?.rotation).toHaveLength(3);
+      expect(meshPlacement?.scale).toHaveLength(3);
+    }
+  });
+
+  it("stores scene camera, actor slots, controls, and collider settings in JSON-backed config", () => {
+    const assetById = new Map(GAME_ASSETS.map((asset) => [asset.id, asset]));
+
+    for (const scene of WORLD_SCENES) {
+      expect(scene.camera.position).toHaveLength(3);
+      expect(scene.camera.fov).toBeGreaterThan(0);
+      expect(scene.controls.target).toHaveLength(3);
+      expect(scene.controls.minDistance).toBeLessThanOrEqual(scene.controls.maxDistance);
+      expect(scene.actorSlots.player).toHaveLength(3);
+      expect(scene.actorSlots.enemyStart).toHaveLength(3);
+      expect(scene.actorSlots.enemySpacing).toHaveLength(3);
+      expect(scene.physics.enabled).toBe(true);
+      expect(scene.visualAssets.some((visualAsset) => (
+        visualAsset.assetId === scene.physics.colliderAssetId
+      ))).toBe(true);
+      expect(assetById.get(scene.physics.colliderAssetId)?.kind).toBe("ply");
     }
   });
 

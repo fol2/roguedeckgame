@@ -73,7 +73,10 @@ function PlyAsset({ asset }: { asset: GameAsset }) {
     >
       <meshStandardMaterial
         color={hasVertexColours ? "#ffffff" : asset.placeholderColour ?? "#b8cab2"}
+        depthWrite={asset.depthWrite ?? true}
+        opacity={asset.opacity ?? 1}
         roughness={0.86}
+        transparent={(asset.opacity ?? 1) < 1}
         vertexColors={hasVertexColours}
       />
     </mesh>
