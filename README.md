@@ -9,6 +9,15 @@ npm install
 npm run dev
 ```
 
+The dev server listens on all network interfaces, so the game can be opened from
+another device on the same LAN or Tailnet:
+
+```text
+http://<lan-ip>:5173
+http://<tailscale-ip>:5173
+http://<tailscale-dns-name>:5173
+```
+
 ## Verify
 
 ```bash
