@@ -1,0 +1,4 @@
+interface:
+  display_name: "Game Architecture Guard"
+  short_description: "Protect game-core and Phaser boundaries"
+  default_prompt: "Use $game-architecture-guard to design or review the game architecture boundary."

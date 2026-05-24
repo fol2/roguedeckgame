@@ -1,0 +1,4 @@
+interface:
+  display_name: "Story Event Author"
+  short_description: "Author pet story events and flags"
+  default_prompt: "Use $story-event-author to design pet side stories and story flags."
