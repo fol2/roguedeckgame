@@ -69,7 +69,7 @@ describe("catalogue integrity", () => {
     }
   });
 
-  it("defines world scenes with SPZ, PLY, and collider asset support", () => {
+  it("uses the optimised PLY mesh runtime world scene", () => {
     const assetById = new Map(GAME_ASSETS.map((asset) => [asset.id, asset]));
 
     expect(WORLD_SCENES).toHaveLength(1);
@@ -77,10 +77,26 @@ describe("catalogue integrity", () => {
     for (const scene of WORLD_SCENES) {
       const visualKinds = scene.visualAssetIds.map((assetId) => assetById.get(assetId)?.kind);
 
-      expect(visualKinds).toContain("spz");
       expect(visualKinds).toContain("ply");
-      expect(assetById.get(scene.colliderAssetId)?.kind).toBe("collider");
+      expect(visualKinds).not.toContain("spz");
+
+      const meshScene = scene.visualAssetIds
+        .map((assetId) => assetById.get(assetId))
+        .find((asset) => asset?.kind === "ply");
+
+      expect(meshScene?.source).toMatch(/\.ply/);
+      expect(meshScene?.position).toHaveLength(3);
+      expect(meshScene?.rotation).toHaveLength(3);
+      expect(meshScene?.scale).toHaveLength(3);
     }
+  });
+
+  it("keeps deferred SPZ and collider placeholders in the catalogue", () => {
+    const assetById = new Map(GAME_ASSETS.map((asset) => [asset.id, asset]));
+
+    expect(assetById.get("world-everfrost-spz")?.kind).toBe("spz");
+    expect(assetById.get("world-everfrost-spz")?.source).toBeUndefined();
+    expect(assetById.get("collider-demo-mesh")?.kind).toBe("collider");
   });
 });
 

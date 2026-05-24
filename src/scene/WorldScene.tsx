@@ -17,12 +17,12 @@ export function WorldScene({ sceneId }: WorldSceneProps) {
       ))}
       {collider.source ? <AssetRenderer assetId={collider.id} /> : null}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
-        <circleGeometry args={[7.4, 80]} />
-        <meshStandardMaterial color="#30352a" roughness={0.9} />
+        <circleGeometry args={[4.8, 80]} />
+        <meshStandardMaterial color="#30352a" opacity={0.46} roughness={0.9} transparent />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]}>
-        <ringGeometry args={[1.7, 4.8, 80]} />
-        <meshStandardMaterial color="#596146" roughness={0.95} metalness={0.05} />
+        <ringGeometry args={[1.6, 3.6, 80]} />
+        <meshStandardMaterial color="#596146" opacity={0.42} roughness={0.95} metalness={0.05} transparent />
       </mesh>
     </group>
   );

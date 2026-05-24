@@ -5,6 +5,7 @@ import bossObsidianDrakeUrl from "../../assets/monsters/boss-obsidian-drake.glb?
 import monsterAshenGoblinUrl from "../../assets/monsters/monster-ashen-goblin.glb?url";
 import monsterCrystalWolfUrl from "../../assets/monsters/monster-crystal-wolf.glb?url";
 import monsterMireShamanUrl from "../../assets/monsters/monster-mire-shaman.glb?url";
+import everfrostSceneMeshUrl from "../../assets/scenes/mesh.ply?url";
 
 export const GAME_ASSETS: GameAsset[] = [
   {
@@ -68,18 +69,19 @@ export const GAME_ASSETS: GameAsset[] = [
     facingRotationY: 0,
   },
   {
-    id: "world-everfrost-spz",
-    kind: "spz",
-    label: "Future SPZ splat world scene",
-    source: undefined,
-    colliderSource: "/assets/colliders/everfrost-collider.glb",
+    id: "world-everfrost-mesh",
+    kind: "ply",
+    label: "Everfrost mesh world scene",
+    source: everfrostSceneMeshUrl,
+    position: [-0.28, 0.58, -2.1],
+    rotation: [-Math.PI / 2, 0, 0],
+    scale: [0.44, 0.44, 0.44],
   },
   {
-    id: "world-ruins-ply",
-    kind: "ply",
-    label: "Future PLY world scene",
+    id: "world-everfrost-spz",
+    kind: "spz",
+    label: "Deferred SPZ splat world scene",
     source: undefined,
-    colliderSource: "/assets/colliders/ruins-collider.glb",
   },
   {
     id: "collider-demo-mesh",
@@ -96,7 +98,7 @@ export const WORLD_SCENES: WorldSceneDefinition[] = [
   {
     id: "everfrost-ruins",
     label: "Everfrost Ruins",
-    visualAssetIds: ["world-everfrost-spz", "world-ruins-ply"],
+    visualAssetIds: ["world-everfrost-mesh"],
     colliderAssetId: "collider-demo-mesh",
   },
 ];

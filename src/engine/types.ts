@@ -73,6 +73,8 @@ export interface GameAsset {
   colliderSource?: string;
   placeholderColour?: string;
   placeholderShape?: "box" | "capsule" | "cone" | "sphere";
+  position?: [number, number, number];
+  rotation?: [number, number, number];
   scale?: [number, number, number];
   facingRotationY?: number;
 }

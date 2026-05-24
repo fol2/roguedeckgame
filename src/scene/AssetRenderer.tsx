@@ -60,12 +60,22 @@ function GlbAsset({ asset }: { asset: GameAsset }) {
 
 function PlyAsset({ asset }: { asset: GameAsset }) {
   const geometry = useLoader(PLYLoader, asset.source!) as BufferGeometry;
+  const hasVertexColours = geometry.hasAttribute("color");
 
   geometry.computeVertexNormals();
 
   return (
-    <mesh geometry={geometry} rotation-y={asset.facingRotationY ?? 0} scale={asset.scale ?? [1, 1, 1]}>
-      <meshStandardMaterial color={asset.placeholderColour ?? "#b8cab2"} roughness={0.86} />
+    <mesh
+      geometry={geometry}
+      position={asset.position ?? [0, 0, 0]}
+      rotation={asset.rotation ?? [0, asset.facingRotationY ?? 0, 0]}
+      scale={asset.scale ?? [1, 1, 1]}
+    >
+      <meshStandardMaterial
+        color={hasVertexColours ? "#ffffff" : asset.placeholderColour ?? "#b8cab2"}
+        roughness={0.86}
+        vertexColors={hasVertexColours}
+      />
     </mesh>
   );
 }
@@ -82,7 +92,10 @@ function SpzAsset({ asset }: { asset: GameAsset }) {
         return;
       }
 
-      current = new SplatMesh({ url: asset.source! });
+      current = new SplatMesh({
+        url: asset.source!,
+        lod: "quality",
+      });
       setSplat(current as Object3D);
     });
 
@@ -96,7 +109,14 @@ function SpzAsset({ asset }: { asset: GameAsset }) {
     return <PrimitiveAsset asset={{ ...asset, kind: "primitive", placeholderShape: "sphere" }} />;
   }
 
-  return <primitive object={splat} rotation-y={asset.facingRotationY ?? 0} scale={asset.scale ?? [1, 1, 1]} />;
+  return (
+    <primitive
+      object={splat}
+      position={asset.position ?? [0, 0, 0]}
+      rotation={asset.rotation ?? [0, asset.facingRotationY ?? 0, 0]}
+      scale={asset.scale ?? [1, 1, 1]}
+    />
+  );
 }
 
 function PrimitiveAsset({ asset }: { asset: GameAsset }) {
@@ -104,7 +124,11 @@ function PrimitiveAsset({ asset }: { asset: GameAsset }) {
   const scale = asset.scale ?? [1, 1, 1];
 
   return (
-    <mesh rotation-y={asset.facingRotationY ?? 0} scale={scale}>
+    <mesh
+      position={asset.position ?? [0, 0, 0]}
+      rotation={asset.rotation ?? [0, asset.facingRotationY ?? 0, 0]}
+      scale={scale}
+    >
       {asset.placeholderShape === "box" ? <boxGeometry args={[0.9, 0.9, 0.9]} /> : null}
       {asset.placeholderShape === "cone" ? <coneGeometry args={[0.48, 1.35, 7]} /> : null}
       {asset.placeholderShape === "sphere" ? <sphereGeometry args={[0.58, 24, 18]} /> : null}

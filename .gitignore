@@ -1,8 +1,11 @@
 node_modules/
 dist/
+.vite/
 .DS_Store
 assets/raw/
-assets/scenes/
+assets/scenes/*
+!assets/scenes/
+!assets/scenes/mesh.ply
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
