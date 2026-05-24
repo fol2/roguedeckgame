@@ -1,0 +1,35 @@
+type Brand<K, T extends string> = K & { readonly __brand: T };
+
+export type CardId = Brand<string, "CardId">;
+export type PetDefinitionId = Brand<string, "PetDefinitionId">;
+export type PetInstanceId = Brand<string, "PetInstanceId">;
+export type PlayerClassId = Brand<string, "PlayerClassId">;
+export type MonsterId = Brand<string, "MonsterId">;
+export type UpgradeId = Brand<string, "UpgradeId">;
+export type StoryEventId = Brand<string, "StoryEventId">;
+export type StoryFlagId = Brand<string, "StoryFlagId">;
+export type StatusId = Brand<string, "StatusId">;
+export type RunId = Brand<string, "RunId">;
+export type CombatantId = Brand<string, "CombatantId">;
+export type MonsterIntentId = Brand<string, "MonsterIntentId">;
+export type RelicId = Brand<string, "RelicId">;
+export type PetMemoryId = Brand<string, "PetMemoryId">;
+export type EvolutionNodeId = Brand<string, "EvolutionNodeId">;
+export type PetModifierId = Brand<string, "PetModifierId">;
+
+export const cardId = (value: string): CardId => value as CardId;
+export const petDefinitionId = (value: string): PetDefinitionId => value as PetDefinitionId;
+export const petInstanceId = (value: string): PetInstanceId => value as PetInstanceId;
+export const playerClassId = (value: string): PlayerClassId => value as PlayerClassId;
+export const monsterId = (value: string): MonsterId => value as MonsterId;
+export const upgradeId = (value: string): UpgradeId => value as UpgradeId;
+export const storyEventId = (value: string): StoryEventId => value as StoryEventId;
+export const storyFlagId = (value: string): StoryFlagId => value as StoryFlagId;
+export const statusId = (value: string): StatusId => value as StatusId;
+export const runId = (value: string): RunId => value as RunId;
+export const combatantId = (value: string): CombatantId => value as CombatantId;
+export const monsterIntentId = (value: string): MonsterIntentId => value as MonsterIntentId;
+export const relicId = (value: string): RelicId => value as RelicId;
+export const petMemoryId = (value: string): PetMemoryId => value as PetMemoryId;
+export const evolutionNodeId = (value: string): EvolutionNodeId => value as EvolutionNodeId;
+export const petModifierId = (value: string): PetModifierId => value as PetModifierId;
