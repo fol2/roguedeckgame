@@ -1,0 +1,12 @@
+./assets/class/actor-iron-warden.glb
+./assets/class/actor-spellblade.glb
+./assets/monsters/boss-obsidian-drake.glb
+./assets/monsters/monster-ashen-goblin.glb
+./assets/monsters/monster-crystal-wolf.glb
+./assets/monsters/monster-mire-shaman.glb
+./dist/assets/actor-iron-warden-Dgp26KGP.glb
+./dist/assets/actor-spellblade--RL3Dadc.glb
+./dist/assets/boss-obsidian-drake-CKrgRfK6.glb
+./dist/assets/monster-ashen-goblin-DMavzEDZ.glb
+./dist/assets/monster-crystal-wolf-Pow_zovk.glb
+./dist/assets/monster-mire-shaman-BZQeT8rG.glb
