@@ -43,7 +43,7 @@ Result: passed, 4 test files, 22 tests
 
 node-free package setup plus npm run smoke:localhost
 Result: passed, served registry validation evidence on 127.0.0.1
-Observed URL: http://127.0.0.1:63259/health
+Observed URL: http://127.0.0.1:63333/health
 
 npm audit --audit-level=moderate
 Result: passed, 0 vulnerabilities
