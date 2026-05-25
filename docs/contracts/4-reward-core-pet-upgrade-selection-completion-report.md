@@ -87,7 +87,7 @@ PASS: direct dependencies remain typescript and vitest only
 11. No reward UI was implemented: confirmed by changed file tree; all implementation is game-core/tests/docs plus localhost smoke.
 12. All tests pass: `npm test` passed 16 files / 130 tests.
 13. Implementation commit SHA: `4ccda22db5f12206d69fa446f480f7eb706380f7`.
-14. Final pushed HEAD SHA: `96f3ef665171920534fe39ba576eda85f2f74e49`.
+14. Final pushed HEAD SHA: verified after push and reported in the final handoff. This value cannot be made self-referential inside the final commit without changing the final commit SHA.
 
 ## Independent Reviews
 
@@ -127,4 +127,4 @@ PASS: direct dependencies remain typescript and vitest only
 
 - Baseline HEAD before ticket: `dcc33f7eb1b13a5be866e6b0aed8a8b80c31616a`
 - Implementation commit SHA: `4ccda22db5f12206d69fa446f480f7eb706380f7`
-- Final pushed HEAD SHA: `96f3ef665171920534fe39ba576eda85f2f74e49`
+- Final pushed HEAD SHA: verified after push and reported in the final handoff.
