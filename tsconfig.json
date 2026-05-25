@@ -9,5 +9,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["vite/client", "node"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts", "vite.cli.config.ts"]
 }

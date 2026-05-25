@@ -6,6 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:cli": "vite build --config vite.cli.config.ts",
+    "game:cli": "node scripts/run-cli-entry.mjs game-cli",
+    "sim:smoke": "node scripts/run-cli-entry.mjs simulate-runs --mode smoke",
+    "sim:fuzz": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz",
+    "sim:exhaustive-small": "node scripts/run-cli-entry.mjs simulate-runs --mode exhaustive-small",
+    "sim:replay": "node scripts/run-cli-entry.mjs simulate-runs --mode replay",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "zip:review": "node scripts/create-review-zip.mjs",
