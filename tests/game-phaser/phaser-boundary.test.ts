@@ -127,15 +127,25 @@ describe("Phaser architecture boundary", () => {
     const requiredFiles = [
       "scenes/SceneKeys.ts",
       "scenes/BootScene.ts",
+      "scenes/MapScene.ts",
       "scenes/CombatScene.ts",
+      "scenes/RewardScene.ts",
       "scenes/CoreSmokeScene.ts",
       "layout/game-size.ts",
+      "layout/map-layout.ts",
+      "layout/run-layout.ts",
+      "layout/reward-layout.ts",
       "layout/combat-layout.ts",
       "layout/hand-layout.ts",
       "layout/pet-layout.ts",
+      "controllers/RunSandboxController.ts",
       "controllers/CombatSandboxController.ts",
+      "controllers/run-sandbox-singleton.ts",
+      "view-models/run-view-model.ts",
       "view-models/combat-view-model.ts",
+      "view-models/reward-view-model.ts",
       "animation/CombatEventPlayer.ts",
+      "animation/run-event-messages.ts",
       "debug/core-smoke.ts"
     ];
 
@@ -155,11 +165,13 @@ describe("Phaser architecture boundary", () => {
       "applyPetStoryEvent",
       "createCombat",
       "generateCombatRewardOffer",
+      "claimRunPendingReward",
       "completeRunCombatNode",
       "startCombatForRunNode",
       "createRun",
       "selectRunNode",
       "skipRunPendingReward",
+      "completeRunNonCombatNode",
       "saveToSlot",
       "loadFromSlot",
       "restoreSaveSnapshot"
@@ -170,6 +182,35 @@ describe("Phaser architecture boundary", () => {
       const forbiddenIdentifiers = forbiddenResolverIdentifiers.filter((identifier) => identifiers.has(identifier));
 
       expect(forbiddenIdentifiers, `${relativeFile(file)} references gameplay resolver identifiers`).toEqual([]);
+    }
+  });
+
+  it("keeps RunSandboxController as the only Phaser file with direct lifecycle resolver identifiers", async () => {
+    const sources = await readSourceFiles(gamePhaserRoot);
+    const allowedFile = "src/game-phaser/controllers/RunSandboxController.ts";
+    const resolverIdentifiers = [
+      "playCard",
+      "endPlayerTurn",
+      "resolveEnemyTurn",
+      "claimRunPendingReward",
+      "completeRunCombatNode",
+      "startCombatForRunNode",
+      "createRun",
+      "selectRunNode",
+      "skipRunPendingReward",
+      "completeRunNonCombatNode"
+    ];
+
+    for (const [file, source] of sources) {
+      const relativePath = relativeFile(file);
+      const identifiers = collectIdentifiers(file, source);
+      const found = resolverIdentifiers.filter((identifier) => identifiers.has(identifier));
+
+      if (relativePath === allowedFile) {
+        expect(found.length, `${relativePath} should be the lifecycle bridge`).toBeGreaterThan(0);
+      } else {
+        expect(found, `${relativePath} references direct resolver identifiers`).toEqual([]);
+      }
     }
   });
 
@@ -184,11 +225,17 @@ describe("Phaser architecture boundary", () => {
 
   it("uses central layout constants in scenes", async () => {
     const coreSmokeScene = await readFile(join(sceneRoot, "CoreSmokeScene.ts"), "utf8");
+    const mapScene = await readFile(join(sceneRoot, "MapScene.ts"), "utf8");
     const combatScene = await readFile(join(sceneRoot, "CombatScene.ts"), "utf8");
+    const rewardScene = await readFile(join(sceneRoot, "RewardScene.ts"), "utf8");
 
     expect(coreSmokeScene).toMatch(/from\s+["']\.\.\/layout\/game-size["']/);
     expect(coreSmokeScene).not.toMatch(/\b(1280|720|640|360)\b/);
+    expect(mapScene).toMatch(/from\s+["']\.\.\/layout\/map-layout["']/);
+    expect(mapScene).not.toMatch(/\b(1280|720|640|360)\b/);
     expect(combatScene).toMatch(/from\s+["']\.\.\/layout\/combat-layout["']/);
     expect(combatScene).not.toMatch(/\b(1280|720|640|360)\b/);
+    expect(rewardScene).toMatch(/from\s+["']\.\.\/layout\/reward-layout["']/);
+    expect(rewardScene).not.toMatch(/\b(1280|720|640|360)\b/);
   });
 });

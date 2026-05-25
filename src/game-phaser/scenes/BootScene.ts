@@ -7,6 +7,6 @@ export class BootScene extends Scene {
   }
 
   public create(): void {
-    this.scene.start(SceneKeys.Combat);
+    this.scene.start(SceneKeys.Map);
   }
 }

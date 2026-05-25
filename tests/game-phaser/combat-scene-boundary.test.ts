@@ -17,7 +17,9 @@ const forbiddenResolverIdentifiers = [
   "startCombatForRunNode",
   "createRun",
   "selectRunNode",
+  "claimRunPendingReward",
   "skipRunPendingReward",
+  "completeRunNonCombatNode",
   "saveToSlot",
   "loadFromSlot",
   "restoreSaveSnapshot"
@@ -53,7 +55,7 @@ describe("Combat scene boundary", () => {
     expect((await stat(scenePath)).isFile()).toBe(true);
     const source = await readFile(scenePath, "utf8");
 
-    expect(source).toMatch(/CombatSandboxController/);
+    expect(source).toMatch(/RunSandboxController/);
     expect(source).toMatch(/CardPresenter/);
     expect(source).toMatch(/CombatHudPresenter/);
     expect(source).toMatch(/EventLogPresenter/);

@@ -66,6 +66,14 @@ export const OUTCOME_LABEL = {
   y: GAME_CENTER_Y + 20
 } as const;
 
+export const RESET_RUN_BUTTON = {
+  x: GAME_CENTER_X,
+  y: GAME_CENTER_Y + 88,
+  width: 168,
+  height: 48,
+  fontSize: "17px"
+} as const;
+
 export const HUD_TEXT = {
   x: 16,
   titleY: 14,

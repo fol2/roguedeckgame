@@ -51,12 +51,17 @@ describe("Combat sandbox controller", () => {
     expect(result.state.combat.energy).toBeLessThan(before.energy);
   });
 
-  it("plays untargeted cards without assigning a default target", () => {
+  it("plays an untargeted card without assigning a default target", () => {
     const controller = createCombatSandboxController("controller-untargeted");
-    const focus = controller.getViewModel().hand.find((card) => card.cardId === "focus");
+    const untargeted = controller.getViewModel().hand.find((card) =>
+      card.cardId === "focus" ||
+      card.cardId === "fox_fetch" ||
+      card.cardId === "defend" ||
+      card.cardId === "fox_guard"
+    );
 
-    expect(focus, "expected Focus in opening hand").toBeDefined();
-    const result = controller.playHandCard(focus!.cardInstanceId);
+    expect(untargeted, "expected an untargeted card in opening hand").toBeDefined();
+    const result = controller.playHandCard(untargeted!.cardInstanceId);
 
     expect(result.ok).toBe(true);
     expect(result.events.map((event) => event.type)).toContain("CardPlayed");

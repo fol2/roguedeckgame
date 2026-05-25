@@ -1,0 +1,42 @@
+import type { GameEvent } from "../../game-core";
+
+export const formatRunEventMessage = (event: GameEvent): string => {
+  switch (event.type) {
+    case "RunCreated":
+      return `Run created: ${event.runId}`;
+    case "RunMapGenerated":
+      return `Map generated: ${event.nodeCount} nodes`;
+    case "RunNodeAvailable":
+      return `Node available: ${event.nodeId}`;
+    case "RunNodeSelected":
+      return `Node selected: ${event.nodeId}`;
+    case "RunCombatStarted":
+      return `Combat started: ${event.encounterId}`;
+    case "RunCombatCompleted":
+      return `Combat completed: ${event.outcome}`;
+    case "RunRewardPending":
+      return `Reward pending: ${event.rewardOfferId}`;
+    case "RewardOffered":
+      return `Reward offered: ${event.options.length} options`;
+    case "RewardSelected":
+      return `Reward selected: ${event.rewardOptionId}`;
+    case "RewardSkipped":
+      return `Reward skipped: ${event.rewardOfferId}`;
+    case "CardRewardAdded":
+      return `Card added: ${event.cardId}`;
+    case "PetUpgradeUnlocked":
+      return `Pet upgrade unlocked: ${event.upgradeId}`;
+    case "RunNodeCompleted":
+      return `Node completed: ${event.nodeId}`;
+    case "RunAdvanced":
+      return event.availableNodeIds.length > 0
+        ? `Run advanced: ${event.availableNodeIds.length} node(s) available`
+        : "Run advanced: no nodes available";
+    case "RunEnded":
+      return `Run ended: ${event.outcome}`;
+    case "ActionRejected":
+      return `Rejected: ${event.message}`;
+    default:
+      return `Event: ${event.type}`;
+  }
+};

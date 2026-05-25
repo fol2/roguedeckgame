@@ -1,9 +1,9 @@
 import { Scene, type GameObjects } from "phaser";
 import type { CardInstanceId } from "../../game-core";
 import {
-  createCombatSandboxController,
-  type CombatSandboxController
-} from "../controllers/CombatSandboxController";
+  getRunSandboxController
+} from "../controllers/run-sandbox-singleton";
+import type { RunSandboxController } from "../controllers/RunSandboxController";
 import { CombatEventPlayer } from "../animation/CombatEventPlayer";
 import { CardPresenter } from "../presenters/CardPresenter";
 import { CombatHudPresenter } from "../presenters/CombatHudPresenter";
@@ -15,12 +15,13 @@ import {
   COMBAT_BACKGROUND_COLOUR,
   COMBAT_TEXT,
   COMBAT_TITLE,
-  OUTCOME_LABEL
+  OUTCOME_LABEL,
+  RESET_RUN_BUTTON
 } from "../layout/combat-layout";
 import { SceneKeys } from "./SceneKeys";
 
 export class CombatScene extends Scene {
-  private sandbox?: CombatSandboxController;
+  private sandbox?: RunSandboxController;
   private cardPresenter?: CardPresenter;
   private hudPresenter?: CombatHudPresenter;
   private eventLog?: EventLogPresenter;
@@ -29,6 +30,7 @@ export class CombatScene extends Scene {
   private petPresenter?: PetPresenter;
   private playerPresenter?: PlayerPresenter;
   private outcomeText?: GameObjects.Text;
+  private resetButton?: GameObjects.Container;
   private inputLocked = false;
 
   public constructor() {
@@ -37,13 +39,13 @@ export class CombatScene extends Scene {
 
   public create(): void {
     this.cameras.main.setBackgroundColor(COMBAT_BACKGROUND_COLOUR);
-    this.add.text(COMBAT_TITLE.x, COMBAT_TITLE.y, "Pet Roguelite Combat Sandbox", {
+    this.add.text(COMBAT_TITLE.x, COMBAT_TITLE.y, "Pet Roguelite Combat", {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",
       fontSize: COMBAT_TEXT.titleFontSize
     }).setOrigin(0.5);
 
-    this.sandbox = createCombatSandboxController();
+    this.sandbox = getRunSandboxController();
     this.eventLog = new EventLogPresenter(this);
     this.eventPlayer = new CombatEventPlayer(this, this.eventLog);
     this.playerPresenter = new PlayerPresenter(this);
@@ -60,6 +62,20 @@ export class CombatScene extends Scene {
       fontFamily: "Inter, sans-serif",
       fontSize: COMBAT_TEXT.outcomeFontSize
     }).setOrigin(0.5);
+    this.resetButton = this.add.container(RESET_RUN_BUTTON.x, RESET_RUN_BUTTON.y);
+    this.resetButton.add(this.add.rectangle(0, 0, RESET_RUN_BUTTON.width, RESET_RUN_BUTTON.height, 0x31283f, 1)
+      .setStrokeStyle(2, 0xd8b4fe));
+    this.resetButton.add(this.add.text(0, 0, "New Run", {
+      color: "#f6f1e8",
+      fontFamily: "Inter, sans-serif",
+      fontSize: RESET_RUN_BUTTON.fontSize
+    }).setOrigin(0.5));
+    this.resetButton.setSize(RESET_RUN_BUTTON.width, RESET_RUN_BUTTON.height);
+    this.resetButton.setInteractive();
+    this.resetButton.on("pointerup", () => {
+      this.sandbox?.reset();
+      this.scene.start(SceneKeys.Map);
+    });
 
     this.renderCurrentState();
   }
@@ -81,13 +97,37 @@ export class CombatScene extends Scene {
   }
 
   private async applyAction(
-    result: ReturnType<CombatSandboxController["endTurn"]>
+    result: ReturnType<RunSandboxController["endTurn"]>
   ): Promise<void> {
     this.inputLocked = true;
     this.renderCurrentState(false);
     await this.eventPlayer?.play(result.events);
+    this.renderCurrentState();
+    await this.routeIfCombatEnded();
     this.inputLocked = false;
     this.renderCurrentState();
+  }
+
+  private async routeIfCombatEnded(): Promise<void> {
+    if (!this.sandbox) {
+      return;
+    }
+
+    const viewModel = this.sandbox.getCombatViewModel();
+    if (!viewModel || (viewModel.phase !== "won" && viewModel.phase !== "lost")) {
+      return;
+    }
+
+    const result = this.sandbox.completeCombatIfEnded();
+    this.renderCurrentState(false);
+    await this.eventPlayer?.play(result.events);
+
+    const runStatus = this.sandbox.getState().run.status;
+    if (runStatus === "reward") {
+      this.scene.start(SceneKeys.Reward);
+    } else if (runStatus === "map_select") {
+      this.scene.start(SceneKeys.Map);
+    }
   }
 
   private renderCurrentState(syncEventLog = true): void {
@@ -99,12 +139,19 @@ export class CombatScene extends Scene {
       !this.monsterPresenter ||
       !this.petPresenter ||
       !this.playerPresenter ||
-      !this.outcomeText
+      !this.outcomeText ||
+      !this.resetButton
     ) {
       return;
     }
 
-    const viewModel = this.sandbox.getViewModel();
+    const viewModel = this.sandbox.getCombatViewModel();
+    const runStatus = this.sandbox.getState().run.status;
+    if (!viewModel) {
+      this.scene.start(SceneKeys.Map);
+      return;
+    }
+
     const combatEnded = viewModel.phase === "won" || viewModel.phase === "lost";
     const controlsLocked = this.inputLocked || combatEnded;
 
@@ -117,5 +164,6 @@ export class CombatScene extends Scene {
       this.eventLog.setMessages(viewModel.eventMessages);
     }
     this.outcomeText.setText(combatEnded ? `Combat ${viewModel.phase}` : "");
+    this.resetButton.setVisible(runStatus === "lost" || runStatus === "completed");
   }
 }
