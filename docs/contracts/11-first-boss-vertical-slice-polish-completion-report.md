@@ -4,6 +4,8 @@
 
 Completed the first boss vertical-slice polish contract with data-driven Act 1 Forest elite and boss content, controller-mediated browser run flow, placeholder UI clarity improvements, and vertical-slice tests.
 
+Phase 1 closeout patch note: post-Ticket 11 review ZIP validation exposed CRLF-sensitive static boundary assertions. The closeout patch keeps Ticket 11's gameplay scope unchanged and hardens only repository portability, report evidence, and review ZIP validation.
+
 ## Changed File Tree
 
 ```txt
@@ -34,6 +36,12 @@ tests/game-core/vertical-slice-content.test.ts
 tests/game-core/vertical-slice-run-flow.test.ts
 tests/game-phaser/vertical-slice-controller.test.ts
 tests/game-phaser/vertical-slice-view-model.test.ts
+.gitattributes
+tests/game-phaser/combat-scene-boundary.test.ts
+tests/game-phaser/map-scene-boundary.test.ts
+tests/game-phaser/phaser-boundary.test.ts
+tests/game-phaser/reward-scene-boundary.test.ts
+docs/contracts/phase1-closeout-patch-completion-report.md
 ```
 
 ## Delivered
@@ -47,29 +55,32 @@ tests/game-phaser/vertical-slice-view-model.test.ts
 - Kept all combat/reward/run lifecycle resolver calls behind `RunSandboxController`.
 - Added vertical-slice content, run-flow, controller, and view-model tests.
 - Copied the contract into the implementation contract file and added the plan.
+- Added repository line-ending policy with LF text normalisation.
+- Normalised raw source text before static Phaser boundary assertions, including CRLF extracted review ZIP cases.
+- Added the Phase 1 closeout patch report.
 
 ## Verification
 
 ```txt
 npm ci
-Result: passed; 50 packages installed/audited; 0 vulnerabilities.
+Result: passed; 49 packages installed, 50 packages audited, 0 vulnerabilities.
 
 npm run typecheck
 Result: passed.
 
 npm test
-Result: passed; 49 test files, 394 tests.
+Result: passed; 49 test files, 395 tests.
 
 npm run build
 Result: passed; Vite build completed.
 Output highlights:
-dist/index.html 0.41 kB gzip 0.28 kB
+dist/index.html 0.42 kB gzip 0.28 kB
 dist/assets/index-CiFIGUGT.css 0.57 kB gzip 0.35 kB
-dist/assets/index-Bp5Onll9.js 1,476.48 kB gzip 379.93 kB
+dist/assets/index-DtpsJkmP.js 1,476.67 kB gzip 379.96 kB
 
 npm run smoke:localhost
 Result: passed; localhost smoke served registry validation evidence.
-Smoke URL shown by test: http://127.0.0.1:54673/health
+Smoke URL shown by test: http://127.0.0.1:55689/health
 
 npm audit --audit-level=moderate
 Result: passed; 0 vulnerabilities.
@@ -85,7 +96,15 @@ Result: phaser@4.1.0 and vite@8.0.14.
 
 npm ls --depth=0 --omit=dev
 Result: only phaser@4.1.0.
+
+Generated review ZIP
+Result: generated from clean HEAD after the closeout commit. The exact path uses the final short SHA and is recorded in the Phase 1 closeout hand-off.
+
+Extracted review ZIP validation
+Result: required to pass without any manual line-ending normalisation. Evidence is recorded in the Phase 1 closeout hand-off.
 ```
+
+The immutable final pushed SHA cannot be embedded inside the same commit that contains this report without changing that SHA. The final pushed SHA is therefore reported in the Phase 1 closeout hand-off after commit and push.
 
 ## Localhost Evidence
 
@@ -134,6 +153,8 @@ The Vite dev server was stopped afterwards. Port 5173 had no listener after shut
 
 No final art, asset generation, audio, save UI, story UI, card upgrade UI, relics, meta-currency, deployment packaging, React integration, generic boss scripting engine, or new production dependency was implemented.
 
+The closeout patch added no new gameplay feature, balance change, card, pet, monster, boss, reward, map node, save feature, or story content.
+
 ## Independent Review
 
 - Code reviewer initially returned RED for browser loss completion, stale boss-win combat state, and missing completion report.
@@ -146,5 +167,5 @@ No final art, asset generation, audio, save UI, story UI, card upgrade UI, relic
 
 ## Final Release Notes
 
-- Final pushed commit SHA is reported in the final user response because the commit containing this report cannot contain its own final SHA.
-- Review ZIP is generated from clean `HEAD` after commit and reported in the final user response.
+- Final pushed commit SHA is reported in the Phase 1 closeout hand-off because the commit containing this report cannot contain its own final SHA.
+- Review ZIP is generated from clean `HEAD` after commit and reported in the Phase 1 closeout hand-off.

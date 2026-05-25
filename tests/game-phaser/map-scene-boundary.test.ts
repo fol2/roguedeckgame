@@ -6,6 +6,11 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const scenePath = join(root, "src/game-phaser/scenes/MapScene.ts");
 
+const normaliseLineEndings = (source: string): string => source.replace(/\r\n/g, "\n");
+
+const readSource = async (path: string): Promise<string> =>
+  normaliseLineEndings(await readFile(path, "utf8"));
+
 const forbiddenResolverIdentifiers = [
   "playCard",
   "resolveEnemyTurn",
@@ -59,7 +64,7 @@ const collectModuleSpecifiers = (file: string, source: string): readonly string[
 describe("Map scene boundary", () => {
   it("creates MapScene and imports controller, presenters, and layout", async () => {
     expect((await stat(scenePath)).isFile()).toBe(true);
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
 
     expect(source).toMatch(/getRunSandboxController/);
     expect(source).toMatch(/MapNodePresenter/);
@@ -68,7 +73,7 @@ describe("Map scene boundary", () => {
   });
 
   it("imports only Phaser, scene keys, controller, view model, presenters, and layout", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
     const moduleSpecifiers = collectModuleSpecifiers(scenePath, source);
 
     expect(moduleSpecifiers).toEqual([
@@ -85,7 +90,7 @@ describe("Map scene boundary", () => {
   });
 
   it("keeps MapScene free from direct game-core resolver identifiers", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
     const identifiers = collectIdentifiers(scenePath, source);
     const forbidden = forbiddenResolverIdentifiers.filter((identifier) => identifiers.has(identifier));
 
@@ -93,23 +98,23 @@ describe("Map scene boundary", () => {
   });
 
   it("uses map and run layout helpers without hard-coded game-size coordinates", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
 
     expect(source).toMatch(/layout\/map-layout/);
     expect(source).not.toMatch(/\b(1280|720|640|360)\b/);
   });
 
   it("resets input locks before scene reuse and before combat routing", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
 
-    expect(source).toMatch(/public create\(\): void \{\r?\n\s+this\.inputLocked = false;/);
-    expect(source).toMatch(/this\.inputLocked = false;\r?\n\s+this\.scene\.start\(SceneKeys\.Combat\)/);
+    expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
+    expect(source).toMatch(/this\.inputLocked = false;\n\s+this\.scene\.start\(SceneKeys\.Combat\)/);
   });
 
   it("routes intermediate reward and combat states away from the map", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
 
-    expect(source).toMatch(/if \(run\.status === "reward" && this\.sandbox\.getRewardViewModel\(\)\) \{\r?\n\s+this\.scene\.start\(SceneKeys\.Reward\);\r?\n\s+return;\r?\n\s+\}/);
-    expect(source).toMatch(/if \(run\.status === "combat" && this\.sandbox\.getCombatViewModel\(\)\) \{\r?\n\s+this\.scene\.start\(SceneKeys\.Combat\);\r?\n\s+return;\r?\n\s+\}/);
+    expect(source).toMatch(/if \(run\.status === "reward" && this\.sandbox\.getRewardViewModel\(\)\) \{\n\s+this\.scene\.start\(SceneKeys\.Reward\);\n\s+return;\n\s+\}/);
+    expect(source).toMatch(/if \(run\.status === "combat" && this\.sandbox\.getCombatViewModel\(\)\) \{\n\s+this\.scene\.start\(SceneKeys\.Combat\);\n\s+return;\n\s+\}/);
   });
 });

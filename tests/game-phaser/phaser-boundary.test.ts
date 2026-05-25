@@ -10,6 +10,8 @@ const gamePhaserRoot = join(sourceRoot, "game-phaser");
 const sceneRoot = join(gamePhaserRoot, "scenes");
 const coreSmokePath = join(gamePhaserRoot, "debug", "core-smoke.ts");
 
+const normaliseLineEndings = (source: string): string => source.replace(/\r\n/g, "\n");
+
 const listTypeScriptFiles = async (directory: string): Promise<readonly string[]> => {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = await Promise.all(entries.map(async (entry) => {
@@ -29,7 +31,7 @@ const readSourceFiles = async (directory: string): Promise<ReadonlyMap<string, s
   const files = await listTypeScriptFiles(directory);
   const pairs = await Promise.all(files.map(async (file) => [
     file,
-    await readFile(file, "utf8")
+    normaliseLineEndings(await readFile(file, "utf8"))
   ] as const));
 
   return new Map(pairs);
@@ -215,7 +217,7 @@ describe("Phaser architecture boundary", () => {
   });
 
   it("keeps the core smoke helper pure from Phaser imports", async () => {
-    const source = await readFile(coreSmokePath, "utf8");
+    const source = normaliseLineEndings(await readFile(coreSmokePath, "utf8"));
     const phaserSpecifiers = collectModuleSpecifiers(coreSmokePath, source)
       .filter((specifier) => specifier === "phaser" || specifier.startsWith("phaser/"));
 
@@ -224,10 +226,10 @@ describe("Phaser architecture boundary", () => {
   });
 
   it("uses central layout constants in scenes", async () => {
-    const coreSmokeScene = await readFile(join(sceneRoot, "CoreSmokeScene.ts"), "utf8");
-    const mapScene = await readFile(join(sceneRoot, "MapScene.ts"), "utf8");
-    const combatScene = await readFile(join(sceneRoot, "CombatScene.ts"), "utf8");
-    const rewardScene = await readFile(join(sceneRoot, "RewardScene.ts"), "utf8");
+    const coreSmokeScene = normaliseLineEndings(await readFile(join(sceneRoot, "CoreSmokeScene.ts"), "utf8"));
+    const mapScene = normaliseLineEndings(await readFile(join(sceneRoot, "MapScene.ts"), "utf8"));
+    const combatScene = normaliseLineEndings(await readFile(join(sceneRoot, "CombatScene.ts"), "utf8"));
+    const rewardScene = normaliseLineEndings(await readFile(join(sceneRoot, "RewardScene.ts"), "utf8"));
 
     expect(coreSmokeScene).toMatch(/from\s+["']\.\.\/layout\/game-size["']/);
     expect(coreSmokeScene).not.toMatch(/\b(1280|720|640|360)\b/);

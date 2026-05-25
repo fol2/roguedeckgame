@@ -6,6 +6,11 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const scenePath = join(root, "src/game-phaser/scenes/RewardScene.ts");
 
+const normaliseLineEndings = (source: string): string => source.replace(/\r\n/g, "\n");
+
+const readSource = async (path: string): Promise<string> =>
+  normaliseLineEndings(await readFile(path, "utf8"));
+
 const forbiddenResolverIdentifiers = [
   "playCard",
   "resolveEnemyTurn",
@@ -59,7 +64,7 @@ const collectModuleSpecifiers = (file: string, source: string): readonly string[
 describe("Reward scene boundary", () => {
   it("creates RewardScene and imports controller, presenters, and layout", async () => {
     expect((await stat(scenePath)).isFile()).toBe(true);
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
 
     expect(source).toMatch(/getRunSandboxController/);
     expect(source).toMatch(/RewardOptionPresenter/);
@@ -68,7 +73,7 @@ describe("Reward scene boundary", () => {
   });
 
   it("imports only Phaser, scene keys, controller, view model, presenters, and layout", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
     const moduleSpecifiers = collectModuleSpecifiers(scenePath, source);
 
     expect(moduleSpecifiers).toEqual([
@@ -85,7 +90,7 @@ describe("Reward scene boundary", () => {
   });
 
   it("keeps RewardScene free from direct game-core resolver identifiers", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
     const identifiers = collectIdentifiers(scenePath, source);
     const forbidden = forbiddenResolverIdentifiers.filter((identifier) => identifiers.has(identifier));
 
@@ -93,16 +98,16 @@ describe("Reward scene boundary", () => {
   });
 
   it("uses reward and run layout helpers without hard-coded game-size coordinates", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
 
     expect(source).toMatch(/layout\/reward-layout/);
     expect(source).not.toMatch(/\b(1280|720|640|360)\b/);
   });
 
   it("resets input locks before scene reuse and reward routing", async () => {
-    const source = await readFile(scenePath, "utf8");
+    const source = await readSource(scenePath);
 
-    expect(source).toMatch(/public create\(\): void \{\r?\n\s+this\.inputLocked = false;/);
-    expect(source).toMatch(/private routeAfterReward\(\): void \{\r?\n\s+this\.inputLocked = false;/);
+    expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
+    expect(source).toMatch(/private routeAfterReward\(\): void \{\n\s+this\.inputLocked = false;/);
   });
 });
