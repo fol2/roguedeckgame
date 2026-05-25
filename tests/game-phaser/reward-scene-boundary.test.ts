@@ -102,7 +102,7 @@ describe("Reward scene boundary", () => {
   it("resets input locks before scene reuse and reward routing", async () => {
     const source = await readFile(scenePath, "utf8");
 
-    expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
-    expect(source).toMatch(/private routeAfterReward\(\): void \{\n\s+this\.inputLocked = false;/);
+    expect(source).toMatch(/public create\(\): void \{\r?\n\s+this\.inputLocked = false;/);
+    expect(source).toMatch(/private routeAfterReward\(\): void \{\r?\n\s+this\.inputLocked = false;/);
   });
 });

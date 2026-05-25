@@ -35,7 +35,7 @@ const readSourceFiles = async (directory: string): Promise<ReadonlyMap<string, s
   return new Map(pairs);
 };
 
-const relativeFile = (file: string): string => relative(root, file);
+const relativeFile = (file: string): string => relative(root, file).replaceAll("\\", "/");
 
 const parseSource = (file: string, source: string): ts.SourceFile =>
   ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
