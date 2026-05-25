@@ -1,3 +1,4 @@
+import { readdirSync, statSync, unlinkSync } from 'node:fs';
 import { dirname, basename, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -43,6 +44,27 @@ function run(command, commandArgs, options = {}) {
   return result.stdout?.trim() ?? '';
 }
 
+function removeOldReviewZips(parentDir, repoName, currentOutputPath) {
+  const currentOutputName = basename(currentOutputPath);
+  const reviewZipPrefix = `${repoName}-review-`;
+
+  const removedFiles = readdirSync(parentDir)
+    .filter((fileName) => {
+      return (
+        fileName !== currentOutputName &&
+        fileName.startsWith(reviewZipPrefix) &&
+        fileName.endsWith('.zip')
+      );
+    })
+    .filter((fileName) => statSync(resolve(parentDir, fileName)).isFile());
+
+  for (const fileName of removedFiles) {
+    unlinkSync(resolve(parentDir, fileName));
+  }
+
+  return removedFiles;
+}
+
 function main() {
   if (helpRequested) {
     printHelp();
@@ -85,6 +107,12 @@ function main() {
   );
 
   run('zip', ['-T', outputPath], { cwd: repoRoot, stdio: 'inherit' });
+
+  const removedFiles = removeOldReviewZips(parentDir, repoName, outputPath);
+
+  for (const fileName of removedFiles) {
+    console.log(`Removed old review ZIP: ${resolve(parentDir, fileName)}`);
+  }
 
   console.log(`Created review ZIP: ${outputPath}`);
 }
