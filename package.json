@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "zip:review": "node scripts/create-review-zip.mjs",
     "smoke:localhost": "vitest run tests/game-core/localhost-smoke.test.js --reporter=verbose",
@@ -11,7 +14,12 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/node": "^22.19.19",
     "typescript": "^5.9.3",
+    "vite": "^8.0.14",
     "vitest": "^4.1.6"
+  },
+  "dependencies": {
+    "phaser": "^4.1.0"
   }
 }
