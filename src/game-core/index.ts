@@ -1,5 +1,7 @@
 export * from "./ids";
+export * from "./model/action";
 export * from "./model/card";
+export * from "./model/combat";
 export * from "./model/effect";
 export * from "./model/event";
 export * from "./model/monster";
@@ -11,5 +13,8 @@ export * from "./model/run";
 export * from "./model/status";
 export * from "./model/story";
 export * from "./data/registry";
+export * from "./systems/combat";
+export * from "./systems/draw";
+export * from "./systems/effects";
 export * from "./systems/rng";
 export * from "./systems/validation";

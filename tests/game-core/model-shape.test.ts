@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardId,
+  cardInstanceId,
   combatantId,
   petInstanceId,
   storyFlagId,
@@ -48,20 +49,40 @@ describe("model shape", () => {
 
   it("keeps GameEvent objects serializable as plain data", () => {
     const events: readonly GameEvent[] = [
-      { type: "CardPlayed", cardId: cardId("fox_bite"), sourceId: combatantId("player") },
+      {
+        type: "CardPlayed",
+        cardInstanceId: cardInstanceId("fox_bite:1"),
+        cardId: cardId("fox_bite"),
+        sourceId: combatantId("player")
+      },
       { type: "EnergySpent", amount: 1, remaining: 2 },
-      { type: "CardDrawn", cardId: cardId("focus") },
-      { type: "CardMoved", cardId: cardId("focus"), from: "draw", to: "hand" },
+      { type: "CardDrawn", cardInstanceId: cardInstanceId("focus:1"), cardId: cardId("focus") },
+      {
+        type: "CardMoved",
+        cardInstanceId: cardInstanceId("focus:1"),
+        cardId: cardId("focus"),
+        from: "draw",
+        to: "hand"
+      },
       {
         type: "DamageDealt",
         sourceId: combatantId("player"),
         targetId: combatantId("training_slime"),
-        amount: 5
+        amount: 5,
+        blocked: 0
       },
-      { type: "BlockGained", targetId: combatantId("player"), amount: 5 },
+      { type: "BlockGained", targetId: combatantId("player"), amount: 5, total: 5 },
       { type: "StatusApplied", targetId: combatantId("training_slime"), statusId: statusId("burn"), stacks: 2 },
-      { type: "PetCommanded", petInstanceId: petInstanceId("ember_fox_001"), cardId: cardId("fox_bite") },
+      {
+        type: "PetCommanded",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        cardInstanceId: cardInstanceId("fox_bite:1"),
+        cardId: cardId("fox_bite")
+      },
       { type: "PetReacted", petInstanceId: petInstanceId("ember_fox_001"), reaction: "guard" },
+      { type: "DeckShuffled", from: "deck", to: "draw", count: 3 },
+      { type: "ActionRejected", code: "sample", message: "Sample rejection" },
+      { type: "CombatantDefeated", combatantId: combatantId("training_slime") },
       { type: "RewardOffered", upgradeIds: [] },
       { type: "StoryFlagSet", flagId: storyFlagId("ember_fox_memory_01_unlocked") },
       { type: "ValidationWarning", code: "sample", message: "Sample warning" }
