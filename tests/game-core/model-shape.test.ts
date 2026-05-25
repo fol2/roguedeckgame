@@ -12,6 +12,9 @@ import {
   upgradeId,
   type GameEvent,
   petModifierId,
+  runMapId,
+  runNodeId,
+  encounterId,
   type PetTarget,
   validateRunStateShape
 } from "../../src/game-core";
@@ -111,6 +114,27 @@ describe("model shape", () => {
       { type: "DeckShuffled", from: "deck", to: "draw", count: 3 },
       { type: "ActionRejected", code: "sample", message: "Sample rejection" },
       { type: "CombatantDefeated", combatantId: combatantId("training_slime") },
+      {
+        type: "RunCreated",
+        runId: createRunFixture().id,
+        seed: "shape-seed",
+        playerClassId: createRunFixture().playerClassId,
+        activePetInstanceIds: [petInstanceId("ember_fox_001")]
+      },
+      { type: "RunMapGenerated", runMapId: runMapId("shape_map"), nodeCount: 2 },
+      { type: "RunNodeAvailable", nodeId: runNodeId("shape_node_1") },
+      { type: "RunNodeSelected", nodeId: runNodeId("shape_node_1") },
+      {
+        type: "RunCombatStarted",
+        nodeId: runNodeId("shape_node_1"),
+        encounterId: encounterId("shape_encounter"),
+        combatId: createRunFixture().id
+      },
+      { type: "RunCombatCompleted", nodeId: runNodeId("shape_node_1"), outcome: "won" },
+      { type: "RunRewardPending", nodeId: runNodeId("shape_node_1"), rewardOfferId: rewardOfferId("shape_reward") },
+      { type: "RunNodeCompleted", nodeId: runNodeId("shape_node_1") },
+      { type: "RunAdvanced", availableNodeIds: [runNodeId("shape_node_2")] },
+      { type: "RunEnded", outcome: "completed" },
       {
         type: "RewardOffered",
         rewardOfferId: rewardOfferId("reward_fixture"),

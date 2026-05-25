@@ -19,6 +19,10 @@ export type RelicId = Brand<string, "RelicId">;
 export type PetMemoryId = Brand<string, "PetMemoryId">;
 export type EvolutionNodeId = Brand<string, "EvolutionNodeId">;
 export type PetModifierId = Brand<string, "PetModifierId">;
+export type RunMapId = Brand<string, "RunMapId">;
+export type RunNodeId = Brand<string, "RunNodeId">;
+export type EncounterId = Brand<string, "EncounterId">;
+export type RunTemplateId = Brand<string, "RunTemplateId">;
 
 export const cardId = (value: string): CardId => value as CardId;
 export const cardInstanceId = (value: string): CardInstanceId => value as CardInstanceId;
@@ -39,3 +43,7 @@ export const relicId = (value: string): RelicId => value as RelicId;
 export const petMemoryId = (value: string): PetMemoryId => value as PetMemoryId;
 export const evolutionNodeId = (value: string): EvolutionNodeId => value as EvolutionNodeId;
 export const petModifierId = (value: string): PetModifierId => value as PetModifierId;
+export const runMapId = (value: string): RunMapId => value as RunMapId;
+export const runNodeId = (value: string): RunNodeId => value as RunNodeId;
+export const encounterId = (value: string): EncounterId => value as EncounterId;
+export const runTemplateId = (value: string): RunTemplateId => value as RunTemplateId;

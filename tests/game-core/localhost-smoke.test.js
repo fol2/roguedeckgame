@@ -2,10 +2,16 @@ import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   claimReward,
+  completeRunCombatNode,
   createCombat,
+  createRun,
   createRng,
   generateCombatRewardOffer,
+  playerClassId,
   playCard,
+  selectRunNode,
+  skipRunPendingReward,
+  startCombatForRunNode,
   starterRegistry,
   upgradeId,
   validateRegistry
@@ -58,6 +64,43 @@ describe("localhost smoke", () => {
       const validation = validateRegistry(starterRegistry);
       const run = createRewardRunFixture();
       const petInstances = createRewardPetInstancesFixture();
+      const createdRun = createRun({
+        seed: "localhost-smoke-run",
+        playerClassId: playerClassId("novice_tamer"),
+        activePetInstanceIds: [petInstances[0].id],
+        petInstances,
+        registry: starterRegistry
+      });
+      const firstRunNode = createdRun.state.map?.nodes.find((node) => node.status === "available" && node.type === "combat");
+      const selectedRunNode = firstRunNode ? selectRunNode(createdRun.state, firstRunNode.id) : undefined;
+      const runCombat = selectedRunNode
+        ? startCombatForRunNode({
+            run: selectedRunNode.state,
+            registry: starterRegistry,
+            petInstances,
+            seed: "localhost-smoke-run-combat"
+          })
+        : undefined;
+      const wonRunCombat = runCombat
+        ? {
+            ...runCombat.state,
+            phase: "won",
+            monsters: runCombat.state.monsters.map((monster) => ({ ...monster, hp: 0, alive: false })),
+            monsterIntents: []
+          }
+        : undefined;
+      const completedRunCombat = selectedRunNode && wonRunCombat
+        ? completeRunCombatNode({
+            run: selectedRunNode.state,
+            combat: wonRunCombat,
+            registry: starterRegistry,
+            petInstances,
+            rewardSeed: "localhost-smoke-run-reward"
+          })
+        : undefined;
+      const settledRunReward = completedRunCombat
+        ? skipRunPendingReward({ run: completedRunCombat.state, petInstances })
+        : undefined;
       const reward = generateCombatRewardOffer({
         combat: createWonCombatFixture(),
         run,
@@ -124,6 +167,21 @@ describe("localhost smoke", () => {
             claimOk: claim?.ok ?? false,
             claimedDeckCards: claim?.state.run.deckCardIds.length ?? run.deckCardIds.length
           },
+          runLifecycle: {
+            createdOk: createdRun.ok,
+            initialAvailableLayers: createdRun.state.map?.nodes
+              .filter((node) => node.status === "available")
+              .map((node) => node.layer),
+            selectedOk: selectedRunNode?.ok ?? false,
+            combatOk: runCombat?.ok ?? false,
+            completedStatus: completedRunCombat?.state.status,
+            pendingRewardStatus: completedRunCombat?.state.pendingRewardOffer?.status,
+            settledOk: settledRunReward?.ok ?? false,
+            advancedStatus: settledRunReward?.state.run.status,
+            availableAfterSettlement: settledRunReward?.state.run.map?.nodes
+              .filter((node) => node.status === "available")
+              .map((node) => node.id)
+          },
           modifier: {
             upgradeClaimOk: upgradeClaim.ok,
             combatOk: combat.ok,
@@ -165,6 +223,16 @@ describe("localhost smoke", () => {
         options: 4,
         claimOk: true,
         claimedDeckCards: 4
+      },
+      runLifecycle: {
+        createdOk: true,
+        initialAvailableLayers: [0, 0],
+        selectedOk: true,
+        combatOk: true,
+        completedStatus: "reward",
+        pendingRewardStatus: "open",
+        settledOk: true,
+        advancedStatus: "map_select"
       },
       modifier: {
         upgradeClaimOk: true,

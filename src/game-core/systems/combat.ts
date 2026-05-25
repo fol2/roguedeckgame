@@ -323,6 +323,10 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     );
   }
 
+  if (input.monsterIds.length === 0) {
+    return rejectCreate(input, error("missing_monster_ids", "Combat requires at least one monster.", "monsterIds"));
+  }
+
   const runPetStates: RunPetState[] = [];
   for (const petInstance of activePetInstances as readonly PetInstance[]) {
     const runPetStateResult = createRunPetStateWithActiveModifiers(petInstance, input.registry);

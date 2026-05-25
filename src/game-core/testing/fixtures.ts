@@ -14,6 +14,7 @@ export const createRunFixture = (overrides: Partial<RunState> = {}): RunState =>
   seed: "fixture-seed",
   playerClassId: playerClassId("novice_tamer"),
   activePetInstanceIds: [petInstanceId("ember_fox_001")],
+  status: "not_started",
   deckCardIds: [cardId("strike"), cardId("defend"), cardId("fox_bite")],
   runFlags: [],
   storyFlags: [storyFlagId("ember_fox_memory_01_unlocked")],

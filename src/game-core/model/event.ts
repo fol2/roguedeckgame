@@ -3,10 +3,15 @@ import type {
   CardInstanceId,
   CombatantId,
   MonsterIntentId,
+  EncounterId,
   PetModifierId,
   PetInstanceId,
+  PlayerClassId,
   RewardOfferId,
   RewardOptionId,
+  RunId,
+  RunMapId,
+  RunNodeId,
   StatusId,
   StoryFlagId,
   UpgradeId
@@ -17,6 +22,27 @@ import type { RewardOption } from "./reward";
 export type CardPile = "draw" | "hand" | "discard" | "exhaust";
 
 export type GameEvent =
+  | {
+      readonly type: "RunCreated";
+      readonly runId: RunId;
+      readonly seed: string | number;
+      readonly playerClassId: PlayerClassId;
+      readonly activePetInstanceIds: readonly PetInstanceId[];
+    }
+  | { readonly type: "RunMapGenerated"; readonly runMapId: RunMapId; readonly nodeCount: number }
+  | { readonly type: "RunNodeAvailable"; readonly nodeId: RunNodeId }
+  | { readonly type: "RunNodeSelected"; readonly nodeId: RunNodeId }
+  | {
+      readonly type: "RunCombatStarted";
+      readonly nodeId: RunNodeId;
+      readonly encounterId: EncounterId;
+      readonly combatId: RunId;
+    }
+  | { readonly type: "RunCombatCompleted"; readonly nodeId: RunNodeId; readonly outcome: "won" | "lost" }
+  | { readonly type: "RunRewardPending"; readonly nodeId: RunNodeId; readonly rewardOfferId: RewardOfferId }
+  | { readonly type: "RunNodeCompleted"; readonly nodeId: RunNodeId }
+  | { readonly type: "RunAdvanced"; readonly availableNodeIds: readonly RunNodeId[] }
+  | { readonly type: "RunEnded"; readonly outcome: "completed" | "lost" }
   | { readonly type: "CombatStarted"; readonly combatId: string; readonly seed: string | number }
   | { readonly type: "TurnStarted"; readonly turnNumber: number; readonly actorId: CombatantId }
   | { readonly type: "TurnEnded"; readonly turnNumber: number; readonly actorId: CombatantId }

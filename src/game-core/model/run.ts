@@ -5,6 +5,16 @@ import type {
   RunId,
   StoryFlagId
 } from "../ids";
+import type { RewardOfferState } from "./reward";
+import type { RunMapState } from "./run-map";
+
+export type RunStatus =
+  | "not_started"
+  | "map_select"
+  | "combat"
+  | "reward"
+  | "completed"
+  | "lost";
 
 export type RunConfig = {
   readonly seed: string | number;
@@ -17,6 +27,9 @@ export type RunState = {
   readonly seed: string | number;
   readonly playerClassId: PlayerClassId;
   readonly activePetInstanceIds: readonly PetInstanceId[];
+  readonly status: RunStatus;
+  readonly map?: RunMapState;
+  readonly pendingRewardOffer?: RewardOfferState;
   readonly deckCardIds: readonly CardId[];
   readonly runFlags: readonly string[];
   readonly storyFlags: readonly StoryFlagId[];
