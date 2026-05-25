@@ -110,4 +110,33 @@ describe("pet modifier reward integration", () => {
     expect(result.ok).toBe(false);
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_pet_modifier"]);
   });
+
+  it("rejects active modifier definitions with non-string ids during combat creation", () => {
+    const result = createCombat({
+      run: createRunFixture(),
+      registry: {
+        ...starterRegistry,
+        petUpgrades: starterRegistry.petUpgrades.map((upgrade) =>
+          upgrade.id === upgradeId("burning_fang")
+            ? {
+                ...upgrade,
+                modifiers: [
+                  {
+                    ...upgrade.modifiers[0],
+                    id: 123 as unknown as typeof upgrade.modifiers[0]["id"]
+                  }
+                ]
+              }
+            : upgrade
+        )
+      },
+      petInstances: [createEmberFoxInstanceFixture({ unlockedUpgradeIds: [upgradeId("burning_fang")] })],
+      monsterIds: [monsterId("training_slime")],
+      seed: "invalid-modifier-id",
+      openingHandSize: 0
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_pet_modifier"]);
+  });
 });

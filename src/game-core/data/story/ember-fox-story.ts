@@ -13,9 +13,11 @@ export const emberFoxSideStory: StoryEventDefinition = {
   title: "Burned Orchard",
   description: "A small memory hook for Ember Fox's first side story.",
   tags: ["pet", "fox", "memory", "burn"],
+  trigger: "nodeCompleted",
   requirements: [
     { type: "playerClassIs", playerClassId: playerClassId("novice_tamer") },
-    { type: "activePetHasTag", tag: "fox" }
+    { type: "activePetHasTag", tag: "fox" },
+    { type: "lacksPetStoryFlag", flagId: storyFlagId("ember_fox_memory_01_unlocked") }
   ],
   outcomes: [
     {
@@ -29,6 +31,10 @@ export const emberFoxSideStory: StoryEventDefinition = {
     {
       type: "unlockPetUpgrade",
       upgradeId: upgradeId("warm_bond")
+    },
+    {
+      type: "addBondXp",
+      amount: 1
     }
   ]
 };

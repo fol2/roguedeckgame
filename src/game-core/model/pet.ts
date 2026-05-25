@@ -95,8 +95,10 @@ export type PetInstance = {
   readonly bondXp: number;
   readonly unlockedUpgradeIds: readonly UpgradeId[];
   readonly chosenEvolutionNodeIds: readonly EvolutionNodeId[];
+  readonly unlockedEvolutionNodeIds?: readonly EvolutionNodeId[];
   readonly unlockedMemoryIds: readonly PetMemoryId[];
   readonly storyFlags: readonly StoryFlagId[];
+  readonly seenStoryEventIds?: readonly StoryEventId[];
 };
 
 export type RunPetState = {

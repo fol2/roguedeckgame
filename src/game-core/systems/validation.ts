@@ -6,6 +6,7 @@ import type { PetModifierRule } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import type { RunNodeType } from "../model/run-map";
+import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
 import { burnStatusDefinition } from "../model/status";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
 
@@ -358,8 +359,63 @@ type EncounterCandidate = {
   readonly monsterIds?: unknown;
 };
 
+type StoryEventCandidate = {
+  readonly id?: unknown;
+  readonly trigger?: unknown;
+  readonly repeatable?: unknown;
+  readonly requirements?: unknown;
+  readonly outcomes?: unknown;
+};
+
+type PetSideStoryCandidate = {
+  readonly id?: unknown;
+  readonly petDefinitionId?: unknown;
+  readonly memoryIds?: unknown;
+  readonly storyFlagIds?: unknown;
+  readonly events?: unknown;
+};
+
+type PetUpgradeCandidate = {
+  readonly id?: unknown;
+  readonly petDefinitionId?: unknown;
+  readonly modifiers?: unknown;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
+
+const isString = (value: unknown): value is string => typeof value === "string";
+
+const storyRequirementTypes = new Set<StoryRequirement["type"]>([
+  "petBondAtLeast",
+  "hasPetMemory",
+  "bossDefeated",
+  "chapterUnlocked",
+  "hasSeenEvent",
+  "activePetHasTag",
+  "playerClassIs",
+  "hasPetStoryFlag",
+  "lacksPetStoryFlag",
+  "runStatusIs",
+  "completedRunNodeType"
+]);
+
+const storyOutcomeTypes = new Set<StoryOutcome["type"]>([
+  "setStoryFlag",
+  "unlockPetMemory",
+  "unlockPetUpgrade",
+  "unlockEvolutionNode",
+  "addBondXp",
+  "markStoryEventSeen"
+]);
+
+const storyTriggers = new Set<StoryTrigger>([
+  "manual",
+  "runCreated",
+  "combatWon",
+  "nodeCompleted",
+  "runCompleted"
+]);
 
 const isRunMapNodeCandidate = (value: unknown): value is RunMapNodeCandidate =>
   isRecord(value);
@@ -709,98 +765,467 @@ const validateRunMapTemplates = (registry: GameContentRegistry): ValidationIssue
 };
 
 export const validateRegistry = (registry: GameContentRegistry): ValidationResult => {
+  if (!isRecord(registry)) {
+    const invalidRegistry = [
+      issue("error", "invalid_registry", "Registry must be an object.", "registry")
+    ];
+
+    return {
+      issues: invalidRegistry,
+      errors: invalidRegistry,
+      warnings: []
+    };
+  }
+
+  const registryRecord = registry as unknown as {
+    readonly cards?: unknown;
+    readonly pets?: unknown;
+    readonly players?: unknown;
+    readonly monsters?: unknown;
+    readonly encounters?: unknown;
+    readonly runMapTemplates?: unknown;
+    readonly petUpgrades?: unknown;
+    readonly petModifiers?: unknown;
+    readonly storyEvents?: unknown;
+    readonly petSideStories?: unknown;
+  };
+
   const issues: ValidationIssue[] = [
-    ...findDuplicateIds("cards", registry.cards),
-    ...findDuplicateIds("pets", registry.pets),
-    ...findDuplicateIds("players", registry.players),
-    ...findDuplicateIds("monsters", registry.monsters),
-    ...findDuplicateIds("encounters", registry.encounters),
-    ...findDuplicateIds("runMapTemplates", registry.runMapTemplates),
-    ...findDuplicateIds("petUpgrades", registry.petUpgrades),
-    ...findDuplicateIds("storyEvents", registry.storyEvents),
-    ...findDuplicateIds("petSideStories", registry.petSideStories)
+    ...findDuplicateIds("cards", registryRecord.cards),
+    ...findDuplicateIds("pets", registryRecord.pets),
+    ...findDuplicateIds("players", registryRecord.players),
+    ...findDuplicateIds("monsters", registryRecord.monsters),
+    ...findDuplicateIds("encounters", registryRecord.encounters),
+    ...findDuplicateIds("runMapTemplates", registryRecord.runMapTemplates),
+    ...findDuplicateIds("petUpgrades", registryRecord.petUpgrades),
+    ...findDuplicateIds("storyEvents", registryRecord.storyEvents),
+    ...findDuplicateIds("petSideStories", registryRecord.petSideStories)
   ];
 
-  const cardIds = new Set(registry.cards.map((card) => card.id));
-  const monsterIds = new Set(registry.monsters.map((monster) => String(monster.id)));
-  const petDefinitionIds = new Set(registry.pets.map((pet) => pet.id));
-  const playerClassIds = new Set(registry.players.map((player) => player.id));
-  const storyEventIds = new Set(registry.storyEvents.map((storyEvent) => storyEvent.id));
-  const upgradeIds = new Set(registry.petUpgrades.map((upgrade) => upgrade.id));
+  if (!Array.isArray(registryRecord.cards)) {
+    issues.push(issue("error", "invalid_cards", "Cards must be an array.", "cards"));
+  }
+
+  if (!Array.isArray(registryRecord.players)) {
+    issues.push(issue("error", "invalid_players", "Players must be an array.", "players"));
+  }
+
+  if (!Array.isArray(registryRecord.monsters)) {
+    issues.push(issue("error", "invalid_monsters", "Monsters must be an array.", "monsters"));
+  }
+
+  if (!Array.isArray(registryRecord.storyEvents)) {
+    issues.push(issue("error", "invalid_story_events", "Story events must be an array.", "storyEvents"));
+  }
+
+  if (!Array.isArray(registryRecord.petSideStories)) {
+    issues.push(issue("error", "invalid_pet_side_stories", "Pet side stories must be an array.", "petSideStories"));
+  }
+
+  if (!Array.isArray(registryRecord.pets)) {
+    issues.push(issue("error", "invalid_pets", "Pets must be an array.", "pets"));
+  }
+
+  if (!Array.isArray(registryRecord.petUpgrades)) {
+    issues.push(issue("error", "invalid_pet_upgrades", "Pet upgrades must be an array.", "petUpgrades"));
+  }
+
+  if (registryRecord.petModifiers !== undefined && !Array.isArray(registryRecord.petModifiers)) {
+    issues.push(issue("error", "invalid_pet_modifiers", "Pet modifiers must be an array when present.", "petModifiers"));
+  }
+
+  const cardDefinitions = Array.isArray(registryRecord.cards) ? registryRecord.cards : [];
+  const playerDefinitions = Array.isArray(registryRecord.players) ? registryRecord.players : [];
+  const monsterDefinitions = Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [];
+  const storyEventDefinitions = Array.isArray(registryRecord.storyEvents) ? registryRecord.storyEvents : [];
+  const petSideStoryDefinitions = Array.isArray(registryRecord.petSideStories) ? registryRecord.petSideStories : [];
+  const petDefinitions = Array.isArray(registryRecord.pets) ? registryRecord.pets : [];
+  const petUpgradeDefinitions = Array.isArray(registryRecord.petUpgrades) ? registryRecord.petUpgrades : [];
+  const standalonePetModifierDefinitions = Array.isArray(registryRecord.petModifiers) ? registryRecord.petModifiers : [];
+  const cardIds = new Set(
+    cardDefinitions
+      .filter(isRecord)
+      .map((card) => card.id)
+      .filter(isString)
+  );
+  const monsterIds = new Set(
+    monsterDefinitions
+      .filter(isRecord)
+      .map((monster) => monster.id)
+      .filter(isString)
+  );
+  const petDefinitionIds = new Set<string>(
+    petDefinitions
+      .filter(isRecord)
+      .map((pet) => pet.id)
+      .filter(isString)
+  );
+  const playerClassIds = new Set(
+    playerDefinitions
+      .filter(isRecord)
+      .map((player) => player.id)
+      .filter(isString)
+  );
+  const storyEventIds = new Set(
+    storyEventDefinitions
+      .filter(isRecord)
+      .map((storyEvent) => storyEvent.id)
+      .filter(isString)
+  );
+  const topLevelStoryEventsById = new Map(
+    storyEventDefinitions
+      .filter(isRecord)
+      .map((storyEvent) => [storyEvent.id, storyEvent])
+      .filter((entry): entry is [string, Record<string, unknown>] => typeof entry[0] === "string")
+  );
+  const embeddedStoryEventIdValues = petSideStoryDefinitions
+    .filter(isRecord)
+    .flatMap((petSideStory) => Array.isArray(petSideStory.events) ? petSideStory.events : [])
+    .filter(isRecord)
+    .map((storyEvent) => storyEvent.id)
+    .filter(isString);
+  const embeddedStoryEventIds = new Set(embeddedStoryEventIdValues);
+  const seenEmbeddedStoryEventIds = new Set<string>();
+  const duplicateEmbeddedStoryEventIds = new Set<string>();
+  embeddedStoryEventIdValues.forEach((storyEventId) => {
+    if (seenEmbeddedStoryEventIds.has(storyEventId)) {
+      duplicateEmbeddedStoryEventIds.add(storyEventId);
+    }
+    seenEmbeddedStoryEventIds.add(storyEventId);
+  });
+  duplicateEmbeddedStoryEventIds.forEach((storyEventId) => {
+    issues.push(
+      issue(
+        "error",
+        "duplicate_embedded_story_event",
+        `Embedded story event '${storyEventId}' is declared more than once.`,
+        "petSideStories.events"
+      )
+    );
+  });
+  const sideStoryIdByEventId = new Map<string, string>();
+  petSideStoryDefinitions
+    .filter(isRecord)
+    .forEach((petSideStory) => {
+      if (typeof petSideStory.id !== "string") {
+        return;
+      }
+
+      const linkedEventIds = [
+        petSideStory.id,
+        ...(Array.isArray(petSideStory.events)
+          ? petSideStory.events
+              .filter(isRecord)
+              .map((storyEvent) => storyEvent.id)
+              .filter(isString)
+          : [])
+      ];
+
+      linkedEventIds.forEach((storyEventId) => {
+        const existingSideStoryId = sideStoryIdByEventId.get(storyEventId);
+        if (existingSideStoryId && existingSideStoryId !== petSideStory.id) {
+          issues.push(
+            issue(
+              "error",
+              "ambiguous_pet_side_story_event",
+              `Story event '${storyEventId}' is linked to multiple pet side stories.`,
+              "petSideStories"
+            )
+          );
+        }
+
+        sideStoryIdByEventId.set(storyEventId, petSideStory.id as string);
+      });
+    });
+  const allStoryEventIds = new Set([...storyEventIds, ...embeddedStoryEventIds]);
+  const petSideStoryIds = new Set(
+    petSideStoryDefinitions
+      .filter(isRecord)
+      .map((petSideStory) => petSideStory.id)
+      .filter(isString)
+  );
+  const upgradeIds = new Set(
+    petUpgradeDefinitions
+      .filter(isRecord)
+      .map((upgrade) => upgrade.id)
+      .filter(isString)
+  );
+  const upgradesById = new Map(
+    petUpgradeDefinitions
+      .filter(isRecord)
+      .map((upgrade) => [upgrade.id, upgrade])
+      .filter((entry): entry is [string, Record<string, unknown>] => typeof entry[0] === "string")
+  );
   const evolutionNodeIds = new Set(
-    registry.pets.flatMap((pet) => pet.evolutionTree.map((evolutionNode) => evolutionNode.id))
+    petDefinitions
+      .filter(isRecord)
+      .flatMap((pet) => Array.isArray(pet.evolutionTree) ? pet.evolutionTree : [])
+      .filter(isRecord)
+      .map((evolutionNode) => evolutionNode.id)
+      .filter(isString)
   );
 
-  registry.players.forEach((player, playerIndex) => {
-    player.startingDeckCardIds.forEach((cardId, cardIndex) => {
+  const validateStoryRequirementPayload = (
+    requirement: StoryRequirement,
+    path: string,
+    storyEventId: unknown
+  ): ValidationIssue[] => {
+    switch (requirement.type) {
+      case "petBondAtLeast":
+        return Number.isInteger(requirement.bondLevel) && requirement.bondLevel >= 0
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' petBondAtLeast requires a non-negative integer bondLevel.`, path)];
+      case "hasPetMemory":
+        return typeof requirement.memoryId === "string" && requirement.memoryId.length > 0
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' hasPetMemory requires a memoryId.`, path)];
+      case "bossDefeated":
+        return typeof requirement.bossId === "string" && requirement.bossId.length > 0
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' bossDefeated requires a bossId.`, path)];
+      case "chapterUnlocked":
+        return typeof requirement.chapterId === "string" && requirement.chapterId.length > 0
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' chapterUnlocked requires a chapterId.`, path)];
+      case "hasSeenEvent":
+        if (typeof requirement.eventId !== "string" || requirement.eventId.length === 0) {
+          return [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' hasSeenEvent requires an eventId.`, path)];
+        }
+
+        return allStoryEventIds.has(requirement.eventId)
+          ? []
+          : [issue("error", "missing_story_event_requirement", `Story event '${String(storyEventId)}' references missing seen event '${requirement.eventId}'.`, path)];
+      case "activePetHasTag":
+        return typeof requirement.tag === "string" && requirement.tag.length > 0
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' activePetHasTag requires a tag.`, path)];
+      case "playerClassIs":
+        if (typeof requirement.playerClassId !== "string" || requirement.playerClassId.length === 0) {
+          return [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' playerClassIs requires a playerClassId.`, path)];
+        }
+
+        return playerClassIds.has(requirement.playerClassId)
+          ? []
+          : [issue("error", "missing_story_player_class", `Story event '${String(storyEventId)}' references missing player class '${requirement.playerClassId}'.`, path)];
+      case "hasPetStoryFlag":
+      case "lacksPetStoryFlag":
+        return typeof requirement.flagId === "string" && requirement.flagId.length > 0
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' ${requirement.type} requires a flagId.`, path)];
+      case "runStatusIs":
+        return (
+          requirement.status === "not_started" ||
+          requirement.status === "map_select" ||
+          requirement.status === "combat" ||
+          requirement.status === "reward" ||
+          requirement.status === "completed" ||
+          requirement.status === "lost"
+        )
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' runStatusIs requires a supported run status.`, path)];
+      case "completedRunNodeType":
+        return (
+          requirement.nodeType === "combat" ||
+          requirement.nodeType === "elite" ||
+          requirement.nodeType === "rest" ||
+          requirement.nodeType === "event" ||
+          requirement.nodeType === "boss"
+        )
+          ? []
+          : [issue("error", "invalid_story_requirement", `Story event '${String(storyEventId)}' completedRunNodeType requires a supported node type.`, path)];
+      default:
+        return [issue("error", "unknown_story_requirement", `Story event '${String(storyEventId)}' has unknown requirement '${String((requirement as { readonly type?: unknown }).type)}'.`, path)];
+    }
+  };
+
+  const validateStoryOutcomePayload = (
+    outcome: StoryOutcome,
+    path: string,
+    storyEventId: unknown
+  ): ValidationIssue[] => {
+    switch (outcome.type) {
+      case "setStoryFlag":
+        return typeof outcome.flagId === "string" && outcome.flagId.length > 0
+          ? []
+          : [issue("error", "invalid_story_outcome", `Story event '${String(storyEventId)}' setStoryFlag requires a flagId.`, path)];
+      case "unlockPetMemory":
+        return typeof outcome.memoryId === "string" && outcome.memoryId.length > 0
+          ? []
+          : [issue("error", "invalid_story_outcome", `Story event '${String(storyEventId)}' unlockPetMemory requires a memoryId.`, path)];
+      case "unlockPetUpgrade":
+        if (typeof outcome.upgradeId !== "string" || outcome.upgradeId.length === 0) {
+          return [issue("error", "invalid_story_outcome", `Story event '${String(storyEventId)}' unlockPetUpgrade requires an upgradeId.`, path)];
+        }
+
+        return upgradeIds.has(outcome.upgradeId)
+          ? []
+          : [issue("error", "missing_story_upgrade", `Story event '${String(storyEventId)}' references missing upgrade '${outcome.upgradeId}'.`, path)];
+      case "unlockEvolutionNode":
+        if (typeof outcome.evolutionNodeId !== "string" || outcome.evolutionNodeId.length === 0) {
+          return [issue("error", "invalid_story_outcome", `Story event '${String(storyEventId)}' unlockEvolutionNode requires an evolutionNodeId.`, path)];
+        }
+
+        return evolutionNodeIds.has(outcome.evolutionNodeId)
+          ? []
+          : [issue("error", "missing_story_evolution_node", `Story event '${String(storyEventId)}' references missing evolution node '${outcome.evolutionNodeId}'.`, path)];
+      case "addBondXp":
+        return Number.isInteger(outcome.amount) && outcome.amount > 0
+          ? []
+          : [issue("error", "invalid_story_bond_xp", `Story event '${String(storyEventId)}' has invalid bond XP amount.`, path)];
+      case "markStoryEventSeen":
+        if (typeof outcome.eventId !== "string" || outcome.eventId.length === 0) {
+          return [issue("error", "invalid_story_outcome", `Story event '${String(storyEventId)}' markStoryEventSeen requires an eventId.`, path)];
+        }
+
+        return allStoryEventIds.has(outcome.eventId)
+          ? []
+          : [issue("error", "missing_story_event_requirement", `Story event '${String(storyEventId)}' marks missing seen event '${outcome.eventId}'.`, path)];
+      default:
+        return [issue("error", "unknown_story_outcome", `Story event '${String(storyEventId)}' has unknown outcome '${String((outcome as { readonly type?: unknown }).type)}'.`, path)];
+    }
+  };
+
+  playerDefinitions.forEach((playerValue, playerIndex) => {
+    if (!isRecord(playerValue)) {
+      issues.push(issue("error", "invalid_player", "Player definition must be an object.", `players[${playerIndex}]`));
+      return;
+    }
+
+    const player = playerValue;
+    if (typeof player.id !== "string") {
+      issues.push(issue("error", "invalid_player_id", "Player id must be a string.", `players[${playerIndex}].id`));
+    }
+
+    if (!Array.isArray(player.startingDeckCardIds)) {
+      issues.push(issue("error", "invalid_starting_deck", `Player '${String(player.id)}' startingDeckCardIds must be an array.`, `players[${playerIndex}].startingDeckCardIds`));
+    }
+
+    const startingDeckCardIds = Array.isArray(player.startingDeckCardIds) ? player.startingDeckCardIds : [];
+    startingDeckCardIds.forEach((cardId, cardIndex) => {
       if (!cardIds.has(cardId)) {
         issues.push(
           issue(
             "error",
             "missing_starting_deck_card",
-            `Player '${player.id}' references missing starting card '${cardId}'.`,
+            `Player '${String(player.id)}' references missing starting card '${cardId}'.`,
             `players[${playerIndex}].startingDeckCardIds[${cardIndex}]`
           )
         );
       }
     });
 
-    if (player.maxActivePets > player.petSlotCount) {
+    if (
+      typeof player.maxActivePets === "number" &&
+      typeof player.petSlotCount === "number" &&
+      player.maxActivePets > player.petSlotCount
+    ) {
       issues.push(
         issue(
           "error",
           "invalid_pet_slot_capacity",
-          `Player '${player.id}' allows more active pets than pet slots.`,
+          `Player '${String(player.id)}' allows more active pets than pet slots.`,
           `players[${playerIndex}]`
         )
       );
     }
   });
 
-  registry.pets.forEach((pet, petIndex) => {
-    pet.baseCommandCardIds.forEach((cardId, cardIndex) => {
+  petDefinitions.forEach((petValue, petIndex) => {
+    if (!isRecord(petValue)) {
+      issues.push(issue("error", "invalid_pet", "Pet definition must be an object.", `pets[${petIndex}]`));
+      return;
+    }
+
+    const pet = petValue;
+    if (typeof pet.id !== "string") {
+      issues.push(issue("error", "invalid_pet_id", "Pet definition id must be a string.", `pets[${petIndex}].id`));
+    }
+
+    if (!Array.isArray(pet.baseCommandCardIds)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_command_cards",
+          `Pet '${String(pet.id)}' baseCommandCardIds must be an array.`,
+          `pets[${petIndex}].baseCommandCardIds`
+        )
+      );
+    }
+
+    const baseCommandCardIds = Array.isArray(pet.baseCommandCardIds) ? pet.baseCommandCardIds : [];
+    baseCommandCardIds.forEach((cardId, cardIndex) => {
       if (!cardIds.has(cardId)) {
         issues.push(
           issue(
             "error",
             "missing_pet_command_card",
-            `Pet '${pet.id}' references missing command card '${cardId}'.`,
+            `Pet '${String(pet.id)}' references missing command card '${cardId}'.`,
             `pets[${petIndex}].baseCommandCardIds[${cardIndex}]`
           )
         );
       }
     });
 
-    if (pet.sideStoryId && !storyEventIds.has(pet.sideStoryId)) {
+    if (typeof pet.sideStoryId === "string" && !allStoryEventIds.has(pet.sideStoryId) && !petSideStoryIds.has(pet.sideStoryId)) {
       issues.push(
         issue(
           "error",
           "missing_pet_side_story",
-          `Pet '${pet.id}' references missing side story '${pet.sideStoryId}'.`,
+          `Pet '${String(pet.id)}' references missing side story '${pet.sideStoryId}'.`,
           `pets[${petIndex}].sideStoryId`
         )
       );
     }
   });
 
-  registry.cards.forEach((card, cardIndex) => {
-    if (card.requiresPetDefinitionId && !petDefinitionIds.has(card.requiresPetDefinitionId)) {
+  cardDefinitions.forEach((cardValue, cardIndex) => {
+    if (!isRecord(cardValue)) {
+      issues.push(issue("error", "invalid_card", "Card definition must be an object.", `cards[${cardIndex}]`));
+      return;
+    }
+
+    const card = cardValue;
+    if (
+      typeof card.requiresPetDefinitionId === "string" &&
+      !petDefinitionIds.has(card.requiresPetDefinitionId)
+    ) {
       issues.push(
         issue(
           "error",
           "missing_required_pet_definition",
-          `Card '${card.id}' references missing pet definition '${card.requiresPetDefinitionId}'.`,
+          `Card '${String(card.id)}' references missing pet definition '${String(card.requiresPetDefinitionId)}'.`,
           `cards[${cardIndex}].requiresPetDefinitionId`
         )
       );
     }
 
-    issues.push(...validateEffects(card.effects, `cards[${cardIndex}]`));
+    if (!Array.isArray(card.effects)) {
+      issues.push(issue("error", "invalid_card_effects", `Card '${String(card.id)}' effects must be an array.`, `cards[${cardIndex}].effects`));
+      return;
+    }
+
+    issues.push(...validateEffects(card.effects as readonly EffectDefinition[], `cards[${cardIndex}]`));
   });
 
-  registry.monsters.forEach((monster, monsterIndex) => {
+  monsterDefinitions.forEach((monsterValue, monsterIndex) => {
+    if (!isRecord(monsterValue)) {
+      issues.push(issue("error", "invalid_monster", "Monster definition must be an object.", `monsters[${monsterIndex}]`));
+      return;
+    }
+
+    const monster = monsterValue;
+    if (!Array.isArray(monster.intentPool)) {
+      issues.push(issue("error", "invalid_monster_intents", `Monster '${String(monster.id)}' intentPool must be an array.`, `monsters[${monsterIndex}].intentPool`));
+      return;
+    }
+
     monster.intentPool.forEach((intent, intentIndex) => {
-      issues.push(...validateEffects(intent.effects, `monsters[${monsterIndex}].intentPool[${intentIndex}]`));
+      if (!isRecord(intent) || !Array.isArray(intent.effects)) {
+        issues.push(issue("error", "invalid_monster_intent", "Monster intent must be an object with effects.", `monsters[${monsterIndex}].intentPool[${intentIndex}]`));
+        return;
+      }
+
+      issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`));
     });
   });
 
@@ -877,8 +1302,32 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   issues.push(...validateRunMapTemplates(registry));
 
   const petModifierIds = new Set<string>();
-  registry.petUpgrades.forEach((upgrade, upgradeIndex) => {
-    if (!petDefinitionIds.has(upgrade.petDefinitionId)) {
+  petUpgradeDefinitions.forEach((upgradeValue, upgradeIndex) => {
+    if (!isRecord(upgradeValue)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_upgrade",
+          "Pet upgrade definition must be an object.",
+          `petUpgrades[${upgradeIndex}]`
+        )
+      );
+      return;
+    }
+
+    const upgrade = upgradeValue as PetUpgradeCandidate;
+    if (typeof upgrade.id !== "string" || upgrade.id.length === 0) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_upgrade",
+          "Pet upgrade id must be a non-empty string.",
+          `petUpgrades[${upgradeIndex}].id`
+        )
+      );
+    }
+
+    if (typeof upgrade.petDefinitionId !== "string" || !petDefinitionIds.has(upgrade.petDefinitionId)) {
       issues.push(
         issue(
           "error",
@@ -888,7 +1337,20 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
         )
       );
     }
-    upgrade.modifiers.forEach((modifier, modifierIndex) => {
+
+    if (!Array.isArray(upgrade.modifiers)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_upgrade_modifiers",
+          `Upgrade '${String(upgrade.id)}' modifiers must be an array.`,
+          `petUpgrades[${upgradeIndex}].modifiers`
+        )
+      );
+    }
+
+    const modifiers = Array.isArray(upgrade.modifiers) ? upgrade.modifiers : [];
+    modifiers.forEach((modifier, modifierIndex) => {
       if (typeof modifier !== "object" || modifier === null) {
         issues.push(
           issue(
@@ -896,6 +1358,18 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
             "invalid_pet_modifier",
             "Pet modifier definition must be an object.",
             `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}]`
+          )
+        );
+        return;
+      }
+
+      if (typeof modifier.id !== "string" || modifier.id.length === 0) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_pet_modifier",
+            "Pet modifier id must be a non-empty string.",
+            `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}].id`
           )
         );
         return;
@@ -925,10 +1399,10 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       }
 
       if (Array.isArray(modifier.rules)) {
-        modifier.rules.forEach((rule, ruleIndex) => {
+        modifier.rules.forEach((rule: unknown, ruleIndex: number) => {
           issues.push(...validatePetModifierRule(
             petDefinitionIds,
-            rule,
+            rule as PetModifierRule,
             `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}].rules[${ruleIndex}]`
           ));
         });
@@ -937,7 +1411,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   });
 
   const standalonePetModifierIds = new Set<string>();
-  registry.petModifiers?.forEach((modifier, modifierIndex) => {
+  standalonePetModifierDefinitions.forEach((modifier, modifierIndex) => {
     if (typeof modifier !== "object" || modifier === null) {
       issues.push(
         issue(
@@ -945,6 +1419,18 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
           "invalid_pet_modifier",
           "Pet modifier definition must be an object.",
           `petModifiers[${modifierIndex}]`
+        )
+      );
+      return;
+    }
+
+    if (typeof modifier.id !== "string" || modifier.id.length === 0) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier",
+          "Pet modifier id must be a non-empty string.",
+          `petModifiers[${modifierIndex}].id`
         )
       );
       return;
@@ -974,64 +1460,176 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     }
 
     if (Array.isArray(modifier.rules)) {
-      modifier.rules.forEach((rule, ruleIndex) => {
-      issues.push(...validatePetModifierRule(petDefinitionIds, rule, `petModifiers[${modifierIndex}].rules[${ruleIndex}]`));
+      modifier.rules.forEach((rule: unknown, ruleIndex: number) => {
+        issues.push(...validatePetModifierRule(petDefinitionIds, rule as PetModifierRule, `petModifiers[${modifierIndex}].rules[${ruleIndex}]`));
       });
     }
   });
 
-  registry.storyEvents.forEach((storyEvent, storyIndex) => {
-    storyEvent.requirements.forEach((requirement, requirementIndex) => {
-      if (requirement.type === "playerClassIs" && !playerClassIds.has(requirement.playerClassId)) {
+  storyEventDefinitions.forEach((storyEventValue, storyIndex) => {
+    if (!isRecord(storyEventValue)) {
+      issues.push(
+        issue("error", "invalid_story_event", "Story event must be an object.", `storyEvents[${storyIndex}]`)
+      );
+      return;
+    }
+
+    const storyEvent = storyEventValue as StoryEventCandidate;
+    if (typeof storyEvent.id !== "string" || storyEvent.id.length === 0) {
+      issues.push(
+        issue("error", "invalid_story_event_id", "Story event id must be a string.", `storyEvents[${storyIndex}].id`)
+      );
+    }
+
+    if (typeof storyEventValue.title !== "string" || storyEventValue.title.length === 0) {
+      issues.push(
+        issue("error", "invalid_story_event_metadata", `Story event '${String(storyEvent.id)}' title must be a non-empty string.`, `storyEvents[${storyIndex}].title`)
+      );
+    }
+
+    if (typeof storyEventValue.description !== "string" || storyEventValue.description.length === 0) {
+      issues.push(
+        issue("error", "invalid_story_event_metadata", `Story event '${String(storyEvent.id)}' description must be a non-empty string.`, `storyEvents[${storyIndex}].description`)
+      );
+    }
+
+    if (
+      !Array.isArray(storyEventValue.tags) ||
+      storyEventValue.tags.some((tag) => typeof tag !== "string" || tag.length === 0)
+    ) {
+      issues.push(
+        issue("error", "invalid_story_event_metadata", `Story event '${String(storyEvent.id)}' tags must be a string array.`, `storyEvents[${storyIndex}].tags`)
+      );
+    }
+
+    if (storyEvent.trigger !== undefined && !storyTriggers.has(storyEvent.trigger as StoryTrigger)) {
+      issues.push(
+        issue(
+          "error",
+          "unknown_story_trigger",
+          `Story event '${String(storyEvent.id)}' has unknown trigger '${String(storyEvent.trigger)}'.`,
+          `storyEvents[${storyIndex}].trigger`
+        )
+      );
+    }
+
+    if (storyEvent.repeatable !== undefined && typeof storyEvent.repeatable !== "boolean") {
+      issues.push(
+        issue(
+          "error",
+          "invalid_story_repeatable",
+          `Story event '${String(storyEvent.id)}' repeatable must be a boolean when present.`,
+          `storyEvents[${storyIndex}].repeatable`
+        )
+      );
+    }
+
+    if (!Array.isArray(storyEvent.requirements)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_story_requirements",
+          `Story event '${String(storyEvent.id)}' requirements must be an array.`,
+          `storyEvents[${storyIndex}].requirements`
+        )
+      );
+    }
+
+    const requirements = Array.isArray(storyEvent.requirements) ? storyEvent.requirements : [];
+    requirements.forEach((requirementValue, requirementIndex) => {
+      if (!isRecord(requirementValue)) {
         issues.push(
           issue(
             "error",
-            "missing_story_player_class",
-            `Story event '${storyEvent.id}' references missing player class '${requirement.playerClassId}'.`,
+            "invalid_story_requirement",
+            "Story requirement must be an object.",
             `storyEvents[${storyIndex}].requirements[${requirementIndex}]`
           )
         );
+        return;
       }
 
-      if (requirement.type === "hasSeenEvent" && !storyEventIds.has(requirement.eventId)) {
+      const requirement = requirementValue as StoryRequirement;
+      if (!storyRequirementTypes.has(requirement.type)) {
         issues.push(
           issue(
             "error",
-            "missing_story_event_requirement",
-            `Story event '${storyEvent.id}' references missing seen event '${requirement.eventId}'.`,
+            "unknown_story_requirement",
+            `Story event '${String(storyEvent.id)}' has unknown requirement '${String(requirement.type)}'.`,
             `storyEvents[${storyIndex}].requirements[${requirementIndex}]`
           )
         );
+        return;
       }
+
+      issues.push(...validateStoryRequirementPayload(
+        requirement,
+        `storyEvents[${storyIndex}].requirements[${requirementIndex}]`,
+        storyEvent.id
+      ));
     });
 
-    storyEvent.outcomes.forEach((outcome, outcomeIndex) => {
-      if (outcome.type === "unlockPetUpgrade" && !upgradeIds.has(outcome.upgradeId)) {
+    if (!Array.isArray(storyEvent.outcomes)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_story_outcomes",
+          `Story event '${String(storyEvent.id)}' outcomes must be an array.`,
+          `storyEvents[${storyIndex}].outcomes`
+        )
+      );
+    }
+
+    const outcomes = Array.isArray(storyEvent.outcomes) ? storyEvent.outcomes : [];
+    outcomes.forEach((outcomeValue, outcomeIndex) => {
+      if (!isRecord(outcomeValue)) {
         issues.push(
           issue(
             "error",
-            "missing_story_upgrade",
-            `Story event '${storyEvent.id}' references missing upgrade '${outcome.upgradeId}'.`,
+            "invalid_story_outcome",
+            "Story outcome must be an object.",
             `storyEvents[${storyIndex}].outcomes[${outcomeIndex}]`
           )
         );
+        return;
       }
 
-      if (outcome.type === "unlockEvolutionNode" && !evolutionNodeIds.has(outcome.evolutionNodeId)) {
+      const outcome = outcomeValue as StoryOutcome;
+      if (!storyOutcomeTypes.has(outcome.type)) {
         issues.push(
           issue(
             "error",
-            "missing_story_evolution_node",
-            `Story event '${storyEvent.id}' references missing evolution node '${outcome.evolutionNodeId}'.`,
+            "unknown_story_outcome",
+            `Story event '${String(storyEvent.id)}' has unknown outcome '${String(outcome.type)}'.`,
             `storyEvents[${storyIndex}].outcomes[${outcomeIndex}]`
           )
         );
+        return;
       }
+
+      issues.push(...validateStoryOutcomePayload(
+        outcome,
+        `storyEvents[${storyIndex}].outcomes[${outcomeIndex}]`,
+        storyEvent.id
+      ));
     });
   });
 
-  registry.petSideStories.forEach((petSideStory, petSideStoryIndex) => {
-    if (!petDefinitionIds.has(petSideStory.petDefinitionId)) {
+  petSideStoryDefinitions.forEach((petSideStoryValue, petSideStoryIndex) => {
+    if (!isRecord(petSideStoryValue)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_side_story",
+          "Pet side story must be an object.",
+          `petSideStories[${petSideStoryIndex}]`
+        )
+      );
+      return;
+    }
+
+    const petSideStory = petSideStoryValue as PetSideStoryCandidate;
+    if (typeof petSideStory.petDefinitionId !== "string" || !petDefinitionIds.has(petSideStory.petDefinitionId)) {
       issues.push(
         issue(
           "error",
@@ -1042,28 +1640,343 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       );
     }
 
-    if (!storyEventIds.has(petSideStory.id)) {
+    if (typeof petSideStory.id !== "string" || petSideStory.id.length === 0) {
       issues.push(
         issue(
           "error",
-          "missing_pet_side_story_event",
-          `Pet side story '${petSideStory.id}' has no matching story event.`,
+          "invalid_pet_side_story_id",
+          "Pet side story id must be a string.",
           `petSideStories[${petSideStoryIndex}].id`
         )
       );
     }
 
-    petSideStory.events.forEach((event, eventIndex) => {
-      if (!storyEventIds.has(event.id)) {
+    if (!Array.isArray(petSideStory.memoryIds)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_side_story_memories",
+          `Pet side story '${String(petSideStory.id)}' memoryIds must be an array.`,
+          `petSideStories[${petSideStoryIndex}].memoryIds`
+        )
+      );
+    } else {
+      petSideStory.memoryIds.forEach((memoryId, memoryIndex) => {
+        if (typeof memoryId !== "string" || memoryId.length === 0) {
+          issues.push(
+            issue(
+              "error",
+              "invalid_pet_side_story_memory",
+              `Pet side story '${String(petSideStory.id)}' memoryIds must contain only strings.`,
+              `petSideStories[${petSideStoryIndex}].memoryIds[${memoryIndex}]`
+            )
+          );
+        }
+      });
+    }
+
+    if (!Array.isArray(petSideStory.storyFlagIds)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_side_story_flags",
+          `Pet side story '${String(petSideStory.id)}' storyFlagIds must be an array.`,
+          `petSideStories[${petSideStoryIndex}].storyFlagIds`
+        )
+      );
+    } else {
+      petSideStory.storyFlagIds.forEach((flagId, flagIndex) => {
+        if (typeof flagId !== "string" || flagId.length === 0) {
+          issues.push(
+            issue(
+              "error",
+              "invalid_pet_side_story_flag",
+              `Pet side story '${String(petSideStory.id)}' storyFlagIds must contain only strings.`,
+              `petSideStories[${petSideStoryIndex}].storyFlagIds[${flagIndex}]`
+            )
+          );
+        }
+      });
+    }
+
+    if (!Array.isArray(petSideStory.events)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_side_story_events",
+          `Pet side story '${String(petSideStory.id)}' events must be an array.`,
+          `petSideStories[${petSideStoryIndex}].events`
+        )
+      );
+      return;
+    }
+
+    const sideStoryMemoryIds = new Set((Array.isArray(petSideStory.memoryIds) ? petSideStory.memoryIds : []).filter(isString));
+    const sideStoryFlagIds = new Set((Array.isArray(petSideStory.storyFlagIds) ? petSideStory.storyFlagIds : []).filter(isString));
+
+    petSideStory.events.forEach((eventValue, eventIndex) => {
+      if (!isRecord(eventValue)) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_pet_side_story_nested_event",
+            "Pet side story event must be an object.",
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}]`
+          )
+        );
+        return;
+      }
+
+      const event = eventValue as StoryEventCandidate;
+      if (typeof event.id !== "string" || event.id.length === 0) {
         issues.push(
           issue(
             "error",
             "missing_pet_side_story_nested_event",
-            `Pet side story '${petSideStory.id}' includes event '${event.id}' outside the story registry.`,
+            `Pet side story '${petSideStory.id}' includes an event without a valid id.`,
             `petSideStories[${petSideStoryIndex}].events[${eventIndex}]`
           )
         );
       }
+
+      if (typeof eventValue.title !== "string" || eventValue.title.length === 0) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_story_event_metadata",
+            `Pet side story event '${String(event.id)}' title must be a non-empty string.`,
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}].title`
+          )
+        );
+      }
+
+      if (typeof eventValue.description !== "string" || eventValue.description.length === 0) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_story_event_metadata",
+            `Pet side story event '${String(event.id)}' description must be a non-empty string.`,
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}].description`
+          )
+        );
+      }
+
+      if (
+        !Array.isArray(eventValue.tags) ||
+        eventValue.tags.some((tag) => typeof tag !== "string" || tag.length === 0)
+      ) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_story_event_metadata",
+            `Pet side story event '${String(event.id)}' tags must be a string array.`,
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}].tags`
+          )
+        );
+      }
+
+      if (event.trigger !== undefined && !storyTriggers.has(event.trigger as StoryTrigger)) {
+        issues.push(
+          issue(
+            "error",
+            "unknown_story_trigger",
+            `Pet side story event '${String(event.id)}' has unknown trigger '${String(event.trigger)}'.`,
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}].trigger`
+          )
+        );
+      }
+
+      if (event.repeatable !== undefined && typeof event.repeatable !== "boolean") {
+        issues.push(
+          issue(
+            "error",
+            "invalid_story_repeatable",
+            `Pet side story event '${String(event.id)}' repeatable must be a boolean when present.`,
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}].repeatable`
+          )
+        );
+      }
+
+      if (!Array.isArray(event.requirements)) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_story_requirements",
+            `Pet side story event '${String(event.id)}' requirements must be an array.`,
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}].requirements`
+          )
+        );
+      }
+
+      const eventRequirements = Array.isArray(event.requirements) ? event.requirements : [];
+      eventRequirements.forEach((requirementValue, requirementIndex) => {
+        if (!isRecord(requirementValue)) {
+          issues.push(
+            issue(
+              "error",
+              "invalid_story_requirement",
+              "Story requirement must be an object.",
+              `petSideStories[${petSideStoryIndex}].events[${eventIndex}].requirements[${requirementIndex}]`
+            )
+          );
+          return;
+        }
+
+        const requirement = requirementValue as StoryRequirement;
+        if (!storyRequirementTypes.has(requirement.type)) {
+          issues.push(
+            issue(
+              "error",
+              "unknown_story_requirement",
+              `Pet side story event '${String(event.id)}' has unknown requirement '${String(requirement.type)}'.`,
+              `petSideStories[${petSideStoryIndex}].events[${eventIndex}].requirements[${requirementIndex}]`
+            )
+          );
+          return;
+        }
+
+        issues.push(...validateStoryRequirementPayload(
+          requirement,
+          `petSideStories[${petSideStoryIndex}].events[${eventIndex}].requirements[${requirementIndex}]`,
+          event.id
+        ));
+      });
+
+      if (!Array.isArray(event.outcomes)) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_story_outcomes",
+            `Pet side story event '${String(event.id)}' outcomes must be an array.`,
+            `petSideStories[${petSideStoryIndex}].events[${eventIndex}].outcomes`
+          )
+        );
+      }
+
+      const eventOutcomes = Array.isArray(event.outcomes) ? event.outcomes : [];
+      eventOutcomes.forEach((outcomeValue, outcomeIndex) => {
+        if (!isRecord(outcomeValue)) {
+          issues.push(
+            issue(
+              "error",
+              "invalid_story_outcome",
+              "Story outcome must be an object.",
+              `petSideStories[${petSideStoryIndex}].events[${eventIndex}].outcomes[${outcomeIndex}]`
+            )
+          );
+          return;
+        }
+
+        const outcome = outcomeValue as StoryOutcome;
+        if (!storyOutcomeTypes.has(outcome.type)) {
+          issues.push(
+            issue(
+              "error",
+              "unknown_story_outcome",
+              `Pet side story event '${String(event.id)}' has unknown outcome '${String(outcome.type)}'.`,
+              `petSideStories[${petSideStoryIndex}].events[${eventIndex}].outcomes[${outcomeIndex}]`
+            )
+          );
+          return;
+        }
+
+        issues.push(...validateStoryOutcomePayload(
+          outcome,
+          `petSideStories[${petSideStoryIndex}].events[${eventIndex}].outcomes[${outcomeIndex}]`,
+          event.id
+        ));
+
+        if (outcome.type === "unlockPetMemory" && !sideStoryMemoryIds.has(outcome.memoryId)) {
+          issues.push(
+            issue(
+              "error",
+              "missing_pet_side_story_memory",
+              `Pet side story '${String(petSideStory.id)}' unlocks undeclared memory '${outcome.memoryId}'.`,
+              `petSideStories[${petSideStoryIndex}].events[${eventIndex}].outcomes[${outcomeIndex}]`
+            )
+          );
+        }
+
+        if (outcome.type === "setStoryFlag" && !sideStoryFlagIds.has(outcome.flagId)) {
+          issues.push(
+            issue(
+              "error",
+              "missing_pet_side_story_flag",
+              `Pet side story '${String(petSideStory.id)}' sets undeclared flag '${outcome.flagId}'.`,
+              `petSideStories[${petSideStoryIndex}].events[${eventIndex}].outcomes[${outcomeIndex}]`
+            )
+          );
+        }
+
+        if (outcome.type === "unlockPetUpgrade") {
+          const upgrade = upgradesById.get(outcome.upgradeId);
+          if (upgrade && upgrade.petDefinitionId !== petSideStory.petDefinitionId) {
+            issues.push(
+              issue(
+                "error",
+                "wrong_pet_story_upgrade",
+                `Pet side story '${String(petSideStory.id)}' unlocks upgrade '${outcome.upgradeId}' for a different pet definition.`,
+                `petSideStories[${petSideStoryIndex}].events[${eventIndex}].outcomes[${outcomeIndex}]`
+              )
+            );
+          }
+        }
+      });
+    });
+
+    const actualStoryEvents = [
+      ...petSideStory.events
+        .filter(isRecord)
+        .map((event) => typeof event.id === "string" ? topLevelStoryEventsById.get(event.id) ?? event : event),
+      ...(typeof petSideStory.id === "string" && topLevelStoryEventsById.has(petSideStory.id)
+        ? [topLevelStoryEventsById.get(petSideStory.id)]
+        : [])
+    ].filter((event): event is Record<string, unknown> => Boolean(event) && isRecord(event));
+
+    actualStoryEvents.forEach((event, eventIndex) => {
+      const eventOutcomes = Array.isArray(event.outcomes) ? event.outcomes : [];
+      eventOutcomes.forEach((outcomeValue, outcomeIndex) => {
+        if (!isRecord(outcomeValue)) {
+          return;
+        }
+
+        const outcome = outcomeValue as StoryOutcome;
+        if (outcome.type === "unlockPetMemory" && !sideStoryMemoryIds.has(outcome.memoryId)) {
+          issues.push(
+            issue(
+              "error",
+              "missing_pet_side_story_memory",
+              `Pet side story '${String(petSideStory.id)}' top-level event unlocks undeclared memory '${outcome.memoryId}'.`,
+              `petSideStories[${petSideStoryIndex}].actualEvents[${eventIndex}].outcomes[${outcomeIndex}]`
+            )
+          );
+        }
+
+        if (outcome.type === "setStoryFlag" && !sideStoryFlagIds.has(outcome.flagId)) {
+          issues.push(
+            issue(
+              "error",
+              "missing_pet_side_story_flag",
+              `Pet side story '${String(petSideStory.id)}' top-level event sets undeclared flag '${outcome.flagId}'.`,
+              `petSideStories[${petSideStoryIndex}].actualEvents[${eventIndex}].outcomes[${outcomeIndex}]`
+            )
+          );
+        }
+
+        if (outcome.type === "unlockPetUpgrade") {
+          const upgrade = upgradesById.get(outcome.upgradeId);
+          if (upgrade && upgrade.petDefinitionId !== petSideStory.petDefinitionId) {
+            issues.push(
+              issue(
+                "error",
+                "wrong_pet_story_upgrade",
+                `Pet side story '${String(petSideStory.id)}' top-level event unlocks upgrade '${outcome.upgradeId}' for a different pet definition.`,
+                `petSideStories[${petSideStoryIndex}].actualEvents[${eventIndex}].outcomes[${outcomeIndex}]`
+              )
+            );
+          }
+        }
+      });
     });
   });
 

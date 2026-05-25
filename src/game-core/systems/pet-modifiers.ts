@@ -280,6 +280,10 @@ const validateModifier = (
     return error("invalid_pet_modifier", "Pet modifier definition must be an object.", path);
   }
 
+  if (typeof modifier.id !== "string" || modifier.id.length === 0) {
+    return error("invalid_pet_modifier", "Pet modifier id must be a non-empty string.", `${path}.id`);
+  }
+
   if (!Array.isArray(modifier.rules) || modifier.rules.length === 0) {
     return error("missing_pet_modifier_rules", `Pet modifier '${modifier.id}' has no rules.`, `${path}.rules`);
   }

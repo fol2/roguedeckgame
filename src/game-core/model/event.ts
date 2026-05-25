@@ -2,16 +2,19 @@ import type {
   CardId,
   CardInstanceId,
   CombatantId,
+  EvolutionNodeId,
   MonsterIntentId,
   EncounterId,
   PetModifierId,
   PetInstanceId,
+  PetMemoryId,
   PlayerClassId,
   RewardOfferId,
   RewardOptionId,
   RunId,
   RunMapId,
   RunNodeId,
+  StoryEventId,
   StatusId,
   StoryFlagId,
   UpgradeId
@@ -139,4 +142,19 @@ export type GameEvent =
   | { readonly type: "CardRewardAdded"; readonly cardId: CardId }
   | { readonly type: "PetUpgradeUnlocked"; readonly petInstanceId: PetInstanceId; readonly upgradeId: UpgradeId }
   | { readonly type: "StoryFlagSet"; readonly flagId: StoryFlagId }
+  | { readonly type: "PetStoryEventCompleted"; readonly petInstanceId: PetInstanceId; readonly storyEventId: StoryEventId }
+  | { readonly type: "PetMemoryUnlocked"; readonly petInstanceId: PetInstanceId; readonly memoryId: PetMemoryId }
+  | { readonly type: "PetBondXpAdded"; readonly petInstanceId: PetInstanceId; readonly amount: number; readonly total: number }
+  | { readonly type: "PetStoryFlagSet"; readonly petInstanceId: PetInstanceId; readonly flagId: StoryFlagId }
+  | { readonly type: "PetEvolutionNodeUnlocked"; readonly petInstanceId: PetInstanceId; readonly evolutionNodeId: EvolutionNodeId }
+  | { readonly type: "StoryEventSeen"; readonly petInstanceId: PetInstanceId; readonly storyEventId: StoryEventId }
+  | {
+      readonly type: "SaveSnapshotCreated";
+      readonly profileId: string;
+      readonly schemaVersion: number;
+      readonly hasActiveRun: boolean;
+    }
+  | { readonly type: "SaveSlotWritten"; readonly slotId: string; readonly updatedAt: string; readonly schemaVersion: number }
+  | { readonly type: "SaveSlotLoaded"; readonly slotId: string; readonly updatedAt: string; readonly schemaVersion: number }
+  | { readonly type: "SaveSlotDeleted"; readonly slotId: string }
   | { readonly type: "ValidationWarning"; readonly code: string; readonly message: string };

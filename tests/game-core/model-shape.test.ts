@@ -10,6 +10,9 @@ import {
   storyFlagId,
   statusId,
   upgradeId,
+  petMemoryId,
+  evolutionNodeId,
+  storyEventId,
   type GameEvent,
   petModifierId,
   runMapId,
@@ -176,6 +179,51 @@ describe("model shape", () => {
         scope: "combat"
       },
       { type: "StoryFlagSet", flagId: storyFlagId("ember_fox_memory_01_unlocked") },
+      {
+        type: "PetStoryEventCompleted",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        storyEventId: storyEventId("ember_fox_side_story")
+      },
+      {
+        type: "PetMemoryUnlocked",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        memoryId: petMemoryId("ember_fox_memory_burned_orchard")
+      },
+      { type: "PetBondXpAdded", petInstanceId: petInstanceId("ember_fox_001"), amount: 1, total: 1 },
+      {
+        type: "PetStoryFlagSet",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        flagId: storyFlagId("ember_fox_memory_01_unlocked")
+      },
+      {
+        type: "PetEvolutionNodeUnlocked",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        evolutionNodeId: evolutionNodeId("ember_fox_kindled_path")
+      },
+      {
+        type: "StoryEventSeen",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        storyEventId: storyEventId("ember_fox_side_story")
+      },
+      {
+        type: "SaveSnapshotCreated",
+        profileId: "shape_profile",
+        schemaVersion: 1,
+        hasActiveRun: true
+      },
+      {
+        type: "SaveSlotWritten",
+        slotId: "shape_slot",
+        updatedAt: "2026-05-25T00:00:00.000Z",
+        schemaVersion: 1
+      },
+      {
+        type: "SaveSlotLoaded",
+        slotId: "shape_slot",
+        updatedAt: "2026-05-25T00:00:00.000Z",
+        schemaVersion: 1
+      },
+      { type: "SaveSlotDeleted", slotId: "shape_slot" },
       { type: "ValidationWarning", code: "sample", message: "Sample warning" }
     ];
 

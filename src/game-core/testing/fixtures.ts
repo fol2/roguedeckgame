@@ -4,7 +4,6 @@ import {
   petDefinitionId,
   playerClassId,
   runId,
-  storyFlagId
 } from "../ids";
 import type { PetInstance } from "../model/pet";
 import type { RunState } from "../model/run";
@@ -17,7 +16,7 @@ export const createRunFixture = (overrides: Partial<RunState> = {}): RunState =>
   status: "not_started",
   deckCardIds: [cardId("strike"), cardId("defend"), cardId("fox_bite")],
   runFlags: [],
-  storyFlags: [storyFlagId("ember_fox_memory_01_unlocked")],
+  storyFlags: [],
   ...overrides
 });
 
@@ -31,7 +30,9 @@ export const createEmberFoxInstanceFixture = (
   bondXp: 0,
   unlockedUpgradeIds: [],
   chosenEvolutionNodeIds: [],
+  unlockedEvolutionNodeIds: [],
   unlockedMemoryIds: [],
   storyFlags: [],
+  seenStoryEventIds: [],
   ...overrides
 });

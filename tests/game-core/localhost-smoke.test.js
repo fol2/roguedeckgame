@@ -6,10 +6,15 @@ import {
   createCombat,
   createRun,
   createRng,
+  createSaveSnapshot,
+  evaluatePetSideStories,
   generateCombatRewardOffer,
+  parseSaveSnapshot,
   playerClassId,
   playCard,
+  restoreSaveSnapshot,
   selectRunNode,
+  serializeSaveSnapshot,
   skipRunPendingReward,
   startCombatForRunNode,
   starterRegistry,
@@ -89,18 +94,36 @@ describe("localhost smoke", () => {
             monsterIntents: []
           }
         : undefined;
+      const storyProgress = evaluatePetSideStories({
+        run: selectedRunNode?.state ?? createdRun.state,
+        petInstances,
+        registry: starterRegistry,
+        context: {
+          trigger: "nodeCompleted",
+          run: selectedRunNode?.state ?? createdRun.state,
+          completedNodeType: "combat"
+        }
+      });
       const completedRunCombat = selectedRunNode && wonRunCombat
         ? completeRunCombatNode({
             run: selectedRunNode.state,
             combat: wonRunCombat,
             registry: starterRegistry,
-            petInstances,
+            petInstances: storyProgress.state.petInstances,
             rewardSeed: "localhost-smoke-run-reward"
           })
         : undefined;
       const settledRunReward = completedRunCombat
-        ? skipRunPendingReward({ run: completedRunCombat.state, petInstances })
+        ? skipRunPendingReward({ run: completedRunCombat.state, petInstances: storyProgress.state.petInstances })
         : undefined;
+      const storySnapshot = createSaveSnapshot({
+        profileId: "localhost-smoke-profile",
+        activeRun: completedRunCombat?.state,
+        petInstances: storyProgress.state.petInstances,
+        now: "2026-05-25T00:00:00.000Z"
+      });
+      const storySerialized = serializeSaveSnapshot(storySnapshot.state);
+      const storyRestored = restoreSaveSnapshot(parseSaveSnapshot(storySerialized.state).state);
       const reward = generateCombatRewardOffer({
         combat: createWonCombatFixture(),
         run,
@@ -182,6 +205,17 @@ describe("localhost smoke", () => {
               .filter((node) => node.status === "available")
               .map((node) => node.id)
           },
+          storySave: {
+            storyOk: storyProgress.ok,
+            memoryIds: storyProgress.state.petInstances[0]?.unlockedMemoryIds ?? [],
+            storyFlags: storyProgress.state.petInstances[0]?.storyFlags ?? [],
+            upgrades: storyProgress.state.petInstances[0]?.unlockedUpgradeIds ?? [],
+            snapshotOk: storySnapshot.ok,
+            serializedOk: storySerialized.ok,
+            restoredOk: storyRestored.ok,
+            restoredRunStatus: storyRestored.state.activeRun?.status,
+            restoredPendingRewardStatus: storyRestored.state.activeRun?.pendingRewardOffer?.status
+          },
           modifier: {
             upgradeClaimOk: upgradeClaim.ok,
             combatOk: combat.ok,
@@ -233,6 +267,17 @@ describe("localhost smoke", () => {
         pendingRewardStatus: "open",
         settledOk: true,
         advancedStatus: "map_select"
+      },
+      storySave: {
+        storyOk: true,
+        memoryIds: ["ember_fox_memory_burned_orchard"],
+        storyFlags: ["ember_fox_memory_01_unlocked"],
+        upgrades: ["warm_bond"],
+        snapshotOk: true,
+        serializedOk: true,
+        restoredOk: true,
+        restoredRunStatus: "reward",
+        restoredPendingRewardStatus: "open"
       },
       modifier: {
         upgradeClaimOk: true,
