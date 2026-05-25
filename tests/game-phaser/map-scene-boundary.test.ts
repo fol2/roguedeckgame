@@ -105,4 +105,11 @@ describe("Map scene boundary", () => {
     expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
     expect(source).toMatch(/this\.inputLocked = false;\n\s+this\.scene\.start\(SceneKeys\.Combat\)/);
   });
+
+  it("routes intermediate reward and combat states away from the map", async () => {
+    const source = await readFile(scenePath, "utf8");
+
+    expect(source).toMatch(/if \(run\.status === "reward" && this\.sandbox\.getRewardViewModel\(\)\) \{\n\s+this\.scene\.start\(SceneKeys\.Reward\);\n\s+return;\n\s+\}/);
+    expect(source).toMatch(/if \(run\.status === "combat" && this\.sandbox\.getCombatViewModel\(\)\) \{\n\s+this\.scene\.start\(SceneKeys\.Combat\);\n\s+return;\n\s+\}/);
+  });
 });

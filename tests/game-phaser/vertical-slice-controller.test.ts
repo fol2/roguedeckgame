@@ -94,6 +94,10 @@ describe("vertical slice controller flow", () => {
 
     expect(claimed.ok).toBe(true);
     expect(claimed.state.run.status).toBe("map_select");
+    expect(controller.getRunViewModel().nodes.filter((node) => node.status === "available").map((node) => node.type)).toEqual([
+      "combat",
+      "event"
+    ]);
   });
 
   it("can complete event and rest placeholders", () => {

@@ -92,6 +92,16 @@ export class MapScene extends Scene {
   private renderCurrentState(): void {
     const run = this.sandbox.getRunViewModel();
 
+    if (run.status === "reward" && this.sandbox.getRewardViewModel()) {
+      this.scene.start(SceneKeys.Reward);
+      return;
+    }
+
+    if (run.status === "combat" && this.sandbox.getCombatViewModel()) {
+      this.scene.start(SceneKeys.Combat);
+      return;
+    }
+
     this.runHudPresenter?.render(run);
     this.mapNodePresenter?.render(run.nodes);
     this.eventLog?.setMessages(run.eventMessages);
