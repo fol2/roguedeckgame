@@ -98,13 +98,18 @@ npm ls --depth=0 --omit=dev
 Result: only phaser@4.1.0.
 
 Generated review ZIP
-Result: generated from clean HEAD after the closeout commit. The exact path uses the final short SHA and is recorded in the Phase 1 closeout hand-off.
+Result: passed from clean closeout HEAD.
+Validated closeout SHA: 47ef87d53496828d71b3f695f580622b959160c2.
+Generated ZIP path: D:\Coding\roguedeckgame-review-47ef87d53496.zip.
 
 Extracted review ZIP validation
-Result: required to pass without any manual line-ending normalisation. Evidence is recorded in the Phase 1 closeout hand-off.
+Result: passed without manual line-ending normalisation from C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-review-validation\roguedeckgame-47ef87d53496.
+Extracted ZIP commands passed: npm ci, npm run typecheck, npm test, npm run build, npm run smoke:localhost, npm audit --audit-level=moderate.
+Extracted ZIP test count: 49 test files, 395 tests.
+Extracted ZIP smoke URL shown by test: http://127.0.0.1:53221/health.
 ```
 
-The immutable final pushed SHA cannot be embedded inside the same commit that contains this report without changing that SHA. The final pushed SHA is therefore reported in the Phase 1 closeout hand-off after commit and push.
+The immutable SHA of the commit that contains any later evidence-only report update cannot be embedded inside that same commit without changing the SHA. The final pushed HEAD is therefore also reported in the external Phase 1 closeout hand-off.
 
 ## Localhost Evidence
 
@@ -134,6 +139,29 @@ Result: served latest RewardScene with RewardOptionPresenter, skipAvailable, Sce
 ```
 
 The Vite dev server was stopped afterwards. Port 5173 had no listener after shutdown.
+
+## Production Preview Evidence
+
+Served the production `dist` build with:
+
+```bash
+npx vite preview --host 127.0.0.1 --port 4173
+```
+
+Confirmed with HTTP smoke checks:
+
+```txt
+http://127.0.0.1:4173/
+Result: HTTP 200.
+
+http://127.0.0.1:4173/assets/index-CiFIGUGT.css
+Result: HTTP 200.
+
+http://127.0.0.1:4173/assets/index-DtpsJkmP.js
+Result: HTTP 200.
+```
+
+The Vite preview server was stopped afterwards.
 
 ## Dependency And Boundary Confirmation
 
@@ -167,5 +195,6 @@ The closeout patch added no new gameplay feature, balance change, card, pet, mon
 
 ## Final Release Notes
 
-- Final pushed commit SHA is reported in the Phase 1 closeout hand-off because the commit containing this report cannot contain its own final SHA.
-- Review ZIP is generated from clean `HEAD` after commit and reported in the Phase 1 closeout hand-off.
+- Validated clean closeout SHA: `47ef87d53496828d71b3f695f580622b959160c2`.
+- Validated review ZIP: `D:\Coding\roguedeckgame-review-47ef87d53496.zip`.
+- Final pushed HEAD is reported in the Phase 1 closeout hand-off because a commit cannot contain its own immutable SHA.

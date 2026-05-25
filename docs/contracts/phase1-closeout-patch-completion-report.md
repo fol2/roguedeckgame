@@ -68,21 +68,31 @@ Result: no Phaser, app, presentation, browser storage/global, or direct Math.ran
 
 ## Review ZIP Evidence
 
-The review ZIP is generated from clean `HEAD` after the closeout commit with:
+The review ZIP was generated from clean closeout `HEAD` with:
 
 ```bash
 npm run zip:review
 ```
 
-Expected path format:
+Validated closeout SHA:
 
 ```txt
-../roguedeckgame-review-<final-short-sha>.zip
+47ef87d53496828d71b3f695f580622b959160c2
 ```
 
-The exact final pushed SHA and exact ZIP path are produced after this report is committed, because a commit cannot contain its own immutable SHA or SHA-derived ZIP filename without changing that SHA. The final hand-off records those exact values.
+Generated review ZIP path:
 
-The extracted review ZIP validation must pass without any manual line-ending normalisation:
+```txt
+D:\Coding\roguedeckgame-review-47ef87d53496.zip
+```
+
+The review ZIP was extracted to:
+
+```txt
+C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-review-validation\roguedeckgame-47ef87d53496
+```
+
+Extracted review ZIP validation passed without any manual line-ending normalisation:
 
 ```bash
 npm ci
@@ -93,13 +103,39 @@ npm run smoke:localhost
 npm audit --audit-level=moderate
 ```
 
+Extracted ZIP `npm test` result: 49 test files, 395 tests.
+Extracted ZIP smoke URL shown by test: `http://127.0.0.1:53221/health`.
+
+## Production Preview Evidence
+
+The production build was served with:
+
+```bash
+npx vite preview --host 127.0.0.1 --port 4173
+```
+
+HTTP smoke checks passed:
+
+```txt
+http://127.0.0.1:4173/
+Result: HTTP 200.
+
+http://127.0.0.1:4173/assets/index-CiFIGUGT.css
+Result: HTTP 200.
+
+http://127.0.0.1:4173/assets/index-DtpsJkmP.js
+Result: HTTP 200.
+```
+
+The preview server was stopped afterwards. The repository has no external deployment target or deployment packaging by contract, so the production `dist` preview and extracted review ZIP validation are the deployed-environment evidence for this browser-first Vite slice.
+
 ## Acceptance Check
 
 - Ticket 0-11 are complete.
 - The only Phase 1 closeout patch was test/report portability hardening.
 - Static Phaser boundary tests are line-ending agnostic.
 - Repository text files have an LF line-ending policy.
-- Review ZIP validation is required to pass from clean extraction without manual normalisation.
+- Review ZIP validation passed from clean extraction without manual normalisation.
 - Production dependency remains only `phaser@4.1.0`.
 - No gameplay scope was introduced.
-- Phase 1 is ready to archive as complete once clean HEAD ZIP validation and independent review are green.
+- Phase 1 is ready to archive as complete.
