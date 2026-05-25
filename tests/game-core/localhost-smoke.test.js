@@ -2,15 +2,23 @@ import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   claimReward,
+  createCombat,
+  createRng,
   generateCombatRewardOffer,
+  playCard,
   starterRegistry,
+  upgradeId,
   validateRegistry
 } from "../../src/game-core";
 import {
+  createOpenRewardOfferFixture,
+  createPetUpgradeRewardOptionFixture,
   createRewardPetInstancesFixture,
   createRewardRunFixture,
   createWonCombatFixture
 } from "../../src/game-core/testing/reward-fixtures";
+import { cardInstanceId, combatantId, monsterId } from "../../src/game-core";
+import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
 
 let server;
 
@@ -67,6 +75,40 @@ describe("localhost smoke", () => {
             registry: starterRegistry
           })
         : undefined;
+      const upgradeOption = createPetUpgradeRewardOptionFixture({
+        upgradeId: upgradeId("burning_fang")
+      });
+      const upgradeClaim = claimReward({
+        rewardOffer: createOpenRewardOfferFixture([upgradeOption]),
+        selectedOptionId: upgradeOption.id,
+        run,
+        petInstances,
+        registry: starterRegistry
+      });
+      const combat = createCombat({
+        run: upgradeClaim.state.run,
+        registry: starterRegistry,
+        petInstances: upgradeClaim.state.petInstances,
+        monsterIds: [monsterId("training_slime")],
+        seed: "localhost-smoke-modifier",
+        openingHandSize: 0
+      });
+      const modifierState = {
+        ...createHandTunedCombatFixture(),
+        activePetInstanceIds: combat.state.activePetInstanceIds,
+        petInstances: combat.state.petInstances,
+        runPetStates: combat.state.runPetStates
+      };
+      const modifierPlay = playCard(
+        modifierState,
+        {
+          type: "playCard",
+          cardInstanceId: cardInstanceId("fox_bite:1"),
+          targetId: combatantId("monster:training_slime:0")
+        },
+        starterRegistry,
+        createRng("localhost-smoke-bite")
+      );
 
       response.setHeader("content-type", "application/json");
       response.end(
@@ -81,6 +123,14 @@ describe("localhost smoke", () => {
             options: reward.state.options.length,
             claimOk: claim?.ok ?? false,
             claimedDeckCards: claim?.state.run.deckCardIds.length ?? run.deckCardIds.length
+          },
+          modifier: {
+            upgradeClaimOk: upgradeClaim.ok,
+            combatOk: combat.ok,
+            activeModifierIds: combat.state.runPetStates[0]?.activeModifierIds ?? [],
+            playOk: modifierPlay.ok,
+            monsterHp: modifierPlay.state.monsters[0]?.hp,
+            burnStacks: modifierPlay.state.monsters[0]?.statuses.find((status) => status.statusId === "burn")?.stacks
           },
           errors: validation.errors
         })
@@ -115,6 +165,14 @@ describe("localhost smoke", () => {
         options: 4,
         claimOk: true,
         claimedDeckCards: 4
+      },
+      modifier: {
+        upgradeClaimOk: true,
+        combatOk: true,
+        activeModifierIds: ["burning_fang_modifier"],
+        playOk: true,
+        monsterHp: 15,
+        burnStacks: 3
       },
       errors: []
     });

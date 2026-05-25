@@ -2,9 +2,17 @@ import type { CombatantId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatantState, CombatState } from "../model/combat";
 import type { GameEvent } from "../model/event";
+import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
 import { applyDamage } from "./effects";
 import { checkCombatOutcome } from "./outcome";
+import { resolvePetModifierTriggersAfterEvents } from "./pet-modifiers";
+import type { Rng } from "./rng";
+
+type StatusResolutionOptions = {
+  readonly registry: GameContentRegistry;
+  readonly rng: Rng;
+};
 
 const BURN_STATUS_ID = burnStatusDefinition.id;
 
@@ -58,7 +66,8 @@ const updateCombatant = (
 
 export const processStartOfTurnStatuses = (
   state: CombatState,
-  targetId: CombatantId
+  targetId: CombatantId,
+  options?: StatusResolutionOptions
 ): GameActionResult<CombatState> => {
   const target = getCombatant(state, targetId);
   if (!target) {
@@ -69,6 +78,7 @@ export const processStartOfTurnStatuses = (
     return { ok: true, state, events: [], errors: [] };
   }
 
+  const originalState = state;
   let nextState = state;
   const events: GameEvent[] = [];
 
@@ -111,6 +121,27 @@ export const processStartOfTurnStatuses = (
     const outcomeResult = checkCombatOutcome(nextState);
     nextState = outcomeResult.state;
     events.push(...outcomeResult.events);
+
+    if (
+      options &&
+      originalState.phase === "player_turn" &&
+      nextState.phase === "player_turn" &&
+      damageResult.events.some((event) => event.type === "CombatantDefeated")
+    ) {
+      const triggerResult = resolvePetModifierTriggersAfterEvents({
+        stateBeforeEffects: originalState,
+        stateAfterEffects: nextState,
+        effectEvents: events,
+        registry: options.registry,
+        rng: options.rng
+      });
+      if (!triggerResult.ok) {
+        return triggerResult;
+      }
+
+      nextState = triggerResult.state;
+      events.push(...triggerResult.events);
+    }
 
     if (nextState.phase === "won" || nextState.phase === "lost") {
       break;

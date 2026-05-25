@@ -14,6 +14,7 @@ export const starterRegistry: GameContentRegistry = {
   players: playerDefinitions,
   monsters: forestMonsters,
   petUpgrades: emberFoxUpgrades,
+  petModifiers: emberFoxUpgrades.flatMap((upgrade) => upgrade.modifiers),
   storyEvents: emberFoxStoryEvents,
   petSideStories: emberFoxPetSideStories
 };
@@ -23,5 +24,6 @@ export const pets = starterRegistry.pets;
 export const players = starterRegistry.players;
 export const monsters = starterRegistry.monsters;
 export const petUpgrades = starterRegistry.petUpgrades;
+export const petModifiers = starterRegistry.petModifiers ?? [];
 export const storyEvents = starterRegistry.storyEvents;
 export const petSideStories = starterRegistry.petSideStories;

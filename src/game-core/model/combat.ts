@@ -49,6 +49,9 @@ export type CombatState = {
   readonly monsters: readonly CombatantState[];
   readonly activePetInstanceIds: readonly PetInstanceId[];
   readonly petInstances: readonly PetInstance[];
+  /**
+   * Per-combat state for active pets, including modifier availability and usage.
+   */
   readonly runPetStates: readonly RunPetState[];
   readonly monsterIntents: readonly ActiveMonsterIntent[];
   readonly cardInstances: readonly CombatCardInstance[];

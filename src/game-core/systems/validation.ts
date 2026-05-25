@@ -1,7 +1,11 @@
 import type { EffectDefinition } from "../model/effect";
 import { knownEffectTypes } from "../model/effect";
+import type { CardType } from "../model/card";
+import type { PetModifierRule } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
+import { burnStatusDefinition } from "../model/status";
+import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
 
 export type ValidationIssueSeverity = "error" | "warning";
 
@@ -49,6 +53,17 @@ const validateEffects = (
   path: string
 ): ValidationIssue[] => {
   return effects.flatMap((effectDefinition, index) => {
+    if (typeof effectDefinition !== "object" || effectDefinition === null) {
+      return [
+        issue(
+          "error",
+          "invalid_effect_definition",
+          "Effect definition must be an object.",
+          `${path}.effects[${index}]`
+        )
+      ];
+    }
+
     if (knownEffectTypes.includes(effectDefinition.type)) {
       return [];
     }
@@ -62,6 +77,256 @@ const validateEffects = (
       )
     ];
   });
+};
+
+const validatePetModifierRule = (
+  petDefinitionIds: ReadonlySet<string>,
+  rule: PetModifierRule,
+  path: string
+): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+  const knownCardTypes = ["attack", "skill", "power", "pet-command"] as const satisfies readonly CardType[];
+
+  if (typeof rule !== "object" || rule === null) {
+    issues.push(
+      issue(
+        "error",
+        "invalid_pet_modifier_rule",
+        "Pet modifier rule must be an object.",
+        path
+      )
+    );
+    return issues;
+  }
+
+  if (!knownPetModifierRuleTypeValues.includes(rule.type)) {
+    issues.push(
+      issue(
+        "error",
+        "unknown_pet_modifier_rule",
+        `Unknown pet modifier rule '${String(rule.type)}'.`,
+        path
+      )
+    );
+    return issues;
+  }
+
+  if (rule.type !== "triggerOnEnemyDefeatedWithStatus") {
+    if (!rule.selector || typeof rule.selector !== "object" || Array.isArray(rule.selector)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier_rule",
+          "Pet modifier rule is missing a card selector.",
+          `${path}.selector`
+        )
+      );
+    } else {
+      if ("tagsAny" in rule.selector && !Array.isArray(rule.selector.tagsAny)) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_pet_modifier_rule",
+            "Pet modifier selector tagsAny must be an array.",
+            `${path}.selector.tagsAny`
+          )
+        );
+      }
+
+      if ("tagsAll" in rule.selector && !Array.isArray(rule.selector.tagsAll)) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_pet_modifier_rule",
+            "Pet modifier selector tagsAll must be an array.",
+            `${path}.selector.tagsAll`
+          )
+        );
+      }
+
+      if (
+        "cardType" in rule.selector &&
+        !knownCardTypes.includes(rule.selector.cardType as CardType)
+      ) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_pet_modifier_rule",
+            "Pet modifier selector cardType is unknown.",
+            `${path}.selector.cardType`
+          )
+        );
+      }
+
+      if (
+        "requiresPetDefinitionId" in rule.selector &&
+        (
+          typeof rule.selector.requiresPetDefinitionId !== "string" ||
+          rule.selector.requiresPetDefinitionId.length === 0 ||
+          !petDefinitionIds.has(rule.selector.requiresPetDefinitionId)
+        )
+      ) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_pet_modifier_rule",
+            "Pet modifier selector requiresPetDefinitionId must reference a known pet definition.",
+            `${path}.selector.requiresPetDefinitionId`
+          )
+        );
+      }
+    }
+  }
+
+  if (rule.type === "modifyPetCommandEffectAmount" && rule.effectType === "applyStatus") {
+    if ("statusId" in rule && rule.statusId !== burnStatusDefinition.id) {
+      issues.push(
+        issue(
+          "error",
+          "unknown_pet_modifier_status",
+          `Pet modifier references unknown status '${rule.statusId}'.`,
+          `${path}.statusId`
+        )
+      );
+    }
+  }
+
+  if (rule.type === "modifyPetCommandEffectAmount") {
+    if (rule.effectType !== "petAttack" && rule.effectType !== "applyStatus") {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier_rule",
+          "Pet command effect modifier references an unknown effect type.",
+          `${path}.effectType`
+        )
+      );
+    }
+
+    if (typeof rule.amount !== "number" || !Number.isFinite(rule.amount)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier_rule",
+          "Pet command effect modifier amount must be a finite number.",
+          `${path}.amount`
+        )
+      );
+    }
+  }
+
+  if (rule.type === "modifyPetCommandCost") {
+    if (typeof rule.amount !== "number" || !Number.isFinite(rule.amount)) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier_rule",
+          "Pet command cost modifier amount must be a finite number.",
+          `${path}.amount`
+        )
+      );
+    }
+
+    if (
+      "minCost" in rule &&
+      (typeof rule.minCost !== "number" || !Number.isInteger(rule.minCost) || rule.minCost < 0)
+    ) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier_rule",
+          "Pet command cost modifier minCost must be a non-negative integer.",
+          `${path}.minCost`
+        )
+      );
+    }
+  }
+
+  if (
+    "limit" in rule &&
+    (
+      typeof rule.limit !== "object" ||
+      rule.limit === null ||
+      Array.isArray(rule.limit) ||
+      (rule.limit.type !== "oncePerCombat" && rule.limit.type !== "oncePerTurn")
+    )
+  ) {
+    issues.push(
+      issue(
+        "error",
+        "invalid_pet_modifier_rule",
+        "Pet modifier limit type is unknown.",
+        `${path}.limit.type`
+      )
+    );
+  }
+
+  if (rule.type === "triggerOnEnemyDefeatedWithStatus") {
+    if (rule.requiredStatusId !== burnStatusDefinition.id) {
+      issues.push(
+        issue(
+          "error",
+          "unknown_pet_modifier_status",
+          `Pet modifier references unknown status '${rule.requiredStatusId}'.`,
+          `${path}.requiredStatusId`
+        )
+      );
+    }
+
+    if (Array.isArray(rule.effects)) {
+      issues.push(...validateEffects(rule.effects, path));
+
+      rule.effects.forEach((effectDefinition, effectIndex) => {
+        if (typeof effectDefinition !== "object" || effectDefinition === null) {
+          issues.push(
+            issue(
+              "error",
+              "invalid_pet_modifier_rule",
+              "Pet trigger effect must be an object.",
+              `${path}.effects[${effectIndex}]`
+            )
+          );
+          return;
+        }
+
+        if (effectDefinition.type !== "draw") {
+          issues.push(
+            issue(
+              "error",
+              "invalid_pet_modifier_rule",
+              "Pet trigger modifiers only support draw effects in this ticket.",
+              `${path}.effects[${effectIndex}]`
+            )
+          );
+        }
+
+        if (
+          effectDefinition.type === "draw" &&
+          (!Number.isInteger(effectDefinition.amount) || effectDefinition.amount <= 0)
+        ) {
+          issues.push(
+            issue(
+              "error",
+              "invalid_pet_modifier_rule",
+              "Pet trigger draw amount must be a positive integer.",
+              `${path}.effects[${effectIndex}].amount`
+            )
+          );
+        }
+      });
+    } else {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier_rule",
+          "Pet trigger modifier effects must be an array.",
+          `${path}.effects`
+        )
+      );
+    }
+  }
+
+  return issues;
 };
 
 export const validateRegistry = (registry: GameContentRegistry): ValidationResult => {
@@ -157,6 +422,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     });
   });
 
+  const petModifierIds = new Set<string>();
   registry.petUpgrades.forEach((upgrade, upgradeIndex) => {
     if (!petDefinitionIds.has(upgrade.petDefinitionId)) {
       issues.push(
@@ -167,6 +433,96 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
           `petUpgrades[${upgradeIndex}].petDefinitionId`
         )
       );
+    }
+    upgrade.modifiers.forEach((modifier, modifierIndex) => {
+      if (typeof modifier !== "object" || modifier === null) {
+        issues.push(
+          issue(
+            "error",
+            "invalid_pet_modifier",
+            "Pet modifier definition must be an object.",
+            `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}]`
+          )
+        );
+        return;
+      }
+
+      if (petModifierIds.has(modifier.id)) {
+        issues.push(
+          issue(
+            "error",
+            "duplicate_pet_modifier_id",
+            `Duplicate modifier id '${modifier.id}' on upgrade '${upgrade.id}'.`,
+            `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}].id`
+          )
+        );
+      }
+      petModifierIds.add(modifier.id);
+
+      if (!Array.isArray(modifier.rules) || modifier.rules.length === 0) {
+        issues.push(
+          issue(
+            "error",
+            "missing_pet_modifier_rules",
+            `Modifier '${modifier.id}' has no rules.`,
+            `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}].rules`
+          )
+        );
+      }
+
+      if (Array.isArray(modifier.rules)) {
+        modifier.rules.forEach((rule, ruleIndex) => {
+          issues.push(...validatePetModifierRule(
+            petDefinitionIds,
+            rule,
+            `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}].rules[${ruleIndex}]`
+          ));
+        });
+      }
+    });
+  });
+
+  const standalonePetModifierIds = new Set<string>();
+  registry.petModifiers?.forEach((modifier, modifierIndex) => {
+    if (typeof modifier !== "object" || modifier === null) {
+      issues.push(
+        issue(
+          "error",
+          "invalid_pet_modifier",
+          "Pet modifier definition must be an object.",
+          `petModifiers[${modifierIndex}]`
+        )
+      );
+      return;
+    }
+
+    if (standalonePetModifierIds.has(modifier.id)) {
+      issues.push(
+        issue(
+          "error",
+          "duplicate_pet_modifier_id",
+          `Duplicate standalone modifier id '${modifier.id}'.`,
+          `petModifiers[${modifierIndex}].id`
+        )
+      );
+    }
+    standalonePetModifierIds.add(modifier.id);
+
+    if (!Array.isArray(modifier.rules) || modifier.rules.length === 0) {
+      issues.push(
+        issue(
+          "error",
+          "missing_pet_modifier_rules",
+          `Modifier '${modifier.id}' has no rules.`,
+          `petModifiers[${modifierIndex}].rules`
+        )
+      );
+    }
+
+    if (Array.isArray(modifier.rules)) {
+      modifier.rules.forEach((rule, ruleIndex) => {
+      issues.push(...validatePetModifierRule(petDefinitionIds, rule, `petModifiers[${modifierIndex}].rules[${ruleIndex}]`));
+      });
     }
   });
 

@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   cardId,
   evolutionNodeId,
+  petModifierId,
   petDefinitionId,
   playerClassId,
   starterRegistry,
   validateRegistry
 } from "../../src/game-core";
 import type { EffectDefinition, GameContentRegistry } from "../../src/game-core";
+import type { PetModifierRule } from "../../src/game-core";
 
 const cloneRegistry = (overrides: Partial<GameContentRegistry> = {}): GameContentRegistry => ({
   ...starterRegistry,
@@ -163,5 +165,541 @@ describe("starterRegistry", () => {
     );
 
     expect(result.errors.map((error) => error.code)).toContain("missing_story_evolution_node");
+  });
+
+  it("reports malformed pet modifier data", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [
+              {
+                id: petModifierId("broken_modifier"),
+                name: "Broken Modifier",
+                description: "Broken modifier for validation.",
+                tags: [],
+                rules: []
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("missing_pet_modifier_rules");
+  });
+
+  it("reports duplicate pet modifier ids across upgrades", () => {
+    const duplicateId = petModifierId("duplicate_modifier");
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: starterRegistry.petUpgrades.slice(0, 2).map((upgrade) => ({
+          ...upgrade,
+          modifiers: [
+            {
+              ...upgrade.modifiers[0],
+              id: duplicateId
+            }
+          ]
+        }))
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("duplicate_pet_modifier_id");
+  });
+
+  it("reports invalid pet modifier minCost and limit data", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[1],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[1].modifiers[0],
+                rules: [
+                  {
+                    ...starterRegistry.petUpgrades[1].modifiers[0].rules[0],
+                    minCost: -1,
+                    limit: { type: "permanent" }
+                  } as unknown as typeof starterRegistry.petUpgrades[1]["modifiers"][0]["rules"][0]
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(2);
+  });
+
+  it("reports unsupported pet trigger effects", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[2],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[2].modifiers[0],
+                rules: [
+                  {
+                    ...starterRegistry.petUpgrades[2].modifiers[0].rules[0],
+                    effects: [{ type: "block", amount: 1, target: { type: "self" } }]
+                  } as typeof starterRegistry.petUpgrades[2]["modifiers"][0]["rules"][0]
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("invalid_pet_modifier_rule");
+  });
+
+  it("reports invalid pet trigger draw amounts", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[2],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[2].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[2].modifiers[0].rules[0],
+                    effects: [{ type: "draw", amount: 0 }]
+                  } as Extract<PetModifierRule, { type: "triggerOnEnemyDefeatedWithStatus" }>)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("invalid_pet_modifier_rule");
+  });
+
+  it("reports malformed standalone pet modifiers", () => {
+    const duplicateId = petModifierId("standalone_broken");
+    const result = validateRegistry(
+      cloneRegistry({
+        petModifiers: [
+          {
+            id: duplicateId,
+            name: "Broken Standalone",
+            description: "Broken standalone modifier.",
+            tags: [],
+            rules: []
+          },
+          {
+            id: duplicateId,
+            name: "Broken Standalone Duplicate",
+            description: "Broken standalone duplicate.",
+            tags: [],
+            rules: [
+              {
+                type: "triggerOnEnemyDefeatedWithStatus",
+                requiredStatusId: "burn" as Extract<PetModifierRule, { type: "triggerOnEnemyDefeatedWithStatus" }>["requiredStatusId"],
+                effects: [{ type: "draw", amount: -1 }],
+                limit: { type: "oncePerTurn" }
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("duplicate_pet_modifier_id");
+    expect(result.errors.map((error) => error.code)).toContain("missing_pet_modifier_rules");
+    expect(result.errors.map((error) => error.code)).toContain("invalid_pet_modifier_rule");
+  });
+
+  it("reports non-array upgrade modifier rules without throwing", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[0].modifiers[0],
+                rules: undefined as unknown as typeof starterRegistry.petUpgrades[0]["modifiers"][0]["rules"]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("missing_pet_modifier_rules");
+  });
+
+  it("reports non-array standalone modifier rules without throwing", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petModifiers: [
+          {
+            id: petModifierId("broken_standalone_rules"),
+            name: "Broken Standalone Rules",
+            description: "Broken standalone rules.",
+            tags: [],
+            rules: undefined as unknown as typeof starterRegistry.petUpgrades[0]["modifiers"][0]["rules"]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("missing_pet_modifier_rules");
+  });
+
+  it("reports non-array trigger effects without throwing", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[2],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[2].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[2].modifiers[0].rules[0],
+                    effects: undefined
+                  } as unknown as Extract<PetModifierRule, { type: "triggerOnEnemyDefeatedWithStatus" }>)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("invalid_pet_modifier_rule");
+  });
+
+  it("reports invalid rule entries without throwing", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[0].modifiers[0],
+                rules: [undefined as unknown as PetModifierRule]
+              }
+            ]
+          }
+        ],
+        petModifiers: [
+          {
+            id: petModifierId("broken_standalone_rule_entry"),
+            name: "Broken Standalone Rule Entry",
+            description: "Broken standalone rule entry.",
+            tags: [],
+            rules: [undefined as unknown as PetModifierRule]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("reports invalid trigger effect entries without throwing", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[2],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[2].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[2].modifiers[0].rules[0],
+                    effects: [undefined]
+                  } as unknown as Extract<PetModifierRule, { type: "triggerOnEnemyDefeatedWithStatus" }>)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("invalid_pet_modifier_rule");
+  });
+
+  it("reports invalid modifier entries without throwing", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [undefined as unknown as typeof starterRegistry.petUpgrades[0]["modifiers"][0]]
+          }
+        ],
+        petModifiers: [undefined as unknown as typeof starterRegistry.petUpgrades[0]["modifiers"][0]]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier")).toHaveLength(2);
+  });
+
+  it("reports malformed modifier selectors", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[0].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[0],
+                    selector: undefined
+                  } as unknown as PetModifierRule),
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[0],
+                    selector: {
+                      ...("selector" in starterRegistry.petUpgrades[0].modifiers[0].rules[0]
+                        ? starterRegistry.petUpgrades[0].modifiers[0].rules[0].selector
+                        : {}),
+                      tagsAny: "burn"
+                    }
+                  } as unknown as PetModifierRule)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(2);
+  });
+
+  it("reports selector arrays and malformed selector tags", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[0].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[0],
+                    selector: []
+                  } as unknown as PetModifierRule),
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[0],
+                    selector: { tagsAny: "" }
+                  } as unknown as PetModifierRule),
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[0],
+                    selector: { tagsAll: null }
+                  } as unknown as PetModifierRule)
+                ]
+              }
+            ]
+          }
+        ],
+        petModifiers: [
+          {
+            id: petModifierId("broken_selector_tags"),
+            name: "Broken Selector Tags",
+            description: "Broken selector tags.",
+            tags: [],
+            rules: [
+              ({
+                type: "modifyPetCommandCost",
+                selector: { tagsAny: null, tagsAll: "" },
+                amount: -1,
+                minCost: 0
+              } as unknown as PetModifierRule)
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(5);
+  });
+
+  it("reports explicit undefined selector fields", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petModifiers: [
+          {
+            id: petModifierId("undefined_selector_fields"),
+            name: "Undefined Selector Fields",
+            description: "Undefined selector fields.",
+            tags: [],
+            rules: [
+              ({
+                type: "modifyPetCommandCost",
+                selector: {
+                  cardType: undefined,
+                  requiresPetDefinitionId: undefined,
+                  tagsAny: undefined,
+                  tagsAll: undefined
+                },
+                amount: -1,
+                minCost: 0
+              } as unknown as PetModifierRule)
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(4);
+  });
+
+  it("reports malformed selector cardType and pet definition references", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[1],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[1].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[1].modifiers[0].rules[0],
+                    selector: { cardType: "", requiresPetDefinitionId: "" }
+                  } as unknown as PetModifierRule),
+                  ({
+                    ...starterRegistry.petUpgrades[1].modifiers[0].rules[0],
+                    selector: { cardType: "pet-command", requiresPetDefinitionId: "missing_pet" }
+                  } as unknown as PetModifierRule)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(3);
+  });
+
+  it("reports malformed applyStatus modifier status ids", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[0].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[1],
+                    statusId: ""
+                  } as unknown as PetModifierRule),
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[1],
+                    statusId: null
+                  } as unknown as PetModifierRule)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "unknown_pet_modifier_status")).toHaveLength(2);
+  });
+
+  it("reports explicit undefined applyStatus modifier status ids", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[0],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[0].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[0].modifiers[0].rules[1],
+                    statusId: undefined
+                  } as unknown as PetModifierRule)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("unknown_pet_modifier_status");
+  });
+
+  it("reports null and explicit undefined pet modifier limits", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petUpgrades: [
+          {
+            ...starterRegistry.petUpgrades[1],
+            modifiers: [
+              {
+                ...starterRegistry.petUpgrades[1].modifiers[0],
+                rules: [
+                  ({
+                    ...starterRegistry.petUpgrades[1].modifiers[0].rules[0],
+                    limit: null
+                  } as unknown as PetModifierRule),
+                  ({
+                    ...starterRegistry.petUpgrades[1].modifiers[0].rules[0],
+                    limit: undefined
+                  } as unknown as PetModifierRule)
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(2);
+  });
+
+  it("reports malformed effect modifier type and amount", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        petModifiers: [
+          {
+            id: petModifierId("broken_effect_modifier"),
+            name: "Broken Effect Modifier",
+            description: "Broken effect modifier.",
+            tags: [],
+            rules: [
+              ({
+                type: "modifyPetCommandEffectAmount",
+                selector: { cardType: "pet-command" },
+                effectType: "heal",
+                amount: Number.NaN
+              } as unknown as PetModifierRule)
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(2);
   });
 });

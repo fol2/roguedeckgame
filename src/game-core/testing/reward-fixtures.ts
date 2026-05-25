@@ -101,6 +101,13 @@ export const createPetUpgradeRewardOfferFixture = (
 ): RewardOfferState =>
   createOpenRewardOfferFixture([createPetUpgradeRewardOptionFixture()], overrides);
 
+export const createBurningFangRewardOfferFixture = (
+  overrides: Partial<RewardOfferState> = {}
+): RewardOfferState =>
+  createOpenRewardOfferFixture([
+    createPetUpgradeRewardOptionFixture({ upgradeId: upgradeId("burning_fang") })
+  ], overrides);
+
 export const createWonCombatWithAshMiteFixture = (): CombatState =>
   createWonCombatFixture({
     monsters: [

@@ -3,7 +3,8 @@ import {
   combatantId,
   type CardInstanceId,
   type CombatantId,
-  type MonsterId
+  type MonsterId,
+  type PetInstanceId
 } from "../ids";
 import type { GameActionError, GameActionResult, PlayCardAction, CreateCombatResult } from "../model/action";
 import type { CardDefinition } from "../model/card";
@@ -15,9 +16,17 @@ import type { PetInstance, RunPetState } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import { drawCards } from "./draw";
-import { resolveCardEffects, resolveEffects, resolvePetTargets } from "./effects";
+import { resolveCardEffects, resolveEffects } from "./effects";
 import { checkCombatOutcome } from "./outcome";
 import { chooseMonsterIntents, findMonsterDefinition, findMonsterIntent } from "./monster-intents";
+import {
+  applyPetCommandCostModifiers,
+  applyPetCommandEffectModifiers,
+  createRunPetStateWithActiveModifiers,
+  resetTurnPetModifierUsage,
+  resolvePetCommandOwnerIds,
+  resolvePetModifierTriggersAfterEvents
+} from "./pet-modifiers";
 import { createRng, type Rng } from "./rng";
 import { processStartOfTurnStatuses } from "./statuses";
 
@@ -129,7 +138,10 @@ const createMonsterCombatant = (
 const createRunPetState = (petInstance: PetInstance): RunPetState => ({
   petInstanceId: petInstance.id,
   mood: "calm",
+  activeModifierIds: [],
   temporaryModifierIds: [],
+  usedModifierIdsThisCombat: [],
+  usedModifierIdsThisTurn: [],
   fatigue: 0
 });
 
@@ -148,11 +160,6 @@ const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatS
   ...state,
   events: [...state.events, ...events]
 });
-
-const firstPetTarget = (effects: readonly EffectDefinition[]): PetTarget => {
-  const petEffect = effects.find((effectDefinition) => "petTarget" in effectDefinition);
-  return petEffect && "petTarget" in petEffect ? petEffect.petTarget : { type: "leading" };
-};
 
 const targetNeedsActionTarget = (target: CombatantTarget): boolean =>
   target.type === "target" && target.combatantId === undefined;
@@ -260,6 +267,20 @@ const hasRequiredActivePet = (
     .some((petInstance) => petInstance.definitionId === card.requiresPetDefinitionId);
 };
 
+const lockSinglePetTarget = (
+  effectDefinition: EffectDefinition,
+  ownerPetInstanceIds: readonly PetInstanceId[]
+): EffectDefinition => {
+  if (ownerPetInstanceIds.length !== 1 || !("petTarget" in effectDefinition)) {
+    return effectDefinition;
+  }
+
+  return {
+    ...effectDefinition,
+    petTarget: { type: "specific", petInstanceId: ownerPetInstanceIds[0] }
+  };
+};
+
 export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
   const rng = createRng(input.seed);
   const activePetInstances = input.run.activePetInstanceIds.map((activePetInstanceId) =>
@@ -302,6 +323,16 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     );
   }
 
+  const runPetStates: RunPetState[] = [];
+  for (const petInstance of activePetInstances as readonly PetInstance[]) {
+    const runPetStateResult = createRunPetStateWithActiveModifiers(petInstance, input.registry);
+    if (!runPetStateResult.ok) {
+      return rejectCreate(input, runPetStateResult.error);
+    }
+
+    runPetStates.push(runPetStateResult.value);
+  }
+
   const monsters = input.monsterIds.map((monsterId, index) => {
     const monsterDefinition = input.registry.monsters.find((monster) => monster.id === monsterId);
     return monsterDefinition ? createMonsterCombatant(monsterDefinition, index) : undefined;
@@ -335,7 +366,7 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     monsters: monsters as readonly CombatantState[],
     activePetInstanceIds: [...input.run.activePetInstanceIds],
     petInstances: activePetInstances as readonly PetInstance[],
-    runPetStates: (activePetInstances as readonly PetInstance[]).map(createRunPetState),
+    runPetStates,
     monsterIntents: [],
     cardInstances,
     drawPile: shuffledDrawPile,
@@ -399,10 +430,6 @@ export const playCard = (
     return reject(state, error("missing_card_definition", `Card '${cardInstance.cardId}' is not registered.`, "registry.cards"));
   }
 
-  if (state.energy < card.cost) {
-    return reject(state, error("insufficient_energy", `Playing '${card.name}' requires ${card.cost} energy.`, "energy"));
-  }
-
   if (card.type === "pet-command" && !hasRequiredActivePet(state, card)) {
     return reject(
       state,
@@ -415,6 +442,49 @@ export const playCard = (
     return reject(state, validationError);
   }
 
+  const ownerPetResult = resolvePetCommandOwnerIds(state, registry, card, rng);
+  if (!ownerPetResult.ok) {
+    return reject(state, ownerPetResult.error);
+  }
+
+  const costModifierResult = applyPetCommandCostModifiers(
+    {
+      state,
+      card,
+      cardInstanceId: cardInstance.id,
+      cardId: cardInstance.cardId,
+      ownerPetInstanceIds: ownerPetResult.value
+    },
+    registry
+  );
+  if (!costModifierResult.ok) {
+    return reject(state, costModifierResult.error);
+  }
+
+  if (state.energy < costModifierResult.value.cost) {
+    return reject(
+      state,
+      error(
+        "insufficient_energy",
+        `Playing '${card.name}' requires ${costModifierResult.value.cost} energy.`,
+        "energy"
+      )
+    );
+  }
+
+  const effectModifierResult = applyPetCommandEffectModifiers(
+    {
+      state,
+      card,
+      effects: card.effects.map((effectDefinition) => lockSinglePetTarget(effectDefinition, ownerPetResult.value)),
+      ownerPetInstanceIds: ownerPetResult.value
+    },
+    registry
+  );
+  if (!effectModifierResult.ok) {
+    return reject(state, effectModifierResult.error);
+  }
+
   const cardPlayed: GameEvent = {
     type: "CardPlayed",
     cardInstanceId: cardInstance.id,
@@ -423,19 +493,23 @@ export const playCard = (
   };
   const energySpent: GameEvent = {
     type: "EnergySpent",
-    amount: card.cost,
-    remaining: state.energy - card.cost
+    amount: costModifierResult.value.cost,
+    remaining: state.energy - costModifierResult.value.cost
   };
-  let nextState = appendEvents({ ...state, energy: state.energy - card.cost }, [cardPlayed, energySpent]);
-  const events: GameEvent[] = [cardPlayed, energySpent];
+  const openingEvents = [
+    cardPlayed,
+    ...costModifierResult.value.events,
+    ...effectModifierResult.value.events,
+    energySpent
+  ];
+  let nextState = appendEvents(
+    { ...costModifierResult.value.state, energy: state.energy - costModifierResult.value.cost },
+    openingEvents
+  );
+  const events: GameEvent[] = [...openingEvents];
 
   if (card.type === "pet-command") {
-    const petResolution = resolvePetTargets(nextState, registry, firstPetTarget(card.effects), rng);
-    if (!petResolution.ok) {
-      return reject(state, petResolution.error);
-    }
-
-    const petCommandEvents = petResolution.petInstanceIds.map<GameEvent>((petInstanceId) => ({
+    const petCommandEvents = ownerPetResult.value.map<GameEvent>((petInstanceId) => ({
       type: "PetCommanded",
       petInstanceId,
       cardInstanceId: cardInstance.id,
@@ -447,7 +521,7 @@ export const playCard = (
 
   const effectResult = resolveCardEffects(
     nextState,
-    card.effects,
+    effectModifierResult.value.effects,
     {
       sourceId: PLAYER_COMBATANT_ID,
       targetId: action.targetId,
@@ -464,6 +538,20 @@ export const playCard = (
     );
   }
 
+  const triggerResult = resolvePetModifierTriggersAfterEvents({
+    stateBeforeEffects: nextState,
+    stateAfterEffects: effectResult.state,
+    effectEvents: effectResult.events,
+    registry,
+    rng
+  });
+  if (!triggerResult.ok) {
+    return reject(
+      state,
+      triggerResult.errors[0] ?? error("pet_modifier_trigger_failed", "Pet modifier trigger resolution failed.")
+    );
+  }
+
   const movedCard: GameEvent = {
     type: "CardMoved",
     cardInstanceId: cardInstance.id,
@@ -473,13 +561,13 @@ export const playCard = (
   };
   nextState = appendEvents(
     {
-      ...effectResult.state,
-      hand: effectResult.state.hand.filter((cardInstanceId) => cardInstanceId !== cardInstance.id),
-      discardPile: [...effectResult.state.discardPile, cardInstance.id]
+      ...triggerResult.state,
+      hand: triggerResult.state.hand.filter((cardInstanceId) => cardInstanceId !== cardInstance.id),
+      discardPile: [...triggerResult.state.discardPile, cardInstance.id]
     },
     [movedCard]
   );
-  events.push(...effectResult.events, movedCard);
+  events.push(...effectResult.events, ...triggerResult.events, movedCard);
 
   return { ok: true, state: nextState, events, errors: [] };
 };
@@ -564,7 +652,7 @@ const startPlayerTurnAfterStatusTicks = (
   };
   const nextState = appendEvents(
     {
-      ...state,
+      ...resetTurnPetModifierUsage(state),
       phase: "player_turn",
       activeActorId: state.player.id,
       turnNumber: state.turnNumber + 1,

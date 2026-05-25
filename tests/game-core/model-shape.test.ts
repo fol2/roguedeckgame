@@ -11,6 +11,7 @@ import {
   statusId,
   upgradeId,
   type GameEvent,
+  petModifierId,
   type PetTarget,
   validateRunStateShape
 } from "../../src/game-core";
@@ -127,6 +128,28 @@ describe("model shape", () => {
         type: "PetUpgradeUnlocked",
         petInstanceId: petInstanceId("ember_fox_001"),
         upgradeId: upgradeId("burning_fang")
+      },
+      {
+        type: "CardCostModified",
+        cardInstanceId: cardInstanceId("fox_bite:1"),
+        cardId: cardId("fox_bite"),
+        originalCost: 1,
+        modifiedCost: 0,
+        modifierId: petModifierId("warm_bond_modifier"),
+        petInstanceId: petInstanceId("ember_fox_001")
+      },
+      {
+        type: "PetModifierActivated",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        upgradeId: upgradeId("warm_bond"),
+        modifierId: petModifierId("warm_bond_modifier"),
+        reason: "cardCost"
+      },
+      {
+        type: "PetModifierConsumed",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        modifierId: petModifierId("warm_bond_modifier"),
+        scope: "combat"
       },
       { type: "StoryFlagSet", flagId: storyFlagId("ember_fox_memory_01_unlocked") },
       { type: "ValidationWarning", code: "sample", message: "Sample warning" }

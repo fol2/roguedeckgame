@@ -94,7 +94,10 @@ export const createHandTunedCombatFixture = (): CombatState => ({
     {
       petInstanceId: petInstanceId("ember_fox_001"),
       mood: "calm",
+      activeModifierIds: [],
       temporaryModifierIds: [],
+      usedModifierIdsThisCombat: [],
+      usedModifierIdsThisTurn: [],
       fatigue: 0
     }
   ],

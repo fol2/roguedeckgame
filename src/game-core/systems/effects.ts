@@ -128,6 +128,7 @@ export const resolvePetTargets = (
   rng: Rng
 ): PetTargetResolution => {
   const activeIds = [...state.activePetInstanceIds];
+  const activePetInstances = state.petInstances.filter((petInstance) => activeIds.includes(petInstance.id));
 
   if (petTarget.type === "leading") {
     const leadingPetInstanceId = activeIds[0];
@@ -143,7 +144,7 @@ export const resolvePetTargets = (
   }
 
   if (petTarget.type === "specific") {
-    return activeIds.includes(petTarget.petInstanceId)
+    return activePetInstances.some((petInstance) => petInstance.id === petTarget.petInstanceId)
       ? { ok: true, petInstanceIds: [petTarget.petInstanceId] }
       : {
           ok: false,
@@ -161,8 +162,7 @@ export const resolvePetTargets = (
       : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
   }
 
-  const matchingIds = state.petInstances
-    .filter((petInstance) => activeIds.includes(petInstance.id))
+  const matchingIds = activePetInstances
     .filter((petInstance) => {
       const definition = registry.pets.find((pet) => pet.id === petInstance.definitionId);
       return definition?.tags.includes(petTarget.tag) ?? false;

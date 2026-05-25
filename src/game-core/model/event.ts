@@ -3,6 +3,7 @@ import type {
   CardInstanceId,
   CombatantId,
   MonsterIntentId,
+  PetModifierId,
   PetInstanceId,
   RewardOfferId,
   RewardOptionId,
@@ -38,6 +39,15 @@ export type GameEvent =
       readonly sourceId: CombatantId;
     }
   | { readonly type: "EnergySpent"; readonly amount: number; readonly remaining: number }
+  | {
+      readonly type: "CardCostModified";
+      readonly cardInstanceId: CardInstanceId;
+      readonly cardId: CardId;
+      readonly originalCost: number;
+      readonly modifiedCost: number;
+      readonly modifierId: PetModifierId;
+      readonly petInstanceId: PetInstanceId;
+    }
   | { readonly type: "CardDrawn"; readonly cardInstanceId: CardInstanceId; readonly cardId: CardId }
   | {
       readonly type: "CardMoved";
@@ -69,6 +79,19 @@ export type GameEvent =
       readonly petInstanceId: PetInstanceId;
       readonly cardInstanceId: CardInstanceId;
       readonly cardId: CardId;
+    }
+  | {
+      readonly type: "PetModifierActivated";
+      readonly petInstanceId: PetInstanceId;
+      readonly upgradeId: UpgradeId;
+      readonly modifierId: PetModifierId;
+      readonly reason: "cardCost" | "effectAmount" | "enemyDefeatedWithStatus";
+    }
+  | {
+      readonly type: "PetModifierConsumed";
+      readonly petInstanceId: PetInstanceId;
+      readonly modifierId: PetModifierId;
+      readonly scope: "turn" | "combat";
     }
   | { readonly type: "PetReacted"; readonly petInstanceId: PetInstanceId; readonly reaction: string }
   | { readonly type: "DeckShuffled"; readonly from: CardPile | "deck"; readonly to: CardPile; readonly count: number }
