@@ -77,19 +77,19 @@ npm run zip:review
 Validated closeout SHA:
 
 ```txt
-47ef87d53496828d71b3f695f580622b959160c2
+Recorded in the final Phase 1 closeout hand-off after this report commit is pushed.
 ```
 
 Generated review ZIP path:
 
 ```txt
-D:\Coding\roguedeckgame-review-47ef87d53496.zip
+Recorded in the final Phase 1 closeout hand-off after this report commit is pushed.
 ```
 
 The review ZIP was extracted to:
 
 ```txt
-C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-review-validation\roguedeckgame-47ef87d53496
+Recorded in the final Phase 1 closeout hand-off after this report commit is pushed.
 ```
 
 Extracted review ZIP validation passed without any manual line-ending normalisation:
@@ -104,26 +104,26 @@ npm audit --audit-level=moderate
 ```
 
 Extracted ZIP `npm test` result: 49 test files, 395 tests.
-Extracted ZIP smoke URL shown by test: `http://127.0.0.1:53221/health`.
+Extracted ZIP smoke URL shown by test: recorded in the final Phase 1 closeout hand-off.
 
 ## Production Preview Evidence
 
 The production build was served with:
 
 ```bash
-npx vite preview --host 127.0.0.1 --port 4173
+npx vite preview --host 127.0.0.1 --port <validated-port>
 ```
 
 HTTP smoke checks passed:
 
 ```txt
-http://127.0.0.1:4173/
+http://127.0.0.1:<validated-port>/
 Result: HTTP 200.
 
-http://127.0.0.1:4173/assets/index-CiFIGUGT.css
+http://127.0.0.1:<validated-port>/assets/index-CiFIGUGT.css
 Result: HTTP 200.
 
-http://127.0.0.1:4173/assets/index-DtpsJkmP.js
+http://127.0.0.1:<validated-port>/assets/index-DtpsJkmP.js
 Result: HTTP 200.
 ```
 

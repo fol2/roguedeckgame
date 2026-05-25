@@ -44,16 +44,6 @@ function run(command, commandArgs, options = {}) {
   return result.stdout?.trim() ?? '';
 }
 
-function canRun(command, options = {}) {
-  const result = spawnSync(command, ['--version'], {
-    cwd: options.cwd,
-    encoding: 'utf8',
-    stdio: 'ignore',
-  });
-
-  return result.status === 0;
-}
-
 function removeOldReviewZips(parentDir, repoName, currentOutputPath) {
   const currentOutputName = basename(currentOutputPath);
   const reviewZipPrefix = `${repoName}-review-`;
@@ -116,12 +106,7 @@ function main() {
     { cwd: repoRoot },
   );
 
-  const hasZipCli = canRun('zip', { cwd: repoRoot });
-  if (hasZipCli) {
-    run('zip', ['-T', outputPath], { cwd: repoRoot, stdio: 'inherit' });
-  } else {
-    console.info('Skipping zip -T verification: zip CLI unavailable on this environment.');
-  }
+  run('zip', ['-T', outputPath], { cwd: repoRoot, stdio: 'inherit' });
 
   const removedFiles = removeOldReviewZips(parentDir, repoName, outputPath);
 

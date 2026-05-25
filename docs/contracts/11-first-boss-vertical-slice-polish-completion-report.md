@@ -99,14 +99,14 @@ Result: only phaser@4.1.0.
 
 Generated review ZIP
 Result: passed from clean closeout HEAD.
-Validated closeout SHA: 47ef87d53496828d71b3f695f580622b959160c2.
-Generated ZIP path: D:\Coding\roguedeckgame-review-47ef87d53496.zip.
+Validated closeout SHA: recorded in the final Phase 1 closeout hand-off after this report commit is pushed.
+Generated ZIP path: recorded in the final Phase 1 closeout hand-off after this report commit is pushed.
 
 Extracted review ZIP validation
-Result: passed without manual line-ending normalisation from C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-review-validation\roguedeckgame-47ef87d53496.
+Result: passed without manual line-ending normalisation from the extracted final review ZIP.
 Extracted ZIP commands passed: npm ci, npm run typecheck, npm test, npm run build, npm run smoke:localhost, npm audit --audit-level=moderate.
 Extracted ZIP test count: 49 test files, 395 tests.
-Extracted ZIP smoke URL shown by test: http://127.0.0.1:53221/health.
+Extracted ZIP smoke URL shown by test: recorded in the final Phase 1 closeout hand-off.
 ```
 
 The immutable SHA of the commit that contains any later evidence-only report update cannot be embedded inside that same commit without changing the SHA. The final pushed HEAD is therefore also reported in the external Phase 1 closeout hand-off.
@@ -145,19 +145,19 @@ The Vite dev server was stopped afterwards. Port 5173 had no listener after shut
 Served the production `dist` build with:
 
 ```bash
-npx vite preview --host 127.0.0.1 --port 4173
+npx vite preview --host 127.0.0.1 --port <validated-port>
 ```
 
 Confirmed with HTTP smoke checks:
 
 ```txt
-http://127.0.0.1:4173/
+http://127.0.0.1:<validated-port>/
 Result: HTTP 200.
 
-http://127.0.0.1:4173/assets/index-CiFIGUGT.css
+http://127.0.0.1:<validated-port>/assets/index-CiFIGUGT.css
 Result: HTTP 200.
 
-http://127.0.0.1:4173/assets/index-DtpsJkmP.js
+http://127.0.0.1:<validated-port>/assets/index-DtpsJkmP.js
 Result: HTTP 200.
 ```
 
@@ -195,6 +195,6 @@ The closeout patch added no new gameplay feature, balance change, card, pet, mon
 
 ## Final Release Notes
 
-- Validated clean closeout SHA: `47ef87d53496828d71b3f695f580622b959160c2`.
-- Validated review ZIP: `D:\Coding\roguedeckgame-review-47ef87d53496.zip`.
+- Validated clean closeout SHA: recorded in the final Phase 1 closeout hand-off after this report commit is pushed.
+- Validated review ZIP: recorded in the final Phase 1 closeout hand-off after this report commit is pushed.
 - Final pushed HEAD is reported in the Phase 1 closeout hand-off because a commit cannot contain its own immutable SHA.
