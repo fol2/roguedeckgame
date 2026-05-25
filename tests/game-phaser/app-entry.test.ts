@@ -21,6 +21,7 @@ describe("Vite app entry", () => {
     expect(createGame).toMatch(/new Game\(/);
     expect(createGame).toMatch(/BootScene/);
     expect(createGame).toMatch(/CoreSmokeScene/);
+    expect(createGame).toMatch(/CombatScene/);
   });
 
   it("imports styles and handles the app mount in main.ts", async () => {

@@ -1,6 +1,7 @@
 import { AUTO, Game, Scale } from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../game-phaser/layout/game-size";
 import { BootScene } from "../game-phaser/scenes/BootScene";
+import { CombatScene } from "../game-phaser/scenes/CombatScene";
 import { CoreSmokeScene } from "../game-phaser/scenes/CoreSmokeScene";
 
 export const createGame = (parent: HTMLElement): Game => new Game({
@@ -13,5 +14,5 @@ export const createGame = (parent: HTMLElement): Game => new Game({
     mode: Scale.FIT,
     autoCenter: Scale.CENTER_BOTH
   },
-  scene: [BootScene, CoreSmokeScene]
+  scene: [BootScene, CoreSmokeScene, CombatScene]
 });

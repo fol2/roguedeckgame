@@ -127,8 +127,15 @@ describe("Phaser architecture boundary", () => {
     const requiredFiles = [
       "scenes/SceneKeys.ts",
       "scenes/BootScene.ts",
+      "scenes/CombatScene.ts",
       "scenes/CoreSmokeScene.ts",
       "layout/game-size.ts",
+      "layout/combat-layout.ts",
+      "layout/hand-layout.ts",
+      "layout/pet-layout.ts",
+      "controllers/CombatSandboxController.ts",
+      "view-models/combat-view-model.ts",
+      "animation/CombatEventPlayer.ts",
       "debug/core-smoke.ts"
     ];
 
@@ -177,8 +184,11 @@ describe("Phaser architecture boundary", () => {
 
   it("uses central layout constants in scenes", async () => {
     const coreSmokeScene = await readFile(join(sceneRoot, "CoreSmokeScene.ts"), "utf8");
+    const combatScene = await readFile(join(sceneRoot, "CombatScene.ts"), "utf8");
 
     expect(coreSmokeScene).toMatch(/from\s+["']\.\.\/layout\/game-size["']/);
     expect(coreSmokeScene).not.toMatch(/\b(1280|720|640|360)\b/);
+    expect(combatScene).toMatch(/from\s+["']\.\.\/layout\/combat-layout["']/);
+    expect(combatScene).not.toMatch(/\b(1280|720|640|360)\b/);
   });
 });

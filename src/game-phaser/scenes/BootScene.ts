@@ -7,6 +7,6 @@ export class BootScene extends Scene {
   }
 
   public create(): void {
-    this.scene.start(SceneKeys.CoreSmoke);
+    this.scene.start(SceneKeys.Combat);
   }
 }

@@ -1,7 +1,5 @@
 import {
-  createRun,
   petInstanceId,
-  playerClassId,
   starterRegistry,
   validateRegistry,
   type PetInstance
@@ -43,27 +41,20 @@ export const buildCoreSmokeViewModel = (): CoreSmokeViewModel => {
   const validation = validateRegistry(starterRegistry);
   const petInstances = createSmokePetInstances();
   const activePetInstanceIds = petInstances.map((pet) => pet.id);
-  const run = createRun({
-    seed: "phaser-core-smoke",
-    playerClassId: playerClassId("novice_tamer"),
-    activePetInstanceIds,
-    petInstances,
-    registry: starterRegistry
-  });
-  const errors = [...validation.errors, ...run.errors];
-  const mapNodeCount = run.state.map?.nodes.length;
+  const errors = [...validation.errors];
+  const mapNodeCount = starterRegistry.runMapTemplates[0]?.nodes.length;
 
   return {
-    ok: errors.length === 0 && run.ok,
+    ok: errors.length === 0,
     title: "Pet Roguelite Deckbuilder",
     registryErrorCount: validation.errors.length,
-    runStatus: run.state.status,
+    runStatus: "debug-static",
     mapNodeCount,
-    activePetCount: run.state.activePetInstanceIds.length,
+    activePetCount: activePetInstanceIds.length,
     messages: errors.length > 0
       ? errors.map((error) => `${error.code}: ${error.message}`)
       : [
-          "Phaser is rendering a serializable core smoke result.",
+          "Phaser is rendering serializable registry smoke data.",
           "Gameplay rules remain inside src/game-core."
         ]
   };
