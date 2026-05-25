@@ -19,5 +19,6 @@ export * from "./systems/effects";
 export * from "./systems/monster-intents";
 export * from "./systems/outcome";
 export * from "./systems/rng";
+export * from "./systems/rewards";
 export * from "./systems/statuses";
 export * from "./systems/validation";

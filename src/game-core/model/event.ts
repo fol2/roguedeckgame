@@ -4,11 +4,14 @@ import type {
   CombatantId,
   MonsterIntentId,
   PetInstanceId,
+  RewardOfferId,
+  RewardOptionId,
   StatusId,
   StoryFlagId,
   UpgradeId
 } from "../ids";
 import type { MonsterIntentType } from "./monster";
+import type { RewardOption } from "./reward";
 
 export type CardPile = "draw" | "hand" | "discard" | "exhaust";
 
@@ -72,6 +75,19 @@ export type GameEvent =
   | { readonly type: "ActionRejected"; readonly code: string; readonly message: string; readonly path?: string }
   | { readonly type: "CombatantDefeated"; readonly combatantId: CombatantId }
   | { readonly type: "CombatEnded"; readonly outcome: "won" | "lost" }
-  | { readonly type: "RewardOffered"; readonly upgradeIds: readonly UpgradeId[] }
+  | {
+      readonly type: "RewardOffered";
+      readonly rewardOfferId: RewardOfferId;
+      readonly options: readonly RewardOption[];
+    }
+  | {
+      readonly type: "RewardSelected";
+      readonly rewardOfferId: RewardOfferId;
+      readonly rewardOptionId: RewardOptionId;
+      readonly rewardType: RewardOption["type"];
+    }
+  | { readonly type: "RewardSkipped"; readonly rewardOfferId: RewardOfferId }
+  | { readonly type: "CardRewardAdded"; readonly cardId: CardId }
+  | { readonly type: "PetUpgradeUnlocked"; readonly petInstanceId: PetInstanceId; readonly upgradeId: UpgradeId }
   | { readonly type: "StoryFlagSet"; readonly flagId: StoryFlagId }
   | { readonly type: "ValidationWarning"; readonly code: string; readonly message: string };

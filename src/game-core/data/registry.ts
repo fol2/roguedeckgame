@@ -1,4 +1,5 @@
 import { emberFoxCards } from "./cards/ember-fox-cards";
+import { rewardCards } from "./cards/reward-cards";
 import { starterCards } from "./cards/starter-cards";
 import { forestMonsters } from "./monsters/forest-monsters";
 import { pets as petDefinitions } from "./pets/ember-fox";
@@ -8,7 +9,7 @@ import { emberFoxUpgrades } from "./upgrades/ember-fox-upgrades";
 import type { GameContentRegistry } from "../model/registry";
 
 export const starterRegistry: GameContentRegistry = {
-  cards: [...starterCards, ...emberFoxCards],
+  cards: [...starterCards, ...emberFoxCards, ...rewardCards],
   pets: petDefinitions,
   players: playerDefinitions,
   monsters: forestMonsters,

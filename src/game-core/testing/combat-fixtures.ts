@@ -185,6 +185,31 @@ export const createNearlyDeadMonsterFixture = (): CombatState => {
   };
 };
 
+export const createWonCombatFixture = (overrides: Partial<CombatState> = {}): CombatState => {
+  const baseState = createCombatFixture();
+  return {
+    ...baseState,
+    phase: "won",
+    activeActorId: combatantId("player"),
+    monsters: baseState.monsters.map((monster) => ({ ...monster, hp: 0, alive: false })),
+    monsterIntents: [],
+    events: [],
+    ...overrides
+  };
+};
+
+export const createLostCombatFixture = (overrides: Partial<CombatState> = {}): CombatState => {
+  const baseState = createCombatFixture();
+  return {
+    ...baseState,
+    phase: "lost",
+    player: { ...baseState.player, hp: 0, alive: false },
+    monsterIntents: [],
+    events: [],
+    ...overrides
+  };
+};
+
 export const createRegistryWithForcedTrainingSlimeIntent = (
   intent: MonsterIntentDefinition
 ) => ({

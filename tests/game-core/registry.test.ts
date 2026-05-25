@@ -50,12 +50,17 @@ describe("starterRegistry", () => {
     expect(noviceTamer?.petSlotCount).toBe(1);
   });
 
-  it("includes all three Ember Fox command cards", () => {
+  it("includes Ember Fox base and reward command cards", () => {
     const commandCards = starterRegistry.cards
       .filter((card) => card.requiresPetDefinitionId === petDefinitionId("ember_fox"))
       .map((card) => card.id);
 
-    expect(commandCards).toEqual([cardId("fox_bite"), cardId("fox_guard"), cardId("fox_fetch")]);
+    expect(commandCards).toEqual([
+      cardId("fox_bite"),
+      cardId("fox_guard"),
+      cardId("fox_fetch"),
+      cardId("fox_flare")
+    ]);
   });
 
   it("includes all three Ember Fox upgrades", () => {

@@ -3,9 +3,13 @@ import {
   cardId,
   cardInstanceId,
   combatantId,
+  rewardOfferId,
+  rewardOptionId,
+  petDefinitionId,
   petInstanceId,
   storyFlagId,
   statusId,
+  upgradeId,
   type GameEvent,
   type PetTarget,
   validateRunStateShape
@@ -47,6 +51,29 @@ describe("model shape", () => {
     ]);
   });
 
+  it("models reward offers with card and pet upgrade options", () => {
+    const rewardOffer = {
+      id: rewardOfferId("reward_fixture"),
+      source: "combat" as const,
+      combatId: createRunFixture().id,
+      seed: "reward-shape",
+      status: "open" as const,
+      options: [
+        { id: rewardOptionId("reward_fixture:card:ember_spark"), type: "card" as const, cardId: cardId("ember_spark") },
+        {
+          id: rewardOptionId("reward_fixture:petUpgrade:ember_fox_001:burning_fang"),
+          type: "petUpgrade" as const,
+          petInstanceId: petInstanceId("ember_fox_001"),
+          petDefinitionId: petDefinitionId("ember_fox"),
+          upgradeId: upgradeId("burning_fang")
+        }
+      ]
+    };
+
+    expect(rewardOffer.options.map((option) => option.type)).toEqual(["card", "petUpgrade"]);
+    expect(JSON.parse(JSON.stringify(rewardOffer))).toEqual(rewardOffer);
+  });
+
   it("keeps GameEvent objects serializable as plain data", () => {
     const events: readonly GameEvent[] = [
       {
@@ -83,7 +110,24 @@ describe("model shape", () => {
       { type: "DeckShuffled", from: "deck", to: "draw", count: 3 },
       { type: "ActionRejected", code: "sample", message: "Sample rejection" },
       { type: "CombatantDefeated", combatantId: combatantId("training_slime") },
-      { type: "RewardOffered", upgradeIds: [] },
+      {
+        type: "RewardOffered",
+        rewardOfferId: rewardOfferId("reward_fixture"),
+        options: [{ id: rewardOptionId("reward_fixture:card:ember_spark"), type: "card", cardId: cardId("ember_spark") }]
+      },
+      {
+        type: "RewardSelected",
+        rewardOfferId: rewardOfferId("reward_fixture"),
+        rewardOptionId: rewardOptionId("reward_fixture:card:ember_spark"),
+        rewardType: "card"
+      },
+      { type: "RewardSkipped", rewardOfferId: rewardOfferId("reward_fixture") },
+      { type: "CardRewardAdded", cardId: cardId("ember_spark") },
+      {
+        type: "PetUpgradeUnlocked",
+        petInstanceId: petInstanceId("ember_fox_001"),
+        upgradeId: upgradeId("burning_fang")
+      },
       { type: "StoryFlagSet", flagId: storyFlagId("ember_fox_memory_01_unlocked") },
       { type: "ValidationWarning", code: "sample", message: "Sample warning" }
     ];
