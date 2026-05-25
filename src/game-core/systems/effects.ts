@@ -1,4 +1,4 @@
-import type { CardId, CardInstanceId, CombatantId, PetInstanceId } from "../ids";
+import type { CardId, CardInstanceId, CombatantId, MonsterIntentId, PetInstanceId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatantTarget, EffectDefinition, PetTarget } from "../model/effect";
 import type { CombatantState, CombatState } from "../model/combat";
@@ -6,13 +6,16 @@ import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
 import type { CombatStatusState } from "../model/status";
 import { drawCards } from "./draw";
+import { checkCombatOutcome } from "./outcome";
 import type { Rng } from "./rng";
 
 type EffectContext = {
   readonly sourceId: CombatantId;
   readonly targetId?: CombatantId;
-  readonly cardInstanceId: CardInstanceId;
-  readonly cardId: CardId;
+  readonly defaultTargetId?: CombatantId;
+  readonly cardInstanceId?: CardInstanceId;
+  readonly cardId?: CardId;
+  readonly intentId?: MonsterIntentId;
 };
 
 type PetTargetResolution =
@@ -174,18 +177,19 @@ export const resolvePetTargets = (
       };
 };
 
-const applyDamage = (
+export const applyDamage = (
   state: CombatState,
   sourceId: CombatantId,
   targetId: CombatantId,
-  amount: number
+  amount: number,
+  options: { readonly ignoreBlock?: boolean } = {}
 ): { readonly state: CombatState; readonly events: readonly GameEvent[] } => {
   const target = getCombatant(state, targetId);
   if (!target) {
     return { state, events: [] };
   }
 
-  const blocked = Math.min(target.block, amount);
+  const blocked = options.ignoreBlock ? 0 : Math.min(target.block, amount);
   const damage = Math.max(0, amount - blocked);
   const nextHp = Math.max(0, target.hp - damage);
   const wasAlive = target.alive;
@@ -248,7 +252,7 @@ const applyStatus = (
   return { state: appendEvents(nextState, [event]), events: [event] };
 };
 
-export const resolveCardEffects = (
+export const resolveEffects = (
   state: CombatState,
   effects: readonly EffectDefinition[],
   context: EffectContext,
@@ -302,7 +306,7 @@ export const resolveCardEffects = (
         nextState,
         context.sourceId,
         effectDefinition.target,
-        context.targetId
+        context.targetId ?? context.defaultTargetId
       );
       if (isActionError(targets)) {
         return reject(state, targets);
@@ -321,6 +325,17 @@ export const resolveCardEffects = (
           const damageResult = applyDamage(nextState, context.sourceId, target.id, effectDefinition.amount);
           nextState = damageResult.state;
           events.push(...damageResult.events);
+          const outcomeResult = checkCombatOutcome(nextState);
+          nextState = outcomeResult.state;
+          events.push(...outcomeResult.events);
+
+          if (nextState.phase === "won" || nextState.phase === "lost") {
+            break;
+          }
+        }
+
+        if (nextState.phase === "won" || nextState.phase === "lost") {
+          break;
         }
       }
       continue;
@@ -331,7 +346,7 @@ export const resolveCardEffects = (
         nextState,
         context.sourceId,
         effectDefinition.target,
-        context.targetId
+        context.targetId ?? context.defaultTargetId
       );
       if (isActionError(targets)) {
         return reject(state, targets);
@@ -360,7 +375,7 @@ export const resolveCardEffects = (
         nextState,
         context.sourceId,
         effectDefinition.target,
-        context.targetId
+        context.targetId ?? context.defaultTargetId
       );
       if (isActionError(targets)) {
         return reject(state, targets);
@@ -376,3 +391,5 @@ export const resolveCardEffects = (
 
   return { ok: true, state: nextState, events, errors: [] };
 };
+
+export const resolveCardEffects = resolveEffects;

@@ -2,11 +2,13 @@ import type {
   CardId,
   CardInstanceId,
   CombatantId,
+  MonsterIntentId,
   PetInstanceId,
   StatusId,
   StoryFlagId,
   UpgradeId
 } from "../ids";
+import type { MonsterIntentType } from "./monster";
 
 export type CardPile = "draw" | "hand" | "discard" | "exhaust";
 
@@ -14,6 +16,18 @@ export type GameEvent =
   | { readonly type: "CombatStarted"; readonly combatId: string; readonly seed: string | number }
   | { readonly type: "TurnStarted"; readonly turnNumber: number; readonly actorId: CombatantId }
   | { readonly type: "TurnEnded"; readonly turnNumber: number; readonly actorId: CombatantId }
+  | {
+      readonly type: "MonsterIntentSet";
+      readonly monsterId: CombatantId;
+      readonly intentId: MonsterIntentId;
+      readonly intentType: MonsterIntentType;
+      readonly description: string;
+    }
+  | {
+      readonly type: "MonsterIntentResolved";
+      readonly monsterId: CombatantId;
+      readonly intentId: MonsterIntentId;
+    }
   | {
       readonly type: "CardPlayed";
       readonly cardInstanceId: CardInstanceId;
@@ -39,6 +53,15 @@ export type GameEvent =
   | { readonly type: "BlockGained"; readonly targetId: CombatantId; readonly amount: number; readonly total: number }
   | { readonly type: "StatusApplied"; readonly targetId: CombatantId; readonly statusId: StatusId; readonly stacks: number }
   | {
+      readonly type: "StatusTicked";
+      readonly targetId: CombatantId;
+      readonly statusId: StatusId;
+      readonly stacksBefore: number;
+      readonly stacksAfter: number;
+      readonly amount?: number;
+    }
+  | { readonly type: "StatusExpired"; readonly targetId: CombatantId; readonly statusId: StatusId }
+  | {
       readonly type: "PetCommanded";
       readonly petInstanceId: PetInstanceId;
       readonly cardInstanceId: CardInstanceId;
@@ -48,6 +71,7 @@ export type GameEvent =
   | { readonly type: "DeckShuffled"; readonly from: CardPile | "deck"; readonly to: CardPile; readonly count: number }
   | { readonly type: "ActionRejected"; readonly code: string; readonly message: string; readonly path?: string }
   | { readonly type: "CombatantDefeated"; readonly combatantId: CombatantId }
+  | { readonly type: "CombatEnded"; readonly outcome: "won" | "lost" }
   | { readonly type: "RewardOffered"; readonly upgradeIds: readonly UpgradeId[] }
   | { readonly type: "StoryFlagSet"; readonly flagId: StoryFlagId }
   | { readonly type: "ValidationWarning"; readonly code: string; readonly message: string };

@@ -140,6 +140,7 @@ describe("pet-command combat cards", () => {
       "PetCommanded",
       "DamageDealt",
       "CombatantDefeated",
+      "CombatEnded",
       "CardMoved"
     ]);
   });

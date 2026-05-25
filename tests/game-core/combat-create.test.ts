@@ -45,9 +45,9 @@ describe("createCombat", () => {
     expect(result.events.map((event) => event.type).slice(0, 5)).toEqual([
       "CombatStarted",
       "DeckShuffled",
+      "MonsterIntentSet",
       "TurnStarted",
-      "CardMoved",
-      "CardDrawn"
+      "CardMoved"
     ]);
   });
 

@@ -2,6 +2,7 @@ import type {
   CardId,
   CardInstanceId,
   CombatantId,
+  MonsterIntentId,
   MonsterId,
   PetInstanceId,
   PlayerClassId,
@@ -33,6 +34,11 @@ export type CombatCardInstance = {
   readonly ownerId: CombatantId;
 };
 
+export type ActiveMonsterIntent = {
+  readonly monsterCombatantId: CombatantId;
+  readonly intentId: MonsterIntentId;
+};
+
 export type CombatState = {
   readonly id: RunId;
   readonly seed: string | number;
@@ -44,6 +50,7 @@ export type CombatState = {
   readonly activePetInstanceIds: readonly PetInstanceId[];
   readonly petInstances: readonly PetInstance[];
   readonly runPetStates: readonly RunPetState[];
+  readonly monsterIntents: readonly ActiveMonsterIntent[];
   readonly cardInstances: readonly CombatCardInstance[];
   readonly drawPile: readonly CardInstanceId[];
   readonly hand: readonly CardInstanceId[];

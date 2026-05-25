@@ -1,6 +1,15 @@
-import { cardInstanceId, cardId, combatantId, monsterId, petDefinitionId, petInstanceId } from "../ids";
+import {
+  cardInstanceId,
+  cardId,
+  combatantId,
+  monsterId,
+  monsterIntentId,
+  petInstanceId,
+  statusId
+} from "../ids";
 import { starterRegistry } from "../data/registry";
 import type { CombatState } from "../model/combat";
+import type { MonsterIntentDefinition } from "../model/monster";
 import type { PetInstance } from "../model/pet";
 import type { RunState } from "../model/run";
 import { createCombat, type CreateCombatInput } from "../systems/combat";
@@ -89,6 +98,12 @@ export const createHandTunedCombatFixture = (): CombatState => ({
       fatigue: 0
     }
   ],
+  monsterIntents: [
+    {
+      monsterCombatantId: combatantId("monster:training_slime:0"),
+      intentId: monsterIntentId("training_slime_attack")
+    }
+  ],
   cardInstances: [
     { id: cardInstanceId("strike:1"), cardId: cardId("strike"), ownerId: combatantId("player") },
     { id: cardInstanceId("defend:1"), cardId: cardId("defend"), ownerId: combatantId("player") },
@@ -112,4 +127,71 @@ export const createHandTunedCombatFixture = (): CombatState => ({
   energy: 3,
   maxEnergy: 3,
   events: []
+});
+
+export const createEnemyTurnFixture = (): CombatState => {
+  const baseState = createHandTunedCombatFixture();
+  return {
+    ...baseState,
+    phase: "enemy_turn",
+    hand: [],
+    discardPile: [...baseState.hand],
+    energy: 0,
+    events: []
+  };
+};
+
+export const createForcedIntentCombatFixture = (
+  intentId = monsterIntentId("training_slime_attack")
+): CombatState => {
+  const baseState = createEnemyTurnFixture();
+  return {
+    ...baseState,
+    monsterIntents: [
+      {
+        monsterCombatantId: baseState.monsters[0].id,
+        intentId
+      }
+    ]
+  };
+};
+
+export const createBurningMonsterFixture = (stacks = 2): CombatState => {
+  const baseState = createEnemyTurnFixture();
+  return {
+    ...baseState,
+    monsters: [
+      {
+        ...baseState.monsters[0],
+        statuses: [{ statusId: statusId("burn"), stacks }]
+      }
+    ]
+  };
+};
+
+export const createNearlyDeadPlayerFixture = (): CombatState => {
+  const baseState = createForcedIntentCombatFixture(monsterIntentId("training_slime_attack"));
+  return {
+    ...baseState,
+    player: { ...baseState.player, hp: 5 }
+  };
+};
+
+export const createNearlyDeadMonsterFixture = (): CombatState => {
+  const baseState = createHandTunedCombatFixture();
+  return {
+    ...baseState,
+    monsters: [{ ...baseState.monsters[0], hp: 6 }]
+  };
+};
+
+export const createRegistryWithForcedTrainingSlimeIntent = (
+  intent: MonsterIntentDefinition
+) => ({
+  ...starterRegistry,
+  monsters: starterRegistry.monsters.map((monster) =>
+    monster.id === monsterId("training_slime")
+      ? { ...monster, intentPool: [intent] }
+      : monster
+  )
 });

@@ -202,6 +202,7 @@ describe("playCard", () => {
       "EnergySpent",
       "DamageDealt",
       "CombatantDefeated",
+      "CombatEnded",
       "CardMoved"
     ]);
   });
@@ -240,6 +241,7 @@ describe("playCard", () => {
       "EnergySpent",
       "DamageDealt",
       "CombatantDefeated",
+      "CombatEnded",
       "CardMoved"
     ]);
   });

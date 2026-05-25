@@ -15,8 +15,11 @@ import type { PetInstance, RunPetState } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import { drawCards } from "./draw";
-import { resolveCardEffects, resolvePetTargets } from "./effects";
+import { resolveCardEffects, resolveEffects, resolvePetTargets } from "./effects";
+import { checkCombatOutcome } from "./outcome";
+import { chooseMonsterIntents, findMonsterDefinition, findMonsterIntent } from "./monster-intents";
 import { createRng, type Rng } from "./rng";
+import { processStartOfTurnStatuses } from "./statuses";
 
 const PLAYER_COMBATANT_ID = combatantId("player");
 const DEFAULT_OPENING_HAND_SIZE = 5;
@@ -73,6 +76,7 @@ const createRejectedState = (input: CreateCombatInput): CombatState => {
     activePetInstanceIds: [...input.run.activePetInstanceIds],
     petInstances: activePetInstances,
     runPetStates: activePetInstances.map(createRunPetState),
+    monsterIntents: [],
     cardInstances,
     drawPile: [],
     hand: [],
@@ -318,11 +322,10 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
   const shuffledDrawPile = rng.shuffle(cardInstances.map((cardInstance) => cardInstance.id));
   const initialEvents: GameEvent[] = [
     { type: "CombatStarted", combatId: input.run.id, seed: input.seed },
-    { type: "DeckShuffled", from: "deck", to: "draw", count: shuffledDrawPile.length },
-    { type: "TurnStarted", turnNumber: 1, actorId: PLAYER_COMBATANT_ID }
+    { type: "DeckShuffled", from: "deck", to: "draw", count: shuffledDrawPile.length }
   ];
 
-  const initialState: CombatState = {
+  let initialState: CombatState = {
     id: input.run.id,
     seed: input.seed,
     turnNumber: 1,
@@ -333,6 +336,7 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     activePetInstanceIds: [...input.run.activePetInstanceIds],
     petInstances: activePetInstances as readonly PetInstance[],
     runPetStates: (activePetInstances as readonly PetInstance[]).map(createRunPetState),
+    monsterIntents: [],
     cardInstances,
     drawPile: shuffledDrawPile,
     hand: [],
@@ -343,6 +347,13 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     events: initialEvents
   };
 
+  const intentResult = chooseMonsterIntents(initialState, input.registry, rng);
+  if (!intentResult.ok) {
+    return rejectCreate(input, intentResult.errors[0] ?? error("monster_intent_selection_failed", "Monster intent selection failed."));
+  }
+
+  const turnStarted: GameEvent = { type: "TurnStarted", turnNumber: 1, actorId: PLAYER_COMBATANT_ID };
+  initialState = appendEvents(intentResult.state, [turnStarted]);
   const openingHandSize = input.openingHandSize ?? DEFAULT_OPENING_HAND_SIZE;
   const drawResult = drawCards(initialState, openingHandSize, rng);
   if (!drawResult.ok) {
@@ -352,7 +363,7 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
   return {
     ok: true,
     state: drawResult.state,
-    events: [...initialEvents, ...drawResult.events],
+    events: [...initialEvents, ...intentResult.events, turnStarted, ...drawResult.events],
     errors: []
   };
 };
@@ -363,6 +374,10 @@ export const playCard = (
   registry: GameContentRegistry,
   rng: Rng
 ): GameActionResult<CombatState> => {
+  if (state.phase === "won" || state.phase === "lost") {
+    return reject(state, error("combat_already_ended", "Cards cannot be played after combat has ended.", "phase"));
+  }
+
   if (state.phase !== "player_turn") {
     return reject(state, error("invalid_phase", "Cards can only be played during the player turn.", "phase"));
   }
@@ -516,6 +531,32 @@ export const startPlayerTurn = (
   state: CombatState,
   rng: Rng
 ): GameActionResult<CombatState> => {
+  if (state.phase === "won" || state.phase === "lost") {
+    return reject(state, error("combat_already_ended", "A new player turn cannot start after combat has ended.", "phase"));
+  }
+
+  if (state.phase !== "enemy_turn") {
+    return reject(state, error("invalid_phase", "A player turn can only start after the enemy turn.", "phase"));
+  }
+
+  const statusResult = processStartOfTurnStatuses(state, state.player.id);
+  if (!statusResult.ok) {
+    return statusResult;
+  }
+
+  if (statusResult.state.phase === "won" || statusResult.state.phase === "lost") {
+    return statusResult;
+  }
+
+  return startPlayerTurnAfterStatusTicks(statusResult.state, rng, statusResult.events, state);
+};
+
+const startPlayerTurnAfterStatusTicks = (
+  state: CombatState,
+  rng: Rng,
+  previousEvents: readonly GameEvent[] = [],
+  originalStateForReject: CombatState = state
+): GameActionResult<CombatState> => {
   const turnStarted: GameEvent = {
     type: "TurnStarted",
     turnNumber: state.turnNumber + 1,
@@ -534,10 +575,138 @@ export const startPlayerTurn = (
   );
   const drawResult = drawCards(nextState, DEFAULT_OPENING_HAND_SIZE, rng);
   if (!drawResult.ok) {
-    return drawResult;
+    return reject(originalStateForReject, drawResult.errors[0] ?? error("draw_failed", "Could not draw cards for the player turn."));
   }
 
-  return { ok: true, state: drawResult.state, events: [turnStarted, ...drawResult.events], errors: [] };
+  return { ok: true, state: drawResult.state, events: [...previousEvents, turnStarted, ...drawResult.events], errors: [] };
+};
+
+export const resolveEnemyTurn = (
+  state: CombatState,
+  registry: GameContentRegistry,
+  rng: Rng
+): GameActionResult<CombatState> => {
+  if (state.phase === "won" || state.phase === "lost") {
+    return reject(state, error("combat_already_ended", "The enemy turn cannot resolve after combat has ended.", "phase"));
+  }
+
+  if (state.phase !== "enemy_turn") {
+    return reject(state, error("invalid_phase", "Enemy turn resolution requires the enemy turn phase.", "phase"));
+  }
+
+  const originalState = state;
+  let nextState = state;
+  const events: GameEvent[] = [];
+
+  for (const monster of nextState.monsters) {
+    if (!monster.alive) {
+      continue;
+    }
+
+    const statusResult = processStartOfTurnStatuses(nextState, monster.id);
+    if (!statusResult.ok) {
+      return reject(originalState, statusResult.errors[0] ?? error("status_resolution_failed", "Status resolution failed."));
+    }
+
+    nextState = statusResult.state;
+    events.push(...statusResult.events);
+
+    if (nextState.phase === "won" || nextState.phase === "lost") {
+      return { ok: true, state: nextState, events, errors: [] };
+    }
+  }
+
+  for (const monster of nextState.monsters) {
+    if (!monster.alive) {
+      continue;
+    }
+
+    const monsterDefinition = findMonsterDefinition(registry, monster);
+    if (!monsterDefinition) {
+      return reject(
+        originalState,
+        error("missing_monster_definition", `Monster combatant '${monster.id}' has no registered definition.`, "registry.monsters")
+      );
+    }
+
+    const intent = findMonsterIntent(monsterDefinition, monster.id, nextState);
+    if ("code" in intent) {
+      return reject(originalState, intent);
+    }
+
+    const resolvedEvent: GameEvent = {
+      type: "MonsterIntentResolved",
+      monsterId: monster.id,
+      intentId: intent.id
+    };
+    nextState = appendEvents({ ...nextState, activeActorId: monster.id }, [resolvedEvent]);
+    events.push(resolvedEvent);
+
+    const effectResult = resolveEffects(
+      nextState,
+      intent.effects,
+      {
+        sourceId: monster.id,
+        defaultTargetId: nextState.player.id,
+        intentId: intent.id
+      },
+      registry,
+      rng
+    );
+    if (!effectResult.ok) {
+      return reject(
+        originalState,
+        effectResult.errors[0] ?? error("effect_resolution_failed", "Monster intent effect resolution failed.")
+      );
+    }
+
+    nextState = effectResult.state;
+    events.push(...effectResult.events);
+
+    const outcomeResult = checkCombatOutcome(nextState);
+    nextState = outcomeResult.state;
+    events.push(...outcomeResult.events);
+
+    if (nextState.phase === "won" || nextState.phase === "lost") {
+      return { ok: true, state: nextState, events, errors: [] };
+    }
+  }
+
+  const clearedIntentState = { ...nextState, monsterIntents: [] };
+  const playerStatusResult = processStartOfTurnStatuses(clearedIntentState, clearedIntentState.player.id);
+  if (!playerStatusResult.ok) {
+    return reject(
+      originalState,
+      playerStatusResult.errors[0] ?? error("status_resolution_failed", "Status resolution failed.")
+    );
+  }
+
+  nextState = playerStatusResult.state;
+  events.push(...playerStatusResult.events);
+
+  if (nextState.phase === "won" || nextState.phase === "lost") {
+    return { ok: true, state: nextState, events, errors: [] };
+  }
+
+  const intentResult = chooseMonsterIntents(nextState, registry, rng);
+  if (!intentResult.ok) {
+    return reject(
+      originalState,
+      intentResult.errors[0] ?? error("monster_intent_selection_failed", "Monster intent selection failed.")
+    );
+  }
+
+  const turnResult = startPlayerTurnAfterStatusTicks(intentResult.state, rng, [], originalState);
+  if (!turnResult.ok) {
+    return reject(originalState, turnResult.errors[0] ?? error("turn_start_failed", "Player turn start failed."));
+  }
+
+  return {
+    ok: true,
+    state: turnResult.state,
+    events: [...events, ...intentResult.events, ...turnResult.events],
+    errors: []
+  };
 };
 
 export const createCombatRng = createRng;

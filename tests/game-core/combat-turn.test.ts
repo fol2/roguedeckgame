@@ -46,4 +46,14 @@ describe("combat turn flow", () => {
     expect(result.state.hand).toEqual([cardInstanceId("strike:1")]);
     expect(result.events.map((event) => event.type)).toEqual(["TurnStarted", "CardMoved", "CardDrawn"]);
   });
+
+  it("rejects starting a player turn outside enemy_turn", () => {
+    const state = createHandTunedCombatFixture();
+    const result = startPlayerTurn(state, createRng("invalid-start"));
+
+    expect(result.ok).toBe(false);
+    expect(result.state).toBe(state);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_phase"]);
+    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+  });
 });
