@@ -100,9 +100,15 @@ export class RewardScene extends Scene {
   private renderCurrentState(): void {
     const run = this.sandbox.getRunViewModel();
     const reward = this.sandbox.getRewardViewModel();
+    const skipVisible = Boolean(reward?.skipAvailable);
 
     this.runHudPresenter?.render(run);
     this.optionPresenter?.render(reward?.options ?? [], this.inputLocked);
+    this.skipButton?.setVisible(skipVisible);
+    this.skipButton?.disableInteractive();
+    if (skipVisible && !this.inputLocked) {
+      this.skipButton?.setInteractive();
+    }
     this.eventLog?.setMessages(reward?.eventMessages ?? run.eventMessages);
   }
 }

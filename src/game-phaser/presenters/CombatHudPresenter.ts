@@ -26,6 +26,12 @@ export class CombatHudPresenter {
       fontFamily: "Inter, sans-serif",
       fontSize: HUD_TEXT.fontSize.title
     }));
+    this.container.add(this.scene.add.text(HUD_TEXT.pileX, HUD_TEXT.titleY, viewModel.encounterLabel, {
+      color: "#ffd166",
+      fontFamily: "Inter, sans-serif",
+      fontSize: HUD_TEXT.fontSize.context,
+      wordWrap: { width: HUD_AREA.width - HUD_TEXT.pileX - HUD_TEXT.contextWrapPadding }
+    }));
     this.container.add(this.scene.add.text(HUD_TEXT.x, HUD_TEXT.phaseY, `Phase: ${viewModel.phase}`, {
       color: "#b8c5d9",
       fontFamily: "Inter, sans-serif",

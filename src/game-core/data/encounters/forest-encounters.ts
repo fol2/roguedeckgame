@@ -28,18 +28,18 @@ export const forestDuoEncounter: EncounterDefinition = {
 export const forestElitePlaceholder: EncounterDefinition = {
   id: encounterId("forest_elite_placeholder"),
   type: "elite",
-  name: "Forest Elite Placeholder",
-  monsterIds: [monsterId("ash_mite"), monsterId("ash_mite")],
-  tags: ["forest", "elite", "placeholder"],
+  name: "Charred Stag",
+  monsterIds: [monsterId("charred_stag")],
+  tags: ["forest", "elite", "beast", "burn"],
   rewardSeedSalt: "elite"
 };
 
 export const forestBossPlaceholder: EncounterDefinition = {
   id: encounterId("forest_boss_placeholder"),
   type: "boss",
-  name: "Forest Boss Placeholder",
-  monsterIds: [monsterId("training_slime"), monsterId("ash_mite")],
-  tags: ["forest", "boss", "placeholder"],
+  name: "Forest Warden",
+  monsterIds: [monsterId("forest_warden")],
+  tags: ["forest", "boss", "guardian", "burn"],
   rewardSeedSalt: "boss"
 };
 

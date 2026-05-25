@@ -43,6 +43,11 @@ export class RewardOptionPresenter {
         fontSize: REWARD_OPTION_PANEL.fontSize.subtitle,
         wordWrap: { width: REWARD_OPTION_PANEL.width - REWARD_OPTION_PANEL.textWrapPadding }
       }));
+      group.add(this.scene.add.text(REWARD_OPTION_PANEL.typeX, REWARD_OPTION_PANEL.titleY, option.typeLabel, {
+        color: "#8fd6b5",
+        fontFamily: "Inter, sans-serif",
+        fontSize: REWARD_OPTION_PANEL.fontSize.type
+      }).setOrigin(1, 0));
       group.add(this.scene.add.text(-REWARD_OPTION_PANEL.width / 2 + REWARD_OPTION_PANEL.textInset, REWARD_OPTION_PANEL.descriptionY, option.description, {
         color: "#c4d0df",
         fontFamily: "Inter, sans-serif",

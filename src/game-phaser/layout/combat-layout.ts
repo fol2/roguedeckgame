@@ -66,9 +66,23 @@ export const OUTCOME_LABEL = {
   y: GAME_CENTER_Y + 20
 } as const;
 
+export const ENCOUNTER_LABEL = {
+  x: GAME_CENTER_X,
+  y: 70,
+  fontSize: "16px"
+} as const;
+
+export const CONTINUE_BUTTON = {
+  x: GAME_CENTER_X,
+  y: GAME_CENTER_Y + 82,
+  width: 168,
+  height: 48,
+  fontSize: "17px"
+} as const;
+
 export const RESET_RUN_BUTTON = {
   x: GAME_CENTER_X,
-  y: GAME_CENTER_Y + 88,
+  y: GAME_CENTER_Y + 140,
   width: 168,
   height: 48,
   fontSize: "17px"
@@ -83,10 +97,12 @@ export const HUD_TEXT = {
   pileX: 146,
   fontSize: {
     title: "18px",
+    context: "13px",
     body: "15px",
     energy: "17px",
     pile: "14px"
-  }
+  },
+  contextWrapPadding: 12
 } as const;
 
 export const PLAYER_TEXT = {

@@ -14,6 +14,7 @@ export const REWARD_OPTION_PANEL = {
   width: 224,
   height: 194,
   gap: 32,
+  typeX: 92,
   titleY: -72,
   subtitleY: -40,
   descriptionY: -8,
@@ -21,6 +22,7 @@ export const REWARD_OPTION_PANEL = {
   textWrapPadding: 36,
   fontSize: {
     title: "18px",
+    type: "12px",
     subtitle: "13px",
     description: "13px"
   }

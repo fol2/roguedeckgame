@@ -4,7 +4,7 @@ export const RUN_HUD_AREA = {
   x: GAME_MARGIN,
   y: GAME_MARGIN,
   width: 316,
-  height: 156
+  height: 184
 } as const;
 
 export const RUN_HUD_TEXT = {
@@ -14,6 +14,7 @@ export const RUN_HUD_TEXT = {
   seedY: 74,
   deckY: 102,
   petsY: 130,
+  currentY: 158,
   fontSize: {
     title: "18px",
     body: "14px"

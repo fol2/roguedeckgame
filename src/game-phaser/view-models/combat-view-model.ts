@@ -8,10 +8,12 @@ import {
   type CombatState,
   type GameContentRegistry,
   type GameEvent,
+  type EncounterId,
   type MonsterIntentId,
   type PetInstance,
   type PetInstanceId,
   type RunState,
+  type RunNodeType,
   type StatusId
 } from "../../game-core";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
@@ -61,6 +63,9 @@ export type PetViewModel = {
 
 export type CombatViewModel = {
   readonly phase: CombatPhase;
+  readonly runNodeType?: RunNodeType;
+  readonly encounterId?: EncounterId;
+  readonly encounterLabel: string;
   readonly turnNumber: number;
   readonly energy: number;
   readonly maxEnergy: number;
@@ -71,6 +76,8 @@ export type CombatViewModel = {
   readonly hand: readonly CombatCardViewModel[];
   readonly drawPileCount: number;
   readonly discardPileCount: number;
+  readonly continueAvailable: boolean;
+  readonly resetAvailable: boolean;
   readonly eventMessages: readonly string[];
 };
 
@@ -101,9 +108,16 @@ export const buildCombatViewModel = (
   const petStatesById = new Map(
     state.combat.runPetStates.map((runPetState) => [runPetState.petInstanceId, runPetState])
   );
+  const currentNode = state.run.map?.nodes.find((node) => node.id === state.run.map?.currentNodeId);
+  const encounter = currentNode?.encounterId
+    ? registry.encounters.find((candidate) => candidate.id === currentNode.encounterId)
+    : undefined;
 
   return {
     phase: state.combat.phase,
+    runNodeType: currentNode?.type,
+    encounterId: currentNode?.encounterId,
+    encounterLabel: encounter?.name ?? currentNode?.type ?? "Combat",
     turnNumber: state.combat.turnNumber,
     energy: state.combat.energy,
     maxEnergy: state.combat.maxEnergy,
@@ -155,6 +169,8 @@ export const buildCombatViewModel = (
     }),
     drawPileCount: state.combat.drawPile.length,
     discardPileCount: state.combat.discardPile.length,
+    continueAvailable: state.combat.phase === "won" || state.combat.phase === "lost",
+    resetAvailable: state.run.status === "lost" || state.run.status === "completed",
     eventMessages: state.lastEvents.map(formatCombatEventMessage)
   };
 };

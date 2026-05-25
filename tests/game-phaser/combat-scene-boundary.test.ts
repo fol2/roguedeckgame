@@ -115,4 +115,18 @@ describe("Combat scene boundary", () => {
       expect(source, `${relative(root, file)} has inline two-digit text coordinates`).not.toMatch(/add\.text\([^,\n]+,\s*-?\d{2,}/);
     }
   });
+
+  it("returns immediately after completed combat scene routing", async () => {
+    const source = await readFile(scenePath, "utf8");
+
+    expect(source).toMatch(/if \(runStatus === "reward"\) \{\n\s+this\.scene\.start\(SceneKeys\.Reward\);\n\s+return;\n\s+\}/);
+    expect(source).toMatch(/else if \(runStatus === "map_select"\) \{\n\s+this\.scene\.start\(SceneKeys\.Map\);\n\s+return;\n\s+\}/);
+    expect(source).toMatch(/else if \(runStatus === "completed" \|\| runStatus === "lost"\) \{\n\s+this\.scene\.start\(SceneKeys\.Map\);\n\s+return;\n\s+\}/);
+  });
+
+  it("resets the input lock before scene reuse", async () => {
+    const source = await readFile(scenePath, "utf8");
+
+    expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
+  });
 });

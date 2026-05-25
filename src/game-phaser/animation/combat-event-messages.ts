@@ -14,6 +14,8 @@ export const formatCombatEventMessage = (event: EventLike): string => {
       return `${event.cardId} moved ${event.from} -> ${event.to}.`;
     case "CardPlayed":
       return `Played ${event.cardId}.`;
+    case "CardCostModified":
+      return `${event.cardId} cost changed ${event.originalCost} -> ${event.modifiedCost}.`;
     case "CombatantDefeated":
       return `${event.combatantId} was defeated.`;
     case "CombatEnded":
@@ -33,19 +35,23 @@ export const formatCombatEventMessage = (event: EventLike): string => {
     case "PetCommanded":
       return `${event.petInstanceId} was commanded by ${event.cardId}.`;
     case "PetModifierActivated":
-      return `${event.petInstanceId} activated ${event.modifierId}.`;
+      return `${event.petInstanceId} activated ${event.modifierId} (${event.reason}).`;
     case "PetModifierConsumed":
       return `${event.petInstanceId} consumed ${event.modifierId}.`;
     case "PetReacted":
       return `${event.petInstanceId} reacted: ${event.reaction}.`;
     case "RunCombatStarted":
       return `Encounter ${event.encounterId} started.`;
+    case "RunCombatCompleted":
+      return `Run combat completed: ${event.outcome}.`;
+    case "RunEnded":
+      return `Run ended: ${event.outcome}.`;
     case "StatusApplied":
       return `${event.targetId} gained ${event.stacks} ${event.statusId}.`;
     case "StatusExpired":
       return `${event.statusId} expired on ${event.targetId}.`;
     case "StatusTicked":
-      return `${event.statusId} ticked on ${event.targetId}.`;
+      return `${event.statusId} ticked on ${event.targetId} (${event.stacksBefore} -> ${event.stacksAfter}).`;
     case "TurnEnded":
       return `Turn ${event.turnNumber} ended.`;
     case "TurnStarted":

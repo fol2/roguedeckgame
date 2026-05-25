@@ -187,7 +187,7 @@ export const createRunSandboxController = (
         }, starterRegistry)
       : undefined,
     getRewardViewModel: () => state.run.pendingRewardOffer
-      ? buildRewardViewModel(state.run.pendingRewardOffer, state.lastEvents, starterRegistry)
+      ? buildRewardViewModel(state.run.pendingRewardOffer, state.lastEvents, starterRegistry, state.petInstances)
       : undefined,
     selectMapNode: (nodeId) => {
       const selectedRun = selectRunNode(state.run, nodeId);
@@ -277,7 +277,9 @@ export const createRunSandboxController = (
         petInstances: state.petInstances,
         rewardSeed: `${String(seed)}:${state.run.map?.currentNodeId ?? "node"}:reward`
       });
-      const next = replaceState(state, { run: completeResult.state }, completeResult.events);
+      const next = completeResult.ok
+        ? replaceState(state, { run: completeResult.state, combat: undefined }, completeResult.events)
+        : replaceState(state, { run: completeResult.state }, completeResult.events);
 
       return toResult(completeResult.ok, next, completeResult.events, completeResult.errors);
     },

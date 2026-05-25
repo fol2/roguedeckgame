@@ -41,5 +41,10 @@ export class RunHudPresenter {
       fontFamily: "Inter, sans-serif",
       fontSize: RUN_HUD_TEXT.fontSize.body
     }));
+    this.container.add(this.scene.add.text(RUN_HUD_TEXT.x, RUN_HUD_TEXT.currentY, `Current: ${run.currentNodeType ?? "map"}`, {
+      color: "#c4d0df",
+      fontFamily: "Inter, sans-serif",
+      fontSize: RUN_HUD_TEXT.fontSize.body
+    }));
   }
 }

@@ -36,6 +36,24 @@ export const formatRunEventMessage = (event: GameEvent): string => {
       return `Run ended: ${event.outcome}`;
     case "ActionRejected":
       return `Rejected: ${event.message}`;
+    case "CombatEnded":
+      return `Combat ended: ${event.outcome}`;
+    case "MonsterIntentSet":
+      return `Intent set: ${event.description}`;
+    case "MonsterIntentResolved":
+      return `Intent resolved: ${event.intentId}`;
+    case "DamageDealt":
+      return `${event.sourceId} dealt ${event.amount} damage to ${event.targetId}`;
+    case "BlockGained":
+      return `${event.targetId} gained ${event.amount} block`;
+    case "StatusApplied":
+      return `${event.targetId} gained ${event.stacks} ${event.statusId}`;
+    case "StatusTicked":
+      return `${event.statusId} ticked on ${event.targetId}`;
+    case "PetModifierActivated":
+      return `Pet modifier activated: ${event.modifierId}`;
+    case "CardCostModified":
+      return `Card cost modified: ${event.cardId} ${event.originalCost} -> ${event.modifiedCost}`;
     default:
       return `Event: ${event.type}`;
   }

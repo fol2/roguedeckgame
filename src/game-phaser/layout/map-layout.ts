@@ -11,6 +11,7 @@ export const MAP_TITLE = {
 export const MAP_NODE = {
   radius: 34,
   strokeWidth: 3,
+  bossRadius: 40,
   labelYOffset: -8,
   statusYOffset: 12,
   fontSize: {
@@ -32,6 +33,25 @@ export const MAP_NODE_COLOURS = {
   active: 0xd89d38,
   completed: 0x5b6f88,
   skipped: 0x3f4653
+} as const;
+
+export const MAP_CONNECTION = {
+  width: 3,
+  colour: 0x536579,
+  alpha: 0.72
+} as const;
+
+export const MAP_BOSS_NODE = {
+  fill: 0x5c2632,
+  stroke: 0xffa36b
+} as const;
+
+export const MAP_RESET_BUTTON = {
+  x: GAME_CENTER_X,
+  y: GAME_HEIGHT - 58,
+  width: 168,
+  height: 46,
+  fontSize: "17px"
 } as const;
 
 export const getMapNodePosition = (

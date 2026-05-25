@@ -28,6 +28,8 @@ export type RunViewModel = {
   readonly activePetCount: number;
   readonly nodes: readonly RunNodeViewModel[];
   readonly currentNodeId?: RunNodeId;
+  readonly currentNodeType?: RunNodeType;
+  readonly resetAvailable: boolean;
   readonly eventMessages: readonly string[];
 };
 
@@ -50,20 +52,26 @@ export const buildRunViewModel = (
   run: RunState,
   events: readonly GameEvent[],
   _registry: GameContentRegistry = starterRegistry
-): RunViewModel => ({
-  runId: run.id,
-  status: run.status,
-  seed: run.seed,
-  deckCount: run.deckCardIds.length,
-  activePetCount: run.activePetInstanceIds.length,
-  nodes: run.map?.nodes.map((node) => ({
-    id: node.id,
-    type: node.type,
-    layer: node.layer,
-    status: node.status,
-    label: nodeTypeLabel(node.type),
-    nextNodeIds: node.nextNodeIds
-  })) ?? [],
-  currentNodeId: run.map?.currentNodeId,
-  eventMessages: events.map(formatRunEventMessage)
-});
+): RunViewModel => {
+  const currentNode = run.map?.nodes.find((node) => node.id === run.map?.currentNodeId);
+
+  return {
+    runId: run.id,
+    status: run.status,
+    seed: run.seed,
+    deckCount: run.deckCardIds.length,
+    activePetCount: run.activePetInstanceIds.length,
+    nodes: run.map?.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      layer: node.layer,
+      status: node.status,
+      label: nodeTypeLabel(node.type),
+      nextNodeIds: node.nextNodeIds
+    })) ?? [],
+    currentNodeId: run.map?.currentNodeId,
+    currentNodeType: currentNode?.type,
+    resetAvailable: run.status === "completed" || run.status === "lost",
+    eventMessages: events.map(formatRunEventMessage)
+  };
+};
