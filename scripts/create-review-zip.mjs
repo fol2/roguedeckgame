@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 const args = process.argv.slice(2);
 const allowDirty = args.includes('--allow-dirty');
 const helpRequested = args.includes('--help') || args.includes('-h');
+const excludedPaths = ['archive'];
 
 function printHelp() {
   console.log(`Usage: npm run zip:review [-- --allow-dirty]
@@ -12,6 +13,9 @@ Creates a code review ZIP from the current Git commit.
 
 By default the archive is written to the parent folder:
   ../<repo-name>-review-<short-sha>.zip
+
+Excluded paths:
+${excludedPaths.map((path) => `  ${path}/`).join('\n')}
 
 Options:
   --allow-dirty  Archive HEAD even when the working tree has uncommitted changes.
@@ -66,7 +70,17 @@ function main() {
 
   run(
     'git',
-    ['archive', '--format=zip', `--prefix=${archivePrefix}`, '-o', outputPath, 'HEAD'],
+    [
+      'archive',
+      '--format=zip',
+      `--prefix=${archivePrefix}`,
+      '-o',
+      outputPath,
+      'HEAD',
+      '--',
+      '.',
+      ...excludedPaths.map((path) => `:(exclude)${path}`),
+    ],
     { cwd: repoRoot },
   );
 
