@@ -43,7 +43,7 @@ Result: passed, 9 test files, 55 tests
 
 npm run smoke:localhost
 Result: passed
-Observed localhost URL: http://127.0.0.1:49433/health
+Observed latest localhost URL: http://127.0.0.1:49730/health
 
 npm audit --audit-level=moderate
 Result: passed, found 0 vulnerabilities
@@ -91,7 +91,9 @@ Fixes applied:
 - Aligned `createCombat` with `GameActionResult<CombatState>`.
 - Moved `CombatStatusState` into `src/game-core/model/status.ts`.
 
-Final independent review status will be recorded after the committed/pushed revision is re-audited.
+Final independent code review status: GREEN on pushed Combat MVP code.
+
+Final independent contract audit status: GREEN after the implementation commit reference was corrected and pushed.
 
 ## Commit
 
