@@ -86,8 +86,8 @@ PASS: direct dependencies remain typescript and vitest only
 10. No pet upgrade modifier resolution was implemented: confirmed by code inspection; only upgrade IDs are appended.
 11. No reward UI was implemented: confirmed by changed file tree; all implementation is game-core/tests/docs plus localhost smoke.
 12. All tests pass: `npm test` passed 16 files / 130 tests.
-13. Implementation commit SHA: to be filled after commit.
-14. Final pushed HEAD SHA: to be filled after push.
+13. Implementation commit SHA: `4ccda22db5f12206d69fa446f480f7eb706380f7`.
+14. Final pushed HEAD SHA: pending push.
 
 ## Independent Reviews
 
@@ -126,5 +126,5 @@ PASS: direct dependencies remain typescript and vitest only
 ## Final Git Evidence
 
 - Baseline HEAD before ticket: `dcc33f7eb1b13a5be866e6b0aed8a8b80c31616a`
-- Implementation commit SHA: pending commit
+- Implementation commit SHA: `4ccda22db5f12206d69fa446f480f7eb706380f7`
 - Final pushed HEAD SHA: pending push
