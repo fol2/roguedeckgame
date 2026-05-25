@@ -95,4 +95,6 @@ Final independent review status will be recorded after the committed/pushed revi
 
 ## Commit
 
-Commit SHA: `0678e8f63773c3f84897b0833644a581ea9bad3b`
+Implementation commit SHA: `669de5ad3ed8317c026b68f7bf53b3aa8b07c6da`
+
+Final pushed HEAD is recorded in the final delivery note because a commit cannot contain its own final hash without changing that hash.
