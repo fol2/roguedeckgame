@@ -629,7 +629,8 @@ export class CombatScene extends Scene {
 
     const combatEnded = viewModel.phase === "won" || viewModel.phase === "lost";
     this.eventFxPresenter.setViewModel(viewModel);
-    const cardControlsLocked = this.inputLocked || combatEnded || this.isModalOpen() || !this.browserFocused;
+    const systemControlsLocked = this.inputLocked || this.isModalOpen() || !this.browserFocused;
+    const cardControlsLocked = systemControlsLocked || combatEnded;
     const activeCard = this.isModalOpen() ? undefined : this.getInteractionCard(viewModel);
     const activeCardIndex = activeCard
       ? viewModel.hand.findIndex((card) => card.cardInstanceId === activeCard.cardInstanceId)
@@ -669,7 +670,7 @@ export class CombatScene extends Scene {
       this.eventLog.setMessages(viewModel.eventMessages);
     }
     this.outcomeText.setText(combatEnded ? `Combat ${viewModel.phase}` : this.feedbackMessage);
-    const continueVisible = viewModel.continueAvailable && !cardControlsLocked;
+    const continueVisible = viewModel.continueAvailable && !systemControlsLocked;
     const resetVisible = viewModel.resetAvailable || runStatus === "lost" || runStatus === "completed";
 
     this.continueButton.setVisible(continueVisible);

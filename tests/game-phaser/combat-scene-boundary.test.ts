@@ -146,6 +146,14 @@ describe("Combat scene boundary", () => {
     expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
   });
 
+  it("keeps the combat continue button available after cards lock on combat end", async () => {
+    const source = await readSource(scenePath);
+
+    expect(source).toMatch(/const systemControlsLocked = this\.inputLocked \|\| this\.isModalOpen\(\) \|\| !this\.browserFocused;/);
+    expect(source).toMatch(/const cardControlsLocked = systemControlsLocked \|\| combatEnded;/);
+    expect(source).toMatch(/const continueVisible = viewModel\.continueAvailable && !systemControlsLocked;/);
+  });
+
   it("carries combat revisions and locks input before gameplay actions are submitted", async () => {
     const source = await readSource(scenePath);
 
