@@ -2,7 +2,7 @@
 
 Date: 2026-05-26
 
-Final commit: pending commit at report update time.
+Implementation commit: `c717f94f167155b7d8e4fe750fc86ff3b6681589`
 
 ## Summary
 
