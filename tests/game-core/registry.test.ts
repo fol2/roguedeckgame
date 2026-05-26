@@ -131,6 +131,32 @@ describe("starterRegistry", () => {
     expect(result.errors.map((error) => error.code)).toContain("unknown_effect_type");
   });
 
+  it("reports malformed card effect payloads", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        cards: [
+          {
+            ...starterRegistry.cards[0],
+            effects: [
+              { type: "draw", amount: 1.5 },
+              { type: "damage", amount: -1, target: { type: "missing" } },
+              { type: "applyStatus", statusId: "missing_status", stacks: 0, target: { type: "target" } },
+              { type: "petReact", petTarget: { type: "withTag", tag: "" }, reaction: "guard" }
+            ] as unknown as EffectDefinition[]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toEqual(expect.arrayContaining([
+      "invalid_effect_amount",
+      "invalid_effect_target",
+      "unknown_effect_status",
+      "invalid_effect_stacks",
+      "invalid_pet_target"
+    ]));
+  });
+
   it("reports invalid pet slot capacity", () => {
     const result = validateRegistry(
       cloneRegistry({

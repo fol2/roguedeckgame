@@ -1,4 +1,4 @@
-import type { EffectDefinition } from "../model/effect";
+import type { CombatantTarget, EffectDefinition, PetTarget } from "../model/effect";
 import { knownEffectTypes } from "../model/effect";
 import type { CardType } from "../model/card";
 import type { EncounterType } from "../model/encounter";
@@ -75,19 +75,104 @@ const validateEffects = (
       ];
     }
 
-    if (knownEffectTypes.includes(effectDefinition.type)) {
-      return [];
+    const effectPath = `${path}.effects[${index}]`;
+    if (!knownEffectTypes.includes(effectDefinition.type)) {
+      return [
+        issue(
+          "error",
+          "unknown_effect_type",
+          `Unknown effect type '${String(effectDefinition.type)}'.`,
+          effectPath
+        )
+      ];
     }
 
-    return [
-      issue(
-        "error",
-        "unknown_effect_type",
-        `Unknown effect type '${String(effectDefinition.type)}'.`,
-        `${path}.effects[${index}]`
-      )
-    ];
+    return validateEffectPayload(effectDefinition, effectPath);
   });
+};
+
+const combatantTargetTypes = new Set<CombatantTarget["type"]>(["self", "target", "allEnemies", "allAllies"]);
+const petTargetTypes = new Set<PetTarget["type"]>(["specific", "leading", "allActive", "randomActive", "withTag"]);
+
+const validateCombatantTargetPayload = (
+  target: unknown,
+  path: string
+): ValidationIssue[] => {
+  if (typeof target !== "object" || target === null || Array.isArray(target)) {
+    return [issue("error", "invalid_effect_target", "Effect target must be an object.", path)];
+  }
+
+  const candidate = target as Partial<CombatantTarget>;
+  const issues: ValidationIssue[] = [];
+  if (!combatantTargetTypes.has(candidate.type as CombatantTarget["type"])) {
+    issues.push(issue("error", "invalid_effect_target", `Effect target type '${String(candidate.type)}' is unknown.`, `${path}.type`));
+  }
+
+  if ("combatantId" in candidate && typeof candidate.combatantId !== "string") {
+    issues.push(issue("error", "invalid_effect_target", "Effect combatantId must be a string when present.", `${path}.combatantId`));
+  }
+
+  return issues;
+};
+
+const validatePetTargetPayload = (
+  target: unknown,
+  path: string
+): ValidationIssue[] => {
+  if (typeof target !== "object" || target === null || Array.isArray(target)) {
+    return [issue("error", "invalid_pet_target", "Pet target must be an object.", path)];
+  }
+
+  const candidate = target as Partial<PetTarget>;
+  const issues: ValidationIssue[] = [];
+  if (!petTargetTypes.has(candidate.type as PetTarget["type"])) {
+    issues.push(issue("error", "invalid_pet_target", `Pet target type '${String(candidate.type)}' is unknown.`, `${path}.type`));
+  }
+
+  if ("petInstanceId" in candidate && typeof candidate.petInstanceId !== "string") {
+    issues.push(issue("error", "invalid_pet_target", "Pet target petInstanceId must be a string when present.", `${path}.petInstanceId`));
+  }
+
+  if ("tag" in candidate && (typeof candidate.tag !== "string" || candidate.tag.length === 0)) {
+    issues.push(issue("error", "invalid_pet_target", "Pet target tag must be a non-empty string.", `${path}.tag`));
+  }
+
+  return issues;
+};
+
+const validateEffectPayload = (
+  effectDefinition: EffectDefinition,
+  path: string
+): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+
+  if ("target" in effectDefinition) {
+    issues.push(...validateCombatantTargetPayload(effectDefinition.target, `${path}.target`));
+  }
+
+  if ("petTarget" in effectDefinition) {
+    issues.push(...validatePetTargetPayload(effectDefinition.petTarget, `${path}.petTarget`));
+  }
+
+  if ("amount" in effectDefinition && (!Number.isFinite(effectDefinition.amount) || effectDefinition.amount < 0)) {
+    issues.push(issue("error", "invalid_effect_amount", "Effect amount must be a non-negative finite number.", `${path}.amount`));
+  }
+
+  if (effectDefinition.type === "draw" && !Number.isInteger(effectDefinition.amount)) {
+    issues.push(issue("error", "invalid_effect_amount", "Draw effect amount must be an integer.", `${path}.amount`));
+  }
+
+  if (effectDefinition.type === "applyStatus") {
+    if (effectDefinition.statusId !== burnStatusDefinition.id) {
+      issues.push(issue("error", "unknown_effect_status", `Effect references unknown status '${effectDefinition.statusId}'.`, `${path}.statusId`));
+    }
+
+    if (!Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0) {
+      issues.push(issue("error", "invalid_effect_stacks", "Status effect stacks must be a positive integer.", `${path}.stacks`));
+    }
+  }
+
+  return issues;
 };
 
 const validatePetModifierRule = (

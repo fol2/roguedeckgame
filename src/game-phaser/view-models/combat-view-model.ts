@@ -25,6 +25,7 @@ import type { CardDefinition, CardType } from "../../game-core/model/card";
 import type { EffectDefinition } from "../../game-core/model/effect";
 import type { MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
+import { buildCombatPileViewModel } from "./combat-pile-view-model";
 
 export type { CardPlayMode, CardTargetKind } from "../../game-core";
 
@@ -427,21 +428,6 @@ const toCombatantViewModel = (combatant: CombatantState): CombatantViewModel => 
   };
 };
 
-const getPileViewModel = (label: string, count: number): CombatPileViewModel => ({
-  label,
-  count,
-  tooltip: {
-    title: label,
-    body: `${count} card(s). Full pile inspection is deferred for Phase 1.`
-  },
-  detail: {
-    title: label,
-    subtitle: "Pile count",
-    lines: [`Cards: ${count}`, "Full pile inspection is deferred for Phase 1."],
-    footer: "Pile detail."
-  }
-});
-
 const getIntentAmount = (intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined): number | undefined => {
   const damageAmounts = intentDefinition?.effects
     .filter((effect): effect is Extract<EffectDefinition, { readonly type: "damage" }> => effect.type === "damage")
@@ -657,9 +643,9 @@ export const buildCombatViewModel = (
         validTargetIds: requiresManualTarget ? getValidEnemyTargetIds(state.combat) : []
       };
     }),
-    drawPile: getPileViewModel("Draw pile", state.combat.drawPile.length),
+    drawPile: buildCombatPileViewModel("Draw pile", state.combat.drawPile.length),
     drawPileCount: state.combat.drawPile.length,
-    discardPile: getPileViewModel("Discard pile", state.combat.discardPile.length),
+    discardPile: buildCombatPileViewModel("Discard pile", state.combat.discardPile.length),
     discardPileCount: state.combat.discardPile.length,
     continueAvailable: state.combat.phase === "won" || state.combat.phase === "lost",
     resetAvailable: state.run.status === "lost" || state.run.status === "completed",
