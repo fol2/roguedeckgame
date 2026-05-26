@@ -27,6 +27,11 @@ export type SimulationCliOptions = {
 
 const readValue = (args: readonly string[], index: number, fallback: string): string => args[index + 1] ?? fallback;
 
+const readFlagValue = (args: readonly string[], flag: string): string | undefined => {
+  const index = args.indexOf(flag);
+  return index >= 0 ? args[index + 1] : undefined;
+};
+
 export const parseCliOptions = (args: readonly string[]): CliOptions => {
   const positionalValues = args.filter((arg) => !arg.startsWith("-"));
   let seed: string | number = process.env.npm_config_seed && process.env.npm_config_seed !== "true"
@@ -58,15 +63,14 @@ export const parseCliOptions = (args: readonly string[]): CliOptions => {
 export const parseSimulationCliOptions = (args: readonly string[]): SimulationCliOptions => {
   let mode: SimulationCliOptions["mode"] = "smoke";
   const positionalValues = args.filter((arg) => !arg.startsWith("-") && arg !== "smoke" && arg !== "fuzz" && arg !== "exhaustive-small" && arg !== "replay");
-  const numericQueue = positionalValues.filter((value) => Number.isFinite(Number(value)));
   const textQueue = positionalValues.filter((value) => !Number.isFinite(Number(value)));
   const readNpmRaw = (name: string): string | undefined => process.env[`npm_config_${name}`];
-  const readNumericNpmValue = (name: string): string | undefined => {
+  const readNumericNpmValue = (name: string, flag: string): string | undefined => {
     const value = readNpmRaw(name);
     if (!value) {
       return undefined;
     }
-    return value === "true" ? numericQueue.shift() : value;
+    return value === "true" ? readFlagValue(args, flag) : value;
   };
   const readTextNpmValue = (name: string): string | undefined => {
     const value = readNpmRaw(name);
@@ -75,13 +79,13 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
     }
     return value === "true" ? textQueue.shift() : value;
   };
-  const npmRuns = readNumericNpmValue("runs");
-  const npmMaxSteps = readNumericNpmValue("max_steps");
-  const npmMaxDepth = readNumericNpmValue("max_depth");
-  const npmMaxStates = readNumericNpmValue("max_states");
-  const npmInvalidActionRate = readNumericNpmValue("invalid_action_rate");
-  const npmCompletionRateMin = readNumericNpmValue("completion_rate_min");
-  const npmCompletionRateMax = readNumericNpmValue("completion_rate_max");
+  const npmRuns = readNumericNpmValue("runs", "--runs");
+  const npmMaxSteps = readNumericNpmValue("max_steps", "--max-steps");
+  const npmMaxDepth = readNumericNpmValue("max_depth", "--max-depth");
+  const npmMaxStates = readNumericNpmValue("max_states", "--max-states");
+  const npmInvalidActionRate = readNumericNpmValue("invalid_action_rate", "--invalid-action-rate");
+  const npmCompletionRateMin = readNumericNpmValue("completion_rate_min", "--completion-rate-min");
+  const npmCompletionRateMax = readNumericNpmValue("completion_rate_max", "--completion-rate-max");
   const npmSeed = readTextNpmValue("seed");
   const npmTrace = readTextNpmValue("trace");
   let runs: number | undefined = npmRuns ? Number.parseInt(npmRuns, 10) : undefined;

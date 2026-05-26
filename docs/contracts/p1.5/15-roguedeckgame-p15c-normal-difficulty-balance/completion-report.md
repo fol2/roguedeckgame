@@ -31,9 +31,9 @@ The final pushed `HEAD` is verified after the closure/report commit by `git rev-
 ```txt
 npm ci                                                       passed, 49 packages, 0 vulnerabilities
 npm run typecheck                                           passed
-npx vitest run tests/game-core/run-validation.test.ts tests/game-core/run-combat-flow.test.ts tests/game-core/save-snapshot.test.ts tests/game-core/simulation-analysis.test.ts --reporter=verbose
-                                                             passed, 4 files / 60 tests
-npm test                                                    passed, 57 files / 441 tests
+npx vitest run tests/game-cli/parse.test.ts tests/game-core/save-snapshot.test.ts tests/game-core/simulation-analysis.test.ts --reporter=verbose
+                                                             passed, 3 files / 27 tests
+npm test                                                    passed, 58 files / 442 tests
 npm run build                                               passed
 npm run build:cli                                           passed
 npm run game:cli -- --seed cli-smoke --auto                 passed, completed in 61 steps
