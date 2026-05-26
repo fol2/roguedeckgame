@@ -4,6 +4,7 @@ import type { PetModifierRule } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import type { RunNodeType } from "../model/run-map";
+import { burnStatusDefinition } from "../model/status";
 import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
 import { buildContentIndex } from "./content-index";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
@@ -737,7 +738,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   const contentIndex = buildContentIndex({
     contentVersion: typeof registryRecord.contentVersion === "string" ? registryRecord.contentVersion : "",
     cards: Array.isArray(registryRecord.cards) ? registryRecord.cards : [],
-    statuses: Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [],
+    statuses: Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition],
     pets: Array.isArray(registryRecord.pets) ? registryRecord.pets : [],
     players: Array.isArray(registryRecord.players) ? registryRecord.players : [],
     monsters: Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [],
@@ -753,7 +754,11 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     issue("error", "duplicate_id", `Duplicate id '${duplicate.id}' in ${duplicate.collection}.`, duplicate.collection)
   );
 
-  if (typeof registryRecord.contentVersion !== "string" || registryRecord.contentVersion.length === 0) {
+  if (
+    "contentVersion" in registryRecord &&
+    registryRecord.contentVersion !== undefined &&
+    (typeof registryRecord.contentVersion !== "string" || registryRecord.contentVersion.length === 0)
+  ) {
     issues.push(issue("error", "invalid_content_version", "Content version must be a non-empty string.", "contentVersion"));
   }
 
@@ -761,7 +766,11 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     issues.push(issue("error", "invalid_cards", "Cards must be an array.", "cards"));
   }
 
-  if (!Array.isArray(registryRecord.statuses)) {
+  if (
+    "statuses" in registryRecord &&
+    registryRecord.statuses !== undefined &&
+    !Array.isArray(registryRecord.statuses)
+  ) {
     issues.push(issue("error", "invalid_statuses", "Statuses must be an array.", "statuses"));
   }
 
@@ -794,7 +803,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   }
 
   const cardDefinitions = Array.isArray(registryRecord.cards) ? registryRecord.cards : [];
-  const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [];
+  const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition];
   const playerDefinitions = Array.isArray(registryRecord.players) ? registryRecord.players : [];
   const monsterDefinitions = Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [];
   const storyEventDefinitions = Array.isArray(registryRecord.storyEvents) ? registryRecord.storyEvents : [];
@@ -808,12 +817,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       .map((card) => card.id)
       .filter(isString)
   );
-  const statusIds = new Set(
-    statusDefinitions
-      .filter(isRecord)
-      .map((status) => status.id)
-      .filter(isString)
-  );
+  const supportedStatusEffectIds = new Set<string>([burnStatusDefinition.id]);
   const monsterIds = new Set(
     monsterDefinitions
       .filter(isRecord)
@@ -1193,7 +1197,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       return;
     }
 
-    issues.push(...validateEffects(card.effects as readonly EffectDefinition[], `cards[${cardIndex}]`, { statusIds }));
+    issues.push(...validateEffects(card.effects as readonly EffectDefinition[], `cards[${cardIndex}]`, { statusIds: supportedStatusEffectIds }));
   });
 
   monsterDefinitions.forEach((monsterValue, monsterIndex) => {
@@ -1214,7 +1218,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
         return;
       }
 
-      issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`, { statusIds }));
+      issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`, { statusIds: supportedStatusEffectIds }));
     });
   });
 
@@ -1391,7 +1395,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
         modifier.rules.forEach((rule: unknown, ruleIndex: number) => {
           issues.push(...validatePetModifierRule(
             petDefinitionIds,
-            statusIds,
+            supportedStatusEffectIds,
             rule as PetModifierRule,
             `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}].rules[${ruleIndex}]`
           ));
@@ -1451,7 +1455,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
 
     if (Array.isArray(modifier.rules)) {
       modifier.rules.forEach((rule: unknown, ruleIndex: number) => {
-        issues.push(...validatePetModifierRule(petDefinitionIds, statusIds, rule as PetModifierRule, `petModifiers[${modifierIndex}].rules[${ruleIndex}]`));
+        issues.push(...validatePetModifierRule(petDefinitionIds, supportedStatusEffectIds, rule as PetModifierRule, `petModifiers[${modifierIndex}].rules[${ruleIndex}]`));
       });
     }
   });

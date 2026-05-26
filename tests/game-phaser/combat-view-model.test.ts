@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { statusId } from "../../src/game-core";
+import { starterRegistry, statusId } from "../../src/game-core";
 import { createCombatSandboxController } from "../../src/game-phaser/controllers/CombatSandboxController";
 import {
   buildCombatViewModel,
@@ -117,6 +117,49 @@ describe("Combat view model", () => {
       "Pet-Command"
     ]));
     expect(representativeKeywords.map((keyword) => `${keyword.keyword}: ${keyword.explanation}`).join("\n")).toContain("Guard: Helps protect the Keeper");
+  });
+
+  it("uses registered status copy and deterministic unknown-status fallback", () => {
+    const controller = createCombatSandboxController("view-model-custom-status");
+    const state = controller.getState();
+    const customStatusId = statusId("frost");
+    const unknownStatusId = statusId("mystery_status");
+    const monster = {
+      ...state.combat.monsters[0]!,
+      statuses: [
+        { statusId: customStatusId, stacks: 2 },
+        { statusId: unknownStatusId, stacks: 1 }
+      ]
+    };
+    const viewModel = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        monsters: [monster]
+      }
+    }, {
+      ...starterRegistry,
+      statuses: [
+        ...(starterRegistry.statuses ?? []),
+        {
+          id: customStatusId,
+          name: "Frost",
+          tags: ["slow"],
+          description: "Reduces speed during future timing hooks."
+        }
+      ]
+    });
+
+    expect(viewModel.monsters[0]?.statuses[0]).toMatchObject({
+      statusId: customStatusId,
+      label: "Frost 2",
+      tooltip: expect.stringContaining("Reduces speed during future timing hooks.")
+    });
+    expect(viewModel.monsters[0]?.statuses[1]).toMatchObject({
+      statusId: unknownStatusId,
+      label: "mystery_status 1",
+      tooltip: expect.stringContaining("Timing and duration are not defined yet.")
+    });
   });
 
   it("exposes interaction metadata for targeting, caps, and stale-request revision checks", () => {

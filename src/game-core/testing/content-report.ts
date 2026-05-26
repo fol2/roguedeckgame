@@ -1,5 +1,6 @@
 import type { EffectDefinition } from "../model/effect";
 import type { GameContentRegistry } from "../model/registry";
+import { burnStatusDefinition } from "../model/status";
 
 export type ContentReport = {
   readonly counts: {
@@ -45,7 +46,7 @@ const collectEffectTypes = (registry: GameContentRegistry): readonly string[] =>
 export const buildContentReport = (registry: GameContentRegistry): ContentReport => ({
   counts: {
     cards: registry.cards.length,
-    statuses: registry.statuses.length,
+    statuses: (registry.statuses ?? [burnStatusDefinition]).length,
     pets: registry.pets.length,
     monsters: registry.monsters.length,
     encounters: registry.encounters.length,
@@ -55,7 +56,7 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
   cardRarities: sorted(new Set(registry.cards.map((card) => card.rarity ?? "unknown"))),
   cardTags: sorted(new Set(registry.cards.flatMap((card) => card.tags))),
   effectTypes: collectEffectTypes(registry),
-  statusIds: sorted(new Set(registry.statuses.map((status) => status.id))),
+  statusIds: sorted(new Set((registry.statuses ?? [burnStatusDefinition]).map((status) => status.id))),
   petModifierRuleTypes: sorted(new Set(
     registry.petUpgrades
       .flatMap((upgrade) => upgrade.modifiers)

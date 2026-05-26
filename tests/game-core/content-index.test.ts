@@ -71,9 +71,9 @@ describe("content index", () => {
   it("reports duplicate status ids", () => {
     const registry = cloneRegistry({
       statuses: [
-        ...starterRegistry.statuses,
+        ...(starterRegistry.statuses ?? []),
         {
-          ...starterRegistry.statuses[0],
+          ...(starterRegistry.statuses ?? [])[0]!,
           description: "Duplicate burn."
         }
       ]

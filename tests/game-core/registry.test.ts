@@ -6,6 +6,7 @@ import {
   petDefinitionId,
   playerClassId,
   starterRegistry,
+  statusId,
   validateRegistry
 } from "../../src/game-core";
 import type { EffectDefinition, GameContentRegistry } from "../../src/game-core";
@@ -141,7 +142,9 @@ describe("starterRegistry", () => {
               { type: "draw", amount: 1.5 },
               { type: "damage", amount: -1, target: { type: "missing" } },
               { type: "applyStatus", statusId: "missing_status", stacks: 0, target: { type: "target" } },
-              { type: "petReact", petTarget: { type: "withTag", tag: "" }, reaction: "guard" }
+              { type: "petReact", petTarget: { type: "withTag", tag: "" }, reaction: "guard" },
+              { type: "petReact", petTarget: { type: "withTag" }, reaction: "guard" },
+              { type: "petReact", petTarget: { type: "specific" }, reaction: "guard" }
             ] as unknown as EffectDefinition[]
           }
         ]
@@ -157,10 +160,24 @@ describe("starterRegistry", () => {
     ]));
   });
 
-  it("reports status references against registered statuses", () => {
+  it("reports status effect references without runtime timing support", () => {
     const result = validateRegistry(
       cloneRegistry({
-        statuses: []
+        statuses: [
+          ...(starterRegistry.statuses ?? []),
+          {
+            id: statusId("frost"),
+            name: "Frost",
+            tags: ["slow"],
+            description: "Reserved for future timing hooks."
+          }
+        ],
+        cards: [
+          {
+            ...starterRegistry.cards[0],
+            effects: [{ type: "applyStatus", statusId: statusId("frost"), stacks: 1, target: { type: "target" } }]
+          }
+        ]
       })
     );
 
@@ -172,10 +189,10 @@ describe("starterRegistry", () => {
       cloneRegistry({
         statuses: [
           {
-            ...starterRegistry.statuses[0],
+            ...starterRegistry.statuses![0],
             name: "",
             tags: "bad"
-          } as unknown as typeof starterRegistry.statuses[0]
+          } as unknown as NonNullable<typeof starterRegistry.statuses>[number]
         ]
       })
     );

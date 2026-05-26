@@ -60,6 +60,14 @@ const validatePetTargetPayload = (
     issues.push(issue("error", "invalid_pet_target", `Pet target type '${String(candidate.type)}' is unknown.`, `${path}.type`));
   }
 
+  if (candidate.type === "specific" && (typeof candidate.petInstanceId !== "string" || candidate.petInstanceId.length === 0)) {
+    issues.push(issue("error", "invalid_pet_target", "Specific pet target petInstanceId must be a non-empty string.", `${path}.petInstanceId`));
+  }
+
+  if (candidate.type === "withTag" && (typeof candidate.tag !== "string" || candidate.tag.length === 0)) {
+    issues.push(issue("error", "invalid_pet_target", "Pet target tag must be a non-empty string.", `${path}.tag`));
+  }
+
   if ("petInstanceId" in candidate && typeof candidate.petInstanceId !== "string") {
     issues.push(issue("error", "invalid_pet_target", "Pet target petInstanceId must be a string when present.", `${path}.petInstanceId`));
   }

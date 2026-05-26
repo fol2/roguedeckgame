@@ -20,7 +20,7 @@ export type SaveSlotMetadata = {
   readonly slotId: string;
   readonly updatedAt: string;
   readonly schemaVersion: number;
-  readonly contentVersion: string;
+  readonly contentVersion?: string;
   readonly hasActiveRun: boolean;
 };
 

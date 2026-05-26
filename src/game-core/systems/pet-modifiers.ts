@@ -13,6 +13,7 @@ import type {
 } from "../model/pet";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { GameContentRegistry } from "../model/registry";
+import { burnStatusDefinition } from "../model/status";
 import type { CardId, CardInstanceId, PetInstanceId, PetModifierId, UpgradeId } from "../ids";
 import { drawCards } from "./draw";
 import {
@@ -291,7 +292,7 @@ const validateModifier = (
   }
 
   const petDefinitionIds = new Set(registry.pets.map((pet) => pet.id));
-  const statusIds = new Set(registry.statuses.map((status) => status.id));
+  const statusIds = new Set((registry.statuses ?? [burnStatusDefinition]).map((status) => status.id));
 
   for (const [ruleIndex, rule] of modifier.rules.entries()) {
     const ruleError = validateModifierRule(rule, `${path}.rules[${ruleIndex}]`, petDefinitionIds, statusIds);

@@ -32,6 +32,14 @@ const planCardMoved: CombatEventAnimationPlanner<Extract<GameEvent, { readonly t
     return eventFxCommand(input.event);
   }
 
+  if (
+    input.event.to === "hand" &&
+    input.event.from !== "hand" &&
+    !input.finalViewModel.hand.some((card) => card.cardInstanceId === input.event.cardInstanceId)
+  ) {
+    return eventFxCommand(input.event);
+  }
+
   return {
     type: "cardMovement",
     event: input.event,

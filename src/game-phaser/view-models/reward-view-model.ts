@@ -77,10 +77,12 @@ const buildOptionViewModel = (
 export const buildRewardViewModel = (
   rewardOffer: RewardOfferState,
   events: readonly GameEvent[],
-  registry: GameContentRegistry = starterRegistry,
+  registryOrContent: GameContentRegistry | ContentContext = starterRegistry,
   petInstances: readonly PetInstance[] = []
 ): RewardViewModel => {
-  const content = createContentContext(registry);
+  const content = "index" in registryOrContent
+    ? registryOrContent
+    : createContentContext(registryOrContent);
 
   return {
     rewardOfferId: rewardOffer.id,

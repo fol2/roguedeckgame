@@ -66,6 +66,21 @@ describe("combat animation plan", () => {
     expect(planCombatEventAnimation(damage, { hand: finalHand } as unknown as CombatViewModel)).toEqual({ type: "eventFx", event: damage });
   });
 
+  it("falls back when draw-to-hand card movement lacks the moved card snapshot", () => {
+    const moved: GameEvent = {
+      type: "CardMoved",
+      cardInstanceId: cardInstanceId("missing-card"),
+      cardId: cardId("strike"),
+      from: "draw",
+      to: "hand"
+    };
+
+    expect(planCombatEventAnimation(moved, { hand: finalHand } as unknown as CombatViewModel)).toEqual({
+      type: "eventFx",
+      event: moved
+    });
+  });
+
   it("preserves command order for multiple events", () => {
     const first: GameEvent = {
       type: "CardMoved",

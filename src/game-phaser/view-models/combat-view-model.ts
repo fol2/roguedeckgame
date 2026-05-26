@@ -479,10 +479,12 @@ const buildUiWarnings = (state: CombatState): readonly string[] => {
 
 export const buildCombatViewModel = (
   state: CombatSandboxState,
-  registry: GameContentRegistry = starterRegistry,
+  registryOrContent: GameContentRegistry | ContentContext = starterRegistry,
   revision = 0
 ): CombatViewModel => {
-  const content = createContentContext(registry);
+  const content = "index" in registryOrContent
+    ? registryOrContent
+    : createContentContext(registryOrContent);
   const cardInstancesById = new Map(
     state.combat.cardInstances.map((cardInstance) => [cardInstance.id, cardInstance])
   );

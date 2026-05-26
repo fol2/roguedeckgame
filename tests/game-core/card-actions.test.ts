@@ -3,7 +3,6 @@ import {
   cardId,
   effectDescriptorList,
   getCardActionProfile,
-  getEffectDescriptor,
   knownEffectTypes,
   petDefinitionId,
   statusId,
@@ -27,17 +26,15 @@ const createCard = (
 describe("card action profiles", () => {
   it("keeps effect descriptors aligned with known effect types", () => {
     expect(effectDescriptorList.map((descriptor) => descriptor.type).sort()).toEqual([...knownEffectTypes].sort());
-    expect(getEffectDescriptor("damage")).toMatchObject({
-      combatantTarget: "required",
-      petTarget: "none",
-      amount: "nonNegativeNumber",
-      resolverKey: "damageLike"
-    });
-    expect(getEffectDescriptor("petReact")).toMatchObject({
-      combatantTarget: "none",
-      petTarget: "required",
-      requiresPetReaction: true,
-      resolverKey: "petReact"
+    expect(Object.fromEntries(effectDescriptorList.map((descriptor) => [descriptor.type, descriptor]))).toMatchObject({
+      damage: { combatantTarget: "required", petTarget: "none", amount: "nonNegativeNumber", resolverKey: "damageLike" },
+      block: { combatantTarget: "required", petTarget: "none", amount: "nonNegativeNumber", resolverKey: "blockLike" },
+      draw: { combatantTarget: "none", petTarget: "none", amount: "nonNegativeInteger", resolverKey: "draw" },
+      applyStatus: { combatantTarget: "required", petTarget: "none", amount: "none", requiresStatusId: true, requiresStacks: true, resolverKey: "applyStatus" },
+      petAttack: { combatantTarget: "required", petTarget: "required", amount: "nonNegativeNumber", resolverKey: "damageLike" },
+      petBlock: { combatantTarget: "required", petTarget: "required", amount: "nonNegativeNumber", resolverKey: "blockLike" },
+      petReact: { combatantTarget: "none", petTarget: "required", amount: "none", requiresPetReaction: true, resolverKey: "petReact" },
+      setStoryFlag: { combatantTarget: "none", petTarget: "none", amount: "none", requiresStoryFlagId: true, resolverKey: "storyFlag" }
     });
   });
 

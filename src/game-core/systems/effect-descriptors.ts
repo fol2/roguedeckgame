@@ -22,8 +22,6 @@ export type EffectDescriptor<Type extends EffectDefinition["type"] = EffectDefin
   readonly requiresStacks: boolean;
   readonly requiresStoryFlagId: boolean;
   readonly requiresPetReaction: boolean;
-  readonly eventOrder: readonly string[];
-  readonly rejectionBehaviour: "rejectOriginalState" | "warnAndContinue";
 };
 
 export const effectDescriptors = {
@@ -36,9 +34,7 @@ export const effectDescriptors = {
     requiresStatusId: false,
     requiresStacks: false,
     requiresStoryFlagId: false,
-    requiresPetReaction: false,
-    eventOrder: ["DamageDealt", "CombatantDefeated", "CombatEnded"],
-    rejectionBehaviour: "rejectOriginalState"
+    requiresPetReaction: false
   },
   block: {
     type: "block",
@@ -49,9 +45,7 @@ export const effectDescriptors = {
     requiresStatusId: false,
     requiresStacks: false,
     requiresStoryFlagId: false,
-    requiresPetReaction: false,
-    eventOrder: ["BlockGained"],
-    rejectionBehaviour: "rejectOriginalState"
+    requiresPetReaction: false
   },
   draw: {
     type: "draw",
@@ -62,9 +56,7 @@ export const effectDescriptors = {
     requiresStatusId: false,
     requiresStacks: false,
     requiresStoryFlagId: false,
-    requiresPetReaction: false,
-    eventOrder: ["CardMoved", "CardDrawn"],
-    rejectionBehaviour: "rejectOriginalState"
+    requiresPetReaction: false
   },
   applyStatus: {
     type: "applyStatus",
@@ -75,9 +67,7 @@ export const effectDescriptors = {
     requiresStatusId: true,
     requiresStacks: true,
     requiresStoryFlagId: false,
-    requiresPetReaction: false,
-    eventOrder: ["StatusApplied"],
-    rejectionBehaviour: "rejectOriginalState"
+    requiresPetReaction: false
   },
   petAttack: {
     type: "petAttack",
@@ -88,9 +78,7 @@ export const effectDescriptors = {
     requiresStatusId: false,
     requiresStacks: false,
     requiresStoryFlagId: false,
-    requiresPetReaction: false,
-    eventOrder: ["DamageDealt", "CombatantDefeated", "CombatEnded"],
-    rejectionBehaviour: "rejectOriginalState"
+    requiresPetReaction: false
   },
   petBlock: {
     type: "petBlock",
@@ -101,9 +89,7 @@ export const effectDescriptors = {
     requiresStatusId: false,
     requiresStacks: false,
     requiresStoryFlagId: false,
-    requiresPetReaction: false,
-    eventOrder: ["BlockGained"],
-    rejectionBehaviour: "rejectOriginalState"
+    requiresPetReaction: false
   },
   petReact: {
     type: "petReact",
@@ -114,9 +100,7 @@ export const effectDescriptors = {
     requiresStatusId: false,
     requiresStacks: false,
     requiresStoryFlagId: false,
-    requiresPetReaction: true,
-    eventOrder: ["PetReacted"],
-    rejectionBehaviour: "rejectOriginalState"
+    requiresPetReaction: true
   },
   setStoryFlag: {
     type: "setStoryFlag",
@@ -127,9 +111,7 @@ export const effectDescriptors = {
     requiresStatusId: false,
     requiresStacks: false,
     requiresStoryFlagId: true,
-    requiresPetReaction: false,
-    eventOrder: ["ValidationWarning"],
-    rejectionBehaviour: "warnAndContinue"
+    requiresPetReaction: false
   }
 } as const satisfies {
   readonly [Type in EffectDefinition["type"]]: EffectDescriptor<Type>;

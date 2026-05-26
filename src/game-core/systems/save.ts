@@ -828,17 +828,10 @@ export const validateSaveSnapshotContent = (
   }
 
   if (
-    validation.state.contentVersion !== UNKNOWN_SAVE_CONTENT_VERSION &&
-    validation.state.contentVersion !== registry.contentVersion
+    (registry.contentVersion !== undefined && (typeof registry.contentVersion !== "string" || registry.contentVersion.length === 0)) ||
+    contentIndex.duplicateIds.length > 0
   ) {
-    return reject(
-      validation.state,
-      error(
-        "incompatible_save_content_version",
-        `Save contentVersion '${validation.state.contentVersion}' does not match registry contentVersion '${registry.contentVersion}'.`,
-        "contentVersion"
-      )
-    );
+    return reject(validation.state, error("invalid_content_registry", "Content registry is not valid for save validation.", "registry"));
   }
 
   for (let petIndex = 0; petIndex < validation.state.petInstances.length; petIndex += 1) {
@@ -885,7 +878,9 @@ export const validateSaveSnapshotContent = (
 
     for (let eventIndex = 0; eventIndex < (petInstance.seenStoryEventIds ?? []).length; eventIndex += 1) {
       const eventId = (petInstance.seenStoryEventIds ?? [])[eventIndex];
-      if (!contentIndex.storyEventsById.has(eventId)) {
+      const isKnownSideStoryEvent = [...contentIndex.petSideStoriesById.values()]
+        .some((sideStory) => sideStory.events.some((event) => event.id === eventId));
+      if (!contentIndex.storyEventsById.has(eventId) && !isKnownSideStoryEvent) {
         return reject(
           validation.state,
           error("unknown_save_content_reference", `Saved pet references unknown story event '${eventId}'.`, `petInstances[${petIndex}].seenStoryEventIds[${eventIndex}]`)
@@ -974,7 +969,7 @@ export const createSaveSnapshot = (
   }
 
   const now = typeof input.now === "string" ? input.now : new Date().toISOString();
-  const contentVersion = input.contentVersion ?? input.registry?.contentVersion ?? starterRegistry.contentVersion;
+  const contentVersion = input.contentVersion ?? input.registry?.contentVersion ?? UNKNOWN_SAVE_CONTENT_VERSION;
   const snapshot = {
     schemaVersion: SAVE_SCHEMA_VERSION,
     contentVersion,
@@ -985,7 +980,9 @@ export const createSaveSnapshot = (
     petInstances: input.petInstances,
     globalStoryFlags: input.globalStoryFlags ?? []
   } as unknown as SaveSnapshot;
-  const validation = validateSaveSnapshot(snapshot);
+  const validation = input.registry
+    ? validateSaveSnapshotContent(snapshot, input.registry)
+    : validateSaveSnapshot(snapshot);
   if (!validation.ok) {
     return validation;
   }
@@ -1021,11 +1018,15 @@ export const serializeSaveSnapshot = (
 };
 
 export const parseSaveSnapshot = (
-  json: string
+  json: string,
+  registry?: GameContentRegistry
 ): GameActionResult<SaveSnapshot> => {
   try {
     const parsed = JSON.parse(json) as unknown;
-    return validateSaveSnapshot(parsed);
+    const validation = validateSaveSnapshot(parsed);
+    return registry && validation.ok
+      ? validateSaveSnapshotContent(validation.state, registry)
+      : validation;
   } catch {
     return reject(invalidSnapshot(), error("invalid_save_json", "Save JSON could not be parsed.", "json"));
   }
