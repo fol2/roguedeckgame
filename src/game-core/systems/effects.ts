@@ -252,6 +252,183 @@ const applyStatus = (
   return { state: appendEvents(nextState, [event]), events: [event] };
 };
 
+type EffectHandlerInput<T extends EffectDefinition> = {
+  readonly state: CombatState;
+  readonly effect: T;
+  readonly context: EffectContext;
+  readonly registry: GameContentRegistry;
+  readonly rng: Rng;
+  readonly originalState: CombatState;
+};
+
+type EffectHandler = <T extends EffectDefinition>(
+  input: EffectHandlerInput<T>
+) => GameActionResult<CombatState>;
+
+const resolveDrawEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "draw" }>>
+): GameActionResult<CombatState> => drawCards(input.state, input.effect.amount, input.rng);
+
+const resolveStoryFlagEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "setStoryFlag" }>>
+): GameActionResult<CombatState> => {
+  const warning: GameEvent = {
+    type: "ValidationWarning",
+    code: "story_flag_not_mutated_in_combat",
+    message: `Story flag '${input.effect.flagId}' is not mutated during combat.`
+  };
+
+  return {
+    ok: true,
+    state: appendEvents(input.state, [warning]),
+    events: [warning],
+    errors: []
+  };
+};
+
+const resolvePetReactEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "petReact" }>>
+): GameActionResult<CombatState> => {
+  const petResolution = resolvePetTargets(input.state, input.registry, input.effect.petTarget, input.rng);
+  if (!petResolution.ok) {
+    return reject(input.originalState, petResolution.error);
+  }
+
+  const petEvents = petResolution.petInstanceIds.map<GameEvent>((petInstanceId) => ({
+    type: "PetReacted",
+    petInstanceId,
+    reaction: input.effect.reaction
+  }));
+
+  return {
+    ok: true,
+    state: appendEvents(input.state, petEvents),
+    events: petEvents,
+    errors: []
+  };
+};
+
+const resolveDamageLikeEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "damage" | "petAttack" }>>
+): GameActionResult<CombatState> => {
+  const targets = resolveCombatantTargets(
+    input.state,
+    input.context.sourceId,
+    input.effect.target,
+    input.context.targetId ?? input.context.defaultTargetId
+  );
+  if (isActionError(targets)) {
+    return reject(input.originalState, targets);
+  }
+
+  const repetitions =
+    input.effect.type === "petAttack"
+      ? resolvePetTargets(input.state, input.registry, input.effect.petTarget, input.rng)
+      : { ok: true as const, petInstanceIds: [undefined] };
+  if (!repetitions.ok) {
+    return reject(input.originalState, repetitions.error);
+  }
+
+  let nextState = input.state;
+  const events: GameEvent[] = [];
+
+  for (const target of targets) {
+    for (const _petInstanceId of repetitions.petInstanceIds) {
+      const damageResult = applyDamage(nextState, input.context.sourceId, target.id, input.effect.amount);
+      nextState = damageResult.state;
+      events.push(...damageResult.events);
+      const outcomeResult = checkCombatOutcome(nextState);
+      nextState = outcomeResult.state;
+      events.push(...outcomeResult.events);
+
+      if (nextState.phase === "won" || nextState.phase === "lost") {
+        break;
+      }
+    }
+
+    if (nextState.phase === "won" || nextState.phase === "lost") {
+      break;
+    }
+  }
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
+const resolveBlockLikeEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "block" | "petBlock" }>>
+): GameActionResult<CombatState> => {
+  const targets = resolveCombatantTargets(
+    input.state,
+    input.context.sourceId,
+    input.effect.target,
+    input.context.targetId ?? input.context.defaultTargetId
+  );
+  if (isActionError(targets)) {
+    return reject(input.originalState, targets);
+  }
+
+  const repetitions =
+    input.effect.type === "petBlock"
+      ? resolvePetTargets(input.state, input.registry, input.effect.petTarget, input.rng)
+      : { ok: true as const, petInstanceIds: [undefined] };
+  if (!repetitions.ok) {
+    return reject(input.originalState, repetitions.error);
+  }
+
+  let nextState = input.state;
+  const events: GameEvent[] = [];
+
+  for (const target of targets) {
+    for (const _petInstanceId of repetitions.petInstanceIds) {
+      const blockResult = applyBlock(nextState, target.id, input.effect.amount);
+      nextState = blockResult.state;
+      events.push(...blockResult.events);
+    }
+  }
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
+const resolveApplyStatusEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "applyStatus" }>>
+): GameActionResult<CombatState> => {
+  const targets = resolveCombatantTargets(
+    input.state,
+    input.context.sourceId,
+    input.effect.target,
+    input.context.targetId ?? input.context.defaultTargetId
+  );
+  if (isActionError(targets)) {
+    return reject(input.originalState, targets);
+  }
+
+  let nextState = input.state;
+  const events: GameEvent[] = [];
+
+  for (const target of targets) {
+    const statusResult = applyStatus(nextState, target.id, input.effect.statusId, input.effect.stacks);
+    nextState = statusResult.state;
+    events.push(...statusResult.events);
+  }
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
+const effectHandlers = {
+  draw: resolveDrawEffect,
+  setStoryFlag: resolveStoryFlagEffect,
+  petReact: resolvePetReactEffect,
+  damage: resolveDamageLikeEffect,
+  petAttack: resolveDamageLikeEffect,
+  block: resolveBlockLikeEffect,
+  petBlock: resolveBlockLikeEffect,
+  applyStatus: resolveApplyStatusEffect
+} satisfies {
+  readonly [Type in EffectDefinition["type"]]: (
+    input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: Type }>>
+  ) => GameActionResult<CombatState>;
+};
+
 export const resolveEffects = (
   state: CombatState,
   effects: readonly EffectDefinition[],
@@ -263,130 +440,21 @@ export const resolveEffects = (
   const events: GameEvent[] = [];
 
   for (const effectDefinition of effects) {
-    if (effectDefinition.type === "draw") {
-      const drawResult = drawCards(nextState, effectDefinition.amount, rng);
-      if (!drawResult.ok) {
-        return drawResult;
-      }
-
-      nextState = drawResult.state;
-      events.push(...drawResult.events);
-      continue;
+    const handler = effectHandlers[effectDefinition.type] as EffectHandler;
+    const result = handler({
+      state: nextState,
+      effect: effectDefinition,
+      context,
+      registry,
+      rng,
+      originalState: state
+    });
+    if (!result.ok) {
+      return result;
     }
 
-    if (effectDefinition.type === "setStoryFlag") {
-      const warning: GameEvent = {
-        type: "ValidationWarning",
-        code: "story_flag_not_mutated_in_combat",
-        message: `Story flag '${effectDefinition.flagId}' is not mutated during combat.`
-      };
-      nextState = appendEvents(nextState, [warning]);
-      events.push(warning);
-      continue;
-    }
-
-    if (effectDefinition.type === "petReact") {
-      const petResolution = resolvePetTargets(nextState, registry, effectDefinition.petTarget, rng);
-      if (!petResolution.ok) {
-        return reject(state, petResolution.error);
-      }
-
-      const petEvents = petResolution.petInstanceIds.map<GameEvent>((petInstanceId) => ({
-        type: "PetReacted",
-        petInstanceId,
-        reaction: effectDefinition.reaction
-      }));
-      nextState = appendEvents(nextState, petEvents);
-      events.push(...petEvents);
-      continue;
-    }
-
-    if (effectDefinition.type === "damage" || effectDefinition.type === "petAttack") {
-      const targets = resolveCombatantTargets(
-        nextState,
-        context.sourceId,
-        effectDefinition.target,
-        context.targetId ?? context.defaultTargetId
-      );
-      if (isActionError(targets)) {
-        return reject(state, targets);
-      }
-
-      const repetitions =
-        effectDefinition.type === "petAttack"
-          ? resolvePetTargets(nextState, registry, effectDefinition.petTarget, rng)
-          : { ok: true as const, petInstanceIds: [undefined] };
-      if (!repetitions.ok) {
-        return reject(state, repetitions.error);
-      }
-
-      for (const target of targets) {
-        for (const _petInstanceId of repetitions.petInstanceIds) {
-          const damageResult = applyDamage(nextState, context.sourceId, target.id, effectDefinition.amount);
-          nextState = damageResult.state;
-          events.push(...damageResult.events);
-          const outcomeResult = checkCombatOutcome(nextState);
-          nextState = outcomeResult.state;
-          events.push(...outcomeResult.events);
-
-          if (nextState.phase === "won" || nextState.phase === "lost") {
-            break;
-          }
-        }
-
-        if (nextState.phase === "won" || nextState.phase === "lost") {
-          break;
-        }
-      }
-      continue;
-    }
-
-    if (effectDefinition.type === "block" || effectDefinition.type === "petBlock") {
-      const targets = resolveCombatantTargets(
-        nextState,
-        context.sourceId,
-        effectDefinition.target,
-        context.targetId ?? context.defaultTargetId
-      );
-      if (isActionError(targets)) {
-        return reject(state, targets);
-      }
-
-      const repetitions =
-        effectDefinition.type === "petBlock"
-          ? resolvePetTargets(nextState, registry, effectDefinition.petTarget, rng)
-          : { ok: true as const, petInstanceIds: [undefined] };
-      if (!repetitions.ok) {
-        return reject(state, repetitions.error);
-      }
-
-      for (const target of targets) {
-        for (const _petInstanceId of repetitions.petInstanceIds) {
-          const blockResult = applyBlock(nextState, target.id, effectDefinition.amount);
-          nextState = blockResult.state;
-          events.push(...blockResult.events);
-        }
-      }
-      continue;
-    }
-
-    if (effectDefinition.type === "applyStatus") {
-      const targets = resolveCombatantTargets(
-        nextState,
-        context.sourceId,
-        effectDefinition.target,
-        context.targetId ?? context.defaultTargetId
-      );
-      if (isActionError(targets)) {
-        return reject(state, targets);
-      }
-
-      for (const target of targets) {
-        const statusResult = applyStatus(nextState, target.id, effectDefinition.statusId, effectDefinition.stacks);
-        nextState = statusResult.state;
-        events.push(...statusResult.events);
-      }
-    }
+    nextState = result.state;
+    events.push(...result.events);
   }
 
   return { ok: true, state: nextState, events, errors: [] };
