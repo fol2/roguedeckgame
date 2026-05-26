@@ -6,6 +6,7 @@ import {
 import type { RunSandboxController } from "../controllers/RunSandboxController";
 import { CombatEventPlayer } from "../animation/CombatEventPlayer";
 import { CombatEventFxPresenter } from "../animation/CombatEventFxPresenter";
+import { planCombatEventAnimation } from "../animation/combat-animation-plan";
 import { CardPresenter } from "../presenters/CardPresenter";
 import { CombatHudPresenter } from "../presenters/CombatHudPresenter";
 import {
@@ -20,6 +21,14 @@ import { PlayerPresenter } from "../presenters/PlayerPresenter";
 import { TargetingPresenter } from "../presenters/TargetingPresenter";
 import type { CombatCardViewModel, CombatViewModel } from "../view-models/combat-view-model";
 import { resolveCardDropAction } from "../interaction/card-interaction-policy";
+import {
+  clearCombatSelection,
+  getInteractionCard as resolveInteractionCard,
+  reconcileCombatInteractionState,
+  selectCombatCard,
+  setHoveredCombatCard,
+  type CombatInteractionState
+} from "../interaction/combat-interaction-state";
 import { resolveCombatDropTarget, type DropPoint } from "../interaction/combat-drop-target-resolver";
 import {
   COMBAT_BACKGROUND_COLOUR,
@@ -138,7 +147,7 @@ export class CombatScene extends Scene {
     this.cardPresenter = new CardPresenter(this, (cardInstanceId) => {
       void this.handleCardSelection(cardInstanceId);
     }, (cardInstanceId) => {
-      this.hoveredCardId = cardInstanceId;
+      this.applyInteractionState(setHoveredCombatCard(this.getInteractionState(), cardInstanceId));
       this.renderCurrentState(false);
     }, (cardInstanceId) => this.openCardDetail(cardInstanceId), (tooltip) => this.setTooltip(tooltip), (cardInstanceId, point) => {
       return this.handleCardDrop(cardInstanceId, point);
@@ -192,9 +201,7 @@ export class CombatScene extends Scene {
   }
 
   private getInteractionCard(viewModel: CombatViewModel): CombatCardViewModel | undefined {
-    const cardId = this.selectedCardId ?? this.hoveredCardId;
-
-    return cardId ? viewModel.hand.find((card) => card.cardInstanceId === cardId) : undefined;
+    return resolveInteractionCard(this.getInteractionState(), viewModel);
   }
 
   private setFeedback(message: string): void {
@@ -202,10 +209,23 @@ export class CombatScene extends Scene {
   }
 
   private clearSelectedCard(): void {
-    this.selectedCardId = undefined;
-    this.selectedCardRevision = undefined;
-    this.keyboardTargetId = undefined;
-    this.hoveredCardId = undefined;
+    this.applyInteractionState(clearCombatSelection(this.getInteractionState()));
+  }
+
+  private getInteractionState(): CombatInteractionState {
+    return {
+      selectedCardId: this.selectedCardId,
+      selectedCardRevision: this.selectedCardRevision,
+      keyboardTargetId: this.keyboardTargetId,
+      hoveredCardId: this.hoveredCardId
+    };
+  }
+
+  private applyInteractionState(state: CombatInteractionState): void {
+    this.selectedCardId = state.selectedCardId;
+    this.selectedCardRevision = state.selectedCardRevision;
+    this.keyboardTargetId = state.keyboardTargetId;
+    this.hoveredCardId = state.hoveredCardId;
   }
 
   private isModalOpen(): boolean {
@@ -354,9 +374,12 @@ export class CombatScene extends Scene {
       return;
     }
 
-    this.selectedCardId = selectedCardId;
-    this.selectedCardRevision = latestViewModel.revision;
-    this.hoveredCardId = undefined;
+    this.applyInteractionState(selectCombatCard(
+      this.getInteractionState(),
+      selectedCardId,
+      latestViewModel.revision,
+      latestCard.validTargetIds[0]
+    ));
   }
 
   private async handleCardSelection(cardInstanceId: CardInstanceId): Promise<void> {
@@ -377,18 +400,17 @@ export class CombatScene extends Scene {
     }
 
     if (card.playMode === "selectEnemy") {
-      this.selectedCardId = cardInstanceId;
-      this.selectedCardRevision = viewModel.revision;
-      this.keyboardTargetId = card.validTargetIds[0];
-      this.hoveredCardId = undefined;
+      this.applyInteractionState(selectCombatCard(
+        this.getInteractionState(),
+        cardInstanceId,
+        viewModel.revision,
+        card.validTargetIds[0]
+      ));
       this.renderCurrentState();
       return;
     }
 
-    this.selectedCardId = undefined;
-    this.selectedCardRevision = undefined;
-    this.keyboardTargetId = undefined;
-    this.hoveredCardId = undefined;
+    this.clearSelectedCard();
     await this.submitAction((requestId) => this.sandbox!.playHandCard(cardInstanceId, undefined, viewModel.revision, requestId));
   }
 
@@ -417,10 +439,12 @@ export class CombatScene extends Scene {
     }
 
     if (drop.targetId) {
-      this.selectedCardId = cardInstanceId;
-      this.selectedCardRevision = viewModel.revision;
-      this.keyboardTargetId = drop.targetId;
-      this.hoveredCardId = undefined;
+      this.applyInteractionState(selectCombatCard(
+        this.getInteractionState(),
+        cardInstanceId,
+        viewModel.revision,
+        drop.targetId
+      ));
     } else {
       this.clearSelectedCard();
     }
@@ -522,7 +546,10 @@ export class CombatScene extends Scene {
       return;
     }
 
-    await this.cardPresenter.playCardMoved(event, this.playbackFinalViewModel.hand);
+    const command = planCombatEventAnimation(event, this.playbackFinalViewModel);
+    if (command.type === "cardMovement") {
+      await this.cardPresenter.playCardMoved(command.event, command.finalHand);
+    }
   }
 
   private async submitAction(
@@ -693,19 +720,7 @@ export class CombatScene extends Scene {
       return;
     }
 
-    if (this.selectedCardId && !viewModel.hand.some((card) => card.cardInstanceId === this.selectedCardId)) {
-      this.selectedCardId = undefined;
-      this.selectedCardRevision = undefined;
-      this.keyboardTargetId = undefined;
-    }
-    if (this.selectedCardId) {
-      const selectedCard = viewModel.hand.find((card) => card.cardInstanceId === this.selectedCardId);
-      if (!selectedCard?.playable || selectedCard.playMode !== "selectEnemy") {
-        this.selectedCardId = undefined;
-        this.selectedCardRevision = undefined;
-        this.keyboardTargetId = undefined;
-      }
-    }
+    this.applyInteractionState(reconcileCombatInteractionState(this.getInteractionState(), viewModel));
 
     const combatEnded = viewModel.phase === "won" || viewModel.phase === "lost";
     this.eventFxPresenter.setViewModel(viewModel);
