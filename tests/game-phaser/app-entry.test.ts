@@ -43,10 +43,11 @@ describe("Vite app entry", () => {
 
     expect(gameSize).toMatch(/GAME_WIDTH = 1280/);
     expect(gameSize).toMatch(/GAME_HEIGHT = 720/);
-    expect(gameSize).toMatch(/GAME_RENDER_SCALE = 1\.5/);
+    expect(gameSize).toMatch(/GAME_RENDER_SCALE = 3/);
     expect(gameSize).toMatch(/GAME_RENDER_WIDTH = GAME_WIDTH \* GAME_RENDER_SCALE/);
     expect(gameSize).toMatch(/GAME_RENDER_HEIGHT = GAME_HEIGHT \* GAME_RENDER_SCALE/);
     expect(fixedCamera).toMatch(/setZoom\(GAME_RENDER_SCALE\)/);
+    expect(fixedCamera).toMatch(/centerOn\(GAME_CENTER_X, GAME_CENTER_Y\)/);
     expect(styles).toMatch(/width:\s*100vw/);
     expect(styles).toMatch(/height:\s*100dvh/);
   });
