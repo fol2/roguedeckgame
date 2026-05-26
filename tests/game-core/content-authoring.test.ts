@@ -65,7 +65,8 @@ describe("content authoring helpers", () => {
         monsters: 4,
         encounters: 5,
         runMapTemplates: 1,
-        petUpgrades: 3
+        petUpgrades: 3,
+        playerClassModifiers: 0
       },
       cardRarities: ["common", "starter", "uncommon"],
       cardTags: [
@@ -91,11 +92,15 @@ describe("content authoring helpers", () => {
         "petReact"
       ],
       statusIds: ["burn"],
+      runtimeSupportedStatusIds: ["burn"],
+      metadataOnlyStatusIds: [],
+      statusBehaviourTypes: ["startOfTurnDamage"],
       petModifierRuleTypes: [
         "modifyPetCommandCost",
         "modifyPetCommandEffectAmount",
         "triggerOnEnemyDefeatedWithStatus"
       ],
+      playerClassModifierIds: [],
       encounterTypes: ["boss", "combat", "elite"],
       runMapNodeTypes: ["boss", "combat", "elite", "event", "rest"]
     });

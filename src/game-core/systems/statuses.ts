@@ -3,18 +3,16 @@ import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatantState, CombatState } from "../model/combat";
 import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
-import { burnStatusDefinition } from "../model/status";
 import { applyDamage } from "./effects";
 import { checkCombatOutcome } from "./outcome";
 import { resolvePetModifierTriggersAfterEvents } from "./pet-modifiers";
 import type { Rng } from "./rng";
+import { findStatusDefinition } from "./status-behaviours";
 
 type StatusResolutionOptions = {
   readonly registry: GameContentRegistry;
   readonly rng: Rng;
 };
-
-const BURN_STATUS_ID = burnStatusDefinition.id;
 
 const error = (code: string, message: string, path?: string): GameActionError => ({
   code,
@@ -83,23 +81,26 @@ export const processStartOfTurnStatuses = (
   const events: GameEvent[] = [];
 
   for (const status of target.statuses) {
-    if (status.statusId !== BURN_STATUS_ID) {
+    const statusDefinition = findStatusDefinition(options?.registry, status.statusId);
+    const behaviour = statusDefinition?.behaviour;
+    if (!behaviour || behaviour.type !== "startOfTurnDamage" || behaviour.timing !== "startOfTurn") {
       continue;
     }
 
-    const stacksAfter = Math.max(0, status.stacks - 1);
+    const stacksAfter = Math.max(0, status.stacks - behaviour.decrementStacksBy);
+    const amount = behaviour.damageAmount === "stacks" ? status.stacks : 0;
     const tickEvent: GameEvent = {
       type: "StatusTicked",
       targetId,
       statusId: status.statusId,
       stacksBefore: status.stacks,
       stacksAfter,
-      amount: status.stacks
+      amount
     };
     nextState = appendEvents(nextState, [tickEvent]);
     events.push(tickEvent);
 
-    const damageResult = applyDamage(nextState, targetId, targetId, status.stacks, { ignoreBlock: true });
+    const damageResult = applyDamage(nextState, targetId, targetId, amount, { ignoreBlock: behaviour.ignoreBlock });
     nextState = damageResult.state;
     events.push(...damageResult.events);
 
@@ -112,7 +113,7 @@ export const processStartOfTurnStatuses = (
         : combatant.statuses.filter((combatantStatus) => combatantStatus.statusId !== status.statusId)
     }));
 
-    if (stacksAfter === 0) {
+    if (behaviour.expiresAtZero && stacksAfter === 0) {
       const expiredEvent: GameEvent = { type: "StatusExpired", targetId, statusId: status.statusId };
       nextState = appendEvents(nextState, [expiredEvent]);
       events.push(expiredEvent);

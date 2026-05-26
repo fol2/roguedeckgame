@@ -1,12 +1,59 @@
 import type { CombatantId, StatusId } from "../ids";
 import type { CombatState } from "../model/combat";
 import type { GameEvent } from "../model/event";
-import type { TriggerOnEnemyDefeatedWithStatusRule } from "../model/pet";
+import type { PetModifierRule, TriggerOnEnemyDefeatedWithStatusRule } from "../model/pet";
 
-export type PetModifierTriggerFrame = {
+export type TriggerWindowOutcome = "ongoing" | "won" | "lost";
+export type TriggerCascadePolicy = "none";
+
+export type TriggerWindow = {
   readonly stateBeforeEffects: CombatState;
+  readonly stateAfterEffects: CombatState;
   readonly effectEvents: readonly GameEvent[];
+  readonly phase: CombatState["phase"];
+  readonly outcome: TriggerWindowOutcome;
+  readonly cascadePolicy: TriggerCascadePolicy;
 };
+
+export type PetModifierTriggerFrame = Pick<TriggerWindow, "stateBeforeEffects" | "effectEvents"> & {
+  readonly stateAfterEffects?: CombatState;
+  readonly phase?: CombatState["phase"];
+  readonly outcome?: TriggerWindowOutcome;
+  readonly cascadePolicy?: TriggerCascadePolicy;
+};
+
+export const createTriggerWindow = (input: {
+  readonly stateBeforeEffects: CombatState;
+  readonly stateAfterEffects: CombatState;
+  readonly effectEvents: readonly GameEvent[];
+}): TriggerWindow => ({
+  stateBeforeEffects: input.stateBeforeEffects,
+  stateAfterEffects: input.stateAfterEffects,
+  effectEvents: input.effectEvents,
+  phase: input.stateBeforeEffects.phase,
+  outcome: input.stateAfterEffects.phase === "won" || input.stateAfterEffects.phase === "lost"
+    ? input.stateAfterEffects.phase
+    : "ongoing",
+  cascadePolicy: "none"
+});
+
+const normaliseTriggerWindow = (frame: PetModifierTriggerFrame): TriggerWindow => ({
+  stateBeforeEffects: frame.stateBeforeEffects,
+  stateAfterEffects: frame.stateAfterEffects ?? frame.stateBeforeEffects,
+  effectEvents: frame.effectEvents,
+  phase: frame.phase ?? frame.stateBeforeEffects.phase,
+  outcome: frame.outcome ?? (
+    frame.stateAfterEffects?.phase === "won" || frame.stateAfterEffects?.phase === "lost"
+      ? frame.stateAfterEffects.phase
+      : "ongoing"
+  ),
+  cascadePolicy: frame.cascadePolicy ?? "none"
+});
+
+type TriggerMatcher<Type extends PetModifierRule["type"]> = (
+  rule: Extract<PetModifierRule, { readonly type: Type }>,
+  frame: TriggerWindow
+) => boolean;
 
 export const burnedEnemiesDefeatedByEvents = (
   stateBeforeEvents: CombatState,
@@ -44,12 +91,21 @@ export const burnedEnemiesDefeatedByEvents = (
   return defeatedIds;
 };
 
-export const petModifierTriggerMatches = (
-  rule: TriggerOnEnemyDefeatedWithStatusRule,
-  frame: PetModifierTriggerFrame
-): boolean =>
+const defeatedWithStatusMatcher: TriggerMatcher<"triggerOnEnemyDefeatedWithStatus"> = (rule, frame) =>
   burnedEnemiesDefeatedByEvents(
     frame.stateBeforeEffects,
     frame.effectEvents,
     rule.requiredStatusId
   ).length > 0;
+
+const petModifierTriggerMatchers = {
+  triggerOnEnemyDefeatedWithStatus: defeatedWithStatusMatcher
+} as const satisfies Partial<{
+  readonly [Type in PetModifierRule["type"]]: TriggerMatcher<Type>;
+}>;
+
+export const petModifierTriggerMatches = (
+  rule: TriggerOnEnemyDefeatedWithStatusRule,
+  frame: PetModifierTriggerFrame
+): boolean =>
+  petModifierTriggerMatchers[rule.type](rule, normaliseTriggerWindow(frame));

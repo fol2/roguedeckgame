@@ -1,6 +1,6 @@
-import type { CardId, CardInstanceId, CombatantId, MonsterIntentId, PetInstanceId } from "../ids";
+import type { CardId, CardInstanceId, CombatantId, MonsterIntentId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
-import type { CombatantTarget, EffectDefinition, PetTarget } from "../model/effect";
+import type { CombatantTarget, EffectDefinition } from "../model/effect";
 import type { CombatantState, CombatState } from "../model/combat";
 import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
@@ -8,6 +8,7 @@ import type { CombatStatusState } from "../model/status";
 import { drawCards } from "./draw";
 import { getEffectDescriptor, type EffectResolverKey } from "./effect-descriptors";
 import { checkCombatOutcome } from "./outcome";
+import { resolvePetTargets } from "./pet-targets";
 import type { Rng } from "./rng";
 
 type EffectContext = {
@@ -18,10 +19,6 @@ type EffectContext = {
   readonly cardId?: CardId;
   readonly intentId?: MonsterIntentId;
 };
-
-type PetTargetResolution =
-  | { readonly ok: true; readonly petInstanceIds: readonly PetInstanceId[] }
-  | { readonly ok: false; readonly error: GameActionError };
 
 const error = (code: string, message: string, path?: string): GameActionError => ({
   code,
@@ -121,62 +118,6 @@ const resolveCombatantTargets = (
 const isActionError = (
   value: readonly CombatantState[] | GameActionError
 ): value is GameActionError => "code" in value;
-
-export const resolvePetTargets = (
-  state: CombatState,
-  registry: GameContentRegistry,
-  petTarget: PetTarget,
-  rng: Rng
-): PetTargetResolution => {
-  const activeIds = [...state.activePetInstanceIds];
-  const activePetInstances = state.petInstances.filter((petInstance) => activeIds.includes(petInstance.id));
-
-  if (petTarget.type === "leading") {
-    const leadingPetInstanceId = activeIds[0];
-    return leadingPetInstanceId
-      ? { ok: true, petInstanceIds: [leadingPetInstanceId] }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  if (petTarget.type === "allActive") {
-    return activeIds.length > 0
-      ? { ok: true, petInstanceIds: activeIds }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  if (petTarget.type === "specific") {
-    return activePetInstances.some((petInstance) => petInstance.id === petTarget.petInstanceId)
-      ? { ok: true, petInstanceIds: [petTarget.petInstanceId] }
-      : {
-          ok: false,
-          error: error(
-            "missing_specific_pet",
-            `Pet instance '${petTarget.petInstanceId}' is not active.`,
-            "petTarget.petInstanceId"
-          )
-        };
-  }
-
-  if (petTarget.type === "randomActive") {
-    return activeIds.length > 0
-      ? { ok: true, petInstanceIds: [rng.choice(activeIds)] }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  const matchingIds = activePetInstances
-    .filter((petInstance) => {
-      const definition = registry.pets.find((pet) => pet.id === petInstance.definitionId);
-      return definition?.tags.includes(petTarget.tag) ?? false;
-    })
-    .map((petInstance) => petInstance.id);
-
-  return matchingIds.length > 0
-    ? { ok: true, petInstanceIds: matchingIds }
-    : {
-        ok: false,
-        error: error("missing_tagged_pet", `No active pet has tag '${petTarget.tag}'.`, "petTarget.tag")
-      };
-};
 
 export const applyDamage = (
   state: CombatState,

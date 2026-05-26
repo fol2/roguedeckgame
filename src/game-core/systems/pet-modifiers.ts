@@ -1,6 +1,6 @@
 import type { CardDefinition } from "../model/card";
 import type { CombatState } from "../model/combat";
-import type { EffectDefinition, PetTarget } from "../model/effect";
+import type { EffectDefinition } from "../model/effect";
 import type { GameEvent } from "../model/event";
 import type {
   ModifyPetCommandCostRule,
@@ -15,13 +15,16 @@ import type { GameActionError, GameActionResult } from "../model/action";
 import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
 import type { CardId, CardInstanceId, PetInstanceId, PetModifierId, UpgradeId } from "../ids";
-import { drawCards } from "./draw";
+import { validateEffects } from "./effect-validation";
+import { resolveEffects } from "./effects";
 import {
   knownPetModifierSelectorCardTypes,
   matchesPetModifierCardSelector
 } from "./pet-modifier-selectors";
 import type { Rng } from "./rng";
-import { petModifierTriggerMatches } from "./trigger-rules";
+import { createTriggerWindow, petModifierTriggerMatches } from "./trigger-rules";
+
+export { resolvePetCommandOwnerIds } from "./pet-targets";
 
 export type PetModifierContext = {
   readonly petInstanceId: PetInstanceId;
@@ -251,24 +254,18 @@ const validateModifierRule = (
     return error("invalid_pet_modifier_rule", "Pet trigger modifier limit type is unknown.", path);
   }
 
-  if (rule.effects.some((effectDefinition) => !isRecord(effectDefinition) || effectDefinition.type !== "draw")) {
-    return error("invalid_pet_modifier_rule", "Pet trigger modifiers only support draw effects in this ticket.", path);
+  const effectIssues = validateEffects(rule.effects, path, { statusIds });
+  if (effectIssues.length > 0) {
+    return error("invalid_pet_modifier_rule", effectIssues[0]?.message ?? "Pet trigger effects are invalid.", path);
   }
 
   if (
     rule.effects.some((effectDefinition) =>
-      !isRecord(effectDefinition) ||
-      (
-        effectDefinition.type === "draw" &&
-        (
-          typeof effectDefinition.amount !== "number" ||
-          !Number.isInteger(effectDefinition.amount) ||
-          effectDefinition.amount <= 0
-        )
-      )
+      effectDefinition.type === "draw" &&
+      (!Number.isInteger(effectDefinition.amount) || effectDefinition.amount <= 0)
     )
   ) {
-    return error("invalid_pet_modifier_rule", "Pet trigger effects must be valid draw effects with a positive integer amount.", path);
+    return error("invalid_pet_modifier_rule", "Pet trigger draw amount must be a positive integer.", path);
   }
 
   return undefined;
@@ -636,87 +633,16 @@ export const applyPetCommandEffectModifiers = (
   return { ok: true, value: { effects, events } };
 };
 
-const firstPetTarget = (effects: readonly EffectDefinition[]): PetTarget | undefined => {
-  const petEffect = effects.find((effectDefinition) => "petTarget" in effectDefinition);
-  return petEffect && "petTarget" in petEffect ? petEffect.petTarget : undefined;
-};
-
-export const resolvePetCommandOwnerIds = (
-  state: CombatState,
-  registry: GameContentRegistry,
-  card: CardDefinition,
-  rng: Rng
-): PetModifierResult<readonly PetInstanceId[]> => {
-  if (card.type !== "pet-command") {
-    return { ok: true, value: [] };
-  }
-
-  const activeIds = [...state.activePetInstanceIds];
-  const petTarget = firstPetTarget(card.effects);
-
-  if (!petTarget && card.requiresPetDefinitionId) {
-    const matchingPet = state.petInstances
-      .filter((petInstance) => activeIds.includes(petInstance.id))
-      .find((petInstance) => petInstance.definitionId === card.requiresPetDefinitionId);
-
-    return matchingPet
-      ? { ok: true, value: [matchingPet.id] }
-      : {
-          ok: false,
-          error: error(
-            "missing_required_active_pet",
-            `Card '${card.id}' requires an active pet of definition '${card.requiresPetDefinitionId}'.`,
-            "activePetInstanceIds"
-          )
-        };
-  }
-
-  const target = petTarget ?? { type: "leading" as const };
-
-  if (target.type === "leading") {
-    return activeIds[0]
-      ? { ok: true, value: [activeIds[0]] }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  if (target.type === "allActive") {
-    return activeIds.length > 0
-      ? { ok: true, value: activeIds }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  if (target.type === "specific") {
-    return activeIds.includes(target.petInstanceId)
-      ? { ok: true, value: [target.petInstanceId] }
-      : {
-          ok: false,
-          error: error("missing_specific_pet", `Pet instance '${target.petInstanceId}' is not active.`, "petTarget.petInstanceId")
-        };
-  }
-
-  if (target.type === "randomActive") {
-    return activeIds.length > 0
-      ? { ok: true, value: [rng.choice(activeIds)] }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  const matchingIds = state.petInstances
-    .filter((petInstance) => activeIds.includes(petInstance.id))
-    .filter((petInstance) => {
-      const definition = registry.pets.find((pet) => pet.id === petInstance.definitionId);
-      return definition?.tags.includes(target.tag) ?? false;
-    })
-    .map((petInstance) => petInstance.id);
-
-  return matchingIds.length > 0
-    ? { ok: true, value: matchingIds }
-    : { ok: false, error: error("missing_tagged_pet", `No active pet has tag '${target.tag}'.`, "petTarget.tag") };
-};
-
 export const resolvePetModifierTriggersAfterEvents = (
   input: TriggerInput
 ): GameActionResult<CombatState> => {
-  if (input.stateBeforeEffects.phase !== "player_turn") {
+  const triggerWindow = createTriggerWindow({
+    stateBeforeEffects: input.stateBeforeEffects,
+    stateAfterEffects: input.stateAfterEffects,
+    effectEvents: input.effectEvents
+  });
+
+  if (triggerWindow.phase !== "player_turn") {
     const actionError = error(
       "invalid_phase",
       "Pet modifier triggers can only resolve during the player turn.",
@@ -730,7 +656,7 @@ export const resolvePetModifierTriggersAfterEvents = (
     };
   }
 
-  if (input.stateAfterEffects.phase === "won" || input.stateAfterEffects.phase === "lost") {
+  if (triggerWindow.outcome === "won" || triggerWindow.outcome === "lost") {
     return { ok: true, state: input.stateAfterEffects, events: [], errors: [] };
   }
 
@@ -753,10 +679,7 @@ export const resolvePetModifierTriggersAfterEvents = (
         continue;
       }
 
-      if (!petModifierTriggerMatches(rule, {
-        stateBeforeEffects: input.stateBeforeEffects,
-        effectEvents: input.effectEvents
-      })) {
+      if (!petModifierTriggerMatches(rule, triggerWindow)) {
         continue;
       }
 
@@ -770,20 +693,21 @@ export const resolvePetModifierTriggersAfterEvents = (
       nextState = appendEvents(nextState, modifierEvents);
       events.push(...modifierEvents);
 
-      const drawAmount = rule.effects
-        .filter((effect): effect is Extract<EffectDefinition, { readonly type: "draw" }> => effect.type === "draw")
-        .reduce((total, effect) => total + effect.amount, 0);
-      if (drawAmount <= 0) {
-        continue;
-      }
+      if (rule.effects.length > 0) {
+        const effectResult = resolveEffects(
+          nextState,
+          rule.effects,
+          { sourceId: nextState.player.id },
+          input.registry,
+          input.rng
+        );
+        if (!effectResult.ok) {
+          return effectResult;
+        }
 
-      const drawResult = drawCards(nextState, drawAmount, input.rng);
-      if (!drawResult.ok) {
-        return drawResult;
+        nextState = effectResult.state;
+        events.push(...effectResult.events);
       }
-
-      nextState = drawResult.state;
-      events.push(...drawResult.events);
     }
   }
 

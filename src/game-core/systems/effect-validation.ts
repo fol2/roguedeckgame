@@ -1,10 +1,10 @@
 import type { CombatantTarget, EffectDefinition, PetTarget } from "../model/effect";
 import { knownEffectTypes } from "../model/effect";
-import { burnStatusDefinition } from "../model/status";
 import {
   getEffectDescriptor,
   type EffectDescriptor
 } from "./effect-descriptors";
+import { getRuntimeSupportedStatusIds } from "./status-behaviours";
 import type { ValidationIssue } from "./validation";
 
 export type EffectValidationContext = {
@@ -12,7 +12,7 @@ export type EffectValidationContext = {
 };
 
 const defaultEffectValidationContext: EffectValidationContext = {
-  statusIds: new Set([burnStatusDefinition.id])
+  statusIds: getRuntimeSupportedStatusIds()
 };
 
 const issue = (

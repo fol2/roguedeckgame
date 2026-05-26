@@ -213,7 +213,9 @@ describe("Ash Instinct pet modifier", () => {
   it("rejects malformed active trigger modifier effects during combat creation", () => {
     const result = createCombat({
       run: createRunFixture(),
-      registry: registryWithBrokenAshInstinct(),
+      registry: registryWithAshInstinctEffects([
+        { type: "damage", amount: 1 } as EffectDefinition
+      ]),
       petInstances: [createEmberFoxInstanceFixture({ unlockedUpgradeIds: [upgradeId("ash_instinct")] })],
       monsterIds: [monsterId("training_slime")],
       seed: "ash-broken-trigger",
@@ -224,10 +226,33 @@ describe("Ash Instinct pet modifier", () => {
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_pet_modifier_rule"]);
   });
 
+  it("resolves supported non-draw trigger effects through the shared effect resolver", () => {
+    const state = createAshState();
+    const result = playCard(
+      state,
+      { type: "playCard", cardInstanceId: cardInstanceId("strike:1"), targetId: firstMonsterId },
+      registryWithAshInstinctEffects([{ type: "block", amount: 2, target: { type: "self" } }]),
+      createRng("ash-block-trigger")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.player.block).toBe(2);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "CardPlayed",
+      "EnergySpent",
+      "DamageDealt",
+      "CombatantDefeated",
+      "PetModifierActivated",
+      "PetModifierConsumed",
+      "BlockGained",
+      "CardMoved"
+    ]);
+  });
+
   it("rejects malformed active trigger draw amounts during combat creation", () => {
     const result = createCombat({
       run: createRunFixture(),
-      registry: registryWithBrokenAshInstinct([{ type: "draw", amount: 0 }]),
+      registry: registryWithAshInstinctEffects([{ type: "draw", amount: 0 }]),
       petInstances: [createEmberFoxInstanceFixture({ unlockedUpgradeIds: [upgradeId("ash_instinct")] })],
       monsterIds: [monsterId("training_slime")],
       seed: "ash-broken-draw",
@@ -309,7 +334,7 @@ const createAshState = (
   };
 };
 
-const registryWithBrokenAshInstinct = (
+const registryWithAshInstinctEffects = (
   effects: readonly EffectDefinition[] = [
     { type: "block", amount: 1, target: { type: "self" } }
   ]

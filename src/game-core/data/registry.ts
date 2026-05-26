@@ -22,6 +22,7 @@ export const starterRegistry: GameContentRegistry = {
   runMapTemplates: forestRunMapTemplates,
   petUpgrades: emberFoxUpgrades,
   petModifiers: emberFoxUpgrades.flatMap((upgrade) => upgrade.modifiers),
+  playerClassModifiers: [],
   storyEvents: emberFoxStoryEvents,
   petSideStories: emberFoxPetSideStories
 };
@@ -35,5 +36,6 @@ export const encounters = starterRegistry.encounters;
 export const runMapTemplates = starterRegistry.runMapTemplates;
 export const petUpgrades = starterRegistry.petUpgrades;
 export const petModifiers = starterRegistry.petModifiers ?? [];
+export const playerClassModifiers = starterRegistry.playerClassModifiers ?? [];
 export const storyEvents = starterRegistry.storyEvents;
 export const petSideStories = starterRegistry.petSideStories;

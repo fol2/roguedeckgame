@@ -7,6 +7,10 @@ import type { RunNodeType } from "../model/run-map";
 import { burnStatusDefinition } from "../model/status";
 import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
 import { buildContentIndex } from "./content-index";
+import {
+  getRuntimeSupportedStatusIds,
+  validateStatusBehaviourDefinition
+} from "./status-behaviours";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
 import { knownPetModifierSelectorCardTypes } from "./pet-modifier-selectors";
 import { validateEffects } from "./effect-validation";
@@ -241,17 +245,6 @@ const validatePetModifierRule = (
             )
           );
           return;
-        }
-
-        if (effectDefinition.type !== "draw") {
-          issues.push(
-            issue(
-              "error",
-              "invalid_pet_modifier_rule",
-              "Pet trigger modifiers only support draw effects in this ticket.",
-              `${path}.effects[${effectIndex}]`
-            )
-          );
         }
 
         if (
@@ -730,6 +723,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     readonly runMapTemplates?: unknown;
     readonly petUpgrades?: unknown;
     readonly petModifiers?: unknown;
+    readonly playerClassModifiers?: unknown;
     readonly storyEvents?: unknown;
     readonly petSideStories?: unknown;
     readonly statuses?: unknown;
@@ -746,6 +740,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     runMapTemplates: Array.isArray(registryRecord.runMapTemplates) ? registryRecord.runMapTemplates : [],
     petUpgrades: Array.isArray(registryRecord.petUpgrades) ? registryRecord.petUpgrades : [],
     petModifiers: Array.isArray(registryRecord.petModifiers) ? registryRecord.petModifiers : [],
+    playerClassModifiers: Array.isArray(registryRecord.playerClassModifiers) ? registryRecord.playerClassModifiers : [],
     storyEvents: Array.isArray(registryRecord.storyEvents) ? registryRecord.storyEvents : [],
     petSideStories: Array.isArray(registryRecord.petSideStories) ? registryRecord.petSideStories : []
   } as unknown as GameContentRegistry);
@@ -802,6 +797,10 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     issues.push(issue("error", "invalid_pet_modifiers", "Pet modifiers must be an array when present.", "petModifiers"));
   }
 
+  if (registryRecord.playerClassModifiers !== undefined && !Array.isArray(registryRecord.playerClassModifiers)) {
+    issues.push(issue("error", "invalid_player_class_modifiers", "Player class modifiers must be an array when present.", "playerClassModifiers"));
+  }
+
   const cardDefinitions = Array.isArray(registryRecord.cards) ? registryRecord.cards : [];
   const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition];
   const playerDefinitions = Array.isArray(registryRecord.players) ? registryRecord.players : [];
@@ -811,13 +810,16 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   const petDefinitions = Array.isArray(registryRecord.pets) ? registryRecord.pets : [];
   const petUpgradeDefinitions = Array.isArray(registryRecord.petUpgrades) ? registryRecord.petUpgrades : [];
   const standalonePetModifierDefinitions = Array.isArray(registryRecord.petModifiers) ? registryRecord.petModifiers : [];
+  const playerClassModifierDefinitions = Array.isArray(registryRecord.playerClassModifiers) ? registryRecord.playerClassModifiers : [];
   const cardIds = new Set(
     cardDefinitions
       .filter(isRecord)
       .map((card) => card.id)
       .filter(isString)
   );
-  const supportedStatusEffectIds = new Set<string>([burnStatusDefinition.id]);
+  const supportedStatusEffectIds = getRuntimeSupportedStatusIds({
+    statuses: statusDefinitions as readonly NonNullable<GameContentRegistry["statuses"]>[number][]
+  });
   const monsterIds = new Set(
     monsterDefinitions
       .filter(isRecord)
@@ -834,6 +836,12 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     playerDefinitions
       .filter(isRecord)
       .map((player) => player.id)
+      .filter(isString)
+  );
+  const playerClassModifierIds = new Set(
+    playerClassModifierDefinitions
+      .filter(isRecord)
+      .map((modifier) => modifier.id)
       .filter(isString)
   );
   const storyEventIds = new Set(
@@ -1084,6 +1092,44 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       }
     });
 
+    if ("classModifierIds" in player && player.classModifierIds !== undefined && !Array.isArray(player.classModifierIds)) {
+      issues.push(issue("error", "invalid_player_class_modifiers", `Player '${String(player.id)}' classModifierIds must be an array.`, `players[${playerIndex}].classModifierIds`));
+    }
+
+    const classModifierIds = Array.isArray(player.classModifierIds) ? player.classModifierIds : [];
+    classModifierIds.forEach((modifierId, modifierIndex) => {
+      if (!playerClassModifierIds.has(modifierId)) {
+        issues.push(
+          issue(
+            "error",
+            "missing_player_class_modifier",
+            `Player '${String(player.id)}' references missing class modifier '${modifierId}'.`,
+            `players[${playerIndex}].classModifierIds[${modifierIndex}]`
+          )
+        );
+      }
+    });
+
+    if ("startingResources" in player && player.startingResources !== undefined && !Array.isArray(player.startingResources)) {
+      issues.push(issue("error", "invalid_player_class_resource", `Player '${String(player.id)}' startingResources must be an array.`, `players[${playerIndex}].startingResources`));
+    }
+
+    const startingResources = Array.isArray(player.startingResources) ? player.startingResources : [];
+    startingResources.forEach((resource, resourceIndex) => {
+      if (!isRecord(resource)) {
+        issues.push(issue("error", "invalid_player_class_resource", "Player class starting resource must be an object.", `players[${playerIndex}].startingResources[${resourceIndex}]`));
+        return;
+      }
+
+      if (typeof resource.id !== "string" || resource.id.length === 0) {
+        issues.push(issue("error", "invalid_player_class_resource", "Player class starting resource id must be a non-empty string.", `players[${playerIndex}].startingResources[${resourceIndex}].id`));
+      }
+
+      if (typeof resource.amount !== "number" || !Number.isInteger(resource.amount) || resource.amount < 0) {
+        issues.push(issue("error", "invalid_player_class_resource", "Player class starting resource amount must be a non-negative integer.", `players[${playerIndex}].startingResources[${resourceIndex}].amount`));
+      }
+    });
+
     if (
       typeof player.maxActivePets === "number" &&
       typeof player.petSlotCount === "number" &&
@@ -1097,6 +1143,29 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
           `players[${playerIndex}]`
         )
       );
+    }
+  });
+
+  playerClassModifierDefinitions.forEach((modifierValue, modifierIndex) => {
+    if (!isRecord(modifierValue)) {
+      issues.push(issue("error", "invalid_player_class_modifier", "Player class modifier definition must be an object.", `playerClassModifiers[${modifierIndex}]`));
+      return;
+    }
+
+    if (typeof modifierValue.id !== "string" || modifierValue.id.length === 0) {
+      issues.push(issue("error", "invalid_player_class_modifier", "Player class modifier id must be a non-empty string.", `playerClassModifiers[${modifierIndex}].id`));
+    }
+
+    if (typeof modifierValue.name !== "string" || modifierValue.name.length === 0) {
+      issues.push(issue("error", "invalid_player_class_modifier", "Player class modifier name must be a non-empty string.", `playerClassModifiers[${modifierIndex}].name`));
+    }
+
+    if (typeof modifierValue.description !== "string" || modifierValue.description.length === 0) {
+      issues.push(issue("error", "invalid_player_class_modifier", "Player class modifier description must be a non-empty string.", `playerClassModifiers[${modifierIndex}].description`));
+    }
+
+    if (!Array.isArray(modifierValue.tags)) {
+      issues.push(issue("error", "invalid_player_class_modifier", "Player class modifier tags must be an array.", `playerClassModifiers[${modifierIndex}].tags`));
     }
   });
 
@@ -1168,6 +1237,14 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
 
     if (typeof statusValue.description !== "string" || statusValue.description.length === 0) {
       issues.push(issue("error", "invalid_status", "Status description must be a non-empty string.", `statuses[${statusIndex}].description`));
+    }
+
+    if (
+      "behaviour" in statusValue &&
+      statusValue.behaviour !== undefined &&
+      !validateStatusBehaviourDefinition(statusValue.behaviour)
+    ) {
+      issues.push(issue("error", "invalid_status_behaviour", "Status behaviour is not supported.", `statuses[${statusIndex}].behaviour`));
     }
   });
 

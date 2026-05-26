@@ -4,6 +4,7 @@ import type {
   MonsterId,
   PetDefinitionId,
   PetModifierId,
+  PlayerClassModifierId,
   PlayerClassId,
   RunTemplateId,
   StoryEventId,
@@ -14,7 +15,7 @@ import type { CardDefinition } from "../model/card";
 import type { EncounterDefinition } from "../model/encounter";
 import type { MonsterDefinition } from "../model/monster";
 import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from "../model/pet";
-import type { PlayerClassDefinition } from "../model/player";
+import type { PlayerClassDefinition, PlayerClassModifierDefinition } from "../model/player";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunMapTemplateDefinition } from "../model/run-map";
 import { burnStatusDefinition, type StatusDefinition } from "../model/status";
@@ -30,6 +31,7 @@ export type IndexedContentCollection =
   | "runMapTemplates"
   | "petUpgrades"
   | "petModifiers"
+  | "playerClassModifiers"
   | "storyEvents"
   | "petSideStories";
 
@@ -48,6 +50,7 @@ export type ContentIndex = {
   readonly runMapTemplatesById: ReadonlyMap<RunTemplateId, RunMapTemplateDefinition>;
   readonly petUpgradesById: ReadonlyMap<UpgradeId, PetUpgradeDefinition>;
   readonly petModifiersById: ReadonlyMap<PetModifierId, PetModifierDefinition>;
+  readonly playerClassModifiersById: ReadonlyMap<PlayerClassModifierId, PlayerClassModifierDefinition>;
   readonly storyEventsById: ReadonlyMap<StoryEventId, StoryEventDefinition>;
   readonly petSideStoriesById: ReadonlyMap<StoryEventId, PetSideStoryDefinition>;
   readonly duplicateIds: readonly DuplicateContentId[];
@@ -118,6 +121,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
   const runMapTemplates = collect<RunTemplateId, RunMapTemplateDefinition>("runMapTemplates", registry.runMapTemplates);
   const petUpgrades = collect<UpgradeId, PetUpgradeDefinition>("petUpgrades", registry.petUpgrades);
   const petModifiers = collect<PetModifierId, PetModifierDefinition>("petModifiers", registry.petModifiers ?? []);
+  const playerClassModifiers = collect<PlayerClassModifierId, PlayerClassModifierDefinition>("playerClassModifiers", registry.playerClassModifiers ?? []);
   const storyEvents = collect<StoryEventId, StoryEventDefinition>("storyEvents", registry.storyEvents);
   const petSideStories = collect<StoryEventId, PetSideStoryDefinition>("petSideStories", registry.petSideStories);
 
@@ -131,6 +135,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
     runMapTemplatesById: runMapTemplates.map,
     petUpgradesById: petUpgrades.map,
     petModifiersById: petModifiers.map,
+    playerClassModifiersById: playerClassModifiers.map,
     storyEventsById: storyEvents.map,
     petSideStoriesById: petSideStories.map,
     duplicateIds: [
@@ -143,6 +148,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
       ...runMapTemplates.duplicateIds,
       ...petUpgrades.duplicateIds,
       ...petModifiers.duplicateIds,
+      ...playerClassModifiers.duplicateIds,
       ...storyEvents.duplicateIds,
       ...petSideStories.duplicateIds
     ]

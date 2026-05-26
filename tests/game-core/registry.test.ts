@@ -4,6 +4,7 @@ import {
   evolutionNodeId,
   petModifierId,
   petDefinitionId,
+  playerClassModifierId,
   playerClassId,
   starterRegistry,
   statusId,
@@ -51,6 +52,49 @@ describe("starterRegistry", () => {
     expect(noviceTamer?.name).toBe("Novice Tamer");
     expect(noviceTamer?.maxActivePets).toBe(1);
     expect(noviceTamer?.petSlotCount).toBe(1);
+  });
+
+  it("validates player class modifier references and starting resources", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        playerClassModifiers: [
+          {
+            id: playerClassModifierId("training_focus"),
+            name: "Training Focus",
+            description: "Test class modifier.",
+            tags: ["test"]
+          }
+        ],
+        players: [
+          {
+            ...starterRegistry.players[0],
+            classModifierIds: [playerClassModifierId("training_focus")],
+            startingResources: [{ id: "focus", amount: 1 }]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors).toEqual([]);
+  });
+
+  it("reports missing player class modifiers and malformed class resources", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        players: [
+          {
+            ...starterRegistry.players[0],
+            classModifierIds: [playerClassModifierId("missing_class_modifier")],
+            startingResources: [{ id: "", amount: -1 }]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toEqual(expect.arrayContaining([
+      "missing_player_class_modifier",
+      "invalid_player_class_resource"
+    ]));
   });
 
   it("includes Ember Fox base and reward command cards", () => {
@@ -353,7 +397,7 @@ describe("starterRegistry", () => {
     expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(2);
   });
 
-  it("reports unsupported pet trigger effects", () => {
+  it("accepts supported non-draw pet trigger effects", () => {
     const result = validateRegistry(
       cloneRegistry({
         petUpgrades: [
@@ -375,7 +419,7 @@ describe("starterRegistry", () => {
       })
     );
 
-    expect(result.errors.map((error) => error.code)).toContain("invalid_pet_modifier_rule");
+    expect(result.errors.map((error) => error.code)).not.toContain("invalid_pet_modifier_rule");
   });
 
   it("reports invalid pet trigger draw amounts", () => {
