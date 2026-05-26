@@ -1,6 +1,6 @@
 import type { CardDefinition } from "../model/card";
 import type { CombatState } from "../model/combat";
-import type { EffectDefinition, PetTarget } from "../model/effect";
+import type { EffectDefinition } from "../model/effect";
 import type { GameEvent } from "../model/event";
 import type {
   ModifyPetCommandCostRule,
@@ -23,6 +23,8 @@ import {
 } from "./pet-modifier-selectors";
 import type { Rng } from "./rng";
 import { createTriggerWindow, petModifierTriggerMatches } from "./trigger-rules";
+
+export { resolvePetCommandOwnerIds } from "./pet-targets";
 
 export type PetModifierContext = {
   readonly petInstanceId: PetInstanceId;
@@ -629,83 +631,6 @@ export const applyPetCommandEffectModifiers = (
   }
 
   return { ok: true, value: { effects, events } };
-};
-
-const firstPetTarget = (effects: readonly EffectDefinition[]): PetTarget | undefined => {
-  const petEffect = effects.find((effectDefinition) => "petTarget" in effectDefinition);
-  return petEffect && "petTarget" in petEffect ? petEffect.petTarget : undefined;
-};
-
-export const resolvePetCommandOwnerIds = (
-  state: CombatState,
-  registry: GameContentRegistry,
-  card: CardDefinition,
-  rng: Rng
-): PetModifierResult<readonly PetInstanceId[]> => {
-  if (card.type !== "pet-command") {
-    return { ok: true, value: [] };
-  }
-
-  const activeIds = [...state.activePetInstanceIds];
-  const petTarget = firstPetTarget(card.effects);
-
-  if (!petTarget && card.requiresPetDefinitionId) {
-    const matchingPet = state.petInstances
-      .filter((petInstance) => activeIds.includes(petInstance.id))
-      .find((petInstance) => petInstance.definitionId === card.requiresPetDefinitionId);
-
-    return matchingPet
-      ? { ok: true, value: [matchingPet.id] }
-      : {
-          ok: false,
-          error: error(
-            "missing_required_active_pet",
-            `Card '${card.id}' requires an active pet of definition '${card.requiresPetDefinitionId}'.`,
-            "activePetInstanceIds"
-          )
-        };
-  }
-
-  const target = petTarget ?? { type: "leading" as const };
-
-  if (target.type === "leading") {
-    return activeIds[0]
-      ? { ok: true, value: [activeIds[0]] }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  if (target.type === "allActive") {
-    return activeIds.length > 0
-      ? { ok: true, value: activeIds }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  if (target.type === "specific") {
-    return activeIds.includes(target.petInstanceId)
-      ? { ok: true, value: [target.petInstanceId] }
-      : {
-          ok: false,
-          error: error("missing_specific_pet", `Pet instance '${target.petInstanceId}' is not active.`, "petTarget.petInstanceId")
-        };
-  }
-
-  if (target.type === "randomActive") {
-    return activeIds.length > 0
-      ? { ok: true, value: [rng.choice(activeIds)] }
-      : { ok: false, error: error("missing_active_pet", "No active pet is available.", "activePetInstanceIds") };
-  }
-
-  const matchingIds = state.petInstances
-    .filter((petInstance) => activeIds.includes(petInstance.id))
-    .filter((petInstance) => {
-      const definition = registry.pets.find((pet) => pet.id === petInstance.definitionId);
-      return definition?.tags.includes(target.tag) ?? false;
-    })
-    .map((petInstance) => petInstance.id);
-
-  return matchingIds.length > 0
-    ? { ok: true, value: matchingIds }
-    : { ok: false, error: error("missing_tagged_pet", `No active pet has tag '${target.tag}'.`, "petTarget.tag") };
 };
 
 export const resolvePetModifierTriggersAfterEvents = (

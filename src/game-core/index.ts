@@ -30,6 +30,7 @@ export * from "./systems/monster-intents";
 export * from "./systems/outcome";
 export * from "./systems/pet-modifier-selectors";
 export * from "./systems/pet-modifiers";
+export * from "./systems/pet-targets";
 export * from "./systems/rng";
 export * from "./systems/run-lifecycle";
 export * from "./systems/run-map";
