@@ -247,17 +247,6 @@ const validatePetModifierRule = (
           return;
         }
 
-        if (effectDefinition.type !== "draw") {
-          issues.push(
-            issue(
-              "error",
-              "invalid_pet_modifier_rule",
-              "Pet trigger modifiers only support draw effects in this ticket.",
-              `${path}.effects[${effectIndex}]`
-            )
-          );
-        }
-
         if (
           effectDefinition.type === "draw" &&
           (!Number.isInteger(effectDefinition.amount) || effectDefinition.amount <= 0)

@@ -353,7 +353,7 @@ describe("starterRegistry", () => {
     expect(result.errors.filter((error) => error.code === "invalid_pet_modifier_rule")).toHaveLength(2);
   });
 
-  it("reports unsupported pet trigger effects", () => {
+  it("accepts supported non-draw pet trigger effects", () => {
     const result = validateRegistry(
       cloneRegistry({
         petUpgrades: [
@@ -375,7 +375,7 @@ describe("starterRegistry", () => {
       })
     );
 
-    expect(result.errors.map((error) => error.code)).toContain("invalid_pet_modifier_rule");
+    expect(result.errors.map((error) => error.code)).not.toContain("invalid_pet_modifier_rule");
   });
 
   it("reports invalid pet trigger draw amounts", () => {

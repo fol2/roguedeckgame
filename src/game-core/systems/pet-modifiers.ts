@@ -15,7 +15,8 @@ import type { GameActionError, GameActionResult } from "../model/action";
 import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
 import type { CardId, CardInstanceId, PetInstanceId, PetModifierId, UpgradeId } from "../ids";
-import { drawCards } from "./draw";
+import { validateEffects } from "./effect-validation";
+import { resolveEffects } from "./effects";
 import {
   knownPetModifierSelectorCardTypes,
   matchesPetModifierCardSelector
@@ -251,24 +252,18 @@ const validateModifierRule = (
     return error("invalid_pet_modifier_rule", "Pet trigger modifier limit type is unknown.", path);
   }
 
-  if (rule.effects.some((effectDefinition) => !isRecord(effectDefinition) || effectDefinition.type !== "draw")) {
-    return error("invalid_pet_modifier_rule", "Pet trigger modifiers only support draw effects in this ticket.", path);
+  const effectIssues = validateEffects(rule.effects, path, { statusIds });
+  if (effectIssues.length > 0) {
+    return error("invalid_pet_modifier_rule", effectIssues[0]?.message ?? "Pet trigger effects are invalid.", path);
   }
 
   if (
     rule.effects.some((effectDefinition) =>
-      !isRecord(effectDefinition) ||
-      (
-        effectDefinition.type === "draw" &&
-        (
-          typeof effectDefinition.amount !== "number" ||
-          !Number.isInteger(effectDefinition.amount) ||
-          effectDefinition.amount <= 0
-        )
-      )
+      effectDefinition.type === "draw" &&
+      (!Number.isInteger(effectDefinition.amount) || effectDefinition.amount <= 0)
     )
   ) {
-    return error("invalid_pet_modifier_rule", "Pet trigger effects must be valid draw effects with a positive integer amount.", path);
+    return error("invalid_pet_modifier_rule", "Pet trigger draw amount must be a positive integer.", path);
   }
 
   return undefined;
@@ -773,20 +768,21 @@ export const resolvePetModifierTriggersAfterEvents = (
       nextState = appendEvents(nextState, modifierEvents);
       events.push(...modifierEvents);
 
-      const drawAmount = rule.effects
-        .filter((effect): effect is Extract<EffectDefinition, { readonly type: "draw" }> => effect.type === "draw")
-        .reduce((total, effect) => total + effect.amount, 0);
-      if (drawAmount <= 0) {
-        continue;
-      }
+      if (rule.effects.length > 0) {
+        const effectResult = resolveEffects(
+          nextState,
+          rule.effects,
+          { sourceId: nextState.player.id },
+          input.registry,
+          input.rng
+        );
+        if (!effectResult.ok) {
+          return effectResult;
+        }
 
-      const drawResult = drawCards(nextState, drawAmount, input.rng);
-      if (!drawResult.ok) {
-        return drawResult;
+        nextState = effectResult.state;
+        events.push(...effectResult.events);
       }
-
-      nextState = drawResult.state;
-      events.push(...drawResult.events);
     }
   }
 
