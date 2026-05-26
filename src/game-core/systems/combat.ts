@@ -164,6 +164,11 @@ const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatS
 const targetNeedsActionTarget = (target: CombatantTarget): boolean =>
   target.type === "target" && target.combatantId === undefined;
 
+const cardNeedsActionTarget = (card: CardDefinition): boolean =>
+  card.effects.some((effectDefinition) =>
+    "target" in effectDefinition && targetNeedsActionTarget(effectDefinition.target)
+  );
+
 const validateCombatantTarget = (
   state: CombatState,
   target: CombatantTarget,
@@ -235,6 +240,10 @@ const validateCardEffects = (
   action: PlayCardAction,
   registry: GameContentRegistry
 ): GameActionError | undefined => {
+  if (action.targetId !== undefined && !cardNeedsActionTarget(card)) {
+    return error("unexpected_card_target", "Targetless cards must not include a target id.", "targetId");
+  }
+
   for (const effectDefinition of card.effects) {
     if ("target" in effectDefinition) {
       const targetError = validateCombatantTarget(state, effectDefinition.target, action.targetId);

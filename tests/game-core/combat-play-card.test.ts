@@ -68,6 +68,23 @@ describe("playCard", () => {
     ]);
   });
 
+  it("rejects target ids on targetless cards", () => {
+    const state = createHandTunedCombatFixture();
+    const before = JSON.parse(JSON.stringify(state));
+    const result = playCard(
+      state,
+      { type: "playCard", cardInstanceId: cardInstanceId("defend:1"), targetId },
+      starterRegistry,
+      createRng("defend-extra-target")
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.state).toBe(state);
+    expect(JSON.parse(JSON.stringify(state))).toEqual(before);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["unexpected_card_target"]);
+    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+  });
+
   it("returns ok false and does not mutate state when energy is insufficient", () => {
     const state = { ...createHandTunedCombatFixture(), energy: 0 };
     const before = JSON.parse(JSON.stringify(state));

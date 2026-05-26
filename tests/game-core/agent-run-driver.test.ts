@@ -72,6 +72,35 @@ describe("agent run driver", () => {
     expect(createAgentStateHash(driver.getSnapshot())).toBe(before);
   });
 
+  it("rejects target ids on targetless card actions", () => {
+    const driver = createAgentRunDriver({ seed: "driver-extra-target" });
+    let targetlessAction = driver.getLegalActions().find((action) => action.type === "playCard" && !action.targetId);
+
+    for (let step = 0; step < 80 && !targetlessAction; step += 1) {
+      const action = deterministicSmokePolicy(driver.getSnapshot());
+      expect(action).toBeDefined();
+      driver.applyAction(action!, "policy");
+      targetlessAction = driver.getLegalActions().find((candidate) => candidate.type === "playCard" && !candidate.targetId);
+    }
+
+    if (!targetlessAction || targetlessAction.type !== "playCard") {
+      throw new Error("Expected to find a targetless play-card action.");
+    }
+    const aliveMonster = driver.getSnapshot().combat?.monsters.find((monster) => monster.alive);
+    expect(aliveMonster).toBeDefined();
+    const before = createAgentStateHash(driver.getSnapshot());
+
+    const result = driver.applyAction(
+      { type: "playCard", cardInstanceId: targetlessAction.cardInstanceId, targetId: aliveMonster!.id },
+      "invalid-injected"
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((error) => error.code)).toEqual(["unexpected_card_target"]);
+    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+    expect(createAgentStateHash(driver.getSnapshot())).toBe(before);
+  });
+
   it("ends the player turn and resolves the enemy turn", () => {
     const driver = createAgentRunDriver({ seed: "driver-end-turn" });
     driver.applyAction(driver.getLegalActions()[0], "legal");
