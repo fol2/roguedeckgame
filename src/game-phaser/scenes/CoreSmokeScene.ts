@@ -9,7 +9,7 @@ import {
   PANEL_Y,
   TITLE_Y
 } from "../layout/game-size";
-import { configureFixedResolutionCamera } from "../layout/fixed-resolution-camera";
+import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
 import { buildCoreSmokeViewModel } from "../debug/core-smoke";
 import { SceneKeys } from "./SceneKeys";
 
@@ -38,7 +38,7 @@ export class CoreSmokeScene extends Scene {
   }
 
   public create(): void {
-    configureFixedResolutionCamera(this);
+    configureFixedResolutionStage(this);
     const smoke = buildCoreSmokeViewModel();
     const statusColour = smoke.ok ? 0x2f8f5b : 0x9b3131;
 

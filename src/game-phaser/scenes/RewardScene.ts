@@ -9,7 +9,7 @@ import {
   REWARD_SKIP_BUTTON,
   REWARD_TITLE
 } from "../layout/reward-layout";
-import { configureFixedResolutionCamera } from "../layout/fixed-resolution-camera";
+import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
 import { SceneKeys } from "./SceneKeys";
 
 export class RewardScene extends Scene {
@@ -26,7 +26,7 @@ export class RewardScene extends Scene {
 
   public create(): void {
     this.inputLocked = false;
-    configureFixedResolutionCamera(this);
+    configureFixedResolutionStage(this);
     this.cameras.main.setBackgroundColor(REWARD_BACKGROUND_COLOUR);
     this.add.text(REWARD_TITLE.x, REWARD_TITLE.y, "Reward", {
       color: "#f6f1e8",

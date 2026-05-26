@@ -84,7 +84,7 @@ describe("Reward scene boundary", () => {
       "../presenters/RewardOptionPresenter",
       "../presenters/RunHudPresenter",
       "../layout/reward-layout",
-      "../layout/fixed-resolution-camera",
+      "../layout/fixed-resolution-stage",
       "./SceneKeys"
     ]);
     expect(moduleSpecifiers.some((specifier) => specifier.includes("game-core"))).toBe(false);

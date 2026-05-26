@@ -18,8 +18,8 @@ describe("Vite app entry", () => {
     const createGame = await readProjectFile("src/app/create-game.ts");
 
     expect(createGame).toMatch(/from\s+["']phaser["']/);
-    expect(createGame).toMatch(/GAME_RENDER_WIDTH/);
-    expect(createGame).toMatch(/GAME_RENDER_HEIGHT/);
+    expect(createGame).toMatch(/getFixedRenderSize/);
+    expect(createGame).toMatch(/devicePixelRatio/);
     expect(createGame).toMatch(/new Game\(/);
     expect(createGame).toMatch(/BootScene/);
     expect(createGame).toMatch(/CoreSmokeScene/);
@@ -38,16 +38,17 @@ describe("Vite app entry", () => {
 
   it("keeps a high-resolution fixed canvas scaled to the browser", async () => {
     const gameSize = await readProjectFile("src/game-phaser/layout/game-size.ts");
-    const fixedCamera = await readProjectFile("src/game-phaser/layout/fixed-resolution-camera.ts");
+    const fixedStage = await readProjectFile("src/game-phaser/layout/fixed-resolution-stage.ts");
     const styles = await readProjectFile("src/app/styles.css");
 
     expect(gameSize).toMatch(/GAME_WIDTH = 1280/);
     expect(gameSize).toMatch(/GAME_HEIGHT = 720/);
-    expect(gameSize).toMatch(/GAME_RENDER_SCALE = 3/);
-    expect(gameSize).toMatch(/GAME_RENDER_WIDTH = GAME_WIDTH \* GAME_RENDER_SCALE/);
-    expect(gameSize).toMatch(/GAME_RENDER_HEIGHT = GAME_HEIGHT \* GAME_RENDER_SCALE/);
-    expect(fixedCamera).toMatch(/setZoom\(GAME_RENDER_SCALE\)/);
-    expect(fixedCamera).toMatch(/centerOn\(GAME_CENTER_X, GAME_CENTER_Y\)/);
+    expect(gameSize).toMatch(/MAX_RENDER_SCALE = 4/);
+    expect(gameSize).toMatch(/getFixedRenderSize/);
+    expect(fixedStage).toMatch(/setGameSize\(size\.width, size\.height\)/);
+    expect(fixedStage).toMatch(/setScale\(size\.renderScale\)/);
+    expect(fixedStage).toMatch(/setResolution\(size\.renderScale\)/);
+    expect(fixedStage).not.toMatch(/setZoom/);
     expect(styles).toMatch(/width:\s*100vw/);
     expect(styles).toMatch(/height:\s*100dvh/);
   });

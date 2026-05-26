@@ -30,7 +30,7 @@ import {
   OUTCOME_LABEL,
   RESET_RUN_BUTTON
 } from "../layout/combat-layout";
-import { configureFixedResolutionCamera } from "../layout/fixed-resolution-camera";
+import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
 import { SceneKeys } from "./SceneKeys";
 
 export class CombatScene extends Scene {
@@ -86,7 +86,7 @@ export class CombatScene extends Scene {
     this.pauseOpen = false;
     this.browserFocused = true;
     this.pendingRequestId = undefined;
-    configureFixedResolutionCamera(this);
+    configureFixedResolutionStage(this);
     this.cameras.main.setBackgroundColor(COMBAT_BACKGROUND_COLOUR);
     this.input.mouse?.disableContextMenu();
     this.bindFocusAndResizeSafety();
