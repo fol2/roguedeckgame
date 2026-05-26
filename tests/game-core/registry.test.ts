@@ -157,6 +157,53 @@ describe("starterRegistry", () => {
     ]));
   });
 
+  it("reports effects missing required target payloads before runtime", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        cards: [
+          {
+            ...starterRegistry.cards[0],
+            effects: [
+              { type: "damage", amount: 1 },
+              { type: "damage", target: { type: "target" } },
+              { type: "block", amount: 1 },
+              { type: "applyStatus", statusId: "burn", stacks: 1 },
+              { type: "draw" },
+              { type: "petAttack", amount: 1 },
+              { type: "petAttack", target: { type: "target" }, petTarget: { type: "leading" } },
+              { type: "petBlock", amount: 1 },
+              { type: "petReact", reaction: "guard" },
+              { type: "setStoryFlag" },
+              { type: "petReact", petTarget: { type: "leading" } },
+              { type: "applyStatus", target: { type: "target" } }
+            ] as unknown as EffectDefinition[]
+          }
+        ],
+        monsters: [
+          {
+            ...starterRegistry.monsters[0],
+            intentPool: [
+              {
+                ...starterRegistry.monsters[0].intentPool[0],
+                effects: [{ type: "damage", amount: 1 } as unknown as EffectDefinition]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "missing_effect_target")).toHaveLength(6);
+    expect(result.errors.filter((error) => error.code === "missing_pet_target")).toHaveLength(3);
+    expect(result.errors.filter((error) => error.code === "missing_effect_amount")).toHaveLength(3);
+    expect(result.errors.map((error) => error.code)).toEqual(expect.arrayContaining([
+      "invalid_story_flag_effect",
+      "invalid_pet_reaction_effect",
+      "missing_effect_status",
+      "missing_effect_stacks"
+    ]));
+  });
+
   it("reports invalid pet slot capacity", () => {
     const result = validateRegistry(
       cloneRegistry({

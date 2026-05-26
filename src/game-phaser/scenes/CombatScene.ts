@@ -23,6 +23,7 @@ import type { CombatCardViewModel, CombatViewModel } from "../view-models/combat
 import { resolveCardDropAction } from "../interaction/card-interaction-policy";
 import {
   clearCombatSelection,
+  createCombatInteractionState,
   getInteractionCard as resolveInteractionCard,
   reconcileCombatInteractionState,
   selectCombatCard,
@@ -88,6 +89,7 @@ export class CombatScene extends Scene {
     this.selectedCardRevision = undefined;
     this.keyboardTargetId = undefined;
     this.hoveredCardId = undefined;
+    this.applyInteractionState(createCombatInteractionState());
     this.feedbackMessage = "";
     this.tooltip = undefined;
     this.pendingTooltip = undefined;
@@ -542,7 +544,7 @@ export class CombatScene extends Scene {
   }
 
   private async playCardMovementForEvent(event: GameEvent): Promise<void> {
-    if (event.type !== "CardMoved" || !this.cardPresenter || !this.playbackFinalViewModel) {
+    if (!this.cardPresenter) {
       return;
     }
 

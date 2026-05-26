@@ -164,9 +164,7 @@ export type CombatViewModel = {
   readonly monsterIntents: readonly MonsterIntentViewModel[];
   readonly hand: readonly CombatCardViewModel[];
   readonly drawPile: CombatPileViewModel;
-  readonly drawPileCount: number;
   readonly discardPile: CombatPileViewModel;
-  readonly discardPileCount: number;
   readonly continueAvailable: boolean;
   readonly resetAvailable: boolean;
   readonly eventMessages: readonly string[];
@@ -644,9 +642,7 @@ export const buildCombatViewModel = (
       };
     }),
     drawPile: buildCombatPileViewModel("Draw pile", state.combat.drawPile.length),
-    drawPileCount: state.combat.drawPile.length,
     discardPile: buildCombatPileViewModel("Discard pile", state.combat.discardPile.length),
-    discardPileCount: state.combat.discardPile.length,
     continueAvailable: state.combat.phase === "won" || state.combat.phase === "lost",
     resetAvailable: state.run.status === "lost" || state.run.status === "completed",
     eventMessages: state.lastEvents.map(formatCombatEventMessage),

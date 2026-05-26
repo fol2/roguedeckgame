@@ -174,7 +174,6 @@ describe("Combat scene boundary", () => {
 
     expect(sceneSource).toMatch(/playbackFinalViewModel\?: CombatViewModel/);
     expect(sceneSource).toMatch(/playCardMovementForEvent\(event\)/);
-    expect(sceneSource).toMatch(/event\.type !== "CardMoved"/);
     expect(sceneSource).toMatch(/planCombatEventAnimation\(event, this\.playbackFinalViewModel\)/);
     expect(sceneSource).toMatch(/cardPresenter\.playCardMoved\(command\.event, command\.finalHand\)/);
     expect(cardPresenter).toMatch(/visuals = new Map<CardInstanceId, CardVisual>/);

@@ -1,6 +1,5 @@
 import type { CombatantTarget, EffectDefinition, PetTarget } from "../model/effect";
 import { knownEffectTypes } from "../model/effect";
-import type { CardType } from "../model/card";
 import type { EncounterType } from "../model/encounter";
 import type { PetModifierRule } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
@@ -9,6 +8,7 @@ import type { RunNodeType } from "../model/run-map";
 import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
 import { burnStatusDefinition } from "../model/status";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
+import { knownPetModifierSelectorCardTypes } from "./pet-modifier-selectors";
 
 export type ValidationIssueSeverity = "error" | "warning";
 
@@ -145,6 +145,38 @@ const validateEffectPayload = (
   path: string
 ): ValidationIssue[] => {
   const issues: ValidationIssue[] = [];
+  const requiresAmount =
+    effectDefinition.type === "damage" ||
+    effectDefinition.type === "block" ||
+    effectDefinition.type === "draw" ||
+    effectDefinition.type === "petAttack" ||
+    effectDefinition.type === "petBlock";
+
+  if (
+    effectDefinition.type === "damage" ||
+    effectDefinition.type === "block" ||
+    effectDefinition.type === "applyStatus" ||
+    effectDefinition.type === "petAttack" ||
+    effectDefinition.type === "petBlock"
+  ) {
+    if (!("target" in effectDefinition)) {
+      issues.push(issue("error", "missing_effect_target", "Effect is missing a combatant target.", `${path}.target`));
+    }
+  }
+
+  if (
+    effectDefinition.type === "petAttack" ||
+    effectDefinition.type === "petBlock" ||
+    effectDefinition.type === "petReact"
+  ) {
+    if (!("petTarget" in effectDefinition)) {
+      issues.push(issue("error", "missing_pet_target", "Effect is missing a pet target.", `${path}.petTarget`));
+    }
+  }
+
+  if (requiresAmount && !("amount" in effectDefinition)) {
+    issues.push(issue("error", "missing_effect_amount", "Effect is missing an amount.", `${path}.amount`));
+  }
 
   if ("target" in effectDefinition) {
     issues.push(...validateCombatantTargetPayload(effectDefinition.target, `${path}.target`));
@@ -158,17 +190,37 @@ const validateEffectPayload = (
     issues.push(issue("error", "invalid_effect_amount", "Effect amount must be a non-negative finite number.", `${path}.amount`));
   }
 
-  if (effectDefinition.type === "draw" && !Number.isInteger(effectDefinition.amount)) {
+  if (effectDefinition.type === "draw" && ("amount" in effectDefinition) && !Number.isInteger(effectDefinition.amount)) {
     issues.push(issue("error", "invalid_effect_amount", "Draw effect amount must be an integer.", `${path}.amount`));
   }
 
   if (effectDefinition.type === "applyStatus") {
+    if (!("statusId" in effectDefinition)) {
+      issues.push(issue("error", "missing_effect_status", "Status effect is missing a status id.", `${path}.statusId`));
+    }
+
     if (effectDefinition.statusId !== burnStatusDefinition.id) {
       issues.push(issue("error", "unknown_effect_status", `Effect references unknown status '${effectDefinition.statusId}'.`, `${path}.statusId`));
     }
 
+    if (!("stacks" in effectDefinition)) {
+      issues.push(issue("error", "missing_effect_stacks", "Status effect is missing stacks.", `${path}.stacks`));
+    }
+
     if (!Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0) {
       issues.push(issue("error", "invalid_effect_stacks", "Status effect stacks must be a positive integer.", `${path}.stacks`));
+    }
+  }
+
+  if (effectDefinition.type === "setStoryFlag") {
+    if (typeof effectDefinition.flagId !== "string" || effectDefinition.flagId.length === 0) {
+      issues.push(issue("error", "invalid_story_flag_effect", "Story flag effect flagId must be a non-empty string.", `${path}.flagId`));
+    }
+  }
+
+  if (effectDefinition.type === "petReact") {
+    if (typeof effectDefinition.reaction !== "string" || effectDefinition.reaction.length === 0) {
+      issues.push(issue("error", "invalid_pet_reaction_effect", "Pet reaction effect reaction must be a non-empty string.", `${path}.reaction`));
     }
   }
 
@@ -181,7 +233,6 @@ const validatePetModifierRule = (
   path: string
 ): ValidationIssue[] => {
   const issues: ValidationIssue[] = [];
-  const knownCardTypes = ["attack", "skill", "power", "pet-command"] as const satisfies readonly CardType[];
 
   if (typeof rule !== "object" || rule === null) {
     issues.push(
@@ -242,7 +293,7 @@ const validatePetModifierRule = (
 
       if (
         "cardType" in rule.selector &&
-        !knownCardTypes.includes(rule.selector.cardType as CardType)
+        !knownPetModifierSelectorCardTypes.includes(rule.selector.cardType as typeof knownPetModifierSelectorCardTypes[number])
       ) {
         issues.push(
           issue(

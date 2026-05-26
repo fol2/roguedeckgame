@@ -42,7 +42,7 @@ describe("Combat view model", () => {
     }));
     expect(card?.keywordExplanations.length).toBeGreaterThan(0);
     expect(card?.detail.lines).toContain("Keywords:");
-    expect(viewModel.drawPileCount + viewModel.discardPileCount + viewModel.hand.length).toBeGreaterThan(0);
+    expect(viewModel.drawPile.count + viewModel.discardPile.count + viewModel.hand.length).toBeGreaterThan(0);
   });
 
   it("owns pet and card tooltip copy in the combat view model", () => {
@@ -96,7 +96,7 @@ describe("Combat view model", () => {
       expect.stringContaining("Block:")
     ]));
     expect(viewModel.drawPile.tooltip.body).toContain("Full pile inspection is deferred");
-    expect(viewModel.discardPile.detail.lines).toContain(`Cards: ${viewModel.discardPileCount}`);
+    expect(viewModel.discardPile.detail.lines).toContain(`Cards: ${viewModel.discardPile.count}`);
     expect(viewModel.monsters[0]?.detail.lines).toEqual(expect.arrayContaining([
       expect.stringContaining("HP:")
     ]));

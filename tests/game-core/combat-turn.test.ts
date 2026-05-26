@@ -6,13 +6,29 @@ describe("combat turn flow", () => {
   it("ends the player turn by discarding the hand and entering enemy turn", () => {
     const state = createHandTunedCombatFixture();
     const result = endPlayerTurn(state);
+    const cardByInstanceId = new Map(state.cardInstances.map((cardInstance) => [cardInstance.id, cardInstance]));
+    const expectedMoveEvents = state.hand.map((cardInstanceId) => ({
+      type: "CardMoved" as const,
+      cardInstanceId,
+      cardId: cardByInstanceId.get(cardInstanceId)!.cardId,
+      from: "hand" as const,
+      to: "discard" as const
+    }));
+    const expectedEvents = [
+      ...expectedMoveEvents,
+      {
+        type: "TurnEnded" as const,
+        turnNumber: state.turnNumber,
+        actorId: state.player.id
+      }
+    ];
 
     expect(result.ok).toBe(true);
     expect(result.state.phase).toBe("enemy_turn");
     expect(result.state.hand).toEqual([]);
     expect(result.state.discardPile).toEqual(state.hand);
-    expect(result.events.at(-1)?.type).toBe("TurnEnded");
-    expect(result.events.filter((event) => event.type === "CardMoved")).toHaveLength(state.hand.length);
+    expect(result.events).toEqual(expectedEvents);
+    expect(result.state.events.slice(-expectedEvents.length)).toEqual(expectedEvents);
   });
 
   it("rejects ending the player turn outside the player turn", () => {
