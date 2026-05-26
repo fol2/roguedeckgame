@@ -16,6 +16,8 @@ import type { MonsterDefinition } from "../model/monster";
 import type { PetInstance, RunPetState } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
+import { cardNeedsActionTarget, targetNeedsActionTarget } from "./card-actions";
+import { moveCardBetweenPiles } from "./card-piles";
 import { drawCards } from "./draw";
 import { resolveCardEffects, resolveEffects } from "./effects";
 import { checkCombatOutcome } from "./outcome";
@@ -163,14 +165,6 @@ const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatS
   ...state,
   events: [...state.events, ...events]
 });
-
-const targetNeedsActionTarget = (target: CombatantTarget): boolean =>
-  target.type === "target" && target.combatantId === undefined;
-
-const cardNeedsActionTarget = (card: CardDefinition): boolean =>
-  card.effects.some((effectDefinition) =>
-    "target" in effectDefinition && targetNeedsActionTarget(effectDefinition.target)
-  );
 
 const validateCombatantTarget = (
   state: CombatState,
@@ -572,22 +566,17 @@ export const playCard = (
     );
   }
 
-  const movedCard: GameEvent = {
-    type: "CardMoved",
+  const moveResult = moveCardBetweenPiles(triggerResult.state, {
     cardInstanceId: cardInstance.id,
-    cardId: cardInstance.cardId,
     from: "hand",
     to: "discard"
-  };
-  nextState = appendEvents(
-    {
-      ...triggerResult.state,
-      hand: triggerResult.state.hand.filter((cardInstanceId) => cardInstanceId !== cardInstance.id),
-      discardPile: [...triggerResult.state.discardPile, cardInstance.id]
-    },
-    [movedCard]
-  );
-  events.push(...effectResult.events, ...triggerResult.events, movedCard);
+  });
+  if (!moveResult.ok) {
+    return reject(state, moveResult.error);
+  }
+
+  nextState = moveResult.state;
+  events.push(...effectResult.events, ...triggerResult.events, moveResult.event);
 
   return { ok: true, state: nextState, events, errors: [] };
 };
@@ -597,25 +586,22 @@ export const endPlayerTurn = (state: CombatState): GameActionResult<CombatState>
     return reject(state, error("invalid_phase", "Only the player turn can be ended by this action.", "phase"));
   }
 
-  const cardByInstanceId = new Map(state.cardInstances.map((cardInstance) => [cardInstance.id, cardInstance]));
-  const missingCardInstanceId = state.hand.find((cardInstanceId) => !cardByInstanceId.has(cardInstanceId));
-  if (missingCardInstanceId) {
-    return reject(
-      state,
-      error("missing_card_instance", `Card instance '${missingCardInstanceId}' does not exist.`, "hand")
-    );
-  }
-
-  const moveEvents = state.hand.map<GameEvent>((cardInstanceId) => {
-    const cardInstance = cardByInstanceId.get(cardInstanceId)!;
-    return {
-      type: "CardMoved",
+  let movedState = state;
+  const moveEvents: GameEvent[] = [];
+  for (const cardInstanceId of state.hand) {
+    const moveResult = moveCardBetweenPiles(movedState, {
       cardInstanceId,
-      cardId: cardInstance.cardId,
       from: "hand",
       to: "discard"
-    };
-  });
+    });
+    if (!moveResult.ok) {
+      return reject(state, moveResult.error);
+    }
+
+    movedState = moveResult.state;
+    moveEvents.push(moveResult.event);
+  }
+
   const turnEnded: GameEvent = {
     type: "TurnEnded",
     turnNumber: state.turnNumber,
@@ -624,12 +610,10 @@ export const endPlayerTurn = (state: CombatState): GameActionResult<CombatState>
   const events = [...moveEvents, turnEnded];
   const nextState = appendEvents(
     {
-      ...state,
+      ...movedState,
       phase: "enemy_turn",
-      hand: [],
-      discardPile: [...state.discardPile, ...state.hand]
     },
-    events
+    [turnEnded]
   );
 
   return { ok: true, state: nextState, events, errors: [] };

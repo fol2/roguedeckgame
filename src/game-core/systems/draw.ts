@@ -2,10 +2,8 @@ import type { CardInstanceId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatState } from "../model/combat";
 import type { GameEvent } from "../model/event";
+import { moveCardBetweenPiles } from "./card-piles";
 import type { Rng } from "./rng";
-
-const findCardInstance = (state: CombatState, cardInstanceId: CardInstanceId) =>
-  state.cardInstances.find((cardInstance) => cardInstance.id === cardInstanceId);
 
 const reject = (
   state: CombatState,
@@ -30,44 +28,55 @@ export const drawCards = (
 
   let drawPile = [...state.drawPile];
   let discardPile = [...state.discardPile];
-  const hand = [...state.hand];
+  let nextState: CombatState = state;
   const events: GameEvent[] = [];
 
   for (let index = 0; index < count; index += 1) {
     if (drawPile.length === 0 && discardPile.length > 0) {
       drawPile = rng.shuffle(discardPile);
-      events.push({ type: "DeckShuffled", from: "discard", to: "draw", count: drawPile.length });
+      const shuffledEvent: GameEvent = { type: "DeckShuffled", from: "discard", to: "draw", count: drawPile.length };
+      events.push(shuffledEvent);
+      nextState = {
+        ...nextState,
+        events: [...nextState.events, shuffledEvent]
+      };
       discardPile = [];
     }
 
-    const cardInstanceId = drawPile.shift();
+    const cardInstanceId = drawPile[0];
     if (!cardInstanceId) {
       break;
     }
 
-    const cardInstance = findCardInstance(state, cardInstanceId);
-    if (!cardInstance) {
-      return reject(state, "missing_card_instance", `Card instance '${cardInstanceId}' does not exist.`, "drawPile");
-    }
-
-    hand.push(cardInstanceId);
-    events.push({
-      type: "CardMoved",
+    nextState = {
+      ...nextState,
+      drawPile,
+      discardPile
+    };
+    const moveResult = moveCardBetweenPiles(nextState, {
       cardInstanceId,
-      cardId: cardInstance.cardId,
       from: "draw",
       to: "hand"
     });
-    events.push({ type: "CardDrawn", cardInstanceId, cardId: cardInstance.cardId });
-  }
+    if (!moveResult.ok) {
+      return reject(state, moveResult.error.code, moveResult.error.message, moveResult.error.path);
+    }
 
-  const nextState: CombatState = {
-    ...state,
-    drawPile,
-    hand,
-    discardPile,
-    events: [...state.events, ...events]
-  };
+    nextState = moveResult.state;
+    drawPile = [...nextState.drawPile];
+    discardPile = [...nextState.discardPile];
+    events.push(moveResult.event);
+    const drawnEvent: GameEvent = {
+      type: "CardDrawn",
+      cardInstanceId,
+      cardId: moveResult.event.cardId
+    };
+    nextState = {
+      ...nextState,
+      events: [...nextState.events, drawnEvent]
+    };
+    events.push(drawnEvent);
+  }
 
   return { ok: true, state: nextState, events, errors: [] };
 };

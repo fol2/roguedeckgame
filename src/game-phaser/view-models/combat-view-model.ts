@@ -16,10 +16,17 @@ import {
   type RunNodeType,
   type StatusId
 } from "../../game-core";
+import {
+  getCardActionProfile,
+  type CardPlayMode,
+  type CardTargetKind
+} from "../../game-core";
 import type { CardDefinition, CardType } from "../../game-core/model/card";
-import type { CombatantTarget, EffectDefinition } from "../../game-core/model/effect";
+import type { EffectDefinition } from "../../game-core/model/effect";
 import type { MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
+
+export type { CardPlayMode, CardTargetKind } from "../../game-core";
 
 export type CombatSandboxState = {
   readonly run: RunState;
@@ -27,17 +34,6 @@ export type CombatSandboxState = {
   readonly combat: CombatState;
   readonly lastEvents: readonly GameEvent[];
 };
-
-export type CardTargetKind =
-  | "none"
-  | "self"
-  | "enemy"
-  | "allEnemies"
-  | "pet"
-  | "petAndEnemy"
-  | "petAndSelf";
-
-export type CardPlayMode = "immediate" | "selectEnemy" | "selectPet" | "unsupported";
 
 export type CombatCardViewModel = {
   readonly cardInstanceId: CardInstanceId;
@@ -198,21 +194,6 @@ export const COMBAT_UI_CAPS = {
 const findCard = (registry: GameContentRegistry, cardId: CardId) =>
   registry.cards.find((card) => card.id === cardId);
 
-const targetNeedsActionTarget = (target: CombatantTarget): boolean =>
-  target.type === "target" && target.combatantId === undefined;
-
-const effectHasActionTarget = (effectDefinition: EffectDefinition): boolean =>
-  "target" in effectDefinition && targetNeedsActionTarget(effectDefinition.target);
-
-const effectTargetsSelf = (effectDefinition: EffectDefinition): boolean =>
-  "target" in effectDefinition && effectDefinition.target.type === "self";
-
-const effectTargetsAllEnemies = (effectDefinition: EffectDefinition): boolean =>
-  "target" in effectDefinition && effectDefinition.target.type === "allEnemies";
-
-const effectHasPetTarget = (effectDefinition: EffectDefinition): boolean =>
-  "petTarget" in effectDefinition;
-
 const cardHasRequiredActivePet = (
   state: CombatState,
   cardDefinition: CardDefinition
@@ -228,52 +209,6 @@ const cardHasRequiredActivePet = (
 
 const getValidEnemyTargetIds = (state: CombatState): readonly CombatantId[] =>
   state.monsters.filter((monster) => monster.alive).map((monster) => monster.id);
-
-const getTargetKind = (cardDefinition: CardDefinition): CardTargetKind => {
-  const requiresManualTarget = cardDefinition.effects.some(effectHasActionTarget);
-  const hasPetTarget = cardDefinition.effects.some(effectHasPetTarget);
-  const targetsSelf = cardDefinition.effects.some(effectTargetsSelf);
-  const targetsAllEnemies = cardDefinition.effects.some(effectTargetsAllEnemies);
-  const isPetCommand = cardDefinition.type === "pet-command";
-
-  if (requiresManualTarget && isPetCommand) {
-    return "petAndEnemy";
-  }
-
-  if (requiresManualTarget) {
-    return "enemy";
-  }
-
-  if (targetsSelf && isPetCommand) {
-    return "petAndSelf";
-  }
-
-  if (hasPetTarget || isPetCommand) {
-    return "pet";
-  }
-
-  if (targetsAllEnemies) {
-    return "allEnemies";
-  }
-
-  if (targetsSelf) {
-    return "self";
-  }
-
-  return "none";
-};
-
-const getPlayMode = (targetKind: CardTargetKind): CardPlayMode => {
-  if (targetKind === "enemy" || targetKind === "petAndEnemy") {
-    return "selectEnemy";
-  }
-
-  if (targetKind === "none" || targetKind === "self" || targetKind === "pet" || targetKind === "petAndSelf" || targetKind === "allEnemies") {
-    return "immediate";
-  }
-
-  return "unsupported";
-};
 
 const getCommandPetSlotIndex = (
   state: CombatState,
@@ -671,11 +606,12 @@ export const buildCombatViewModel = (
       const cardInstance = cardInstancesById.get(cardInstanceId);
       const cardDefinition = cardInstance ? findCard(registry, cardInstance.cardId) : undefined;
       const cost = cardDefinition?.cost ?? 0;
-      const targetKind = cardDefinition ? getTargetKind(cardDefinition) : "none";
+      const actionProfile = cardDefinition ? getCardActionProfile(cardDefinition) : undefined;
+      const targetKind = actionProfile?.targetKind ?? "none";
       const unplayableReason = cardDefinition
         ? getUnplayableReason(state.combat, cardDefinition, cost, targetKind)
         : "Missing card definition.";
-      const requiresManualTarget = targetKind === "enemy" || targetKind === "petAndEnemy";
+      const requiresManualTarget = actionProfile?.requiresManualTarget ?? false;
       const tags = cardDefinition?.tags ?? [];
       const type = cardDefinition?.type ?? "unknown";
       const keywordExplanations = getCardKeywordExplanations(tags, type);
@@ -687,7 +623,7 @@ export const buildCombatViewModel = (
         ...(keywordExplanations.length > 0
           ? keywordExplanations.map((keyword) => `${keyword.keyword}: ${keyword.explanation}`)
           : ["No keyword explanations available."]),
-        `Play mode: ${getPlayMode(targetKind)}`,
+        `Play mode: ${actionProfile?.playMode ?? "immediate"}`,
         `Valid targets: ${requiresManualTarget ? getValidEnemyTargetIds(state.combat).join(", ") || "none" : "none"}`,
         cardDefinition?.type === "pet-command"
           ? "Pet-command: orange line marks the command relationship."
@@ -716,7 +652,7 @@ export const buildCombatViewModel = (
         },
         commandPetSlotIndex: cardDefinition ? getCommandPetSlotIndex(state.combat, cardDefinition) : undefined,
         targetKind,
-        playMode: getPlayMode(targetKind),
+        playMode: actionProfile?.playMode ?? "immediate",
         requiresManualTarget,
         validTargetIds: requiresManualTarget ? getValidEnemyTargetIds(state.combat) : []
       };

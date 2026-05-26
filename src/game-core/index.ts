@@ -18,6 +18,8 @@ export * from "./model/story";
 export * from "./data/registry";
 export * from "./data/balance/act1-normal";
 export * from "./data/encounters/forest-encounters";
+export * from "./systems/card-actions";
+export * from "./systems/card-piles";
 export * from "./systems/combat";
 export * from "./systems/draw";
 export * from "./systems/effects";
