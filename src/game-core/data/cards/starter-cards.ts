@@ -1,18 +1,19 @@
 import { cardId } from "../../ids";
+import { act1NormalBalance } from "../balance/act1-normal";
 import type { CardDefinition } from "../../model/card";
 
 export const strike: CardDefinition = {
   id: cardId("strike"),
   name: "Strike",
-  description: "Deal 6 damage.",
+  description: `Deal ${act1NormalBalance.cards.strikeDamage} damage.`,
   type: "attack",
-  cost: 1,
+  cost: act1NormalBalance.cards.strikeCost,
   tags: ["attack"],
   rarity: "starter",
   effects: [
     {
       type: "damage",
-      amount: 6,
+      amount: act1NormalBalance.cards.strikeDamage,
       target: { type: "target" }
     }
   ]
@@ -21,15 +22,15 @@ export const strike: CardDefinition = {
 export const defend: CardDefinition = {
   id: cardId("defend"),
   name: "Defend",
-  description: "Gain 5 block.",
+  description: `Gain ${act1NormalBalance.cards.defendBlock} block.`,
   type: "skill",
-  cost: 1,
+  cost: act1NormalBalance.cards.defendCost,
   tags: ["block"],
   rarity: "starter",
   effects: [
     {
       type: "block",
-      amount: 5,
+      amount: act1NormalBalance.cards.defendBlock,
       target: { type: "self" }
     }
   ]
@@ -38,15 +39,15 @@ export const defend: CardDefinition = {
 export const focus: CardDefinition = {
   id: cardId("focus"),
   name: "Focus",
-  description: "Draw 1 card.",
+  description: `Draw ${act1NormalBalance.cards.focusDraw} card.`,
   type: "skill",
-  cost: 0,
+  cost: act1NormalBalance.cards.focusCost,
   tags: ["draw"],
   rarity: "starter",
   effects: [
     {
       type: "draw",
-      amount: 1
+      amount: act1NormalBalance.cards.focusDraw
     }
   ]
 };

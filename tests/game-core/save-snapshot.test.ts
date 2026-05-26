@@ -172,6 +172,47 @@ describe("save snapshots", () => {
     }).errors[0].code).toBe("invalid_save_active_run");
   });
 
+  it("returns ok false when saved persistent run HP is outside valid bounds", () => {
+    const snapshot = createSaveSnapshotFixture();
+
+    expect(validateSaveSnapshot({
+      ...snapshot,
+      activeRun: { ...snapshot.activeRun!, playerHp: -1 }
+    }).errors[0]).toMatchObject({
+      code: "invalid_save_active_run",
+      path: "activeRun.playerHp"
+    });
+
+    expect(validateSaveSnapshot({
+      ...snapshot,
+      activeRun: { ...snapshot.activeRun!, playerHp: 71, playerMaxHp: 70 }
+    }).errors[0]).toMatchObject({
+      code: "invalid_save_active_run",
+      path: "activeRun.playerHp"
+    });
+
+    expect(validateSaveSnapshot({
+      ...snapshot,
+      activeRun: { ...snapshot.activeRun!, status: "lost", playerHp: 1 }
+    }).errors[0]).toMatchObject({
+      code: "invalid_save_active_run",
+      path: "activeRun.playerHp"
+    });
+  });
+
+  it("backfills legacy v1 active runs that predate persistent run HP", () => {
+    const snapshot = clone(createSaveSnapshotFixture());
+    const legacyRun = snapshot.activeRun as unknown as Record<string, unknown>;
+    delete legacyRun.playerHp;
+    delete legacyRun.playerMaxHp;
+
+    const result = validateSaveSnapshot(snapshot);
+
+    expect(result.ok).toBe(true);
+    expect(result.state.activeRun?.playerHp).toBe(starterRegistry.players[0].maxHp);
+    expect(result.state.activeRun?.playerMaxHp).toBe(starterRegistry.players[0].maxHp);
+  });
+
   it("returns ok false for saved pet-upgrade reward options that do not match saved pets", () => {
     const snapshot = createSaveSnapshotFixture();
     const activeMap = createActiveMapFixture();

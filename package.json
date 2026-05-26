@@ -11,6 +11,7 @@
     "sim:smoke": "node scripts/run-cli-entry.mjs simulate-runs --mode smoke",
     "sim:fuzz": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz",
     "sim:analyze": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz --analyze",
+    "sim:balance": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz --analyze --strict-health --strict-balance --seed balance-normal --invalid-action-rate 0",
     "sim:exhaustive-small": "node scripts/run-cli-entry.mjs simulate-runs --mode exhaustive-small",
     "sim:replay": "node scripts/run-cli-entry.mjs simulate-runs --mode replay",
     "preview": "vite preview",

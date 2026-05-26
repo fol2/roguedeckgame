@@ -9,6 +9,7 @@ import type {
 } from "../model/save";
 import { SAVE_SCHEMA_VERSION } from "../model/save";
 import type { RunState } from "../model/run";
+import { act1NormalBalance } from "../data/balance/act1-normal";
 
 export type CreateSaveSnapshotInput = {
   readonly profileId: string;
@@ -82,6 +83,45 @@ const isJsonStringifiable = (value: unknown, seen = new WeakSet<object>()): bool
   }
 
   return Object.values(value).every((item) => item === undefined || isJsonStringifiable(item, seen));
+};
+
+const normaliseLegacyActiveRunHp = (run: unknown): unknown => {
+  if (!isRecord(run)) {
+    return run;
+  }
+
+  const defaultMaxHp = act1NormalBalance.player.maxHp;
+  const explicitMaxHp = typeof run.playerMaxHp === "number" && Number.isFinite(run.playerMaxHp)
+    ? run.playerMaxHp
+    : undefined;
+  const explicitHp = typeof run.playerHp === "number" && Number.isFinite(run.playerHp)
+    ? run.playerHp
+    : undefined;
+  const playerMaxHp = "playerMaxHp" in run && run.playerMaxHp !== undefined
+    ? run.playerMaxHp
+    : Math.max(defaultMaxHp, explicitHp ?? defaultMaxHp);
+  const playerHp = "playerHp" in run && run.playerHp !== undefined
+    ? run.playerHp
+    : run.status === "lost"
+      ? 0
+      : explicitMaxHp ?? defaultMaxHp;
+
+  return {
+    ...run,
+    playerHp,
+    playerMaxHp
+  };
+};
+
+const normaliseLegacySaveSnapshot = (snapshot: unknown): unknown => {
+  if (!isRecord(snapshot) || !("activeRun" in snapshot) || snapshot.activeRun === undefined) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    activeRun: normaliseLegacyActiveRunHp(snapshot.activeRun)
+  };
 };
 
 const validateRewardOption = (option: unknown, path: string): GameActionError | undefined => {
@@ -334,6 +374,26 @@ const validateRunState = (run: unknown): GameActionError | undefined => {
 
   if (typeof run.playerClassId !== "string") {
     return error("invalid_save_active_run", "Save activeRun.playerClassId must be a string.", "activeRun.playerClassId");
+  }
+
+  if (typeof run.playerMaxHp !== "number" || !Number.isFinite(run.playerMaxHp) || run.playerMaxHp < 0) {
+    return error("invalid_save_active_run", "Save activeRun.playerMaxHp must be a non-negative finite number.", "activeRun.playerMaxHp");
+  }
+
+  if (typeof run.playerHp !== "number" || !Number.isFinite(run.playerHp) || run.playerHp < 0) {
+    return error("invalid_save_active_run", "Save activeRun.playerHp must be a non-negative finite number.", "activeRun.playerHp");
+  }
+
+  if (run.playerHp > run.playerMaxHp) {
+    return error("invalid_save_active_run", "Save activeRun.playerHp must not exceed playerMaxHp.", "activeRun.playerHp");
+  }
+
+  if (run.status === "lost" && run.playerHp > 0) {
+    return error("invalid_save_active_run", "Save lost activeRun must not retain positive playerHp.", "activeRun.playerHp");
+  }
+
+  if (run.status === "completed" && run.playerHp <= 0) {
+    return error("invalid_save_active_run", "Save completed activeRun must retain positive playerHp.", "activeRun.playerHp");
   }
 
   if (!isStringArray(run.activePetInstanceIds)) {
@@ -592,6 +652,8 @@ const normaliseRunState = (run: RunState): RunState => {
     playerClassId: run.playerClassId,
     activePetInstanceIds: [...run.activePetInstanceIds],
     status: run.status,
+    playerHp: run.playerHp,
+    playerMaxHp: run.playerMaxHp,
     map,
     pendingRewardOffer,
     deckCardIds: [...run.deckCardIds],
@@ -603,7 +665,7 @@ const normaliseRunState = (run: RunState): RunState => {
 export const validateSaveSnapshot = (
   snapshot: unknown
 ): GameActionResult<SaveSnapshot> => {
-  const state = isRecord(snapshot) ? snapshot as SaveSnapshot : invalidSnapshot();
+  const state = isRecord(snapshot) ? normaliseLegacySaveSnapshot(snapshot) as SaveSnapshot : invalidSnapshot();
 
   if (!isRecord(snapshot)) {
     return reject(state, error("invalid_save_snapshot", "Save snapshot must be an object.", "snapshot"));
@@ -620,30 +682,35 @@ export const validateSaveSnapshot = (
     );
   }
 
-  if (typeof snapshot.createdAt !== "string" || snapshot.createdAt.length === 0) {
+  const snapshotForValidation = normaliseLegacySaveSnapshot(snapshot);
+  if (!isRecord(snapshotForValidation)) {
+    return reject(state, error("invalid_save_snapshot", "Save snapshot must be an object.", "snapshot"));
+  }
+
+  if (typeof snapshotForValidation.createdAt !== "string" || snapshotForValidation.createdAt.length === 0) {
     return reject(state, error("invalid_save_snapshot", "Save createdAt must be a non-empty string.", "createdAt"));
   }
 
-  if (typeof snapshot.updatedAt !== "string" || snapshot.updatedAt.length === 0) {
+  if (typeof snapshotForValidation.updatedAt !== "string" || snapshotForValidation.updatedAt.length === 0) {
     return reject(state, error("invalid_save_snapshot", "Save updatedAt must be a non-empty string.", "updatedAt"));
   }
 
-  if (typeof snapshot.profileId !== "string" || snapshot.profileId.length === 0) {
+  if (typeof snapshotForValidation.profileId !== "string" || snapshotForValidation.profileId.length === 0) {
     return reject(state, error("invalid_save_snapshot", "Save profileId must be a non-empty string.", "profileId"));
   }
 
-  if (!Array.isArray(snapshot.petInstances)) {
+  if (!Array.isArray(snapshotForValidation.petInstances)) {
     return reject(state, error("invalid_save_snapshot", "Save petInstances must be an array.", "petInstances"));
   }
 
-  for (let index = 0; index < snapshot.petInstances.length; index += 1) {
-    const petError = validatePetInstance(snapshot.petInstances[index], index);
+  for (let index = 0; index < snapshotForValidation.petInstances.length; index += 1) {
+    const petError = validatePetInstance(snapshotForValidation.petInstances[index], index);
     if (petError) {
       return reject(state, petError);
     }
   }
 
-  const savedPetInstances = snapshot.petInstances as readonly PetInstance[];
+  const savedPetInstances = snapshotForValidation.petInstances as readonly PetInstance[];
   const savedPetIds = savedPetInstances.map((petInstance) => petInstance.id);
   if (new Set(savedPetIds).size !== savedPetIds.length) {
     return reject(state, error("invalid_save_pet_instance", "Save pet instance ids must be unique.", "petInstances"));
@@ -651,17 +718,17 @@ export const validateSaveSnapshot = (
 
   const savedPetsById = new Map(savedPetInstances.map((petInstance) => [petInstance.id, petInstance]));
 
-  if (!isStringArray(snapshot.globalStoryFlags)) {
+  if (!isStringArray(snapshotForValidation.globalStoryFlags)) {
     return reject(state, error("invalid_save_snapshot", "Save globalStoryFlags must be an array.", "globalStoryFlags"));
   }
 
-  if ("activeRun" in snapshot && snapshot.activeRun !== undefined) {
-    const runError = validateRunState(snapshot.activeRun);
+  if ("activeRun" in snapshotForValidation && snapshotForValidation.activeRun !== undefined) {
+    const runError = validateRunState(snapshotForValidation.activeRun);
     if (runError) {
       return reject(state, runError);
     }
 
-    const activeRun = snapshot.activeRun as unknown as RunState;
+    const activeRun = snapshotForValidation.activeRun as unknown as RunState;
     if (activeRun.activePetInstanceIds.length === 0) {
       return reject(state, error("invalid_save_active_run", "Save activeRun must reference at least one active pet.", "activeRun.activePetInstanceIds"));
     }
@@ -709,7 +776,7 @@ export const validateSaveSnapshot = (
     }
   }
 
-  const validatedSnapshot = snapshot as unknown as SaveSnapshot;
+  const validatedSnapshot = snapshotForValidation as unknown as SaveSnapshot;
   const canonicalSnapshot: SaveSnapshot = {
     schemaVersion: SAVE_SCHEMA_VERSION,
     createdAt: validatedSnapshot.createdAt,

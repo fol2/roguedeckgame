@@ -15,6 +15,7 @@ import type { PetInstance } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import type { RunNodeState, RunNodeType } from "../model/run-map";
+import { act1NormalBalance } from "../data/balance/act1-normal";
 import { createCombat } from "./combat";
 import { claimReward, generateCombatRewardOffer, skipReward } from "./rewards";
 import { generateRunMap } from "./run-map";
@@ -91,6 +92,8 @@ const createRejectedRunState = (input: CreateRunInput): RunState => ({
   playerClassId: input.playerClassId,
   activePetInstanceIds: [...input.activePetInstanceIds],
   status: "not_started",
+  playerHp: 0,
+  playerMaxHp: 0,
   deckCardIds: [],
   runFlags: [],
   storyFlags: []
@@ -285,6 +288,8 @@ export const createRun = (input: CreateRunInput): GameActionResult<RunState> => 
     activePetInstanceIds: [...activePetInstanceIds],
     status: "map_select",
     map: mapResult.state,
+    playerHp: player.maxHp,
+    playerMaxHp: player.maxHp,
     deckCardIds: [...player.startingDeckCardIds],
     runFlags: [],
     storyFlags: []
@@ -295,7 +300,9 @@ export const createRun = (input: CreateRunInput): GameActionResult<RunState> => 
       runId: state.id,
       seed,
       playerClassId,
-      activePetInstanceIds: state.activePetInstanceIds
+      activePetInstanceIds: state.activePetInstanceIds,
+      playerHp: state.playerHp,
+      playerMaxHp: state.playerMaxHp
     },
     ...mapResult.events
   ];
@@ -449,20 +456,29 @@ export const completeRunCombatNode = (
     );
   }
 
+  const finalPlayerHp = combat.phase === "lost" ? 0 : combat.player.hp;
   const combatCompletedEvent: GameEvent = {
     type: "RunCombatCompleted",
     nodeId: node.id,
-    outcome: combat.phase
+    outcome: combat.phase,
+    playerHp: finalPlayerHp,
+    playerMaxHp: combat.player.maxHp
   };
 
   if (combat.phase === "lost") {
     return {
       ok: true,
-      state: { ...run, status: "lost", pendingRewardOffer: undefined },
+      state: { ...run, status: "lost", playerHp: finalPlayerHp, playerMaxHp: combat.player.maxHp, pendingRewardOffer: undefined },
       events: [combatCompletedEvent, { type: "RunEnded", outcome: "lost" }],
       errors: []
     };
   }
+
+  const runAfterCombat: RunState = {
+    ...run,
+    playerHp: combat.player.hp,
+    playerMaxHp: combat.player.maxHp
+  };
 
   const encounter = findEncounter(registry, node.encounterId);
   if (!encounter) {
@@ -480,7 +496,7 @@ export const completeRunCombatNode = (
   }
 
   if (node.type === "boss") {
-    const advanced = advanceFromActiveNode(run, node);
+    const advanced = advanceFromActiveNode(runAfterCombat, node);
     return {
       ok: true,
       state: { ...advanced.run, status: "completed", pendingRewardOffer: undefined },
@@ -492,7 +508,7 @@ export const completeRunCombatNode = (
   const rewardSeed = input.rewardSeed ?? `${String(run.seed)}:${node.id}:${encounter?.rewardSeedSalt ?? "reward"}`;
   const rewardResult = generateCombatRewardOffer({
     combat,
-    run,
+    run: runAfterCombat,
     registry,
     petInstances,
     seed: rewardSeed
@@ -502,7 +518,7 @@ export const completeRunCombatNode = (
   }
 
   const state: RunState = {
-    ...run,
+    ...runAfterCombat,
     status: "reward",
     pendingRewardOffer: rewardResult.state
   };
@@ -631,6 +647,27 @@ export const completeRunNonCombatNode = (
 
   if (!node || (node.type !== "event" && node.type !== "rest")) {
     return rejectRun(run, error("invalid_active_non_combat_node", "Run has no active event or rest node.", "run.map.nodes"));
+  }
+
+  if (node.type === "rest") {
+    const hpBefore = run.playerHp;
+    const hpAfter = Math.min(run.playerMaxHp, hpBefore + act1NormalBalance.player.restHealAmount);
+    const healAmount = hpAfter - hpBefore;
+    const healedRun = { ...run, playerHp: hpAfter };
+    const advanced = advanceFromActiveNode(healedRun, node);
+    const healEvents: readonly GameEvent[] = healAmount > 0
+      ? [
+          {
+            type: "RunPlayerHealed",
+            nodeId: node.id,
+            amount: healAmount,
+            hpBefore,
+            hpAfter,
+            maxHp: run.playerMaxHp
+          }
+        ]
+      : [];
+    return { ok: true, state: advanced.run, events: [...healEvents, ...advanced.events], errors: [] };
   }
 
   const advanced = advanceFromActiveNode(run, node);

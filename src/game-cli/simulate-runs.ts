@@ -17,6 +17,7 @@ import {
   type SimulationAggregateReport,
   type SimulationHealthIssue
 } from "../game-core/testing/analysis";
+import { act1NormalBalance } from "../game-core/data/balance/act1-normal";
 
 const modeLabel = (mode: SimulationResult["mode"]): string => mode === "exhaustive-small" ? "exhaustive-small" : mode;
 
@@ -50,7 +51,11 @@ const countSummary = (label: string, counts: Record<string, number>, limit = 6):
   console.log(`${label}: ${entries.map(([key, value]) => `${key}=${value}`).join(", ")}`);
 };
 
-const printAnalysis = (report: SimulationAggregateReport, healthIssues: readonly SimulationHealthIssue[]): void => {
+const printAnalysis = (
+  report: SimulationAggregateReport,
+  healthIssues: readonly SimulationHealthIssue[],
+  balanceTarget?: { readonly min: number; readonly max: number }
+): void => {
   console.log("Analysis:");
   console.log(`  Terminal: completed=${report.completedRuns}, lost=${report.lostRuns}, failed=${report.failedRuns}, other=${report.otherTerminalRuns}`);
   console.log(`  Rates: completion=${percent(report.completionRate)}, loss=${percent(report.lossRate)}, failure=${percent(report.failureRate)}`);
@@ -59,6 +64,10 @@ const printAnalysis = (report: SimulationAggregateReport, healthIssues: readonly
   console.log(`  Combat: started=${report.combatsStarted}, won=${report.combatsWon}, lost=${report.combatsLost}`);
   console.log(`  Rewards: offered=${report.rewardsOffered}, selected=${report.rewardsSelected}, skipped=${report.rewardsSkipped}, cards=${report.cardRewardsAdded}, petUpgrades=${report.petUpgradesUnlocked}`);
   console.log(`  Damage: toPlayer=${report.totalDamageToPlayer}, toMonsters=${report.totalDamageToMonsters}, blocked=${report.totalDamageBlocked}, playerBlock=${report.totalBlockGainedByPlayer}`);
+  console.log(`  HP: finalAvg=${decimal(report.averageFinalRunHp)}, completedAvg=${decimal(report.averageCompletedFinalRunHp)}, completedRange=${report.minCompletedFinalRunHp}-${report.maxCompletedFinalRunHp}`);
+  if (balanceTarget) {
+    console.log(`  Balance target: completion ${percent(balanceTarget.min)} - ${percent(balanceTarget.max)}`);
+  }
   countSummary("  Top card plays", report.cardPlaysByCardId);
   countSummary("  Top card rewards", report.cardRewardsByCardId);
   countSummary("  Pet upgrades", report.petUpgradesByUpgradeId);
@@ -77,15 +86,22 @@ const printAnalysis = (report: SimulationAggregateReport, healthIssues: readonly
 
 const main = () => {
   const options = parseSimulationCliOptions(process.argv.slice(2));
+  const runs = options.strictBalance && options.mode === "fuzz"
+    ? options.runs ?? act1NormalBalance.targets.normalSampleRuns
+    : options.runs;
+  const maxSteps = options.strictBalance && options.mode === "fuzz"
+    ? options.maxSteps ?? act1NormalBalance.targets.normalMaxSteps
+    : options.maxSteps;
   const result =
     options.mode === "smoke"
-      ? runSmokeSimulation({ mode: "smoke", seed: options.seed, maxSteps: options.maxSteps })
+      ? runSmokeSimulation({ mode: "smoke", seed: options.seed, maxSteps })
       : options.mode === "fuzz"
         ? runFuzzSimulation({
             mode: "fuzz",
             seed: options.seed,
-            runs: options.runs,
-            maxSteps: options.maxSteps
+            runs,
+            maxSteps,
+            invalidActionRate: options.invalidActionRate
           })
         : options.mode === "exhaustive-small"
           ? runBoundedExhaustiveSimulation({
@@ -111,22 +127,30 @@ const main = () => {
   printResult(result);
 
   const report = options.analyze ? analyzeAgentTraces(result.traces) : undefined;
+  const balanceTarget = options.strictBalance
+    ? {
+        min: options.completionRateMin ?? act1NormalBalance.targets.normalCompletionRateMin,
+        max: options.completionRateMax ?? act1NormalBalance.targets.normalCompletionRateMax
+      }
+    : undefined;
   const healthIssues = report ? checkSimulationHealth(report, {
     requireCompletedRun: options.mode !== "replay",
-    requireInvalidRejections: options.mode === "fuzz",
-    warnIfNoLosses: options.mode === "fuzz" && (options.runs ?? 20) >= 20,
+    requireInvalidRejections: options.mode === "fuzz" && (options.invalidActionRate ?? 0.1) > 0,
+    warnIfNoLosses: options.mode === "fuzz" && (runs ?? 20) >= 20,
     warnIfNoRewards: options.mode !== "replay",
     warnIfNoPetUpgrades: options.mode !== "replay",
     warnIfNoPlayerDamage: options.mode !== "replay",
-    warnIfNoMonsterDamage: options.mode !== "replay"
+    warnIfNoMonsterDamage: options.mode !== "replay",
+    minCompletionRateError: balanceTarget?.min,
+    maxCompletionRateError: balanceTarget?.max
   }) : [];
 
   if (report) {
-    printAnalysis(report, healthIssues);
+    printAnalysis(report, healthIssues, balanceTarget);
   }
 
-  const hasStrictHealthError = options.strictHealth && healthIssues.some((issue) => issue.severity === "error");
-  process.exitCode = result.ok && !hasStrictHealthError ? 0 : 1;
+  const hasStrictError = (options.strictHealth || options.strictBalance) && healthIssues.some((issue) => issue.severity === "error");
+  process.exitCode = result.ok && !hasStrictError ? 0 : 1;
 };
 
 main();

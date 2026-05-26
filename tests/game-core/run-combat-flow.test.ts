@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   completeRunCombatNode,
+  completeRunNonCombatNode,
   encounterId,
   runNodeId,
   selectRunNode,
+  skipRunPendingReward,
   startCombatForRunNode,
   starterRegistry
 } from "../../src/game-core";
@@ -12,6 +14,73 @@ import { createEmberFoxInstanceFixture } from "../../src/game-core/testing/fixtu
 import { createStartedRunFixture } from "../../src/game-core/testing/run-fixtures";
 
 describe("run combat flow", () => {
+
+  it("persists player HP from one combat into the next combat", () => {
+    const firstNode = runNodeId("act1_forest_0_combat_a");
+    const selected = selectRunNode(createStartedRunFixture(), firstNode).state;
+    const woundedWin = createWonCombatFixture({
+      id: selected.id,
+      player: { ...createWonCombatFixture({ id: selected.id }).player, hp: 37 }
+    });
+
+    const completed = completeRunCombatNode({
+      run: selected,
+      combat: woundedWin,
+      registry: starterRegistry,
+      petInstances: [createEmberFoxInstanceFixture()],
+      rewardSeed: "persistent-hp-reward"
+    });
+    expect(completed.ok).toBe(true);
+    expect(completed.state.playerHp).toBe(37);
+
+    const skippedReward = skipRunPendingReward({
+      run: completed.state,
+      petInstances: [createEmberFoxInstanceFixture()]
+    });
+    expect(skippedReward.ok).toBe(true);
+    const nextRun = skippedReward.state.run;
+    const nextCombatNode = nextRun.map!.nodes.find((node) => node.status === "available" && node.type === "combat")!;
+    const nextSelected = selectRunNode(nextRun, nextCombatNode.id);
+    const nextCombat = startCombatForRunNode({
+      run: nextSelected.state,
+      registry: starterRegistry,
+      petInstances: [createEmberFoxInstanceFixture()],
+      seed: "persistent-hp-next-combat"
+    });
+
+    expect(nextCombat.ok).toBe(true);
+    expect(nextCombat.state.player.hp).toBe(37);
+    expect(nextCombat.state.player.maxHp).toBe(nextRun.playerMaxHp);
+  });
+
+  it("heals persistent run HP on rest nodes without exceeding max HP", () => {
+    const baseRun = createStartedRunFixture({ playerHp: 55, playerMaxHp: 70 });
+    const restNode = baseRun.map!.nodes.find((node) => node.type === "rest")!;
+    const run = {
+      ...baseRun,
+      status: "map_select" as const,
+      map: {
+        ...baseRun.map!,
+        currentNodeId: restNode.id,
+        nodes: baseRun.map!.nodes.map((node) =>
+          node.id === restNode.id ? { ...node, status: "active" as const } : node
+        )
+      }
+    };
+
+    const result = completeRunNonCombatNode(run);
+
+    expect(result.ok).toBe(true);
+    expect(result.state.playerHp).toBe(70);
+    expect(result.events).toContainEqual({
+      type: "RunPlayerHealed",
+      nodeId: restNode.id,
+      amount: 15,
+      hpBefore: 55,
+      hpAfter: 70,
+      maxHp: 70
+    });
+  });
   it("starts combat for the active encounter and emits the run event first", () => {
     const run = createStartedRunFixture();
     const node = run.map!.nodes.find((candidate) => candidate.status === "available" && candidate.type === "combat")!;
@@ -48,6 +117,31 @@ describe("run combat flow", () => {
     expect(result.ok).toBe(true);
     expect(result.state.status).toBe("lost");
     expect(result.events.map((event) => event.type)).toEqual(["RunCombatCompleted", "RunEnded"]);
+  });
+
+  it("normalises lost run HP to zero even when given an inconsistent lost combat fixture", () => {
+    const run = selectRunNode(
+      createStartedRunFixture(),
+      runNodeId("act1_forest_0_combat_a")
+    ).state;
+    const inconsistentLostCombat = createLostCombatFixture({
+      id: run.id,
+      player: { ...createLostCombatFixture({ id: run.id }).player, hp: 12, alive: false }
+    });
+    const result = completeRunCombatNode({
+      run,
+      combat: inconsistentLostCombat,
+      registry: starterRegistry,
+      petInstances: [createEmberFoxInstanceFixture()]
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.playerHp).toBe(0);
+    expect(result.events[0]).toMatchObject({
+      type: "RunCombatCompleted",
+      outcome: "lost",
+      playerHp: 0
+    });
   });
 
   it("creates a pending reward after won non-boss combat", () => {

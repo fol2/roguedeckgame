@@ -30,6 +30,13 @@ describe("run validation", () => {
 
     expect(result.ok).toBe(true);
     expect(result.state.deckCardIds).toEqual(starterRegistry.players[0].startingDeckCardIds);
+    expect(result.state.playerHp).toBe(starterRegistry.players[0].maxHp);
+    expect(result.state.playerMaxHp).toBe(starterRegistry.players[0].maxHp);
+    expect(result.events[0]).toMatchObject({
+      type: "RunCreated",
+      playerHp: starterRegistry.players[0].maxHp,
+      playerMaxHp: starterRegistry.players[0].maxHp
+    });
     expect(result.events.map((event) => event.type)).toEqual([
       "RunCreated",
       "RunMapGenerated",
