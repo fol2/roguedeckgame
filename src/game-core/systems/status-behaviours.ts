@@ -9,25 +9,6 @@ export const getStatusDefinitions = (
   registry?: Pick<GameContentRegistry, "statuses">
 ): readonly StatusDefinition[] => registry?.statuses ?? defaultStatusDefinitions;
 
-export const hasSupportedRuntimeStatusBehaviour = (status: StatusDefinition): boolean =>
-  status.behaviour !== undefined &&
-  supportedStatusBehaviourTypes.includes(status.behaviour.type);
-
-export const getRuntimeSupportedStatusIds = (
-  registry?: Pick<GameContentRegistry, "statuses">
-): ReadonlySet<string> =>
-  new Set(
-    getStatusDefinitions(registry)
-      .filter(hasSupportedRuntimeStatusBehaviour)
-      .map((status) => status.id)
-  );
-
-export const findStatusDefinition = (
-  registry: Pick<GameContentRegistry, "statuses"> | undefined,
-  statusId: string
-): StatusDefinition | undefined =>
-  getStatusDefinitions(registry).find((status) => status.id === statusId);
-
 export const validateStatusBehaviourDefinition = (
   behaviour: unknown
 ): boolean => {
@@ -45,3 +26,23 @@ export const validateStatusBehaviourDefinition = (
     candidate.decrementStacksBy > 0 &&
     typeof candidate.expiresAtZero === "boolean";
 };
+
+export const hasSupportedRuntimeStatusBehaviour = (status: StatusDefinition): boolean =>
+  status.behaviour !== undefined &&
+  supportedStatusBehaviourTypes.includes(status.behaviour.type) &&
+  validateStatusBehaviourDefinition(status.behaviour);
+
+export const getRuntimeSupportedStatusIds = (
+  registry?: Pick<GameContentRegistry, "statuses">
+): ReadonlySet<string> =>
+  new Set(
+    getStatusDefinitions(registry)
+      .filter(hasSupportedRuntimeStatusBehaviour)
+      .map((status) => status.id)
+  );
+
+export const findStatusDefinition = (
+  registry: Pick<GameContentRegistry, "statuses"> | undefined,
+  statusId: string
+): StatusDefinition | undefined =>
+  getStatusDefinitions(registry).find((status) => status.id === statusId);
