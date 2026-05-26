@@ -4,7 +4,7 @@
 
 Implemented the Phase 1.5b engine-side simulation analysis package on top of the Phase 1.5 strict target-validation base. The change keeps the work in Node-testable `game-core` and CLI code, adds broader invalid-action generation, fixes the player-targeted card validation hole, and exposes simulation health metrics through `sim:analyze`.
 
-This report is written from the working implementation before the final review-loop update. The committed report cannot contain its own final Git SHA; the final handoff records `HEAD`, `origin/main`, and remote `main` equality after push.
+Implementation and validation evidence was captured from pushed implementation SHA `aeb4fe6db64c3545c34076207866c41d887f1d4e`. This report is the same-folder closure artefact for that implementation and its review-loop fix. A committed file cannot contain its own final commit SHA, so the final handoff and final auditor verification record `HEAD`, `origin/main`, and remote `main` equality after this report-only closure commit is pushed.
 
 ## Changed Scope
 
@@ -42,6 +42,29 @@ This report is written from the working implementation before the final review-l
 - CLI analysis output and strict-health behaviour added: done.
 - Core-only tests added without Phaser/browser requirements: done.
 - No UI/UX, Phaser scene, Playwright, browser monkey test, content, balance, or production dependency changes: done.
+
+## Git and Artefacts
+
+Pushed implementation SHA:
+
+```txt
+aeb4fe6db64c3545c34076207866c41d887f1d4e
+```
+
+Review ZIP artefacts:
+
+```txt
+D:\Coding\roguedeckgame-review-aeb4fe6db64c.zip
+D:\Coding\roguedeckgame-p15b-simulation-analysis-balance-guard-review.zip
+```
+
+Extracted validation copy:
+
+```txt
+C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-p15b-simulation-analysis-balance-guard-final\roguedeckgame-aeb4fe6db64c
+```
+
+The stable review ZIP path is refreshed after final report closure so reviewers and handoff can use a stable artefact name even though the generated SHA-specific ZIP name changes with a report-only commit.
 
 ## Validation Evidence
 
@@ -139,6 +162,20 @@ http://127.0.0.1:4186/assets/index-CiFIGUGT.css -> 200 text/css, length 575
 http://127.0.0.1:4186/assets/index-qoXW_d1N.js -> 200 text/javascript, length 1476955
 ```
 
+Extracted review ZIP production preview was also served with:
+
+```txt
+npx vite preview --host 127.0.0.1 --port 4187
+```
+
+Extracted HTTP smoke results:
+
+```txt
+http://127.0.0.1:4187/ -> 200 text/html, length 415
+http://127.0.0.1:4187/assets/index-CiFIGUGT.css -> 200 text/css, length 575
+http://127.0.0.1:4187/assets/index-qoXW_d1N.js -> 200 text/javascript, length 1476955
+```
+
 Localhost health smoke:
 
 ```txt
@@ -168,7 +205,10 @@ Analysis:
 
 ## Review Closure
 
-Independent code review and contract audit are pending after the implementation commit and push. This section will be updated with final reviewer outcomes before the goal is marked complete.
+- Independent code reviewer `019e63a8-901a-7b92-8c09-d43b535bf671` reported GREEN on pushed implementation SHA `aeb4fe6db64c3545c34076207866c41d887f1d4e`.
+- Independent contract auditor `019e63a8-aad6-7653-8149-d58ae64e82e5` reported RED only because this report still contained stale pending-review wording and did not yet record final artefact/review closure evidence.
+- This report update removes the stale pending wording and records the review ZIP, extracted validation copy, production-preview evidence, and reviewer outcomes.
+- A final independent code review and contract audit must be GREEN on the pushed report-closure state before the goal is marked complete.
 
 ## Non-Goals Confirmed
 
