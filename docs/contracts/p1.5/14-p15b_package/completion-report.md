@@ -54,17 +54,16 @@ aeb4fe6db64c3545c34076207866c41d887f1d4e
 Review ZIP artefacts:
 
 ```txt
-D:\Coding\roguedeckgame-review-aeb4fe6db64c.zip
 D:\Coding\roguedeckgame-p15b-simulation-analysis-balance-guard-review.zip
 ```
 
 Extracted validation copy:
 
 ```txt
-C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-p15b-simulation-analysis-balance-guard-final\roguedeckgame-aeb4fe6db64c
+C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-p15b-simulation-analysis-balance-guard-final
 ```
 
-The stable review ZIP path is refreshed after final report closure so reviewers and handoff can use a stable artefact name even though the generated SHA-specific ZIP name changes with a report-only commit.
+The stable review ZIP path and extracted validation copy are refreshed after final report closure so reviewers and handoff can use stable artefact names even though the generated SHA-specific ZIP name changes with report-only commits.
 
 ## Validation Evidence
 
@@ -166,6 +165,7 @@ Extracted review ZIP production preview was also served with:
 
 ```txt
 npx vite preview --host 127.0.0.1 --port 4187
+npx vite preview --host 127.0.0.1 --port 4188
 ```
 
 Extracted HTTP smoke results:
@@ -174,6 +174,9 @@ Extracted HTTP smoke results:
 http://127.0.0.1:4187/ -> 200 text/html, length 415
 http://127.0.0.1:4187/assets/index-CiFIGUGT.css -> 200 text/css, length 575
 http://127.0.0.1:4187/assets/index-qoXW_d1N.js -> 200 text/javascript, length 1476955
+http://127.0.0.1:4188/ -> 200 text/html, length 415
+http://127.0.0.1:4188/assets/index-CiFIGUGT.css -> 200 text/css, length 575
+http://127.0.0.1:4188/assets/index-qoXW_d1N.js -> 200 text/javascript, length 1476955
 ```
 
 Localhost health smoke:
