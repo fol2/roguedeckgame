@@ -125,7 +125,72 @@ http://127.0.0.1:4183/assets/index-TrO_L5KH.js
 HTTP 200, text/javascript, length 1476841
 ```
 
-The final review ZIP and extracted production preview are generated after the completion report is committed, so the exact final ZIP path, final commit SHA, and extracted-preview HTTP checks are recorded in the final hand-off.
+## Review ZIP Evidence
+
+Committed implementation snapshot:
+
+```txt
+32e6320eb78ef20ef2e44347ac13ca3fe48c239f
+```
+
+Final review ZIP copy:
+
+```txt
+D:\Coding\roguedeckgame-p15-hotfix-strict-target-validation-review.zip
+```
+
+ZIP creation result:
+
+```txt
+cmd /c "npm run zip:review"
+passed: latest generated review ZIP tested OK, then copied to D:\Coding\roguedeckgame-p15-hotfix-strict-target-validation-review.zip
+```
+
+Extracted ZIP path:
+
+```txt
+C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-p15-hotfix-strict-target-validation-final
+```
+
+Extracted ZIP validation:
+
+```txt
+cmd /c "npm ci"
+passed: 49 packages installed, 50 audited, 0 vulnerabilities
+
+cmd /c "npm run typecheck"
+passed
+
+cmd /c "npm test"
+passed: 56 test files, 428 tests
+
+cmd /c "npm run build"
+passed: dist/index.html, dist/assets/index-CiFIGUGT.css, dist/assets/index-TrO_L5KH.js
+
+cmd /c "npm run build:cli"
+passed: dist-cli/game-cli.mjs and dist-cli/simulate-runs.mjs
+
+cmd /c "npm run sim:fuzz -- --runs 250 --max-steps 500 --seed stress-fuzz"
+passed: 250 runs, 0 failures
+```
+
+Extracted ZIP production preview:
+
+```txt
+cmd /c "npx vite preview --host 127.0.0.1 --port 4185"
+served extracted production build
+
+http://127.0.0.1:4185/
+HTTP 200, text/html, length 415
+
+http://127.0.0.1:4185/assets/index-CiFIGUGT.css
+HTTP 200, text/css, length 575
+
+http://127.0.0.1:4185/assets/index-TrO_L5KH.js
+HTTP 200, text/javascript, length 1476841
+```
+
+The final branch commit after this report update is verified by `git status`, `git rev-parse HEAD`, and `git ls-remote origin refs/heads/main` in the final hand-off. A committed file cannot contain its own final Git SHA, so this report records the implementation snapshot plus stable final artefact paths, while the final hand-off records the exact pushed HEAD.
 
 This repository has no external deployment target in the hotfix contract. For this browser-first Vite slice, the deployed-runtime evidence is the committed production build validation, the review ZIP, and the extracted ZIP served through Vite production preview.
 
