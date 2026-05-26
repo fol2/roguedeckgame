@@ -6,6 +6,7 @@ import {
   encounterId,
   monsterId,
   petDefinitionId,
+  playerClassModifierId,
   playerClassId,
   runTemplateId,
   starterRegistry,
@@ -28,6 +29,7 @@ describe("content index", () => {
     expect(index.statusesById.get(statusId("burn"))?.name).toBe("Burn");
     expect(index.petsById.get(petDefinitionId("ember_fox"))?.name).toBe("Ember Fox");
     expect(index.playersById.get(playerClassId("novice_tamer"))?.name).toBe("Novice Tamer");
+    expect(index.playerClassModifiersById.size).toBe(0);
     expect(index.monstersById.get(monsterId("training_slime"))?.name).toBe("Training Slime");
     expect(index.encountersById.get(encounterId("forest_duo_encounter"))?.name).toBe("Forest Duo");
     expect(index.runMapTemplatesById.get(runTemplateId("act1_forest"))?.name).toBe("Act 1 - Forest");
@@ -83,6 +85,23 @@ describe("content index", () => {
 
     expect(index.duplicateIds).toContainEqual({ collection: "statuses", id: "burn" });
     expect(index.statusesById.get(statusId("burn"))?.description).toBe("Duplicate burn.");
+  });
+
+  it("indexes player class modifiers", () => {
+    const registry = cloneRegistry({
+      playerClassModifiers: [
+        {
+          id: playerClassModifierId("test_class_modifier"),
+          name: "Test Class Modifier",
+          description: "Test class modifier.",
+          tags: ["test"]
+        }
+      ]
+    });
+
+    const index = buildContentIndex(registry);
+
+    expect(index.playerClassModifiersById.get(playerClassModifierId("test_class_modifier"))?.name).toBe("Test Class Modifier");
   });
 
   it("uses one index through content context", () => {
