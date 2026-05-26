@@ -21,7 +21,7 @@ import {
   matchesPetModifierCardSelector
 } from "./pet-modifier-selectors";
 import type { Rng } from "./rng";
-import { petModifierTriggerMatches } from "./trigger-rules";
+import { createTriggerWindow, petModifierTriggerMatches } from "./trigger-rules";
 
 export type PetModifierContext = {
   readonly petInstanceId: PetInstanceId;
@@ -716,7 +716,13 @@ export const resolvePetCommandOwnerIds = (
 export const resolvePetModifierTriggersAfterEvents = (
   input: TriggerInput
 ): GameActionResult<CombatState> => {
-  if (input.stateBeforeEffects.phase !== "player_turn") {
+  const triggerWindow = createTriggerWindow({
+    stateBeforeEffects: input.stateBeforeEffects,
+    stateAfterEffects: input.stateAfterEffects,
+    effectEvents: input.effectEvents
+  });
+
+  if (triggerWindow.phase !== "player_turn") {
     const actionError = error(
       "invalid_phase",
       "Pet modifier triggers can only resolve during the player turn.",
@@ -730,7 +736,7 @@ export const resolvePetModifierTriggersAfterEvents = (
     };
   }
 
-  if (input.stateAfterEffects.phase === "won" || input.stateAfterEffects.phase === "lost") {
+  if (triggerWindow.outcome === "won" || triggerWindow.outcome === "lost") {
     return { ok: true, state: input.stateAfterEffects, events: [], errors: [] };
   }
 
@@ -753,10 +759,7 @@ export const resolvePetModifierTriggersAfterEvents = (
         continue;
       }
 
-      if (!petModifierTriggerMatches(rule, {
-        stateBeforeEffects: input.stateBeforeEffects,
-        effectEvents: input.effectEvents
-      })) {
+      if (!petModifierTriggerMatches(rule, triggerWindow)) {
         continue;
       }
 

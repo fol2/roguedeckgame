@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { combatantId, statusId } from "../../src/game-core";
-import { burnedEnemiesDefeatedByEvents, petModifierTriggerMatches } from "../../src/game-core";
+import { burnedEnemiesDefeatedByEvents, createTriggerWindow, petModifierTriggerMatches } from "../../src/game-core";
 import type { TriggerOnEnemyDefeatedWithStatusRule } from "../../src/game-core";
 import { createBurningMonsterFixture } from "../../src/game-core/testing/combat-fixtures";
 
@@ -54,5 +54,18 @@ describe("pet modifier trigger rules", () => {
     ];
 
     expect(burnedEnemiesDefeatedByEvents(state, events, statusId("burn"))).toEqual([targetId]);
+  });
+
+  it("creates trigger windows with explicit phase, outcome, and cascade policy", () => {
+    const state = { ...createBurningMonsterFixture(1), phase: "player_turn" as const };
+    const window = createTriggerWindow({
+      stateBeforeEffects: state,
+      stateAfterEffects: { ...state, phase: "won" },
+      effectEvents: []
+    });
+
+    expect(window.phase).toBe("player_turn");
+    expect(window.outcome).toBe("won");
+    expect(window.cascadePolicy).toBe("none");
   });
 });
