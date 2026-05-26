@@ -3,6 +3,7 @@ import type { Rng } from "../systems/rng";
 import type { CardDefinition } from "../model/card";
 import type { GameContentRegistry } from "../model/registry";
 import { starterRegistry } from "../data/registry";
+import { cardNeedsActionTarget } from "../systems/card-actions";
 import type { AgentAction, AgentRunDriverSnapshot } from "./agent-actions";
 import { getLegalAgentActions } from "./action-space";
 
@@ -18,9 +19,6 @@ const findCardForAction = (
   const instance = snapshot.combat?.cardInstances.find((cardInstance) => cardInstance.id === action.cardInstanceId);
   return instance ? registry.cards.find((card) => card.id === instance.cardId) : undefined;
 };
-
-const cardNeedsActionTarget = (card: CardDefinition): boolean =>
-  card.effects.some((effect) => "target" in effect && effect.target.type === "target" && effect.target.combatantId === undefined);
 
 const actionTargetHp = (action: AgentAction, snapshot: AgentRunDriverSnapshot): number => {
   if (action.type !== "playCard" || !action.targetId) {

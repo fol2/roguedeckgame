@@ -1,5 +1,4 @@
 import type { CardDefinition } from "../model/card";
-import type { CardType } from "../model/card";
 import type { CombatState } from "../model/combat";
 import type { EffectDefinition, PetTarget } from "../model/effect";
 import type { GameEvent } from "../model/event";
@@ -17,6 +16,10 @@ import type { GameContentRegistry } from "../model/registry";
 import type { CardId, CardInstanceId, CombatantId, PetInstanceId, PetModifierId, StatusId, UpgradeId } from "../ids";
 import { burnStatusDefinition } from "../model/status";
 import { drawCards } from "./draw";
+import {
+  knownPetModifierSelectorCardTypes,
+  matchesPetModifierCardSelector
+} from "./pet-modifier-selectors";
 import type { Rng } from "./rng";
 
 export type PetModifierContext = {
@@ -114,8 +117,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
   isRecord(value) && !Array.isArray(value);
 
-const knownCardTypes = ["attack", "skill", "power", "pet-command"] as const satisfies readonly CardType[];
-
 const isKnownRule = (rule: PetModifierRule): boolean =>
   knownPetModifierRuleTypes.includes(rule.type);
 
@@ -142,7 +143,7 @@ const validateCardSelector = (
 
   if (
     "cardType" in rule.selector &&
-    !knownCardTypes.includes(rule.selector.cardType as CardType)
+    !knownPetModifierSelectorCardTypes.includes(rule.selector.cardType as typeof knownPetModifierSelectorCardTypes[number])
   ) {
     return error("invalid_pet_modifier_rule", "Pet modifier selector cardType is unknown.", path);
   }
@@ -466,31 +467,6 @@ export const getActivePetModifierContexts = (
   return { ok: true, value: contexts };
 };
 
-const matchesCardSelector = (card: CardDefinition, rule: ModifyPetCommandCostRule | ModifyPetCommandEffectAmountRule): boolean => {
-  const selector = rule.selector;
-
-  if (selector.cardType !== undefined && card.type !== selector.cardType) {
-    return false;
-  }
-
-  if (
-    selector.requiresPetDefinitionId !== undefined &&
-    card.requiresPetDefinitionId !== selector.requiresPetDefinitionId
-  ) {
-    return false;
-  }
-
-  if (selector.tagsAny && !selector.tagsAny.some((tag) => card.tags.includes(tag))) {
-    return false;
-  }
-
-  if (selector.tagsAll && !selector.tagsAll.every((tag) => card.tags.includes(tag))) {
-    return false;
-  }
-
-  return true;
-};
-
 const isModifierUsed = (state: CombatState, context: PetModifierContext, limit: ModifyPetCommandCostRule["limit"]): boolean => {
   if (!limit) {
     return false;
@@ -562,7 +538,7 @@ export const applyPetCommandCostModifiers = (
 
   for (const context of ownerContexts(contextResult.value, input.ownerPetInstanceIds)) {
     for (const rule of context.modifier.rules) {
-      if (rule.type !== "modifyPetCommandCost" || !matchesCardSelector(input.card, rule)) {
+      if (rule.type !== "modifyPetCommandCost" || !matchesPetModifierCardSelector(input.card, rule)) {
         continue;
       }
 
@@ -617,7 +593,7 @@ export const applyPetCommandEffectModifiers = (
 
     for (const context of contexts) {
       for (const rule of context.modifier.rules) {
-        if (rule.type !== "modifyPetCommandEffectAmount" || !matchesCardSelector(input.card, rule)) {
+        if (rule.type !== "modifyPetCommandEffectAmount" || !matchesPetModifierCardSelector(input.card, rule)) {
           continue;
         }
 
