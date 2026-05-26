@@ -3,6 +3,7 @@ import {
   completeRunCombatNode,
   completeRunNonCombatNode,
   createCombatRng,
+  createContentContext,
   createRun,
   endPlayerTurn,
   petDefinitionId,
@@ -157,6 +158,7 @@ export const createRunSandboxController = (
   let state = createInitialState(seed).state;
   let revision = 0;
   let seenGameplayRequestIds = new Set<string>();
+  const content = createContentContext(starterRegistry);
 
   const commit = (next: RunSandboxState): RunSandboxState => {
     state = next;
@@ -232,10 +234,10 @@ export const createRunSandboxController = (
           petInstances: state.petInstances,
           combat: state.combat,
           lastEvents: state.lastEvents
-        }, starterRegistry, revision)
+        }, content, revision)
       : undefined,
     getRewardViewModel: () => state.run.pendingRewardOffer
-      ? buildRewardViewModel(state.run.pendingRewardOffer, state.lastEvents, starterRegistry, state.petInstances)
+      ? buildRewardViewModel(state.run.pendingRewardOffer, state.lastEvents, content, state.petInstances)
       : undefined,
     selectMapNode: (nodeId) => {
       const selectedRun = selectRunNode(state.run, nodeId);

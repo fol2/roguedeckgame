@@ -1,5 +1,6 @@
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { GameEvent } from "../model/event";
+import type { GameContentRegistry } from "../model/registry";
 import type { PetInstance } from "../model/pet";
 import type {
   SaveRestoredState,
@@ -7,12 +8,16 @@ import type {
   SaveSnapshot,
   SaveStore
 } from "../model/save";
-import { SAVE_SCHEMA_VERSION } from "../model/save";
+import { SAVE_SCHEMA_VERSION, UNKNOWN_SAVE_CONTENT_VERSION } from "../model/save";
 import type { RunState } from "../model/run";
 import { act1NormalBalance } from "../data/balance/act1-normal";
+import { starterRegistry } from "../data/registry";
+import { buildContentIndex } from "./content-index";
 
 export type CreateSaveSnapshotInput = {
   readonly profileId: string;
+  readonly contentVersion?: string;
+  readonly registry?: GameContentRegistry;
   readonly activeRun?: RunState;
   readonly petInstances: readonly PetInstance[];
   readonly globalStoryFlags?: SaveSnapshot["globalStoryFlags"];
@@ -44,6 +49,7 @@ const reject = <TState>(
 
 const invalidSnapshot = (): SaveSnapshot => ({
   schemaVersion: SAVE_SCHEMA_VERSION,
+  contentVersion: UNKNOWN_SAVE_CONTENT_VERSION,
   createdAt: "",
   updatedAt: "",
   profileId: "",
@@ -114,13 +120,18 @@ const normaliseLegacyActiveRunHp = (run: unknown): unknown => {
 };
 
 const normaliseLegacySaveSnapshot = (snapshot: unknown): unknown => {
-  if (!isRecord(snapshot) || !("activeRun" in snapshot) || snapshot.activeRun === undefined) {
+  if (!isRecord(snapshot)) {
     return snapshot;
   }
 
   return {
     ...snapshot,
-    activeRun: normaliseLegacyActiveRunHp(snapshot.activeRun)
+    contentVersion: typeof snapshot.contentVersion === "string" && snapshot.contentVersion.length > 0
+      ? snapshot.contentVersion
+      : UNKNOWN_SAVE_CONTENT_VERSION,
+    activeRun: "activeRun" in snapshot && snapshot.activeRun !== undefined
+      ? normaliseLegacyActiveRunHp(snapshot.activeRun)
+      : snapshot.activeRun
   };
 };
 
@@ -687,6 +698,10 @@ export const validateSaveSnapshot = (
     return reject(state, error("invalid_save_snapshot", "Save snapshot must be an object.", "snapshot"));
   }
 
+  if (typeof snapshotForValidation.contentVersion !== "string" || snapshotForValidation.contentVersion.length === 0) {
+    return reject(state, error("invalid_save_snapshot", "Save contentVersion must be a non-empty string.", "contentVersion"));
+  }
+
   if (typeof snapshotForValidation.createdAt !== "string" || snapshotForValidation.createdAt.length === 0) {
     return reject(state, error("invalid_save_snapshot", "Save createdAt must be a non-empty string.", "createdAt"));
   }
@@ -779,6 +794,7 @@ export const validateSaveSnapshot = (
   const validatedSnapshot = snapshotForValidation as unknown as SaveSnapshot;
   const canonicalSnapshot: SaveSnapshot = {
     schemaVersion: SAVE_SCHEMA_VERSION,
+    contentVersion: validatedSnapshot.contentVersion,
     createdAt: validatedSnapshot.createdAt,
     updatedAt: validatedSnapshot.updatedAt,
     profileId: validatedSnapshot.profileId,
@@ -795,6 +811,156 @@ export const validateSaveSnapshot = (
   };
 };
 
+export const validateSaveSnapshotContent = (
+  snapshot: SaveSnapshot,
+  registry: GameContentRegistry
+): GameActionResult<SaveSnapshot> => {
+  const validation = validateSaveSnapshot(snapshot);
+  if (!validation.ok) {
+    return validation;
+  }
+
+  let contentIndex: ReturnType<typeof buildContentIndex>;
+  try {
+    contentIndex = buildContentIndex(registry);
+  } catch {
+    return reject(validation.state, error("invalid_content_registry", "Content registry could not be indexed for save validation.", "registry"));
+  }
+
+  if (
+    (registry.contentVersion !== undefined && (typeof registry.contentVersion !== "string" || registry.contentVersion.length === 0)) ||
+    contentIndex.duplicateIds.length > 0
+  ) {
+    return reject(validation.state, error("invalid_content_registry", "Content registry is not valid for save validation.", "registry"));
+  }
+
+  for (let petIndex = 0; petIndex < validation.state.petInstances.length; petIndex += 1) {
+    const petInstance = validation.state.petInstances[petIndex];
+    const petDefinition = contentIndex.petsById.get(petInstance.definitionId);
+    if (!petDefinition) {
+      return reject(
+        validation.state,
+        error("unknown_save_content_reference", `Saved pet references unknown pet definition '${petInstance.definitionId}'.`, `petInstances[${petIndex}].definitionId`)
+      );
+    }
+
+    const evolutionNodeIds = new Set(petDefinition.evolutionTree.map((node) => node.id));
+    for (let upgradeIndex = 0; upgradeIndex < petInstance.unlockedUpgradeIds.length; upgradeIndex += 1) {
+      const upgradeId = petInstance.unlockedUpgradeIds[upgradeIndex];
+      const upgrade = contentIndex.petUpgradesById.get(upgradeId);
+      if (!upgrade || upgrade.petDefinitionId !== petInstance.definitionId) {
+        return reject(
+          validation.state,
+          error("unknown_save_content_reference", `Saved pet references unknown or incompatible upgrade '${upgradeId}'.`, `petInstances[${petIndex}].unlockedUpgradeIds[${upgradeIndex}]`)
+        );
+      }
+    }
+
+    for (let nodeIndex = 0; nodeIndex < petInstance.chosenEvolutionNodeIds.length; nodeIndex += 1) {
+      const nodeId = petInstance.chosenEvolutionNodeIds[nodeIndex];
+      if (!evolutionNodeIds.has(nodeId)) {
+        return reject(
+          validation.state,
+          error("unknown_save_content_reference", `Saved pet references unknown evolution node '${nodeId}'.`, `petInstances[${petIndex}].chosenEvolutionNodeIds[${nodeIndex}]`)
+        );
+      }
+    }
+
+    for (let nodeIndex = 0; nodeIndex < (petInstance.unlockedEvolutionNodeIds ?? []).length; nodeIndex += 1) {
+      const nodeId = (petInstance.unlockedEvolutionNodeIds ?? [])[nodeIndex];
+      if (!evolutionNodeIds.has(nodeId)) {
+        return reject(
+          validation.state,
+          error("unknown_save_content_reference", `Saved pet references unknown evolution node '${nodeId}'.`, `petInstances[${petIndex}].unlockedEvolutionNodeIds[${nodeIndex}]`)
+        );
+      }
+    }
+
+    for (let eventIndex = 0; eventIndex < (petInstance.seenStoryEventIds ?? []).length; eventIndex += 1) {
+      const eventId = (petInstance.seenStoryEventIds ?? [])[eventIndex];
+      const isKnownSideStoryEvent = [...contentIndex.petSideStoriesById.values()]
+        .some((sideStory) => sideStory.events.some((event) => event.id === eventId));
+      if (!contentIndex.storyEventsById.has(eventId) && !isKnownSideStoryEvent) {
+        return reject(
+          validation.state,
+          error("unknown_save_content_reference", `Saved pet references unknown story event '${eventId}'.`, `petInstances[${petIndex}].seenStoryEventIds[${eventIndex}]`)
+        );
+      }
+    }
+  }
+
+  const activeRun = validation.state.activeRun;
+  if (!activeRun) {
+    return validation;
+  }
+
+  if (!contentIndex.playersById.has(activeRun.playerClassId)) {
+    return reject(
+      validation.state,
+      error("unknown_save_content_reference", `Saved run references unknown player class '${activeRun.playerClassId}'.`, "activeRun.playerClassId")
+    );
+  }
+
+  for (let cardIndex = 0; cardIndex < activeRun.deckCardIds.length; cardIndex += 1) {
+    const cardId = activeRun.deckCardIds[cardIndex];
+    if (!contentIndex.cardsById.has(cardId)) {
+      return reject(
+        validation.state,
+        error("unknown_save_content_reference", `Saved run references unknown deck card '${cardId}'.`, `activeRun.deckCardIds[${cardIndex}]`)
+      );
+    }
+  }
+
+  if (activeRun.map) {
+    if (!contentIndex.runMapTemplatesById.has(activeRun.map.templateId)) {
+      return reject(
+        validation.state,
+        error("unknown_save_content_reference", `Saved run references unknown map template '${activeRun.map.templateId}'.`, "activeRun.map.templateId")
+      );
+    }
+
+    for (let nodeIndex = 0; nodeIndex < activeRun.map.nodes.length; nodeIndex += 1) {
+      const encounterId = activeRun.map.nodes[nodeIndex].encounterId;
+      if (encounterId && !contentIndex.encountersById.has(encounterId)) {
+        return reject(
+          validation.state,
+          error("unknown_save_content_reference", `Saved map node references unknown encounter '${encounterId}'.`, `activeRun.map.nodes[${nodeIndex}].encounterId`)
+        );
+      }
+    }
+  }
+
+  const rewardOptions = activeRun.pendingRewardOffer?.options ?? [];
+  for (let optionIndex = 0; optionIndex < rewardOptions.length; optionIndex += 1) {
+    const option = rewardOptions[optionIndex];
+    if (option.type === "card" && !contentIndex.cardsById.has(option.cardId)) {
+      return reject(
+        validation.state,
+        error("unknown_save_content_reference", `Saved reward references unknown card '${option.cardId}'.`, `activeRun.pendingRewardOffer.options[${optionIndex}].cardId`)
+      );
+    }
+
+    if (option.type === "petUpgrade") {
+      const upgrade = contentIndex.petUpgradesById.get(option.upgradeId);
+      if (!contentIndex.petsById.has(option.petDefinitionId)) {
+        return reject(
+          validation.state,
+          error("unknown_save_content_reference", `Saved reward references unknown pet definition '${option.petDefinitionId}'.`, `activeRun.pendingRewardOffer.options[${optionIndex}].petDefinitionId`)
+        );
+      }
+
+      if (!upgrade || upgrade.petDefinitionId !== option.petDefinitionId) {
+        return reject(
+          validation.state,
+          error("unknown_save_content_reference", `Saved reward references unknown or incompatible pet upgrade '${option.upgradeId}'.`, `activeRun.pendingRewardOffer.options[${optionIndex}].upgradeId`)
+        );
+      }
+    }
+  }
+
+  return validation;
+};
+
 export const createSaveSnapshot = (
   input: CreateSaveSnapshotInput
 ): GameActionResult<SaveSnapshot> => {
@@ -803,8 +969,10 @@ export const createSaveSnapshot = (
   }
 
   const now = typeof input.now === "string" ? input.now : new Date().toISOString();
+  const contentVersion = input.contentVersion ?? input.registry?.contentVersion ?? UNKNOWN_SAVE_CONTENT_VERSION;
   const snapshot = {
     schemaVersion: SAVE_SCHEMA_VERSION,
+    contentVersion,
     createdAt: now,
     updatedAt: now,
     profileId: input.profileId,
@@ -812,7 +980,9 @@ export const createSaveSnapshot = (
     petInstances: input.petInstances,
     globalStoryFlags: input.globalStoryFlags ?? []
   } as unknown as SaveSnapshot;
-  const validation = validateSaveSnapshot(snapshot);
+  const validation = input.registry
+    ? validateSaveSnapshotContent(snapshot, input.registry)
+    : validateSaveSnapshot(snapshot);
   if (!validation.ok) {
     return validation;
   }
@@ -848,20 +1018,27 @@ export const serializeSaveSnapshot = (
 };
 
 export const parseSaveSnapshot = (
-  json: string
+  json: string,
+  registry?: GameContentRegistry
 ): GameActionResult<SaveSnapshot> => {
   try {
     const parsed = JSON.parse(json) as unknown;
-    return validateSaveSnapshot(parsed);
+    const validation = validateSaveSnapshot(parsed);
+    return registry && validation.ok
+      ? validateSaveSnapshotContent(validation.state, registry)
+      : validation;
   } catch {
     return reject(invalidSnapshot(), error("invalid_save_json", "Save JSON could not be parsed.", "json"));
   }
 };
 
 export const restoreSaveSnapshot = (
-  snapshot: SaveSnapshot
+  snapshot: SaveSnapshot,
+  registry?: GameContentRegistry
 ): GameActionResult<SaveRestoredState> => {
-  const validation = validateSaveSnapshot(snapshot);
+  const validation = registry
+    ? validateSaveSnapshotContent(snapshot, registry)
+    : validateSaveSnapshot(snapshot);
   if (!validation.ok) {
     return reject(
       {
@@ -889,17 +1066,20 @@ const metadataFromSerialized = (slotId: string, serializedSnapshot: string): Sav
   try {
     const parsed = JSON.parse(serializedSnapshot) as unknown;
     if (!isRecord(parsed)) {
-      return { slotId, updatedAt: "", schemaVersion: 0, hasActiveRun: false };
+      return { slotId, updatedAt: "", schemaVersion: 0, contentVersion: UNKNOWN_SAVE_CONTENT_VERSION, hasActiveRun: false };
     }
 
     return {
       slotId,
       updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : "",
       schemaVersion: typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : 0,
+      contentVersion: typeof parsed.contentVersion === "string" && parsed.contentVersion.length > 0
+        ? parsed.contentVersion
+        : UNKNOWN_SAVE_CONTENT_VERSION,
       hasActiveRun: Boolean(parsed.activeRun)
     };
   } catch {
-    return { slotId, updatedAt: "", schemaVersion: 0, hasActiveRun: false };
+    return { slotId, updatedAt: "", schemaVersion: 0, contentVersion: UNKNOWN_SAVE_CONTENT_VERSION, hasActiveRun: false };
   }
 };
 
@@ -950,7 +1130,8 @@ export const saveToSlot = async (
 
 export const loadFromSlot = async (
   store: SaveStore,
-  slotId: string
+  slotId: string,
+  registry?: GameContentRegistry
 ): Promise<GameActionResult<SaveSnapshot>> => {
   let serialized: string | undefined;
   try {
@@ -968,15 +1149,22 @@ export const loadFromSlot = async (
     return reject(parsed.state, error("corrupt_save_slot", `Save slot '${slotId}' contains invalid data.`, "slotId"));
   }
 
+  const contentValidation = registry
+    ? validateSaveSnapshotContent(parsed.state, registry)
+    : parsed;
+  if (!contentValidation.ok) {
+    return reject(contentValidation.state, error("corrupt_save_slot", `Save slot '${slotId}' contains incompatible content references.`, "slotId"));
+  }
+
   return {
     ok: true,
-    state: parsed.state,
+    state: contentValidation.state,
     events: [
       {
         type: "SaveSlotLoaded",
         slotId,
-        updatedAt: parsed.state.updatedAt,
-        schemaVersion: parsed.state.schemaVersion
+        updatedAt: contentValidation.state.updatedAt,
+        schemaVersion: contentValidation.state.schemaVersion
       }
     ],
     errors: []
@@ -991,6 +1179,7 @@ export const deleteSaveSlot = async (
     slotId,
     updatedAt: "",
     schemaVersion: SAVE_SCHEMA_VERSION,
+    contentVersion: UNKNOWN_SAVE_CONTENT_VERSION,
     hasActiveRun: false
   };
 

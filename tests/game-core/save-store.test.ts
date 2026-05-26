@@ -24,6 +24,7 @@ describe("save store", () => {
       slotId: "slot_a",
       updatedAt: snapshot.updatedAt,
       schemaVersion: snapshot.schemaVersion,
+      contentVersion: snapshot.contentVersion,
       hasActiveRun: true
     }]);
     expect(deleted.ok).toBe(true);

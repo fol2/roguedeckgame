@@ -1,5 +1,7 @@
 import {
   starterRegistry,
+  createContentContext,
+  type ContentContext,
   type CardId,
   type CardInstanceId,
   type CombatantId,
@@ -9,11 +11,13 @@ import {
   type GameContentRegistry,
   type GameEvent,
   type EncounterId,
+  type MonsterId,
   type MonsterIntentId,
   type PetInstance,
   type PetInstanceId,
   type RunState,
   type RunNodeType,
+  type StatusDefinition,
   type StatusId
 } from "../../game-core";
 import {
@@ -190,8 +194,8 @@ export const COMBAT_UI_CAPS = {
   maxCardVisibleTags: 4
 } as const;
 
-const findCard = (registry: GameContentRegistry, cardId: CardId) =>
-  registry.cards.find((card) => card.id === cardId);
+const findCard = (content: ContentContext, cardId: CardId) =>
+  content.index.cardsById.get(cardId);
 
 const cardHasRequiredActivePet = (
   state: CombatState,
@@ -256,24 +260,14 @@ const getUnplayableReason = (
   return undefined;
 };
 
-const statusLabel = (statusId: StatusId, stacks: number): string =>
-  `${statusId}${stacks > 0 ? ` ${stacks}` : ""}`;
+const statusLabel = (statusId: StatusId, stacks: number, definition?: StatusDefinition): string =>
+  `${definition?.name ?? statusId}${stacks > 0 ? ` ${stacks}` : ""}`;
 
-const statusTooltip = (statusId: StatusId, stacks: number): string => {
-  if (statusId === "burn") {
-    return [
-      `Burn ${stacks}`,
-      `At the start of this unit's turn, take ${stacks} damage ignoring Block.`,
-      "Then Burn decreases. Expires at 0."
-    ].join("\n");
-  }
-
-  return [
-    statusLabel(statusId, stacks),
-    "Timing and duration are not defined yet.",
-    "No additional gameplay details available yet."
-  ].join("\n");
-};
+const statusTooltip = (statusId: StatusId, stacks: number, definition?: StatusDefinition): string => [
+  statusLabel(statusId, stacks, definition),
+  definition?.description ?? "Timing and duration are not defined yet.",
+  `Current stacks: ${stacks}`
+].join("\n");
 
 const keywordCopyByTag: Readonly<Record<string, CombatKeywordExplanationViewModel>> = {
   attack: { keyword: "Attack", explanation: "Deals direct damage to an enemy target." },
@@ -364,13 +358,20 @@ const getPetStatusOverflowTooltip = (statusLabels: readonly string[]): CombatToo
     : undefined;
 };
 
-const buildCombatantStatusViewModels = (combatant: CombatantState): readonly CombatantStatusViewModel[] =>
-  combatant.statuses.map((status) => ({
-    statusId: status.statusId,
-    stacks: status.stacks,
-    label: statusLabel(status.statusId, status.stacks),
-    tooltip: statusTooltip(status.statusId, status.stacks)
-  }));
+const buildCombatantStatusViewModels = (
+  combatant: CombatantState,
+  content: ContentContext
+): readonly CombatantStatusViewModel[] =>
+  combatant.statuses.map((status) => {
+    const definition = content.index.statusesById.get(status.statusId);
+
+    return {
+      statusId: status.statusId,
+      stacks: status.stacks,
+      label: statusLabel(status.statusId, status.stacks, definition),
+      tooltip: statusTooltip(status.statusId, status.stacks, definition)
+    };
+  });
 
 const getCombatantStatusDetailLines = (statuses: readonly CombatantStatusViewModel[], emptyLine: string): readonly string[] =>
   statuses.length > 0
@@ -391,8 +392,8 @@ const getCombatantStatusOverflowTooltip = (
     : undefined;
 };
 
-const toCombatantViewModel = (combatant: CombatantState): CombatantViewModel => {
-  const statuses = buildCombatantStatusViewModels(combatant);
+const toCombatantViewModel = (combatant: CombatantState, content: ContentContext): CombatantViewModel => {
+  const statuses = buildCombatantStatusViewModels(combatant, content);
   const statusDetailLines = getCombatantStatusDetailLines(
     statuses,
     combatant.type === "player" ? "No player statuses." : "No enemy statuses."
@@ -478,9 +479,12 @@ const buildUiWarnings = (state: CombatState): readonly string[] => {
 
 export const buildCombatViewModel = (
   state: CombatSandboxState,
-  registry: GameContentRegistry = starterRegistry,
+  registryOrContent: GameContentRegistry | ContentContext = starterRegistry,
   revision = 0
 ): CombatViewModel => {
+  const content = "index" in registryOrContent
+    ? registryOrContent
+    : createContentContext(registryOrContent);
   const cardInstancesById = new Map(
     state.combat.cardInstances.map((cardInstance) => [cardInstance.id, cardInstance])
   );
@@ -489,7 +493,7 @@ export const buildCombatViewModel = (
   );
   const currentNode = state.run.map?.nodes.find((node) => node.id === state.run.map?.currentNodeId);
   const encounter = currentNode?.encounterId
-    ? registry.encounters.find((candidate) => candidate.id === currentNode.encounterId)
+    ? content.index.encountersById.get(currentNode.encounterId)
     : undefined;
 
   return {
@@ -501,11 +505,11 @@ export const buildCombatViewModel = (
     turnNumber: state.combat.turnNumber,
     energy: state.combat.energy,
     maxEnergy: state.combat.maxEnergy,
-    player: toCombatantViewModel(state.combat.player),
+    player: toCombatantViewModel(state.combat.player, content),
     pets: state.combat.activePetInstanceIds.map((petInstanceId, slotIndex) => {
       const petInstance = state.petInstances.find((candidate) => candidate.id === petInstanceId);
       const petDefinition = petInstance
-        ? registry.pets.find((candidate) => candidate.id === petInstance.definitionId)
+        ? content.index.petsById.get(petInstance.definitionId)
         : undefined;
       const petState = petStatesById.get(petInstanceId);
       const activeModifierCount = petState?.activeModifierIds.length ?? 0;
@@ -550,11 +554,11 @@ export const buildCombatViewModel = (
         }
       };
     }),
-    monsters: state.combat.monsters.map(toCombatantViewModel),
+    monsters: state.combat.monsters.map((monster) => toCombatantViewModel(monster, content)),
     monsterIntents: state.combat.monsterIntents.map((intent) => {
       const monster = state.combat.monsters.find((candidate) => candidate.id === intent.monsterCombatantId);
-      const monsterDefinition = monster?.definitionId
-        ? registry.monsters.find((candidate) => candidate.id === monster.definitionId)
+      const monsterDefinition = monster?.definitionId && monster.type === "monster"
+        ? content.index.monstersById.get(monster.definitionId as MonsterId)
         : undefined;
       const intentDefinition = monsterDefinition?.intentPool.find((candidate) => candidate.id === intent.intentId);
       const label = intentDefinition?.type ?? "intent";
@@ -588,7 +592,7 @@ export const buildCombatViewModel = (
     }),
     hand: state.combat.hand.map((cardInstanceId) => {
       const cardInstance = cardInstancesById.get(cardInstanceId);
-      const cardDefinition = cardInstance ? findCard(registry, cardInstance.cardId) : undefined;
+      const cardDefinition = cardInstance ? findCard(content, cardInstance.cardId) : undefined;
       const cost = cardDefinition?.cost ?? 0;
       const actionProfile = cardDefinition ? getCardActionProfile(cardDefinition) : undefined;
       const targetKind = actionProfile?.targetKind ?? "none";

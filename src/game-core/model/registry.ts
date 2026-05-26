@@ -5,9 +5,12 @@ import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from 
 import type { PlayerClassDefinition } from "./player";
 import type { PetSideStoryDefinition, StoryEventDefinition } from "./story";
 import type { RunMapTemplateDefinition } from "./run-map";
+import type { StatusDefinition } from "./status";
 
 export type GameContentRegistry = {
+  readonly contentVersion?: string;
   readonly cards: readonly CardDefinition[];
+  readonly statuses?: readonly StatusDefinition[];
   readonly pets: readonly PetDefinition[];
   readonly players: readonly PlayerClassDefinition[];
   readonly monsters: readonly MonsterDefinition[];

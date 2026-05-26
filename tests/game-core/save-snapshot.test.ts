@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   createRun,
+  createMemorySaveStore,
   createSaveSnapshot,
+  cardId,
+  encounterId,
   evolutionNodeId,
+  loadFromSlot,
+  UNKNOWN_SAVE_CONTENT_VERSION,
+  petDefinitionId,
   petMemoryId,
   parseSaveSnapshot,
   playerClassId,
@@ -13,7 +19,8 @@ import {
   storyEventId,
   storyFlagId,
   upgradeId,
-  validateSaveSnapshot
+  validateSaveSnapshot,
+  validateSaveSnapshotContent
 } from "../../src/game-core";
 import { createEmberFoxInstanceFixture } from "../../src/game-core/testing/fixtures";
 import { createSaveSnapshotFixture } from "../../src/game-core/testing/save-fixtures";
@@ -38,6 +45,7 @@ describe("save snapshots", () => {
   it("creates, serializes, parses, and restores plain data", () => {
     const snapshot = createSaveSnapshot({
       profileId: "profile_a",
+      registry: starterRegistry,
       activeRun: createSaveSnapshotFixture().activeRun,
       petInstances: [createEmberFoxInstanceFixture()],
       now: "2026-05-25T00:00:00.000Z"
@@ -50,12 +58,185 @@ describe("save snapshots", () => {
     expect(serialized.ok).toBe(true);
     expect(parsed.ok).toBe(true);
     expect(restored.ok).toBe(true);
+    expect(snapshot.state.contentVersion).toBe(starterRegistry.contentVersion);
     expect(restored.state).toEqual({
       activeRun: snapshot.state.activeRun,
       petInstances: snapshot.state.petInstances,
       globalStoryFlags: []
     });
     expect(JSON.parse(serialized.state)).toEqual(snapshot.state);
+  });
+
+  it("normalises legacy saves without content version metadata", () => {
+    const legacySnapshot = clone(createSaveSnapshotFixture()) as Record<string, unknown>;
+    delete legacySnapshot.contentVersion;
+
+    const validation = validateSaveSnapshot(legacySnapshot);
+
+    expect(validation.ok).toBe(true);
+    expect(validation.state.contentVersion).toBe(UNKNOWN_SAVE_CONTENT_VERSION);
+    expect(restoreSaveSnapshot(validation.state, starterRegistry).ok).toBe(true);
+  });
+
+  it("validates save references against a content registry when requested", () => {
+    const snapshot = createSaveSnapshotFixture();
+    const missingDeckCard = {
+      ...snapshot,
+      activeRun: {
+        ...snapshot.activeRun!,
+        deckCardIds: [cardId("missing_card")]
+      }
+    };
+
+    expect(validateSaveSnapshot(missingDeckCard).ok).toBe(true);
+    expect(validateSaveSnapshotContent(missingDeckCard, starterRegistry)).toMatchObject({
+      ok: false,
+      errors: [{ code: "unknown_save_content_reference", path: "activeRun.deckCardIds[0]" }]
+    });
+    expect(restoreSaveSnapshot(missingDeckCard, starterRegistry)).toMatchObject({
+      ok: false,
+      errors: [{ code: "unknown_save_content_reference" }]
+    });
+    expect(createSaveSnapshot({
+      profileId: "profile_bad_content",
+      registry: starterRegistry,
+      activeRun: missingDeckCard.activeRun,
+      petInstances: missingDeckCard.petInstances,
+      now: "2026-05-25T00:00:00.000Z"
+    })).toMatchObject({
+      ok: false,
+      errors: [{ code: "unknown_save_content_reference" }]
+    });
+  });
+
+  it("allows content version drift when referenced content is still present", () => {
+    const snapshot = createSaveSnapshotFixture({ contentVersion: "future-content-v99" });
+
+    expect(validateSaveSnapshot(snapshot).ok).toBe(true);
+    expect(validateSaveSnapshotContent(snapshot, starterRegistry).ok).toBe(true);
+    expect(parseSaveSnapshot(JSON.stringify(snapshot), starterRegistry).ok).toBe(true);
+  });
+
+  it("accepts seen story events embedded inside pet side stories", () => {
+    const embeddedEventId = storyEventId("embedded_only_side_story_event");
+    const snapshot = createSaveSnapshotFixture({
+      petInstances: [
+        {
+          ...createEmberFoxInstanceFixture(),
+          seenStoryEventIds: [embeddedEventId]
+        }
+      ]
+    });
+    const embeddedRegistry = {
+      ...starterRegistry,
+      storyEvents: [],
+      petSideStories: starterRegistry.petSideStories.map((sideStory) => ({
+        ...sideStory,
+        events: [
+          {
+            ...sideStory.events[0],
+            id: embeddedEventId
+          }
+        ]
+      }))
+    };
+
+    expect(validateSaveSnapshotContent(snapshot, embeddedRegistry).ok).toBe(true);
+  });
+
+  it("rejects invalid registries during save content validation", () => {
+    const snapshot = createSaveSnapshotFixture();
+
+    expect(validateSaveSnapshotContent(snapshot, {
+      ...starterRegistry,
+      contentVersion: ""
+    })).toMatchObject({
+      ok: false,
+      errors: [{ code: "invalid_content_registry", path: "registry" }]
+    });
+    expect(validateSaveSnapshotContent(snapshot, {
+      ...starterRegistry,
+      cards: [starterRegistry.cards[0], starterRegistry.cards[0]]
+    })).toMatchObject({
+      ok: false,
+      errors: [{ code: "invalid_content_registry", path: "registry" }]
+    });
+  });
+
+  it("validates all save content references through registry-aware boundaries", async () => {
+    const snapshot = createSaveSnapshotFixture();
+    const activeMap = snapshot.activeRun!.map!;
+    const cases = [
+      {
+        snapshot: {
+          ...snapshot,
+          petInstances: [{ ...snapshot.petInstances[0], definitionId: petDefinitionId("missing_pet_definition") }]
+        },
+        path: "petInstances[0].definitionId"
+      },
+      {
+        snapshot: {
+          ...snapshot,
+          petInstances: [{ ...snapshot.petInstances[0], unlockedUpgradeIds: [upgradeId("missing_upgrade")] }]
+        },
+        path: "petInstances[0].unlockedUpgradeIds[0]"
+      },
+      {
+        snapshot: {
+          ...snapshot,
+          petInstances: [{ ...snapshot.petInstances[0], chosenEvolutionNodeIds: [evolutionNodeId("missing_node")] }]
+        },
+        path: "petInstances[0].chosenEvolutionNodeIds[0]"
+      },
+      {
+        snapshot: {
+          ...snapshot,
+          activeRun: { ...snapshot.activeRun!, playerClassId: playerClassId("missing_player_class") }
+        },
+        path: "activeRun.playerClassId"
+      },
+      {
+        snapshot: {
+          ...snapshot,
+          activeRun: {
+            ...snapshot.activeRun!,
+            map: { ...activeMap, templateId: "missing_template" as typeof activeMap.templateId }
+          }
+        },
+        path: "activeRun.map.templateId"
+      },
+      {
+        snapshot: {
+          ...snapshot,
+          activeRun: {
+            ...snapshot.activeRun!,
+            map: {
+              ...activeMap,
+              nodes: activeMap.nodes.map((node) => node.encounterId ? { ...node, encounterId: encounterId("missing_encounter") } : node)
+            }
+          }
+        },
+        path: `activeRun.map.nodes[${activeMap.nodes.findIndex((node) => node.encounterId)}].encounterId`
+      }
+    ];
+
+    for (const entry of cases) {
+      expect(validateSaveSnapshotContent(entry.snapshot, starterRegistry)).toMatchObject({
+        ok: false,
+        errors: [{ code: "unknown_save_content_reference", path: entry.path }]
+      });
+      expect(parseSaveSnapshot(JSON.stringify(entry.snapshot), starterRegistry)).toMatchObject({
+        ok: false,
+        errors: [{ code: "unknown_save_content_reference", path: entry.path }]
+      });
+    }
+
+    const store = createMemorySaveStore();
+    await store.write("slot_a", JSON.stringify(cases[0].snapshot));
+    await expect(loadFromSlot(store, "slot_a", starterRegistry)).resolves.toMatchObject({
+      ok: false,
+      errors: [{ code: "corrupt_save_slot", path: "slotId" }]
+    });
   });
 
   it("returns ok false for invalid JSON, unsupported version, and missing fields", () => {

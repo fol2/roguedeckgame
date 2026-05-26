@@ -1,5 +1,7 @@
 import {
   starterRegistry,
+  createContentContext,
+  type ContentContext,
   type GameContentRegistry,
   type GameEvent,
   type PetInstance,
@@ -33,11 +35,11 @@ export type RewardViewModel = {
 
 const buildOptionViewModel = (
   option: RewardOption,
-  registry: GameContentRegistry,
+  content: ContentContext,
   petInstances: readonly PetInstance[]
 ): RewardOptionViewModel => {
   if (option.type === "card") {
-    const card = registry.cards.find((candidate) => candidate.id === option.cardId);
+    const card = content.index.cardsById.get(option.cardId);
 
     return {
       id: option.id,
@@ -51,8 +53,8 @@ const buildOptionViewModel = (
     };
   }
 
-  const upgrade = registry.petUpgrades.find((candidate) => candidate.id === option.upgradeId);
-  const pet = registry.pets.find((candidate) => candidate.id === option.petDefinitionId);
+  const upgrade = content.index.petUpgradesById.get(option.upgradeId);
+  const pet = content.index.petsById.get(option.petDefinitionId);
   const petInstance = petInstances.find((candidate) => candidate.id === option.petInstanceId);
   const targetPetLabel = petInstance && pet
     ? `${petInstance.nickname} (${pet.name})`
@@ -75,12 +77,18 @@ const buildOptionViewModel = (
 export const buildRewardViewModel = (
   rewardOffer: RewardOfferState,
   events: readonly GameEvent[],
-  registry: GameContentRegistry = starterRegistry,
+  registryOrContent: GameContentRegistry | ContentContext = starterRegistry,
   petInstances: readonly PetInstance[] = []
-): RewardViewModel => ({
-  rewardOfferId: rewardOffer.id,
-  status: rewardOffer.status,
-  options: rewardOffer.options.map((option) => buildOptionViewModel(option, registry, petInstances)),
-  skipAvailable: rewardOffer.status === "open",
-  eventMessages: events.map(formatRunEventMessage)
-});
+): RewardViewModel => {
+  const content = "index" in registryOrContent
+    ? registryOrContent
+    : createContentContext(registryOrContent);
+
+  return {
+    rewardOfferId: rewardOffer.id,
+    status: rewardOffer.status,
+    options: rewardOffer.options.map((option) => buildOptionViewModel(option, content, petInstances)),
+    skipAvailable: rewardOffer.status === "open",
+    eventMessages: events.map(formatRunEventMessage)
+  };
+};

@@ -1,14 +1,15 @@
-import type { CombatantTarget, EffectDefinition, PetTarget } from "../model/effect";
-import { knownEffectTypes } from "../model/effect";
+import type { EffectDefinition } from "../model/effect";
 import type { EncounterType } from "../model/encounter";
 import type { PetModifierRule } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import type { RunNodeType } from "../model/run-map";
-import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
 import { burnStatusDefinition } from "../model/status";
+import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
+import { buildContentIndex } from "./content-index";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
 import { knownPetModifierSelectorCardTypes } from "./pet-modifier-selectors";
+import { validateEffects } from "./effect-validation";
 
 export type ValidationIssueSeverity = "error" | "warning";
 
@@ -32,203 +33,9 @@ const issue = (
   path: string
 ): ValidationIssue => ({ severity, code, message, path });
 
-const findDuplicateIds = (
-  collectionName: string,
-  collection: unknown
-): ValidationIssue[] => {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  if (!Array.isArray(collection)) {
-    return [];
-  }
-
-  for (const item of collection) {
-    if (!isRecord(item) || typeof item.id !== "string") {
-      continue;
-    }
-
-    if (seen.has(item.id)) {
-      duplicates.add(item.id);
-    }
-    seen.add(item.id);
-  }
-
-  return [...duplicates].map((id) =>
-    issue("error", "duplicate_id", `Duplicate id '${id}' in ${collectionName}.`, collectionName)
-  );
-};
-
-const validateEffects = (
-  effects: readonly EffectDefinition[],
-  path: string
-): ValidationIssue[] => {
-  return effects.flatMap((effectDefinition, index) => {
-    if (typeof effectDefinition !== "object" || effectDefinition === null) {
-      return [
-        issue(
-          "error",
-          "invalid_effect_definition",
-          "Effect definition must be an object.",
-          `${path}.effects[${index}]`
-        )
-      ];
-    }
-
-    const effectPath = `${path}.effects[${index}]`;
-    if (!knownEffectTypes.includes(effectDefinition.type)) {
-      return [
-        issue(
-          "error",
-          "unknown_effect_type",
-          `Unknown effect type '${String(effectDefinition.type)}'.`,
-          effectPath
-        )
-      ];
-    }
-
-    return validateEffectPayload(effectDefinition, effectPath);
-  });
-};
-
-const combatantTargetTypes = new Set<CombatantTarget["type"]>(["self", "target", "allEnemies", "allAllies"]);
-const petTargetTypes = new Set<PetTarget["type"]>(["specific", "leading", "allActive", "randomActive", "withTag"]);
-
-const validateCombatantTargetPayload = (
-  target: unknown,
-  path: string
-): ValidationIssue[] => {
-  if (typeof target !== "object" || target === null || Array.isArray(target)) {
-    return [issue("error", "invalid_effect_target", "Effect target must be an object.", path)];
-  }
-
-  const candidate = target as Partial<CombatantTarget>;
-  const issues: ValidationIssue[] = [];
-  if (!combatantTargetTypes.has(candidate.type as CombatantTarget["type"])) {
-    issues.push(issue("error", "invalid_effect_target", `Effect target type '${String(candidate.type)}' is unknown.`, `${path}.type`));
-  }
-
-  if ("combatantId" in candidate && typeof candidate.combatantId !== "string") {
-    issues.push(issue("error", "invalid_effect_target", "Effect combatantId must be a string when present.", `${path}.combatantId`));
-  }
-
-  return issues;
-};
-
-const validatePetTargetPayload = (
-  target: unknown,
-  path: string
-): ValidationIssue[] => {
-  if (typeof target !== "object" || target === null || Array.isArray(target)) {
-    return [issue("error", "invalid_pet_target", "Pet target must be an object.", path)];
-  }
-
-  const candidate = target as Partial<PetTarget>;
-  const issues: ValidationIssue[] = [];
-  if (!petTargetTypes.has(candidate.type as PetTarget["type"])) {
-    issues.push(issue("error", "invalid_pet_target", `Pet target type '${String(candidate.type)}' is unknown.`, `${path}.type`));
-  }
-
-  if ("petInstanceId" in candidate && typeof candidate.petInstanceId !== "string") {
-    issues.push(issue("error", "invalid_pet_target", "Pet target petInstanceId must be a string when present.", `${path}.petInstanceId`));
-  }
-
-  if ("tag" in candidate && (typeof candidate.tag !== "string" || candidate.tag.length === 0)) {
-    issues.push(issue("error", "invalid_pet_target", "Pet target tag must be a non-empty string.", `${path}.tag`));
-  }
-
-  return issues;
-};
-
-const validateEffectPayload = (
-  effectDefinition: EffectDefinition,
-  path: string
-): ValidationIssue[] => {
-  const issues: ValidationIssue[] = [];
-  const requiresAmount =
-    effectDefinition.type === "damage" ||
-    effectDefinition.type === "block" ||
-    effectDefinition.type === "draw" ||
-    effectDefinition.type === "petAttack" ||
-    effectDefinition.type === "petBlock";
-
-  if (
-    effectDefinition.type === "damage" ||
-    effectDefinition.type === "block" ||
-    effectDefinition.type === "applyStatus" ||
-    effectDefinition.type === "petAttack" ||
-    effectDefinition.type === "petBlock"
-  ) {
-    if (!("target" in effectDefinition)) {
-      issues.push(issue("error", "missing_effect_target", "Effect is missing a combatant target.", `${path}.target`));
-    }
-  }
-
-  if (
-    effectDefinition.type === "petAttack" ||
-    effectDefinition.type === "petBlock" ||
-    effectDefinition.type === "petReact"
-  ) {
-    if (!("petTarget" in effectDefinition)) {
-      issues.push(issue("error", "missing_pet_target", "Effect is missing a pet target.", `${path}.petTarget`));
-    }
-  }
-
-  if (requiresAmount && !("amount" in effectDefinition)) {
-    issues.push(issue("error", "missing_effect_amount", "Effect is missing an amount.", `${path}.amount`));
-  }
-
-  if ("target" in effectDefinition) {
-    issues.push(...validateCombatantTargetPayload(effectDefinition.target, `${path}.target`));
-  }
-
-  if ("petTarget" in effectDefinition) {
-    issues.push(...validatePetTargetPayload(effectDefinition.petTarget, `${path}.petTarget`));
-  }
-
-  if ("amount" in effectDefinition && (!Number.isFinite(effectDefinition.amount) || effectDefinition.amount < 0)) {
-    issues.push(issue("error", "invalid_effect_amount", "Effect amount must be a non-negative finite number.", `${path}.amount`));
-  }
-
-  if (effectDefinition.type === "draw" && ("amount" in effectDefinition) && !Number.isInteger(effectDefinition.amount)) {
-    issues.push(issue("error", "invalid_effect_amount", "Draw effect amount must be an integer.", `${path}.amount`));
-  }
-
-  if (effectDefinition.type === "applyStatus") {
-    if (!("statusId" in effectDefinition)) {
-      issues.push(issue("error", "missing_effect_status", "Status effect is missing a status id.", `${path}.statusId`));
-    }
-
-    if (effectDefinition.statusId !== burnStatusDefinition.id) {
-      issues.push(issue("error", "unknown_effect_status", `Effect references unknown status '${effectDefinition.statusId}'.`, `${path}.statusId`));
-    }
-
-    if (!("stacks" in effectDefinition)) {
-      issues.push(issue("error", "missing_effect_stacks", "Status effect is missing stacks.", `${path}.stacks`));
-    }
-
-    if (!Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0) {
-      issues.push(issue("error", "invalid_effect_stacks", "Status effect stacks must be a positive integer.", `${path}.stacks`));
-    }
-  }
-
-  if (effectDefinition.type === "setStoryFlag") {
-    if (typeof effectDefinition.flagId !== "string" || effectDefinition.flagId.length === 0) {
-      issues.push(issue("error", "invalid_story_flag_effect", "Story flag effect flagId must be a non-empty string.", `${path}.flagId`));
-    }
-  }
-
-  if (effectDefinition.type === "petReact") {
-    if (typeof effectDefinition.reaction !== "string" || effectDefinition.reaction.length === 0) {
-      issues.push(issue("error", "invalid_pet_reaction_effect", "Pet reaction effect reaction must be a non-empty string.", `${path}.reaction`));
-    }
-  }
-
-  return issues;
-};
-
 const validatePetModifierRule = (
   petDefinitionIds: ReadonlySet<string>,
+  statusIds: ReadonlySet<string>,
   rule: PetModifierRule,
   path: string
 ): ValidationIssue[] => {
@@ -326,7 +133,7 @@ const validatePetModifierRule = (
   }
 
   if (rule.type === "modifyPetCommandEffectAmount" && rule.effectType === "applyStatus") {
-    if ("statusId" in rule && rule.statusId !== burnStatusDefinition.id) {
+    if ("statusId" in rule && (typeof rule.statusId !== "string" || !statusIds.has(rule.statusId))) {
       issues.push(
         issue(
           "error",
@@ -409,7 +216,7 @@ const validatePetModifierRule = (
   }
 
   if (rule.type === "triggerOnEnemyDefeatedWithStatus") {
-    if (rule.requiredStatusId !== burnStatusDefinition.id) {
+    if (!statusIds.has(rule.requiredStatusId)) {
       issues.push(
         issue(
           "error",
@@ -421,7 +228,7 @@ const validatePetModifierRule = (
     }
 
     if (Array.isArray(rule.effects)) {
-      issues.push(...validateEffects(rule.effects, path));
+      issues.push(...validateEffects(rule.effects, path, { statusIds }));
 
       rule.effects.forEach((effectDefinition, effectIndex) => {
         if (typeof effectDefinition !== "object" || effectDefinition === null) {
@@ -914,6 +721,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   }
 
   const registryRecord = registry as unknown as {
+    readonly contentVersion?: unknown;
     readonly cards?: unknown;
     readonly pets?: unknown;
     readonly players?: unknown;
@@ -924,22 +732,46 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     readonly petModifiers?: unknown;
     readonly storyEvents?: unknown;
     readonly petSideStories?: unknown;
+    readonly statuses?: unknown;
   };
 
-  const issues: ValidationIssue[] = [
-    ...findDuplicateIds("cards", registryRecord.cards),
-    ...findDuplicateIds("pets", registryRecord.pets),
-    ...findDuplicateIds("players", registryRecord.players),
-    ...findDuplicateIds("monsters", registryRecord.monsters),
-    ...findDuplicateIds("encounters", registryRecord.encounters),
-    ...findDuplicateIds("runMapTemplates", registryRecord.runMapTemplates),
-    ...findDuplicateIds("petUpgrades", registryRecord.petUpgrades),
-    ...findDuplicateIds("storyEvents", registryRecord.storyEvents),
-    ...findDuplicateIds("petSideStories", registryRecord.petSideStories)
-  ];
+  const contentIndex = buildContentIndex({
+    contentVersion: typeof registryRecord.contentVersion === "string" ? registryRecord.contentVersion : "",
+    cards: Array.isArray(registryRecord.cards) ? registryRecord.cards : [],
+    statuses: Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition],
+    pets: Array.isArray(registryRecord.pets) ? registryRecord.pets : [],
+    players: Array.isArray(registryRecord.players) ? registryRecord.players : [],
+    monsters: Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [],
+    encounters: Array.isArray(registryRecord.encounters) ? registryRecord.encounters : [],
+    runMapTemplates: Array.isArray(registryRecord.runMapTemplates) ? registryRecord.runMapTemplates : [],
+    petUpgrades: Array.isArray(registryRecord.petUpgrades) ? registryRecord.petUpgrades : [],
+    petModifiers: Array.isArray(registryRecord.petModifiers) ? registryRecord.petModifiers : [],
+    storyEvents: Array.isArray(registryRecord.storyEvents) ? registryRecord.storyEvents : [],
+    petSideStories: Array.isArray(registryRecord.petSideStories) ? registryRecord.petSideStories : []
+  } as unknown as GameContentRegistry);
+
+  const issues: ValidationIssue[] = contentIndex.duplicateIds.map((duplicate) =>
+    issue("error", "duplicate_id", `Duplicate id '${duplicate.id}' in ${duplicate.collection}.`, duplicate.collection)
+  );
+
+  if (
+    "contentVersion" in registryRecord &&
+    registryRecord.contentVersion !== undefined &&
+    (typeof registryRecord.contentVersion !== "string" || registryRecord.contentVersion.length === 0)
+  ) {
+    issues.push(issue("error", "invalid_content_version", "Content version must be a non-empty string.", "contentVersion"));
+  }
 
   if (!Array.isArray(registryRecord.cards)) {
     issues.push(issue("error", "invalid_cards", "Cards must be an array.", "cards"));
+  }
+
+  if (
+    "statuses" in registryRecord &&
+    registryRecord.statuses !== undefined &&
+    !Array.isArray(registryRecord.statuses)
+  ) {
+    issues.push(issue("error", "invalid_statuses", "Statuses must be an array.", "statuses"));
   }
 
   if (!Array.isArray(registryRecord.players)) {
@@ -971,6 +803,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   }
 
   const cardDefinitions = Array.isArray(registryRecord.cards) ? registryRecord.cards : [];
+  const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition];
   const playerDefinitions = Array.isArray(registryRecord.players) ? registryRecord.players : [];
   const monsterDefinitions = Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [];
   const storyEventDefinitions = Array.isArray(registryRecord.storyEvents) ? registryRecord.storyEvents : [];
@@ -984,6 +817,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       .map((card) => card.id)
       .filter(isString)
   );
+  const supportedStatusEffectIds = new Set<string>([burnStatusDefinition.id]);
   const monsterIds = new Set(
     monsterDefinitions
       .filter(isRecord)
@@ -1314,6 +1148,29 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     }
   });
 
+  statusDefinitions.forEach((statusValue, statusIndex) => {
+    if (!isRecord(statusValue)) {
+      issues.push(issue("error", "invalid_status", "Status definition must be an object.", `statuses[${statusIndex}]`));
+      return;
+    }
+
+    if (typeof statusValue.id !== "string" || statusValue.id.length === 0) {
+      issues.push(issue("error", "invalid_status", "Status id must be a non-empty string.", `statuses[${statusIndex}].id`));
+    }
+
+    if (typeof statusValue.name !== "string" || statusValue.name.length === 0) {
+      issues.push(issue("error", "invalid_status", "Status name must be a non-empty string.", `statuses[${statusIndex}].name`));
+    }
+
+    if (!Array.isArray(statusValue.tags)) {
+      issues.push(issue("error", "invalid_status", "Status tags must be an array.", `statuses[${statusIndex}].tags`));
+    }
+
+    if (typeof statusValue.description !== "string" || statusValue.description.length === 0) {
+      issues.push(issue("error", "invalid_status", "Status description must be a non-empty string.", `statuses[${statusIndex}].description`));
+    }
+  });
+
   cardDefinitions.forEach((cardValue, cardIndex) => {
     if (!isRecord(cardValue)) {
       issues.push(issue("error", "invalid_card", "Card definition must be an object.", `cards[${cardIndex}]`));
@@ -1340,7 +1197,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       return;
     }
 
-    issues.push(...validateEffects(card.effects as readonly EffectDefinition[], `cards[${cardIndex}]`));
+    issues.push(...validateEffects(card.effects as readonly EffectDefinition[], `cards[${cardIndex}]`, { statusIds: supportedStatusEffectIds }));
   });
 
   monsterDefinitions.forEach((monsterValue, monsterIndex) => {
@@ -1361,7 +1218,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
         return;
       }
 
-      issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`));
+      issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`, { statusIds: supportedStatusEffectIds }));
     });
   });
 
@@ -1538,6 +1395,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
         modifier.rules.forEach((rule: unknown, ruleIndex: number) => {
           issues.push(...validatePetModifierRule(
             petDefinitionIds,
+            supportedStatusEffectIds,
             rule as PetModifierRule,
             `petUpgrades[${upgradeIndex}].modifiers[${modifierIndex}].rules[${ruleIndex}]`
           ));
@@ -1597,7 +1455,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
 
     if (Array.isArray(modifier.rules)) {
       modifier.rules.forEach((rule: unknown, ruleIndex: number) => {
-        issues.push(...validatePetModifierRule(petDefinitionIds, rule as PetModifierRule, `petModifiers[${modifierIndex}].rules[${ruleIndex}]`));
+        issues.push(...validatePetModifierRule(petDefinitionIds, supportedStatusEffectIds, rule as PetModifierRule, `petModifiers[${modifierIndex}].rules[${ruleIndex}]`));
       });
     }
   });

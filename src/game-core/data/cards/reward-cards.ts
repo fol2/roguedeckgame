@@ -1,82 +1,87 @@
 import { cardId, petDefinitionId, statusId } from "../../ids";
 import { act1NormalBalance } from "../balance/act1-normal";
 import type { CardDefinition } from "../../model/card";
+import {
+  applyStatusEffect,
+  attackCard,
+  blockEffect,
+  damageEffect,
+  drawEffect,
+  petAttackEffect,
+  petCommandCard,
+  petReactEffect,
+  skillCard
+} from "../builders";
 
-export const emberSpark: CardDefinition = {
+export const emberSpark: CardDefinition = attackCard({
   id: cardId("ember_spark"),
   name: "Ember Spark",
   description: `Deal ${act1NormalBalance.cards.emberSparkDamage} damage and apply ${act1NormalBalance.cards.emberSparkBurn} burn.`,
-  type: "attack",
   cost: act1NormalBalance.cards.emberSparkCost,
   rarity: "common",
   tags: ["attack", "burn", "fire"],
   effects: [
-    { type: "damage", amount: act1NormalBalance.cards.emberSparkDamage, target: { type: "target" } },
-    { type: "applyStatus", statusId: statusId("burn"), stacks: act1NormalBalance.cards.emberSparkBurn, target: { type: "target" } }
+    damageEffect(act1NormalBalance.cards.emberSparkDamage, { type: "target" }),
+    applyStatusEffect(statusId("burn"), act1NormalBalance.cards.emberSparkBurn, { type: "target" })
   ]
-};
+});
 
-export const quickGuard: CardDefinition = {
+export const quickGuard: CardDefinition = skillCard({
   id: cardId("quick_guard"),
   name: "Quick Guard",
   description: `Gain ${act1NormalBalance.cards.quickGuardBlock} block.`,
-  type: "skill",
   cost: act1NormalBalance.cards.quickGuardCost,
   rarity: "common",
   tags: ["block", "guard"],
-  effects: [{ type: "block", amount: act1NormalBalance.cards.quickGuardBlock, target: { type: "self" } }]
-};
+  effects: [blockEffect(act1NormalBalance.cards.quickGuardBlock, { type: "self" })]
+});
 
-export const studyCommand: CardDefinition = {
+export const studyCommand: CardDefinition = skillCard({
   id: cardId("study_command"),
   name: "Study Command",
   description: `Draw ${act1NormalBalance.cards.studyCommandDraw} card.`,
-  type: "skill",
   cost: act1NormalBalance.cards.studyCommandCost,
   rarity: "common",
   tags: ["draw", "command"],
-  effects: [{ type: "draw", amount: act1NormalBalance.cards.studyCommandDraw }]
-};
+  effects: [drawEffect(act1NormalBalance.cards.studyCommandDraw)]
+});
 
-export const kindle: CardDefinition = {
+export const kindle: CardDefinition = skillCard({
   id: cardId("kindle"),
   name: "Kindle",
   description: `Apply ${act1NormalBalance.cards.kindleBurn} burn to all enemies.`,
-  type: "skill",
   cost: act1NormalBalance.cards.kindleCost,
   rarity: "uncommon",
   tags: ["burn", "fire", "setup"],
-  effects: [{ type: "applyStatus", statusId: statusId("burn"), stacks: act1NormalBalance.cards.kindleBurn, target: { type: "allEnemies" } }]
-};
+  effects: [applyStatusEffect(statusId("burn"), act1NormalBalance.cards.kindleBurn, { type: "allEnemies" })]
+});
 
-export const coordinatedStrike: CardDefinition = {
+export const coordinatedStrike: CardDefinition = attackCard({
   id: cardId("coordinated_strike"),
   name: "Coordinated Strike",
   description: `Deal ${act1NormalBalance.cards.coordinatedStrikeDamage} damage and prompt the leading pet to follow up.`,
-  type: "attack",
   cost: act1NormalBalance.cards.coordinatedStrikeCost,
   rarity: "uncommon",
   tags: ["attack", "pet", "command", "combo"],
   effects: [
-    { type: "damage", amount: act1NormalBalance.cards.coordinatedStrikeDamage, target: { type: "target" } },
-    { type: "petReact", petTarget: { type: "leading" }, reaction: "strike_followup" }
+    damageEffect(act1NormalBalance.cards.coordinatedStrikeDamage, { type: "target" }),
+    petReactEffect({ type: "leading" }, "strike_followup")
   ]
-};
+});
 
-export const foxFlare: CardDefinition = {
+export const foxFlare: CardDefinition = petCommandCard({
   id: cardId("fox_flare"),
   name: "Fox Flare",
   description: `Command the leading pet to strike for ${act1NormalBalance.cards.foxFlarePetAttack}, then apply ${act1NormalBalance.cards.foxFlareBurn} burn.`,
-  type: "pet-command",
   cost: act1NormalBalance.cards.foxFlareCost,
   rarity: "uncommon",
   requiresPetDefinitionId: petDefinitionId("ember_fox"),
   tags: ["pet", "fox", "burn", "command"],
   effects: [
-    { type: "petAttack", petTarget: { type: "leading" }, amount: act1NormalBalance.cards.foxFlarePetAttack, target: { type: "target" } },
-    { type: "applyStatus", statusId: statusId("burn"), stacks: act1NormalBalance.cards.foxFlareBurn, target: { type: "target" } }
+    petAttackEffect({ type: "leading" }, act1NormalBalance.cards.foxFlarePetAttack, { type: "target" }),
+    applyStatusEffect(statusId("burn"), act1NormalBalance.cards.foxFlareBurn, { type: "target" })
   ]
-};
+});
 
 export const rewardCards = [
   emberSpark,
