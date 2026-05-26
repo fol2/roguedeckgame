@@ -6,6 +6,7 @@ import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
 import type { CombatStatusState } from "../model/status";
 import { drawCards } from "./draw";
+import { getEffectDescriptor, type EffectResolverKey } from "./effect-descriptors";
 import { checkCombatOutcome } from "./outcome";
 import type { Rng } from "./rng";
 
@@ -414,19 +415,13 @@ const resolveApplyStatusEffect = (
   return { ok: true, state: nextState, events, errors: [] };
 };
 
-const effectHandlers = {
-  draw: resolveDrawEffect,
-  setStoryFlag: resolveStoryFlagEffect,
-  petReact: resolvePetReactEffect,
-  damage: resolveDamageLikeEffect,
-  petAttack: resolveDamageLikeEffect,
-  block: resolveBlockLikeEffect,
-  petBlock: resolveBlockLikeEffect,
-  applyStatus: resolveApplyStatusEffect
-} satisfies {
-  readonly [Type in EffectDefinition["type"]]: (
-    input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: Type }>>
-  ) => GameActionResult<CombatState>;
+const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
+  draw: resolveDrawEffect as EffectHandler,
+  storyFlag: resolveStoryFlagEffect as EffectHandler,
+  petReact: resolvePetReactEffect as EffectHandler,
+  damageLike: resolveDamageLikeEffect as EffectHandler,
+  blockLike: resolveBlockLikeEffect as EffectHandler,
+  applyStatus: resolveApplyStatusEffect as EffectHandler
 };
 
 export const resolveEffects = (
@@ -440,7 +435,7 @@ export const resolveEffects = (
   const events: GameEvent[] = [];
 
   for (const effectDefinition of effects) {
-    const handler = effectHandlers[effectDefinition.type] as EffectHandler;
+    const handler = effectResolvers[getEffectDescriptor(effectDefinition.type).resolverKey];
     const result = handler({
       state: nextState,
       effect: effectDefinition,

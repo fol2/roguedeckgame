@@ -157,6 +157,34 @@ describe("starterRegistry", () => {
     ]));
   });
 
+  it("reports status references against registered statuses", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        statuses: []
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("unknown_effect_status");
+  });
+
+  it("reports malformed status definitions", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        statuses: [
+          {
+            ...starterRegistry.statuses[0],
+            name: "",
+            tags: "bad"
+          } as unknown as typeof starterRegistry.statuses[0]
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toEqual(expect.arrayContaining([
+      "invalid_status"
+    ]));
+  });
+
   it("reports effects missing required target payloads before runtime", () => {
     const result = validateRegistry(
       cloneRegistry({

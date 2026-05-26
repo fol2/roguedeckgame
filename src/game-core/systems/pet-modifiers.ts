@@ -13,14 +13,14 @@ import type {
 } from "../model/pet";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { GameContentRegistry } from "../model/registry";
-import type { CardId, CardInstanceId, CombatantId, PetInstanceId, PetModifierId, StatusId, UpgradeId } from "../ids";
-import { burnStatusDefinition } from "../model/status";
+import type { CardId, CardInstanceId, PetInstanceId, PetModifierId, UpgradeId } from "../ids";
 import { drawCards } from "./draw";
 import {
   knownPetModifierSelectorCardTypes,
   matchesPetModifierCardSelector
 } from "./pet-modifier-selectors";
 import type { Rng } from "./rng";
+import { petModifierTriggerMatches } from "./trigger-rules";
 
 export type PetModifierContext = {
   readonly petInstanceId: PetInstanceId;
@@ -169,7 +169,8 @@ const validateCardSelector = (
 const validateModifierRule = (
   rule: PetModifierRule,
   path: string,
-  petDefinitionIds: ReadonlySet<string>
+  petDefinitionIds: ReadonlySet<string>,
+  statusIds: ReadonlySet<string>
 ): GameActionError | undefined => {
   if (!isRecord(rule)) {
     return error("invalid_pet_modifier_rule", "Pet modifier rule must be an object.", path);
@@ -217,7 +218,7 @@ const validateModifierRule = (
     if (
       rule.effectType === "applyStatus" &&
       "statusId" in rule &&
-      rule.statusId !== burnStatusDefinition.id
+      (typeof rule.statusId !== "string" || !statusIds.has(rule.statusId))
     ) {
       return error("invalid_pet_modifier_rule", `Pet command effect modifier references unknown status '${rule.statusId}'.`, path);
     }
@@ -231,7 +232,7 @@ const validateModifierRule = (
     return error("invalid_pet_modifier_rule", "Pet trigger modifier is missing a required status id.", path);
   }
 
-  if (rule.requiredStatusId !== burnStatusDefinition.id) {
+  if (!statusIds.has(rule.requiredStatusId)) {
     return error("invalid_pet_modifier_rule", `Pet trigger modifier references unknown status '${rule.requiredStatusId}'.`, path);
   }
 
@@ -290,9 +291,10 @@ const validateModifier = (
   }
 
   const petDefinitionIds = new Set(registry.pets.map((pet) => pet.id));
+  const statusIds = new Set(registry.statuses.map((status) => status.id));
 
   for (const [ruleIndex, rule] of modifier.rules.entries()) {
-    const ruleError = validateModifierRule(rule, `${path}.rules[${ruleIndex}]`, petDefinitionIds);
+    const ruleError = validateModifierRule(rule, `${path}.rules[${ruleIndex}]`, petDefinitionIds, statusIds);
     if (ruleError) {
       return ruleError;
     }
@@ -710,48 +712,6 @@ export const resolvePetCommandOwnerIds = (
     : { ok: false, error: error("missing_tagged_pet", `No active pet has tag '${target.tag}'.`, "petTarget.tag") };
 };
 
-const burnedEnemiesDefeatedByEvents = (
-  stateBeforeEvents: CombatState,
-  events: readonly GameEvent[],
-  requiredStatusId: StatusId
-): readonly CombatantId[] => {
-  const statusBearingCombatantIds = new Set<CombatantId>(
-    stateBeforeEvents.monsters
-      .filter((monster) => monster.statuses.some((status) => status.statusId === requiredStatusId && status.stacks > 0))
-      .map((monster) => monster.id)
-  );
-  const defeatedIds: CombatantId[] = [];
-
-  for (const event of events) {
-    if (event.type === "StatusApplied" && event.statusId === requiredStatusId) {
-      statusBearingCombatantIds.add(event.targetId);
-      continue;
-    }
-
-    if (event.type === "StatusExpired" && event.statusId === requiredStatusId) {
-      statusBearingCombatantIds.delete(event.targetId);
-      continue;
-    }
-
-    if (event.type !== "CombatantDefeated") {
-      continue;
-    }
-
-    const defeatedMonster = stateBeforeEvents.monsters.find((monster) => monster.id === event.combatantId);
-    if (defeatedMonster && statusBearingCombatantIds.has(event.combatantId)) {
-      defeatedIds.push(event.combatantId);
-    }
-  }
-
-  return defeatedIds;
-};
-
-const triggerRuleMatches = (
-  rule: TriggerOnEnemyDefeatedWithStatusRule,
-  stateBeforeEffects: CombatState,
-  effectEvents: readonly GameEvent[]
-): boolean => burnedEnemiesDefeatedByEvents(stateBeforeEffects, effectEvents, rule.requiredStatusId).length > 0;
-
 export const resolvePetModifierTriggersAfterEvents = (
   input: TriggerInput
 ): GameActionResult<CombatState> => {
@@ -792,7 +752,10 @@ export const resolvePetModifierTriggersAfterEvents = (
         continue;
       }
 
-      if (!triggerRuleMatches(rule, input.stateBeforeEffects, input.effectEvents)) {
+      if (!petModifierTriggerMatches(rule, {
+        stateBeforeEffects: input.stateBeforeEffects,
+        effectEvents: input.effectEvents
+      })) {
         continue;
       }
 

@@ -16,5 +16,5 @@ export const burnStatusDefinition: StatusDefinition = {
   id: statusId("burn"),
   name: "Burn",
   tags: ["damage", "fire"],
-  description: "At the start of this combatant's turn, take damage equal to Burn, then reduce Burn by 1."
+  description: "At the start of this unit's turn, take damage equal to Burn ignoring Block, then reduce Burn by 1. Expires at 0."
 };

@@ -9,9 +9,12 @@ import { runMapTemplates as forestRunMapTemplates } from "./run-maps/act1-forest
 import { emberFoxPetSideStories, emberFoxStoryEvents } from "./story/ember-fox-story";
 import { emberFoxUpgrades } from "./upgrades/ember-fox-upgrades";
 import type { GameContentRegistry } from "../model/registry";
+import { burnStatusDefinition } from "../model/status";
 
 export const starterRegistry: GameContentRegistry = {
+  contentVersion: "starter-act1-forest-v1",
   cards: [...starterCards, ...emberFoxCards, ...rewardCards],
+  statuses: [burnStatusDefinition],
   pets: petDefinitions,
   players: playerDefinitions,
   monsters: forestMonsters,
@@ -24,6 +27,7 @@ export const starterRegistry: GameContentRegistry = {
 };
 
 export const cards = starterRegistry.cards;
+export const statuses = starterRegistry.statuses;
 export const pets = starterRegistry.pets;
 export const players = starterRegistry.players;
 export const monsters = starterRegistry.monsters;

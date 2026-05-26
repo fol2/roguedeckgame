@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   createRun,
   createSaveSnapshot,
+  cardId,
   evolutionNodeId,
+  UNKNOWN_SAVE_CONTENT_VERSION,
   petMemoryId,
   parseSaveSnapshot,
   playerClassId,
@@ -13,7 +15,8 @@ import {
   storyEventId,
   storyFlagId,
   upgradeId,
-  validateSaveSnapshot
+  validateSaveSnapshot,
+  validateSaveSnapshotContent
 } from "../../src/game-core";
 import { createEmberFoxInstanceFixture } from "../../src/game-core/testing/fixtures";
 import { createSaveSnapshotFixture } from "../../src/game-core/testing/save-fixtures";
@@ -38,6 +41,7 @@ describe("save snapshots", () => {
   it("creates, serializes, parses, and restores plain data", () => {
     const snapshot = createSaveSnapshot({
       profileId: "profile_a",
+      registry: starterRegistry,
       activeRun: createSaveSnapshotFixture().activeRun,
       petInstances: [createEmberFoxInstanceFixture()],
       now: "2026-05-25T00:00:00.000Z"
@@ -50,12 +54,55 @@ describe("save snapshots", () => {
     expect(serialized.ok).toBe(true);
     expect(parsed.ok).toBe(true);
     expect(restored.ok).toBe(true);
+    expect(snapshot.state.contentVersion).toBe(starterRegistry.contentVersion);
     expect(restored.state).toEqual({
       activeRun: snapshot.state.activeRun,
       petInstances: snapshot.state.petInstances,
       globalStoryFlags: []
     });
     expect(JSON.parse(serialized.state)).toEqual(snapshot.state);
+  });
+
+  it("normalises legacy saves without content version metadata", () => {
+    const legacySnapshot = clone(createSaveSnapshotFixture()) as Record<string, unknown>;
+    delete legacySnapshot.contentVersion;
+
+    const validation = validateSaveSnapshot(legacySnapshot);
+
+    expect(validation.ok).toBe(true);
+    expect(validation.state.contentVersion).toBe(UNKNOWN_SAVE_CONTENT_VERSION);
+    expect(restoreSaveSnapshot(validation.state, starterRegistry).ok).toBe(true);
+  });
+
+  it("validates save references against a content registry when requested", () => {
+    const snapshot = createSaveSnapshotFixture();
+    const missingDeckCard = {
+      ...snapshot,
+      activeRun: {
+        ...snapshot.activeRun!,
+        deckCardIds: [cardId("missing_card")]
+      }
+    };
+
+    expect(validateSaveSnapshot(missingDeckCard).ok).toBe(true);
+    expect(validateSaveSnapshotContent(missingDeckCard, starterRegistry)).toMatchObject({
+      ok: false,
+      errors: [{ code: "unknown_save_content_reference", path: "activeRun.deckCardIds[0]" }]
+    });
+    expect(restoreSaveSnapshot(missingDeckCard, starterRegistry)).toMatchObject({
+      ok: false,
+      errors: [{ code: "unknown_save_content_reference" }]
+    });
+  });
+
+  it("rejects saves from incompatible content versions when content validation is requested", () => {
+    const snapshot = createSaveSnapshotFixture({ contentVersion: "future-content-v99" });
+
+    expect(validateSaveSnapshot(snapshot).ok).toBe(true);
+    expect(validateSaveSnapshotContent(snapshot, starterRegistry)).toMatchObject({
+      ok: false,
+      errors: [{ code: "incompatible_save_content_version", path: "contentVersion" }]
+    });
   });
 
   it("returns ok false for invalid JSON, unsupported version, and missing fields", () => {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { cardId, cardInstanceId, combatantId, type GameEvent } from "../../src/game-core";
-import { planCombatEventAnimation } from "../../src/game-phaser/animation/combat-animation-plan";
+import {
+  planCombatEventAnimation,
+  planCombatEventAnimationFromInput,
+  planCombatEventAnimations
+} from "../../src/game-phaser/animation/combat-animation-plan";
 import type { CombatViewModel } from "../../src/game-phaser/view-models/combat-view-model";
 
 const finalHand = [
@@ -60,5 +64,42 @@ describe("combat animation plan", () => {
 
     expect(planCombatEventAnimation(moved, undefined)).toEqual({ type: "eventFx", event: moved });
     expect(planCombatEventAnimation(damage, { hand: finalHand } as unknown as CombatViewModel)).toEqual({ type: "eventFx", event: damage });
+  });
+
+  it("preserves command order for multiple events", () => {
+    const first: GameEvent = {
+      type: "CardMoved",
+      cardInstanceId: cardInstanceId("card:1"),
+      cardId: cardId("strike"),
+      from: "draw",
+      to: "hand"
+    };
+    const second: GameEvent = {
+      type: "CardMoved",
+      cardInstanceId: cardInstanceId("card:2"),
+      cardId: cardId("defend"),
+      from: "hand",
+      to: "discard"
+    };
+    const third: GameEvent = {
+      type: "BlockGained",
+      targetId: combatantId("player"),
+      amount: 5,
+      total: 5
+    };
+
+    expect(planCombatEventAnimations([first, second, third], {
+      finalViewModel: { hand: finalHand } as unknown as CombatViewModel
+    })).toEqual([
+      { type: "cardMovement", event: first, finalHand },
+      { type: "cardMovement", event: second, finalHand },
+      { type: "eventFx", event: third }
+    ]);
+  });
+
+  it("uses event FX for unknown event shapes", () => {
+    const event = { type: "UnknownEvent" } as unknown as GameEvent;
+
+    expect(planCombatEventAnimationFromInput({ event })).toEqual({ type: "eventFx", event });
   });
 });

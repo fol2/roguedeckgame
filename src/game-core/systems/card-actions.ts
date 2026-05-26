@@ -1,5 +1,9 @@
 import type { CardDefinition } from "../model/card";
 import type { CombatantTarget, EffectDefinition } from "../model/effect";
+import {
+  effectHasCombatantTarget,
+  effectHasPetTarget as descriptorEffectHasPetTarget
+} from "./effect-descriptors";
 
 export type CardTargetKind =
   | "none"
@@ -32,13 +36,13 @@ export const cardNeedsActionTarget = (card: CardDefinition): boolean =>
   card.effects.some(effectNeedsActionTarget);
 
 const effectTargetsSelf = (effectDefinition: EffectDefinition): boolean =>
-  "target" in effectDefinition && effectDefinition.target.type === "self";
+  effectHasCombatantTarget(effectDefinition) && "target" in effectDefinition && effectDefinition.target.type === "self";
 
 const effectTargetsAllEnemies = (effectDefinition: EffectDefinition): boolean =>
-  "target" in effectDefinition && effectDefinition.target.type === "allEnemies";
+  effectHasCombatantTarget(effectDefinition) && "target" in effectDefinition && effectDefinition.target.type === "allEnemies";
 
 const effectHasPetTarget = (effectDefinition: EffectDefinition): boolean =>
-  "petTarget" in effectDefinition;
+  descriptorEffectHasPetTarget(effectDefinition);
 
 const getTargetKind = (card: CardDefinition): CardTargetKind => {
   const requiresActionTarget = cardNeedsActionTarget(card);

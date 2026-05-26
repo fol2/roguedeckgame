@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { cardId, getCardActionProfile, petDefinitionId, statusId, storyFlagId } from "../../src/game-core";
+import {
+  cardId,
+  effectDescriptorList,
+  getCardActionProfile,
+  getEffectDescriptor,
+  knownEffectTypes,
+  petDefinitionId,
+  statusId,
+  storyFlagId
+} from "../../src/game-core";
 import type { CardDefinition } from "../../src/game-core";
 
 const createCard = (
@@ -16,6 +25,22 @@ const createCard = (
 });
 
 describe("card action profiles", () => {
+  it("keeps effect descriptors aligned with known effect types", () => {
+    expect(effectDescriptorList.map((descriptor) => descriptor.type).sort()).toEqual([...knownEffectTypes].sort());
+    expect(getEffectDescriptor("damage")).toMatchObject({
+      combatantTarget: "required",
+      petTarget: "none",
+      amount: "nonNegativeNumber",
+      resolverKey: "damageLike"
+    });
+    expect(getEffectDescriptor("petReact")).toMatchObject({
+      combatantTarget: "none",
+      petTarget: "required",
+      requiresPetReaction: true,
+      resolverKey: "petReact"
+    });
+  });
+
   it.each([
     [
       "enemy",
