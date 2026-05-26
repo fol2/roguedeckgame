@@ -54,10 +54,11 @@ export type RunSandboxController = {
   readonly selectMapNode: (nodeId: RunNodeId) => GameActionResult<RunSandboxState>;
   readonly playHandCard: (
     cardInstanceId: CardInstanceId,
-    targetId?: CombatantId,
-    expectedRevision?: number
+    targetId: CombatantId | undefined,
+    expectedRevision: number | undefined,
+    requestId: string
   ) => GameActionResult<RunSandboxState>;
-  readonly endTurn: (expectedRevision?: number) => GameActionResult<RunSandboxState>;
+  readonly endTurn: (expectedRevision: number | undefined, requestId: string) => GameActionResult<RunSandboxState>;
   readonly completeCombatIfEnded: () => GameActionResult<RunSandboxState>;
   readonly claimRewardOption: (rewardOptionId: RewardOptionId) => GameActionResult<RunSandboxState>;
   readonly skipReward: () => GameActionResult<RunSandboxState>;
@@ -155,6 +156,7 @@ export const createRunSandboxController = (
   let actionRng = createCombatRng(`${String(seed)}:actions`);
   let state = createInitialState(seed).state;
   let revision = 0;
+  let seenGameplayRequestIds = new Set<string>();
 
   const commit = (next: RunSandboxState): RunSandboxState => {
     state = next;
@@ -194,6 +196,31 @@ export const createRunSandboxController = (
       `Combat view revision ${expectedRevision} is stale; latest revision is ${revision}.`,
       path
     ));
+  };
+
+  const rejectIfInvalidRequest = (
+    requestId: string,
+    path: string
+  ): GameActionResult<RunSandboxState> | undefined => {
+    if (!requestId) {
+      return reject(createError(
+        "missing_request_id",
+        "Gameplay requests must include a request id.",
+        path
+      ));
+    }
+
+    if (seenGameplayRequestIds.has(requestId)) {
+      return reject(createError(
+        "duplicate_request",
+        `Gameplay request '${requestId}' was already submitted.`,
+        path
+      ));
+    }
+
+    seenGameplayRequestIds.add(requestId);
+
+    return undefined;
   };
 
   return {
@@ -236,9 +263,14 @@ export const createRunSandboxController = (
 
       return toResult(combatResult.ok, next, events, combatResult.errors);
     },
-    playHandCard: (cardInstanceId, explicitTargetId, expectedRevision) => {
+    playHandCard: (cardInstanceId, explicitTargetId, expectedRevision, requestId) => {
       if (!state.combat) {
         return reject(createError("missing_combat", "There is no active combat.", "combat"));
+      }
+
+      const invalidRequest = rejectIfInvalidRequest(requestId, "requestId");
+      if (invalidRequest) {
+        return invalidRequest;
       }
 
       const staleRevision = rejectIfStaleRevision(expectedRevision, "combat.revision");
@@ -265,11 +297,18 @@ export const createRunSandboxController = (
       const nextCombat = cardResult.ok ? cardResult.state : state.combat;
       const next = replaceState(state, { combat: nextCombat }, cardResult.events);
 
-      return toResult(cardResult.ok, next, cardResult.events, cardResult.errors);
+      const result = toResult(cardResult.ok, next, cardResult.events, cardResult.errors);
+
+      return result;
     },
-    endTurn: (expectedRevision) => {
+    endTurn: (expectedRevision, requestId) => {
       if (!state.combat) {
         return reject(createError("missing_combat", "There is no active combat.", "combat"));
+      }
+
+      const invalidRequest = rejectIfInvalidRequest(requestId, "requestId");
+      if (invalidRequest) {
+        return invalidRequest;
       }
 
       const staleRevision = rejectIfStaleRevision(expectedRevision, "combat.revision");
@@ -283,14 +322,18 @@ export const createRunSandboxController = (
       }
 
       if (endResult.state.phase === "won" || endResult.state.phase === "lost") {
-        return toResult(true, replaceState(state, { combat: endResult.state }, endResult.events), endResult.events, []);
+        const result = toResult(true, replaceState(state, { combat: endResult.state }, endResult.events), endResult.events, []);
+
+        return result;
       }
 
       const enemyResult = resolveEnemyTurn(endResult.state, starterRegistry, actionRng);
       const events = [...endResult.events, ...enemyResult.events];
       const nextCombat = enemyResult.ok ? enemyResult.state : endResult.state;
 
-      return toResult(enemyResult.ok, replaceState(state, { combat: nextCombat }, events), events, enemyResult.errors);
+      const result = toResult(enemyResult.ok, replaceState(state, { combat: nextCombat }, events), events, enemyResult.errors);
+
+      return result;
     },
     completeCombatIfEnded: () => {
       if (!state.combat) {
@@ -374,6 +417,7 @@ export const createRunSandboxController = (
       actionRng = createCombatRng(`${String(seed)}:actions`);
       state = resetResult.state;
       revision = 0;
+      seenGameplayRequestIds = new Set();
 
       return resetResult;
     }

@@ -175,6 +175,68 @@ export const COMBAT_TEXT = {
   outcomeFontSize: OUTCOME_LABEL.fontSize
 } as const;
 
+export const QUICK_TOOLTIP = {
+  width: 282,
+  minHeight: 54,
+  padding: 12,
+  offsetX: 18,
+  offsetY: 18,
+  titleY: 10,
+  bodyY: 32,
+  maxBodyLines: 5,
+  fontSize: {
+    title: "13px",
+    body: "12px"
+  }
+} as const;
+
+export const DETAIL_OVERLAY = {
+  x: GAME_WIDTH / 2,
+  y: GAME_HEIGHT / 2,
+  width: 520,
+  height: 430,
+  padding: 24,
+  titleY: 26,
+  subtitleY: 58,
+  lineStartY: 94,
+  lineHeight: 26,
+  footerY: 382,
+  closeX: 230,
+  closeY: -186,
+  closeSize: 34,
+  fontSize: {
+    title: "22px",
+    subtitle: "14px",
+    line: "13px",
+    footer: "12px",
+    close: "18px"
+  }
+} as const;
+
+export const PAUSE_OVERLAY = {
+  x: GAME_WIDTH / 2,
+  y: GAME_HEIGHT / 2,
+  width: 360,
+  height: 220,
+  titleY: -58,
+  bodyY: -18,
+  resumeY: 56,
+  resumeWidth: 156,
+  resumeHeight: 46,
+  fontSize: {
+    title: "22px",
+    body: "13px",
+    button: "16px"
+  }
+} as const;
+
+export const UI_WARNING_LABEL = {
+  x: GAME_WIDTH / 2,
+  y: COMBAT_BOARD.y + 46,
+  maxWidth: 680,
+  fontSize: "12px"
+} as const;
+
 const ENEMY_FORMATIONS = [
   [COMBAT_BOARD.x + COMBAT_BOARD.width - 230],
   [COMBAT_BOARD.x + COMBAT_BOARD.width - 330, COMBAT_BOARD.x + COMBAT_BOARD.width - 150],

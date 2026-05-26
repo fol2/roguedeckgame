@@ -38,7 +38,7 @@ describe("Combat sandbox controller", () => {
     expect(candidate, "expected Strike or Fox Bite in opening hand").toBeDefined();
     const before = controller.getState().combat;
     const firstAliveMonsterId = before.monsters.find((monster) => monster.alive)?.id;
-    const result = controller.playHandCard(candidate!.cardInstanceId);
+    const result = controller.playHandCard(candidate!.cardInstanceId, undefined, undefined, "controller-card-play");
 
     expect(result.ok).toBe(true);
     expect(result.state.combat).not.toBe(before);
@@ -60,7 +60,7 @@ describe("Combat sandbox controller", () => {
     const targetId = targetable!.validTargetIds[0];
     expect(targetId).toBeDefined();
 
-    const result = controller.playHandCard(targetable!.cardInstanceId, targetId, viewModel.revision);
+    const result = controller.playHandCard(targetable!.cardInstanceId, targetId, viewModel.revision, "controller-explicit-target-play");
 
     expect(result.ok).toBe(true);
     expect(result.events).toContainEqual(expect.objectContaining({
@@ -79,7 +79,7 @@ describe("Combat sandbox controller", () => {
     );
 
     expect(untargeted, "expected an untargeted card in opening hand").toBeDefined();
-    const result = controller.playHandCard(untargeted!.cardInstanceId);
+    const result = controller.playHandCard(untargeted!.cardInstanceId, undefined, undefined, "controller-untargeted-play");
 
     expect(result.ok).toBe(true);
     expect(result.events.map((event) => event.type)).toContain("CardPlayed");
@@ -88,7 +88,7 @@ describe("Combat sandbox controller", () => {
 
   it("resolves end turn through the enemy turn and returns to player turn when combat continues", () => {
     const controller = createCombatSandboxController("controller-end-turn");
-    const result = controller.endTurn();
+    const result = controller.endTurn(undefined, "controller-end-turn-submit");
 
     expect(result.ok).toBe(true);
     expect(result.state.combat.phase).toBe("player_turn");
@@ -103,7 +103,7 @@ describe("Combat sandbox controller", () => {
   it("returns rejected actions without mutating the previous combat state", () => {
     const controller = createCombatSandboxController("controller-reject");
     const before = controller.getState();
-    const result = controller.playHandCard(cardInstanceId("missing-card-instance"));
+    const result = controller.playHandCard(cardInstanceId("missing-card-instance"), undefined, undefined, "controller-reject-play");
 
     expect(result.ok).toBe(false);
     expect(result.events[0]?.type).toBe("ActionRejected");
@@ -115,17 +115,50 @@ describe("Combat sandbox controller", () => {
   it("rejects stale combat revisions before applying gameplay requests", () => {
     const controller = createCombatSandboxController("controller-stale-revision");
     const staleRevision = controller.getViewModel().revision;
-    const firstEndTurn = controller.endTurn(staleRevision);
+    const firstEndTurn = controller.endTurn(staleRevision, "controller-stale-first");
 
     expect(firstEndTurn.ok).toBe(true);
     expect(controller.getViewModel().revision).toBeGreaterThan(staleRevision);
 
-    const staleEndTurn = controller.endTurn(staleRevision);
+    const staleEndTurn = controller.endTurn(staleRevision, "controller-stale-second");
 
     expect(staleEndTurn.ok).toBe(false);
     expect(staleEndTurn.events[0]).toMatchObject({
       type: "ActionRejected",
       code: "stale_combat_revision"
+    });
+  });
+
+  it("rejects duplicate gameplay request ids after the first accepted request", () => {
+    const controller = createCombatSandboxController("controller-duplicate-request");
+    const viewModel = controller.getViewModel();
+    const card = viewModel.hand.find((candidate) => candidate.playable);
+
+    expect(card, "expected a playable card in opening hand").toBeDefined();
+    const targetId = card!.requiresManualTarget ? card!.validTargetIds[0] : undefined;
+    const first = controller.playHandCard(card!.cardInstanceId, targetId, viewModel.revision, "request-1");
+
+    expect(first.ok).toBe(true);
+    const duplicate = controller.endTurn(controller.getViewModel().revision, "request-1");
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "duplicate_request"
+    });
+  });
+
+  it("rejects duplicate gameplay request ids after rejected requests too", () => {
+    const controller = createCombatSandboxController("controller-duplicate-rejected-request");
+    const first = controller.playHandCard(cardInstanceId("missing-card-instance"), undefined, undefined, "request-rejected");
+
+    expect(first.ok).toBe(false);
+    const duplicate = controller.endTurn(controller.getViewModel().revision, "request-rejected");
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "duplicate_request"
     });
   });
 

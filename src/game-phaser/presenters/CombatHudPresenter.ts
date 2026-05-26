@@ -14,9 +14,15 @@ import {
   PLAYER_HUD_AREA,
   PLAYER_HUD_TEXT
 } from "../layout/combat-layout";
+import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from "./CombatOverlayPresenter";
 
 type CombatHudOptions = {
   readonly selectedCardActive?: boolean;
+};
+
+type PointerLike = {
+  readonly button?: number;
+  readonly rightButtonDown?: () => boolean;
 };
 
 const getVisiblePlayerStatusText = (statuses: readonly CombatantStatusViewModel[]): string => {
@@ -30,33 +36,68 @@ const getVisiblePlayerStatusText = (statuses: readonly CombatantStatusViewModel[
   return labels.join("  ") || "No status";
 };
 
+const getVisiblePlayerStatusChips = (
+  statuses: readonly CombatantStatusViewModel[],
+  overflowTooltip: CombatViewModel["player"]["statusOverflowTooltip"]
+) => {
+  const visibleStatuses = statuses.slice(0, COMBAT_UI_CAPS.maxPlayerVisibleStatuses);
+  const hiddenStatusCount = Math.max(0, statuses.length - visibleStatuses.length);
+
+  return [
+    ...visibleStatuses.map((status) => ({
+      label: status.label,
+      title: status.label,
+      body: status.tooltip
+    })),
+    ...(hiddenStatusCount > 0 && overflowTooltip
+      ? [{
+          label: `+${hiddenStatusCount}`,
+          title: overflowTooltip.title,
+          body: overflowTooltip.body
+        }]
+      : [])
+  ];
+};
+
 export class CombatHudPresenter {
   private readonly container: GameObjects.Container;
   private readonly button: GameObjects.Container;
   private readonly scene: Scene;
+  private readonly onEndTurn: () => void;
+  private readonly onTooltipChanged: (tooltip?: CombatTooltip) => void;
+  private readonly onInspect: (detail: CombatDetailPanel) => void;
+  private readonly onBlockedEndTurn: () => void;
 
-  public constructor(scene: Scene, onEndTurn: () => void) {
+  public constructor(
+    scene: Scene,
+    onEndTurn: () => void,
+    onTooltipChanged: (tooltip?: CombatTooltip) => void = () => undefined,
+    onInspect: (detail: CombatDetailPanel) => void = () => undefined,
+    onBlockedEndTurn: () => void = () => undefined
+  ) {
     this.scene = scene;
+    this.onEndTurn = onEndTurn;
+    this.onTooltipChanged = onTooltipChanged;
+    this.onInspect = onInspect;
+    this.onBlockedEndTurn = onBlockedEndTurn;
     this.container = scene.add.container(0, 0);
     this.button = scene.add.container(END_TURN_BUTTON.x, END_TURN_BUTTON.y);
     this.button.setSize(END_TURN_BUTTON.width, END_TURN_BUTTON.height);
-    this.button.setInteractive();
-    this.button.on("pointerup", onEndTurn);
   }
 
   public render(viewModel: CombatViewModel, locked: boolean, options: CombatHudOptions = {}): void {
     this.container.removeAll(true);
     this.renderPlayerHud(viewModel);
     this.renderEnergy(viewModel);
-    this.renderPile(DRAW_PILE.x, DRAW_PILE.y, DRAW_PILE.width, DRAW_PILE.height, viewModel.drawPileCount, true);
-    this.renderPile(DISCARD_PILE.x, DISCARD_PILE.y, DISCARD_PILE.width, DISCARD_PILE.height, viewModel.discardPileCount, false);
+    this.renderPile(DRAW_PILE.x, DRAW_PILE.y, DRAW_PILE.width, DRAW_PILE.height, viewModel.drawPile, true);
+    this.renderPile(DISCARD_PILE.x, DISCARD_PILE.y, DISCARD_PILE.width, DISCARD_PILE.height, viewModel.discardPile, false);
 
     const disabled = locked || options.selectedCardActive || viewModel.phase !== "player_turn";
     this.button.removeAll(true);
     this.button.disableInteractive();
-    if (!disabled) {
-      this.button.setInteractive();
-    }
+    this.button.setInteractive();
+    this.button.removeAllListeners("pointerup");
+    this.button.on("pointerup", disabled ? this.onBlockedEndTurn : this.onEndTurn);
     this.button.add(this.scene.add.rectangle(0, 0, END_TURN_BUTTON.width, END_TURN_BUTTON.height, disabled ? 0x394150 : 0xd97a35, 1)
       .setStrokeStyle(2, disabled ? 0x647086 : 0xffc26b));
     this.button.add(this.scene.add.text(0, 0, "End Turn", {
@@ -71,6 +112,28 @@ export class CombatHudPresenter {
     const hpFill = player.maxHp > 0 ? Math.max(0, Math.min(1, player.hp / player.maxHp)) : 0;
     const hud = this.scene.add.container(PLAYER_HUD_AREA.x, PLAYER_HUD_AREA.y);
 
+    hud.setSize(PLAYER_HUD_AREA.width, PLAYER_HUD_AREA.height);
+    hud.setInteractive();
+    const showHudTooltip = (): void => this.onTooltipChanged({
+      title: player.tooltip.title,
+      body: player.tooltip.body,
+      x: PLAYER_HUD_AREA.x + PLAYER_HUD_AREA.width,
+      y: PLAYER_HUD_AREA.y,
+      delayMs: TOOLTIP_DELAYS_MS.general
+    });
+    hud.on("pointerover", showHudTooltip);
+    hud.on("pointermove", showHudTooltip);
+    hud.on("pointerout", () => this.onTooltipChanged(undefined));
+    hud.on("pointerup", (pointer: PointerLike) => {
+      if (pointer.button === 2 || pointer.rightButtonDown?.() === true) {
+        this.onInspect({
+          title: player.detail.title,
+          subtitle: player.detail.subtitle,
+          lines: player.detail.lines,
+          footer: player.detail.footer
+        });
+      }
+    });
     hud.add(this.scene.add.rectangle(0, 0, PLAYER_HUD_AREA.width, PLAYER_HUD_AREA.height, COMBAT_PANEL_COLOUR, 0.94)
       .setOrigin(0, 0)
       .setStrokeStyle(2, COMBAT_PANEL_STROKE));
@@ -100,6 +163,29 @@ export class CombatHudPresenter {
       fontFamily: "Inter, sans-serif",
       fontSize: PLAYER_HUD_TEXT.fontSize.status
     }));
+    getVisiblePlayerStatusChips(player.statuses, player.statusOverflowTooltip).forEach((status, index) => {
+      const statusX = PLAYER_HUD_TEXT.statusX + index * 26;
+      const statusY = PLAYER_HUD_TEXT.statusY + 20;
+      const chip = this.scene.add.rectangle(statusX, statusY, 22, 18, 0x223044, 1)
+        .setStrokeStyle(1, 0x83b2e4);
+      const showStatusTooltip = (): void => this.onTooltipChanged({
+        title: status.title,
+        body: status.body,
+        x: PLAYER_HUD_AREA.x + statusX,
+        y: PLAYER_HUD_AREA.y + statusY,
+        delayMs: TOOLTIP_DELAYS_MS.statusIntent
+      });
+      chip.setInteractive();
+      chip.on("pointerover", showStatusTooltip);
+      chip.on("pointermove", showStatusTooltip);
+      chip.on("pointerout", () => this.onTooltipChanged(undefined));
+      hud.add(chip);
+      hud.add(this.scene.add.text(statusX, statusY, status.label.slice(0, 3), {
+        color: "#d8e6f7",
+        fontFamily: "Inter, sans-serif",
+        fontSize: PLAYER_HUD_TEXT.fontSize.status
+      }).setOrigin(0.5));
+    });
     this.container.add(hud);
   }
 
@@ -113,12 +199,37 @@ export class CombatHudPresenter {
     }).setOrigin(0.5));
   }
 
-  private renderPile(x: number, y: number, width: number, height: number, count: number, faceDown: boolean): void {
-    this.container.add(this.scene.add.rectangle(x, y, width, height, faceDown ? 0x263f4e : 0x3d2f19, 1)
-      .setStrokeStyle(2, faceDown ? 0x7dd3fc : 0xffbd66));
+  private renderPile(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    pileModel: CombatViewModel["drawPile"],
+    faceDown: boolean
+  ): void {
+    const pile = this.scene.add.rectangle(x, y, width, height, faceDown ? 0x263f4e : 0x3d2f19, 1)
+      .setStrokeStyle(2, faceDown ? 0x7dd3fc : 0xffbd66);
+
+    pile.setInteractive();
+    const showPileTooltip = (): void => this.onTooltipChanged({
+      title: pileModel.tooltip.title,
+      body: pileModel.tooltip.body,
+      x: x + width / 2,
+      y: y - height / 2,
+      delayMs: TOOLTIP_DELAYS_MS.general
+    });
+    pile.on("pointerover", showPileTooltip);
+    pile.on("pointermove", showPileTooltip);
+    pile.on("pointerout", () => this.onTooltipChanged(undefined));
+    pile.on("pointerup", (pointer: PointerLike) => {
+      if (pointer.button === 2 || pointer.rightButtonDown?.() === true) {
+        this.onInspect(pileModel.detail);
+      }
+    });
+    this.container.add(pile);
     this.container.add(this.scene.add.rectangle(x + 6, y - 6, width, height, faceDown ? 0x1f3340 : 0x2f2618, 0.65)
       .setStrokeStyle(1, faceDown ? 0x5aaac9 : 0xc9904e));
-    this.container.add(this.scene.add.text(x, y + height / 2 + 14, String(count), {
+    this.container.add(this.scene.add.text(x, y + height / 2 + 14, String(pileModel.count), {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",
       fontSize: DRAW_PILE.fontSize

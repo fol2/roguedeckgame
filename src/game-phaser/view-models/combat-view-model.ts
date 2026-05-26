@@ -50,11 +50,38 @@ export type CombatCardViewModel = {
   readonly playable: boolean;
   readonly unplayableReason?: string;
   readonly isPetCommand: boolean;
+  readonly tagTooltips: readonly CombatTagTooltipViewModel[];
+  readonly tagOverflowTooltip?: CombatTooltipCopyViewModel;
+  readonly keywordExplanations: readonly CombatKeywordExplanationViewModel[];
+  readonly detail: CombatDetailCopyViewModel;
   readonly commandPetSlotIndex?: number;
   readonly targetKind: CardTargetKind;
   readonly playMode: CardPlayMode;
   readonly requiresManualTarget: boolean;
   readonly validTargetIds: readonly CombatantId[];
+};
+
+export type CombatTooltipCopyViewModel = {
+  readonly title: string;
+  readonly body: string;
+};
+
+export type CombatDetailCopyViewModel = {
+  readonly title: string;
+  readonly subtitle?: string;
+  readonly lines: readonly string[];
+  readonly footer?: string;
+};
+
+export type CombatTagTooltipViewModel = {
+  readonly tag: string;
+  readonly title: string;
+  readonly body: string;
+};
+
+export type CombatKeywordExplanationViewModel = {
+  readonly keyword: string;
+  readonly explanation: string;
 };
 
 export type CombatantStatusViewModel = {
@@ -72,7 +99,10 @@ export type CombatantViewModel = {
   readonly maxHp: number;
   readonly block: number;
   readonly statuses: readonly CombatantStatusViewModel[];
+  readonly statusOverflowTooltip?: CombatTooltipCopyViewModel;
   readonly alive: boolean;
+  readonly tooltip: CombatTooltipCopyViewModel;
+  readonly detail: CombatDetailCopyViewModel;
 };
 
 export type MonsterIntentViewModel = {
@@ -83,6 +113,15 @@ export type MonsterIntentViewModel = {
   readonly description: string;
   readonly targetHint: "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
   readonly amount?: number;
+  readonly tooltip: CombatTooltipCopyViewModel;
+  readonly detail: CombatDetailCopyViewModel;
+};
+
+export type CombatPileViewModel = {
+  readonly label: string;
+  readonly count: number;
+  readonly tooltip: CombatTooltipCopyViewModel;
+  readonly detail: CombatDetailCopyViewModel;
 };
 
 export type PetChargeViewModel = {
@@ -100,7 +139,17 @@ export type PetViewModel = {
   readonly activeModifierCount: number;
   readonly slotIndex: number;
   readonly statusLabels: readonly string[];
+  readonly statusTooltips: readonly PetStatusTooltipViewModel[];
+  readonly statusOverflowTooltip?: CombatTooltipCopyViewModel;
+  readonly tooltip: CombatTooltipCopyViewModel;
+  readonly detail: CombatDetailCopyViewModel;
   readonly charge?: PetChargeViewModel;
+};
+
+export type PetStatusTooltipViewModel = {
+  readonly label: string;
+  readonly title: string;
+  readonly body: string;
 };
 
 export type CombatViewModel = {
@@ -117,7 +166,9 @@ export type CombatViewModel = {
   readonly monsters: readonly CombatantViewModel[];
   readonly monsterIntents: readonly MonsterIntentViewModel[];
   readonly hand: readonly CombatCardViewModel[];
+  readonly drawPile: CombatPileViewModel;
   readonly drawPileCount: number;
+  readonly discardPile: CombatPileViewModel;
   readonly discardPileCount: number;
   readonly continueAvailable: boolean;
   readonly resetAvailable: boolean;
@@ -276,26 +327,184 @@ const statusLabel = (statusId: StatusId, stacks: number): string =>
 
 const statusTooltip = (statusId: StatusId, stacks: number): string => {
   if (statusId === "burn") {
-    return `Burn ${stacks}: takes damage at turn start, then decreases.`;
+    return [
+      `Burn ${stacks}`,
+      `At the start of this unit's turn, take ${stacks} damage ignoring Block.`,
+      "Then Burn decreases. Expires at 0."
+    ].join("\n");
   }
 
-  return `${statusId} ${stacks}`;
+  return [
+    statusLabel(statusId, stacks),
+    "Timing and duration are not defined yet.",
+    "No additional gameplay details available yet."
+  ].join("\n");
 };
 
-const toCombatantViewModel = (combatant: CombatantState): CombatantViewModel => ({
-  id: combatant.id,
-  name: combatant.name,
-  type: combatant.type,
-  hp: combatant.hp,
-  maxHp: combatant.maxHp,
-  block: combatant.block,
-  statuses: combatant.statuses.map((status) => ({
+const keywordCopyByTag: Readonly<Record<string, CombatKeywordExplanationViewModel>> = {
+  attack: { keyword: "Attack", explanation: "Deals direct damage to an enemy target." },
+  block: { keyword: "Block", explanation: "Prevents incoming attack damage." },
+  burn: { keyword: "Burn", explanation: "Damages this unit at the start of its turn, ignores Block, then decreases and expires at 0." },
+  command: { keyword: "Pet-Command", explanation: "Sends a command to the active pet before the effect resolves." },
+  draw: { keyword: "Draw", explanation: "Adds cards from the draw pile to the hand." },
+  fetch: { keyword: "Fetch", explanation: "Uses Ember Fox to help draw or recover cards." },
+  fire: { keyword: "Fire", explanation: "A fire-themed effect that commonly works with Burn." },
+  fox: { keyword: "Fox", explanation: "Works with Ember Fox or fox-tagged pet synergies." },
+  guard: { keyword: "Guard", explanation: "Helps protect the Keeper from incoming damage." },
+  pet: { keyword: "Pet", explanation: "Interacts with an active pet or pet-related modifier." },
+  setup: { keyword: "Setup", explanation: "Builds advantage for a later action or turn." },
+  combo: { keyword: "Combo", explanation: "Rewards being combined with another card, tag, or status." },
+  finisher: { keyword: "Finisher", explanation: "Has extra value when ending a fight or defeating a target." },
+  mark: { keyword: "Mark", explanation: "Flags a target for a later effect." }
+};
+
+const keywordCopyByCardType: Readonly<Partial<Record<CardType, CombatKeywordExplanationViewModel>>> = {
+  "pet-command": keywordCopyByTag.command
+};
+
+const getKeywordCopy = (tag: string): CombatKeywordExplanationViewModel => {
+  const knownCopy = keywordCopyByTag[tag];
+  if (knownCopy) {
+    return knownCopy;
+  }
+
+  return {
+    keyword: tag,
+    explanation: "Card tag used by card, pet, relic, or encounter synergies."
+  };
+};
+
+export const getCardKeywordExplanations = (
+  tags: readonly string[],
+  cardType: CardType | "unknown"
+): readonly CombatKeywordExplanationViewModel[] => {
+  const copies = [
+    ...(cardType !== "unknown" && keywordCopyByCardType[cardType] ? [keywordCopyByCardType[cardType]] : []),
+    ...tags.map(getKeywordCopy)
+  ].filter((copy): copy is CombatKeywordExplanationViewModel => copy !== undefined);
+  const seen = new Set<string>();
+
+  return copies.filter((copy) => {
+    if (seen.has(copy.keyword)) {
+      return false;
+    }
+
+    seen.add(copy.keyword);
+    return true;
+  });
+};
+
+const getCardTagTooltips = (tags: readonly string[]): readonly CombatTagTooltipViewModel[] =>
+  tags.map((tag) => ({
+    tag,
+    title: getKeywordCopy(tag).keyword,
+    body: getKeywordCopy(tag).explanation
+  }));
+
+const getCardTagOverflowTooltip = (tags: readonly string[]): CombatTooltipCopyViewModel | undefined => {
+  const hiddenTags = tags.slice(COMBAT_UI_CAPS.maxCardVisibleTags);
+
+  return hiddenTags.length > 0
+    ? {
+        title: "More tags",
+        body: hiddenTags.join(", ")
+      }
+    : undefined;
+};
+
+const getPetStatusTooltips = (statusLabels: readonly string[]): readonly PetStatusTooltipViewModel[] =>
+  statusLabels.map((label) => ({
+    label,
+    title: label,
+    body: `Pet status: ${label}`
+  }));
+
+const getPetStatusOverflowTooltip = (statusLabels: readonly string[]): CombatTooltipCopyViewModel | undefined => {
+  const hiddenStatuses = statusLabels.slice(COMBAT_UI_CAPS.maxPetVisibleStatuses);
+
+  return hiddenStatuses.length > 0
+    ? {
+        title: "More pet statuses",
+        body: hiddenStatuses.join(", ")
+      }
+    : undefined;
+};
+
+const buildCombatantStatusViewModels = (combatant: CombatantState): readonly CombatantStatusViewModel[] =>
+  combatant.statuses.map((status) => ({
     statusId: status.statusId,
     stacks: status.stacks,
     label: statusLabel(status.statusId, status.stacks),
     tooltip: statusTooltip(status.statusId, status.stacks)
-  })),
-  alive: combatant.alive
+  }));
+
+const getCombatantStatusDetailLines = (statuses: readonly CombatantStatusViewModel[], emptyLine: string): readonly string[] =>
+  statuses.length > 0
+    ? statuses.map((status) => `${status.label}: ${status.tooltip}`)
+    : [emptyLine];
+
+const getCombatantStatusOverflowTooltip = (
+  statuses: readonly CombatantStatusViewModel[],
+  limit: number
+): CombatTooltipCopyViewModel | undefined => {
+  const hiddenStatuses = statuses.slice(limit);
+
+  return hiddenStatuses.length > 0
+    ? {
+        title: "More statuses",
+        body: hiddenStatuses.map((status) => `${status.label}: ${status.tooltip}`).join("\n")
+      }
+    : undefined;
+};
+
+const toCombatantViewModel = (combatant: CombatantState): CombatantViewModel => {
+  const statuses = buildCombatantStatusViewModels(combatant);
+  const statusDetailLines = getCombatantStatusDetailLines(
+    statuses,
+    combatant.type === "player" ? "No player statuses." : "No enemy statuses."
+  );
+  const statusOverflowLimit = combatant.type === "player"
+    ? COMBAT_UI_CAPS.maxPlayerVisibleStatuses
+    : COMBAT_UI_CAPS.maxEnemyVisibleStatuses;
+  const roleLabel = combatant.type === "player" ? "Keeper state" : "Enemy";
+  const footer = combatant.type === "player" ? "Keeper detail." : "Enemy detail.";
+
+  return {
+    id: combatant.id,
+    name: combatant.name,
+    type: combatant.type,
+    hp: combatant.hp,
+    maxHp: combatant.maxHp,
+    block: combatant.block,
+    statuses,
+    statusOverflowTooltip: getCombatantStatusOverflowTooltip(statuses, statusOverflowLimit),
+    alive: combatant.alive,
+    tooltip: {
+      title: combatant.name,
+      body: [`HP ${combatant.hp}/${combatant.maxHp}`, `Block ${combatant.block}`, ...statusDetailLines].join("\n")
+    },
+    detail: {
+      title: combatant.name,
+      subtitle: roleLabel,
+      lines: [`HP: ${combatant.hp}/${combatant.maxHp}`, `Block: ${combatant.block}`, ...statusDetailLines],
+      footer
+    }
+  };
+};
+
+const getPileViewModel = (label: string, count: number): CombatPileViewModel => ({
+  label,
+  count,
+  tooltip: {
+    title: label,
+    body: `${count} card(s). Full pile inspection is deferred for Phase 1.`
+  },
+  detail: {
+    title: label,
+    subtitle: "Pile count",
+    lines: [`Cards: ${count}`, "Full pile inspection is deferred for Phase 1."],
+    footer: "Pile detail."
+  }
 });
 
 const getIntentAmount = (intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined): number | undefined => {
@@ -382,6 +591,14 @@ export const buildCombatViewModel = (
       const petState = petStatesById.get(petInstanceId);
       const activeModifierCount = petState?.activeModifierIds.length ?? 0;
 
+      const statusLabels = [
+        petState?.mood ?? "calm",
+        ...(activeModifierCount > 0 ? [`mods ${activeModifierCount}`] : [])
+      ];
+      const chargeLine = petState
+        ? "Ember Charge is not active."
+        : "Ember Charge is not active.";
+
       return {
         petInstanceId,
         name: petDefinition?.name ?? "Unknown Pet",
@@ -389,10 +606,29 @@ export const buildCombatViewModel = (
         mood: petState?.mood ?? "calm",
         activeModifierCount,
         slotIndex,
-        statusLabels: [
-          petState?.mood ?? "calm",
-          ...(activeModifierCount > 0 ? [`mods ${activeModifierCount}`] : [])
-        ]
+        statusLabels,
+        statusTooltips: getPetStatusTooltips(statusLabels),
+        statusOverflowTooltip: getPetStatusOverflowTooltip(statusLabels),
+        tooltip: {
+          title: petInstance?.nickname ?? "Unknown",
+          body: [
+            petDefinition?.name ?? "Unknown Pet",
+            `Mood: ${petState?.mood ?? "calm"}`,
+            "No Ember Charge active.",
+            `Statuses: ${statusLabels.join(", ") || "none"}`
+          ].join("\n")
+        },
+        detail: {
+          title: petInstance?.nickname ?? "Unknown",
+          subtitle: petDefinition?.name ?? "Unknown Pet",
+          lines: [
+            `Mood: ${petState?.mood ?? "calm"}`,
+            chargeLine,
+            `Active modifiers: ${activeModifierCount}`,
+            `Statuses: ${statusLabels.join(", ") || "none"}`
+          ],
+          footer: "This pet has no combat HP."
+        }
       };
     }),
     monsters: state.combat.monsters.map(toCombatantViewModel),
@@ -403,15 +639,32 @@ export const buildCombatViewModel = (
         : undefined;
       const intentDefinition = monsterDefinition?.intentPool.find((candidate) => candidate.id === intent.intentId);
       const label = intentDefinition?.type ?? "intent";
+      const description = intentDefinition?.description ?? "Preparing an action.";
+      const targetHint = getIntentTargetHint(intentDefinition);
+      const amount = getIntentAmount(intentDefinition);
 
       return {
         monsterId: intent.monsterCombatantId,
         intentId: intent.intentId,
         type: intentDefinition?.type ?? "intent",
         label,
-        description: intentDefinition?.description ?? "Preparing an action.",
-        targetHint: getIntentTargetHint(intentDefinition),
-        amount: getIntentAmount(intentDefinition)
+        description,
+        targetHint,
+        amount,
+        tooltip: {
+          title: label,
+          body: description
+        },
+        detail: {
+          title: label,
+          subtitle: monster?.name ?? "Enemy",
+          lines: [
+            description,
+            `Target: ${targetHint}`,
+            amount !== undefined ? `Amount: ${amount}` : "Amount: not shown"
+          ],
+          footer: "Intent detail."
+        }
       };
     }),
     hand: state.combat.hand.map((cardInstanceId) => {
@@ -423,18 +676,44 @@ export const buildCombatViewModel = (
         ? getUnplayableReason(state.combat, cardDefinition, cost, targetKind)
         : "Missing card definition.";
       const requiresManualTarget = targetKind === "enemy" || targetKind === "petAndEnemy";
+      const tags = cardDefinition?.tags ?? [];
+      const type = cardDefinition?.type ?? "unknown";
+      const keywordExplanations = getCardKeywordExplanations(tags, type);
+      const detailLines = [
+        `Cost: ${cost}`,
+        `Rules: ${cardDefinition?.description ?? "Missing card definition."}`,
+        `Tags: ${tags.join(", ") || "none"}`,
+        "Keywords:",
+        ...(keywordExplanations.length > 0
+          ? keywordExplanations.map((keyword) => `${keyword.keyword}: ${keyword.explanation}`)
+          : ["No keyword explanations available."]),
+        `Play mode: ${getPlayMode(targetKind)}`,
+        `Valid targets: ${requiresManualTarget ? getValidEnemyTargetIds(state.combat).join(", ") || "none" : "none"}`,
+        cardDefinition?.type === "pet-command"
+          ? "Pet-command: orange line marks the command relationship."
+          : "Normal card: no pet-command line."
+      ];
 
       return {
         cardInstanceId,
         cardId: cardInstance?.cardId ?? (cardInstanceId as unknown as CardId),
         name: cardDefinition?.name ?? "Unknown Card",
         description: cardDefinition?.description ?? "Missing card definition.",
-        type: cardDefinition?.type ?? "unknown",
+        type,
         cost,
-        tags: cardDefinition?.tags ?? [],
+        tags,
         playable: unplayableReason === undefined,
         unplayableReason,
         isPetCommand: cardDefinition?.type === "pet-command",
+        tagTooltips: getCardTagTooltips(tags),
+        tagOverflowTooltip: getCardTagOverflowTooltip(tags),
+        keywordExplanations,
+        detail: {
+          title: cardDefinition?.name ?? "Unknown Card",
+          subtitle: `${type.toUpperCase()} · ${targetKind}`,
+          lines: detailLines,
+          footer: cardDefinition?.type === "pet-command" ? "Pet-command detail." : "Card detail."
+        },
         commandPetSlotIndex: cardDefinition ? getCommandPetSlotIndex(state.combat, cardDefinition) : undefined,
         targetKind,
         playMode: getPlayMode(targetKind),
@@ -442,7 +721,9 @@ export const buildCombatViewModel = (
         validTargetIds: requiresManualTarget ? getValidEnemyTargetIds(state.combat) : []
       };
     }),
+    drawPile: getPileViewModel("Draw pile", state.combat.drawPile.length),
     drawPileCount: state.combat.drawPile.length,
+    discardPile: getPileViewModel("Discard pile", state.combat.discardPile.length),
     discardPileCount: state.combat.discardPile.length,
     continueAvailable: state.combat.phase === "won" || state.combat.phase === "lost",
     resetAvailable: state.run.status === "lost" || state.run.status === "completed",

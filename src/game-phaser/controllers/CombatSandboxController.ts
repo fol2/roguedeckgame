@@ -21,10 +21,11 @@ export type CombatSandboxController = {
   readonly getViewModel: () => CombatViewModel;
   readonly playHandCard: (
     cardInstanceId: CardInstanceId,
-    targetId?: CombatantId,
-    expectedRevision?: number
+    targetId: CombatantId | undefined,
+    expectedRevision: number | undefined,
+    requestId: string
   ) => GameActionResult<CombatSandboxState>;
-  readonly endTurn: (expectedRevision?: number) => GameActionResult<CombatSandboxState>;
+  readonly endTurn: (expectedRevision: number | undefined, requestId: string) => GameActionResult<CombatSandboxState>;
   readonly reset: () => GameActionResult<CombatSandboxState>;
 };
 
@@ -83,9 +84,9 @@ export const createCombatSandboxController = (
 
       return viewModel;
     },
-    playHandCard: (cardInstanceId, targetId, expectedRevision) =>
-      toCombatResult(controller.playHandCard(cardInstanceId, targetId, expectedRevision)),
-    endTurn: (expectedRevision) => toCombatResult(controller.endTurn(expectedRevision)),
+    playHandCard: (cardInstanceId, targetId, expectedRevision, requestId) =>
+      toCombatResult(controller.playHandCard(cardInstanceId, targetId, expectedRevision, requestId)),
+    endTurn: (expectedRevision, requestId) => toCombatResult(controller.endTurn(expectedRevision, requestId)),
     reset: () => {
       const result = controller.reset();
 

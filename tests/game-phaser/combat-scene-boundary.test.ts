@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const scenePath = join(root, "src/game-phaser/scenes/CombatScene.ts");
 const presentersRoot = join(root, "src/game-phaser/presenters");
+const contractRoot = join(root, "docs/contracts/p2/16-roguedeckgame-e38efe7add57");
 
 const normaliseLineEndings = (source: string): string => source.replace(/\r\n/g, "\n");
 
@@ -53,6 +54,15 @@ const listPresenterFiles = async (): Promise<readonly string[]> => {
   return entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
     .map((entry) => join(presentersRoot, entry.name));
+};
+
+const readPngDimensions = async (path: string): Promise<{ readonly width: number; readonly height: number }> => {
+  const buffer = await readFile(path);
+
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20)
+  };
 };
 
 describe("Combat scene boundary", () => {
@@ -140,10 +150,13 @@ describe("Combat scene boundary", () => {
     const source = await readSource(scenePath);
 
     expect(source).toMatch(/selectedCardRevision/);
-    expect(source).toMatch(/playHandCard\(cardInstanceId, undefined, viewModel\.revision\)/);
-    expect(source).toMatch(/playHandCard\(selectedCardId, monsterId, selectedRevision\)/);
-    expect(source).toMatch(/endTurn\(viewModel\?\.revision\)/);
-    expect(source).toMatch(/this\.inputLocked = true;\n\s+this\.renderCurrentState\(false\);\n\s+const result = action\(\);/);
+    expect(source).toMatch(/pendingRequestId/);
+    expect(source).toMatch(/playHandCard\(cardInstanceId, undefined, viewModel\.revision, requestId\)/);
+    expect(source).toMatch(/playHandCard\(selectedCardId, monsterId, selectedRevision, requestId\)/);
+    expect(source).toMatch(/endTurn\(viewModel\?\.revision, requestId\)/);
+    expect(source).toMatch(/combat-ui-\$\{this\.nextRequestId\}/);
+    expect(source).toMatch(/this\.inputLocked = true;\n\s+this\.clearTooltip\(\);\n\s+this\.renderCurrentState\(false\);\n\s+const result = action\(requestId\);/);
+    expect(source).toMatch(/finally \{\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
   });
 
   it("keeps targeting and keyboard interactions inside the Phaser scene only", async () => {
@@ -154,17 +167,91 @@ describe("Combat scene boundary", () => {
     const targetingPresenter = await readSource(join(presentersRoot, "TargetingPresenter.ts"));
     const hudPresenter = await readSource(join(presentersRoot, "CombatHudPresenter.ts"));
 
-    expect(source).toMatch(/keydown-ESC/);
-    expect(source).toMatch(/keydown-SPACE/);
+    expect(source).toMatch(/handleKeyboardInput/);
+    expect(source).toMatch(/event\.key === "Escape"/);
+    expect(source).toMatch(/event\.key === " " \|\| event\.key === "Spacebar"/);
+    expect(source).toMatch(/event\.key === "Tab"/);
+    expect(source).toMatch(/event\.key === "Enter"/);
+    expect(source).toMatch(/event\.key\.toLowerCase\(\) === "i"/);
     expect(source).toMatch(/selectedCardActive/);
     expect(source).toMatch(/validTargetIds/);
     expect(source).toMatch(/restoreSelectionAfterFailedSubmit/);
+    expect(source).toMatch(/isModalOpen/);
+    expect(source).toMatch(/bindFocusAndResizeSafety/);
+    expect(source).toMatch(/tooltipDelayEvent/);
+    expect(source).toMatch(/delayedCall\(delayMs/);
     expect(cardPresenter).toMatch(/maxCardVisibleTags/);
+    expect(cardPresenter).toMatch(/onInspect/);
+    expect(cardPresenter).toMatch(/tagOverflowTooltip/);
+    expect(cardPresenter).not.toMatch(/Tag: \$\{/);
     expect(monsterPresenter).toMatch(/maxEnemyVisibleStatuses/);
     expect(monsterPresenter).toMatch(/hitZoneHeight/);
+    expect(monsterPresenter).toMatch(/statusOverflowTooltip/);
+    expect(monsterPresenter).not.toMatch(/More statuses/);
     expect(petPresenter).toMatch(/maxPetVisibleStatuses/);
     expect(petPresenter).toMatch(/pets\.slice\(0, PET_LAYOUT\.maxSlots\)/);
+    expect(petPresenter).toMatch(/statusOverflowTooltip/);
+    expect(petPresenter).not.toMatch(/Pet status: \$\{/);
     expect(targetingPresenter).toMatch(/petSlotIndex/);
     expect(hudPresenter).toMatch(/maxPlayerVisibleStatuses/);
+    expect(hudPresenter).toMatch(/statusOverflowTooltip/);
+    expect(hudPresenter).not.toMatch(/More statuses/);
+    expect(hudPresenter).toMatch(/pileModel\.tooltip/);
+    expect(hudPresenter).toMatch(/pileModel\.detail/);
+    expect(hudPresenter).toMatch(/getVisiblePlayerStatusChips/);
+  });
+
+  it("contains combat overlay and event playback failure-safety affordances", async () => {
+    const sceneSource = await readSource(scenePath);
+    const overlayPresenter = await readSource(join(presentersRoot, "CombatOverlayPresenter.ts"));
+    const eventPlayer = await readSource(join(root, "src/game-phaser/animation/CombatEventPlayer.ts"));
+    const eventFxPresenter = await readSource(join(root, "src/game-phaser/animation/CombatEventFxPresenter.ts"));
+
+    expect(sceneSource).toMatch(/CombatOverlayPresenter/);
+    expect(sceneSource).toMatch(/CombatEventFxPresenter/);
+    expect(sceneSource).toMatch(/openPauseOverlay/);
+    expect(sceneSource).toMatch(/closeDetail/);
+    expect(sceneSource).toMatch(/this\.overlayPresenter\.render/);
+    expect(overlayPresenter).toMatch(/blocker\.setInteractive\(\)/);
+    expect(overlayPresenter).toMatch(/panel\.setInteractive\(\)/);
+    expect(overlayPresenter).toMatch(/GAME_HEIGHT - tooltipHeight/);
+    expect(overlayPresenter).toMatch(/statusIntent: 250/);
+    expect(overlayPresenter).toMatch(/unplayable: 300/);
+    expect(overlayPresenter).toMatch(/general: 350/);
+    expect(overlayPresenter).toMatch(/onCloseDetail/);
+    expect(overlayPresenter).toMatch(/onResumePause/);
+    expect(overlayPresenter).toMatch(/No details available yet/);
+    expect(eventPlayer).toMatch(/PLAYBACK_TIMEOUT_MS/);
+    expect(eventPlayer).toMatch(/KNOWN_COMBAT_EVENT_TYPES/);
+    expect(eventPlayer).toMatch(/fxPresenter\?\.play/);
+    expect(eventPlayer).toMatch(/skipped unknown event visual/);
+    expect(eventPlayer).toMatch(/finalized after playback timeout/);
+    expect(eventFxPresenter).toMatch(/PetCommanded/);
+    expect(eventFxPresenter).toMatch(/DamageDealt/);
+    expect(eventFxPresenter).toMatch(/MonsterIntentResolved/);
+    expect(eventFxPresenter).toMatch(/MonsterIntentSet/);
+    expect(eventFxPresenter).toMatch(/StatusApplied/);
+    expect(eventFxPresenter).toMatch(/CardDrawn/);
+  });
+
+  it("keeps captured combat preview evidence at the claimed 1280x720 viewport", async () => {
+    const evidenceFiles = [
+      "preview-combat-entry-after-click-1280x720.png",
+      "preview-combat-pile-tooltip-1280x720.png",
+      "preview-combat-card-detail-1280x720.png",
+      "preview-combat-intent-detail-1280x720.png",
+      "preview-combat-pause-overlay-1280x720.png",
+      "preview-combat-normal-attack-fx-1280x720.png",
+      "preview-combat-pet-command-fx-1280x720.png",
+      "preview-combat-wireframe-selected-1280x720.png"
+    ];
+
+    for (const file of evidenceFiles) {
+      await expect(stat(join(contractRoot, file)), `${file} exists`).resolves.toMatchObject({ size: expect.any(Number) });
+      await expect(readPngDimensions(join(contractRoot, file)), file).resolves.toEqual({
+        width: 1280,
+        height: 720
+      });
+    }
   });
 });

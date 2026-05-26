@@ -1,8 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { statusId } from "../../src/game-core";
 import { createCombatSandboxController } from "../../src/game-phaser/controllers/CombatSandboxController";
-import { buildCombatViewModel } from "../../src/game-phaser/view-models/combat-view-model";
+import {
+  buildCombatViewModel,
+  getCardKeywordExplanations
+} from "../../src/game-phaser/view-models/combat-view-model";
 
 const root = process.cwd();
 
@@ -31,7 +35,88 @@ describe("Combat view model", () => {
     expect(card?.name).toEqual(expect.any(String));
     expect(card?.description.length).toBeGreaterThan(0);
     expect(card?.cost).toEqual(expect.any(Number));
+    expect(card?.tagTooltips.length).toBe(card?.tags.length);
+    expect(card?.tagTooltips[0]).toEqual(expect.objectContaining({
+      title: expect.any(String),
+      body: expect.any(String)
+    }));
+    expect(card?.keywordExplanations.length).toBeGreaterThan(0);
+    expect(card?.detail.lines).toContain("Keywords:");
     expect(viewModel.drawPileCount + viewModel.discardPileCount + viewModel.hand.length).toBeGreaterThan(0);
+  });
+
+  it("owns pet and card tooltip copy in the combat view model", () => {
+    const viewModel = createCombatSandboxController("view-model-tooltip-copy").getViewModel();
+    const pet = viewModel.pets[0];
+    const card = viewModel.hand.find((candidate) => candidate.tags.length > 0);
+
+    expect(pet?.tooltip).toMatchObject({
+      title: "Ember",
+      body: expect.stringContaining("Mood:")
+    });
+    expect(pet?.detail.lines).toEqual(expect.arrayContaining([
+      expect.stringContaining("Active modifiers:")
+    ]));
+    expect(pet?.statusTooltips[0]).toMatchObject({
+      title: expect.any(String),
+      body: expect.any(String)
+    });
+    expect(card?.tagTooltips[0]).toMatchObject({
+      tag: card?.tags[0],
+      title: expect.any(String),
+      body: expect.any(String)
+    });
+  });
+
+  it("exposes rich status, player, pile, enemy, intent, and card detail copy", () => {
+    const controller = createCombatSandboxController("view-model-detail-copy");
+    const state = controller.getState();
+    const burnedMonster = {
+      ...state.combat.monsters[0]!,
+      statuses: [
+        { statusId: statusId("burn"), stacks: 4 },
+        { statusId: statusId("burn"), stacks: 3 },
+        { statusId: statusId("burn"), stacks: 2 },
+        { statusId: statusId("burn"), stacks: 1 },
+        { statusId: statusId("burn"), stacks: 5 }
+      ]
+    };
+    const viewModel = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        monsters: [burnedMonster]
+      }
+    });
+    const burn = viewModel.monsters[0]?.statuses[0];
+    const representativeKeywords = getCardKeywordExplanations(["burn", "guard", "block", "command"], "pet-command");
+
+    expect(viewModel.player.tooltip.body).toContain("HP");
+    expect(viewModel.player.detail.lines).toEqual(expect.arrayContaining([
+      expect.stringContaining("Block:")
+    ]));
+    expect(viewModel.drawPile.tooltip.body).toContain("Full pile inspection is deferred");
+    expect(viewModel.discardPile.detail.lines).toContain(`Cards: ${viewModel.discardPileCount}`);
+    expect(viewModel.monsters[0]?.detail.lines).toEqual(expect.arrayContaining([
+      expect.stringContaining("HP:")
+    ]));
+    expect(viewModel.monsters[0]?.statusOverflowTooltip).toMatchObject({
+      title: "More statuses",
+      body: expect.stringContaining("Burn 5")
+    });
+    expect(viewModel.monsterIntents[0]?.detail.lines).toEqual(expect.arrayContaining([
+      expect.stringContaining("Target:")
+    ]));
+    expect(burn?.tooltip).toContain("At the start of this unit's turn");
+    expect(burn?.tooltip).toContain("ignoring Block");
+    expect(burn?.tooltip).toContain("Expires at 0");
+    expect(representativeKeywords.map((keyword) => keyword.keyword)).toEqual(expect.arrayContaining([
+      "Burn",
+      "Guard",
+      "Block",
+      "Pet-Command"
+    ]));
+    expect(representativeKeywords.map((keyword) => `${keyword.keyword}: ${keyword.explanation}`).join("\n")).toContain("Guard: Helps protect the Keeper");
   });
 
   it("exposes interaction metadata for targeting, caps, and stale-request revision checks", () => {

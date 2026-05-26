@@ -178,7 +178,7 @@ describe("vertical slice controller flow", () => {
     const controller = createRunSandboxController("vertical-controller-json");
 
     selectNode(controller, "combat");
-    const rejected = controller.playHandCard(cardInstanceId("missing-card"));
+    const rejected = controller.playHandCard(cardInstanceId("missing-card"), undefined, undefined, "vertical-json-reject");
 
     expect(rejected.ok).toBe(false);
     expect(controller.getCombatViewModel()?.eventMessages[0]).toContain("Rejected:");

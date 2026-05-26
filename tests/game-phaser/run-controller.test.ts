@@ -20,6 +20,8 @@ const startFirstCombat = (controller: ReturnType<typeof createRunSandboxControll
 };
 
 const finishCombat = (controller: ReturnType<typeof createRunSandboxController>): void => {
+  let requestIndex = 0;
+
   for (let turn = 0; turn < 20; turn += 1) {
     const combat = controller.getCombatViewModel();
 
@@ -35,17 +37,20 @@ const finishCombat = (controller: ReturnType<typeof createRunSandboxController>)
     ));
 
     if (attack) {
-      controller.playHandCard(attack.cardInstanceId);
+      requestIndex += 1;
+      controller.playHandCard(attack.cardInstanceId, undefined, undefined, `finish-card-${requestIndex}`);
       continue;
     }
 
     const playable = combat.hand.find((card) => card.playable);
     if (playable) {
-      controller.playHandCard(playable.cardInstanceId);
+      requestIndex += 1;
+      controller.playHandCard(playable.cardInstanceId, undefined, undefined, `finish-card-${requestIndex}`);
       continue;
     }
 
-    controller.endTurn();
+    requestIndex += 1;
+    controller.endTurn(undefined, `finish-turn-${requestIndex}`);
   }
 };
 
@@ -109,12 +114,12 @@ describe("Run sandbox controller", () => {
     const card = controller.getCombatViewModel()?.hand.find((candidate) => candidate.playable);
 
     expect(card).toBeDefined();
-    const cardResult = controller.playHandCard(card!.cardInstanceId);
+    const cardResult = controller.playHandCard(card!.cardInstanceId, undefined, undefined, "run-actions-card");
 
     expect(cardResult.ok).toBe(true);
     expect(cardResult.events.map((event) => event.type)).toContain("CardPlayed");
 
-    const turnResult = controller.endTurn();
+    const turnResult = controller.endTurn(undefined, "run-actions-turn");
 
     expect(turnResult.ok).toBe(true);
     expect(turnResult.events.map((event) => event.type)).toEqual(expect.arrayContaining([
@@ -127,7 +132,7 @@ describe("Run sandbox controller", () => {
     const controller = createRunSandboxController("run-controller-bad-card");
 
     startFirstCombat(controller);
-    const result = controller.playHandCard(cardInstanceId("missing-card-instance"));
+    const result = controller.playHandCard(cardInstanceId("missing-card-instance"), undefined, undefined, "run-bad-card");
 
     expect(result.ok).toBe(false);
     expect(result.events[0]?.type).toBe("ActionRejected");
@@ -257,7 +262,7 @@ describe("Run sandbox controller", () => {
     const preResetCard = controller.getCombatViewModel()?.hand.find((card) => card.playable);
 
     expect(preResetCard).toBeDefined();
-    controller.playHandCard(preResetCard!.cardInstanceId);
+    controller.playHandCard(preResetCard!.cardInstanceId, undefined, undefined, "run-reset-pre-card");
     controller.reset();
     startFirstCombat(controller);
 
@@ -268,8 +273,8 @@ describe("Run sandbox controller", () => {
     const freshCard = fresh.getCombatViewModel()?.hand.find((card) => card.playable);
 
     expect(resetCard?.cardId).toBe(freshCard?.cardId);
-    expect(controller.playHandCard(resetCard!.cardInstanceId).events).toEqual(
-      fresh.playHandCard(freshCard!.cardInstanceId).events
+    expect(controller.playHandCard(resetCard!.cardInstanceId, undefined, undefined, "run-reset-card").events).toEqual(
+      fresh.playHandCard(freshCard!.cardInstanceId, undefined, undefined, "run-reset-card").events
     );
   });
 
