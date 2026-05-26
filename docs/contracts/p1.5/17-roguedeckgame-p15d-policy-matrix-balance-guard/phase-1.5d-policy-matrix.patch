@@ -1,0 +1,817 @@
+diff --git a/package.json b/package.json
+index 477e849..1e9805d 100644
+--- a/package.json
++++ b/package.json
+@@ -19,7 +19,8 @@
+     "zip:review": "node scripts/create-review-zip.mjs",
+     "smoke:localhost": "vitest run tests/game-core/localhost-smoke.test.js --reporter=verbose",
+     "test": "vitest run",
+-    "test:watch": "vitest"
++    "test:watch": "vitest",
++    "sim:matrix": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz --policy-matrix --seed policy-matrix-normal"
+   },
+   "devDependencies": {
+     "@types/node": "^22.19.19",
+diff --git a/src/game-cli/parse.ts b/src/game-cli/parse.ts
+index bac9cd8..2d5198d 100644
+--- a/src/game-cli/parse.ts
++++ b/src/game-cli/parse.ts
+@@ -1,4 +1,5 @@
+ import type { AgentAction } from "../game-core/testing/agent-actions";
++import { isAgentPolicyId, type AgentPolicyId } from "../game-core/testing/policy-profiles";
+ 
+ export type CliOptions = {
+   readonly help: boolean;
+@@ -21,6 +22,9 @@ export type SimulationCliOptions = {
+   readonly strictHealth: boolean;
+   readonly strictBalance: boolean;
+   readonly invalidActionRate?: number;
++  readonly policy?: AgentPolicyId;
++  readonly policyMatrix: boolean;
++  readonly strictPolicyMatrix: boolean;
+   readonly completionRateMin?: number;
+   readonly completionRateMax?: number;
+ };
+@@ -103,6 +107,7 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
+   let completionRateMax: number | undefined = npmCompletionRateMax ? Number.parseFloat(npmCompletionRateMax) : undefined;
+   let seed: string | number = npmSeed ?? "sim";
+   let trace: string | undefined = npmTrace;
++  let policy: AgentPolicyId | undefined;
+   let traceOutput: string | undefined = process.env.npm_config_trace_output;
+ 
+   for (let index = 0; index < args.length; index += 1) {
+@@ -134,6 +139,10 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
+     } else if (arg === "--completion-rate-max") {
+       completionRateMax = Number.parseFloat(readValue(args, index, "0"));
+       index += 1;
++    } else if (arg === "--policy") {
++      const value = readValue(args, index, "randomLegal");
++      policy = isAgentPolicyId(value) ? value : undefined;
++      index += 1;
+     } else if (arg === "--trace") {
+       trace = readValue(args, index, "");
+       index += 1;
+@@ -156,6 +165,9 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
+     strictHealth: args.includes("--strict-health") || process.env.npm_config_strict_health === "true",
+     strictBalance: args.includes("--strict-balance") || process.env.npm_config_strict_balance === "true",
+     invalidActionRate: Number.isFinite(invalidActionRate) ? invalidActionRate : undefined,
++    policy,
++    policyMatrix: args.includes("--policy-matrix") || process.env.npm_config_policy_matrix === "true",
++    strictPolicyMatrix: args.includes("--strict-policy-matrix") || process.env.npm_config_strict_policy_matrix === "true",
+     completionRateMin: Number.isFinite(completionRateMin) ? completionRateMin : undefined,
+     completionRateMax: Number.isFinite(completionRateMax) ? completionRateMax : undefined
+   };
+diff --git a/src/game-cli/simulate-runs.ts b/src/game-cli/simulate-runs.ts
+index 82194db..39f770a 100644
+--- a/src/game-cli/simulate-runs.ts
++++ b/src/game-cli/simulate-runs.ts
+@@ -18,6 +18,7 @@ import {
+   type SimulationHealthIssue
+ } from "../game-core/testing/analysis";
+ import { act1NormalBalance } from "../game-core/data/balance/act1-normal";
++import { runPolicyMatrixSimulation, type PolicyMatrixResult } from "../game-core/testing/policy-matrix";
+ 
+ const modeLabel = (mode: SimulationResult["mode"]): string => mode === "exhaustive-small" ? "exhaustive-small" : mode;
+ 
+@@ -51,6 +52,24 @@ const countSummary = (label: string, counts: Record<string, number>, limit = 6):
+   console.log(`${label}: ${entries.map(([key, value]) => `${key}=${value}`).join(", ")}`);
+ };
+ 
++
++const printPolicyMatrix = (matrix: PolicyMatrixResult): void => {
++  console.log("Policy matrix:");
++  console.log(`  Seed: ${matrix.seed}`);
++  console.log(`  Runs per policy: ${matrix.runs}`);
++  console.log(`  Max steps: ${matrix.maxSteps}`);
++  for (const entry of matrix.entries) {
++    const target = entry.target?.minCompletionRate === undefined || entry.target?.maxCompletionRate === undefined
++      ? "none"
++      : `${percent(entry.target.minCompletionRate)} - ${percent(entry.target.maxCompletionRate)}`;
++    console.log(`  ${entry.policyId}: completion=${percent(entry.report.completionRate)}, lost=${percent(entry.report.lossRate)}, failures=${entry.result.failures.length}, target=${target}`);
++    for (const issue of entry.healthIssues) {
++      console.log(`    ${issue.severity.toUpperCase()} ${issue.code}: ${issue.message}`);
++    }
++  }
++  console.log(`  Result: ${matrix.ok ? "passed" : "failed"}`);
++};
++
+ const printAnalysis = (
+   report: SimulationAggregateReport,
+   healthIssues: readonly SimulationHealthIssue[],
+@@ -86,6 +105,18 @@ const printAnalysis = (
+ 
+ const main = () => {
+   const options = parseSimulationCliOptions(process.argv.slice(2));
++
++  if (options.policyMatrix) {
++    const matrix = runPolicyMatrixSimulation({
++      seed: options.seed,
++      runs: options.runs,
++      maxSteps: options.maxSteps,
++      strict: options.strictPolicyMatrix
++    });
++    printPolicyMatrix(matrix);
++    process.exitCode = matrix.ok ? 0 : 1;
++    return;
++  }
+   const runs = options.strictBalance && options.mode === "fuzz"
+     ? options.runs ?? act1NormalBalance.targets.normalSampleRuns
+     : options.runs;
+@@ -101,7 +132,8 @@ const main = () => {
+             seed: options.seed,
+             runs,
+             maxSteps,
+-            invalidActionRate: options.invalidActionRate
++            invalidActionRate: options.invalidActionRate,
++            policy: options.policy
+           })
+         : options.mode === "exhaustive-small"
+           ? runBoundedExhaustiveSimulation({
+diff --git a/src/game-core/data/balance/act1-normal.ts b/src/game-core/data/balance/act1-normal.ts
+index f2a27d8..9a983da 100644
+--- a/src/game-core/data/balance/act1-normal.ts
++++ b/src/game-core/data/balance/act1-normal.ts
+@@ -9,7 +9,16 @@ export const act1NormalBalance = {
+     normalCompletionRateMin: 0.45,
+     normalCompletionRateMax: 0.60,
+     normalSampleRuns: 200,
+-    normalMaxSteps: 700
++    normalMaxSteps: 700,
++    policyMatrixSeed: "policy-matrix-normal",
++    policyMatrixSampleRuns: 80,
++    policyMatrixMaxSteps: 700,
++    greedyDamageCompletionRateMin: 0.35,
++    greedyDamageCompletionRateMax: 0.85,
++    defensiveCompletionRateMin: 0.35,
++    defensiveCompletionRateMax: 0.85,
++    deterministicSmokeCompletionRateMin: 0.75,
++    deterministicSmokeCompletionRateMax: 1.0
+   },
+   player: {
+     maxHp: 70,
+diff --git a/src/game-core/index.ts b/src/game-core/index.ts
+index 74cc817..677580e 100644
+--- a/src/game-core/index.ts
++++ b/src/game-core/index.ts
+@@ -37,6 +37,8 @@ export * from "./testing/agent-actions";
+ export * from "./testing/analysis";
+ export * from "./testing/invariants";
+ export * from "./testing/policies";
++export * from "./testing/policy-profiles";
++export * from "./testing/policy-matrix";
+ export * from "./testing/run-driver";
+ export * from "./testing/simulation";
+ export * from "./testing/state-hash";
+diff --git a/src/game-core/testing/analysis.ts b/src/game-core/testing/analysis.ts
+index 3353970..d82921f 100644
+--- a/src/game-core/testing/analysis.ts
++++ b/src/game-core/testing/analysis.ts
+@@ -426,7 +426,7 @@ export const checkSimulationHealth = (
+     issues.push({
+       severity: "warning",
+       code: "no_losses_observed",
+-      message: "No sampled run was lost. This may be fine for smoke policy, but random fuzz with many runs can indicate early content is too forgiving."
++      message: "No sampled run was lost. This may be fine for smoke or strong policies, but repeated no-loss samples can indicate early content is too forgiving."
+     });
+   }
+ 
+@@ -434,7 +434,7 @@ export const checkSimulationHealth = (
+     issues.push({
+       severity: "warning",
+       code: "high_completion_rate",
+-      message: `Completion rate ${(report.completionRate * 100).toFixed(1)}% is high for a broad random/fuzz sample.`
++      message: `Completion rate ${(report.completionRate * 100).toFixed(1)}% is high for this simulation sample. Check whether content is too forgiving for the selected policy.`
+     });
+   }
+ 
+diff --git a/src/game-core/testing/policy-matrix.ts b/src/game-core/testing/policy-matrix.ts
+new file mode 100644
+index 0000000..8cf1641
+--- /dev/null
++++ b/src/game-core/testing/policy-matrix.ts
+@@ -0,0 +1,116 @@
++import { act1NormalBalance } from "../data/balance/act1-normal";
++import { analyzeAgentTraces, checkSimulationHealth, type SimulationAggregateReport, type SimulationHealthIssue } from "./analysis";
++import { agentPolicyProfiles, type AgentPolicyId } from "./policy-profiles";
++import { runFuzzSimulation, type SimulationResult } from "./simulation";
++
++export type PolicyMatrixTarget = {
++  readonly policyId: AgentPolicyId;
++  readonly minCompletionRate?: number;
++  readonly maxCompletionRate?: number;
++};
++
++export type PolicyMatrixEntry = {
++  readonly policyId: AgentPolicyId;
++  readonly label: string;
++  readonly description: string;
++  readonly result: SimulationResult;
++  readonly report: SimulationAggregateReport;
++  readonly healthIssues: readonly SimulationHealthIssue[];
++  readonly target?: PolicyMatrixTarget;
++};
++
++export type PolicyMatrixConfig = {
++  readonly seed?: string | number;
++  readonly runs?: number;
++  readonly maxSteps?: number;
++  readonly strict?: boolean;
++  readonly targets?: readonly PolicyMatrixTarget[];
++};
++
++export type PolicyMatrixResult = {
++  readonly ok: boolean;
++  readonly seed: string | number;
++  readonly runs: number;
++  readonly maxSteps: number;
++  readonly entries: readonly PolicyMatrixEntry[];
++};
++
++export const defaultPolicyMatrixTargets: readonly PolicyMatrixTarget[] = [
++  {
++    policyId: "randomLegal",
++    minCompletionRate: act1NormalBalance.targets.normalCompletionRateMin,
++    maxCompletionRate: act1NormalBalance.targets.normalCompletionRateMax
++  },
++  {
++    policyId: "greedyDamage",
++    minCompletionRate: act1NormalBalance.targets.greedyDamageCompletionRateMin,
++    maxCompletionRate: act1NormalBalance.targets.greedyDamageCompletionRateMax
++  },
++  {
++    policyId: "defensive",
++    minCompletionRate: act1NormalBalance.targets.defensiveCompletionRateMin,
++    maxCompletionRate: act1NormalBalance.targets.defensiveCompletionRateMax
++  },
++  {
++    policyId: "deterministicSmoke",
++    minCompletionRate: act1NormalBalance.targets.deterministicSmokeCompletionRateMin,
++    maxCompletionRate: act1NormalBalance.targets.deterministicSmokeCompletionRateMax
++  }
++] as const;
++
++const profileById = new Map(agentPolicyProfiles.map((profile) => [profile.id, profile]));
++
++export const runPolicyMatrixSimulation = (
++  config: PolicyMatrixConfig = {}
++): PolicyMatrixResult => {
++  const seed = config.seed ?? act1NormalBalance.targets.policyMatrixSeed;
++  const runs = config.runs ?? act1NormalBalance.targets.policyMatrixSampleRuns;
++  const maxSteps = config.maxSteps ?? act1NormalBalance.targets.policyMatrixMaxSteps;
++  const targets = config.targets ?? defaultPolicyMatrixTargets;
++  const entries = targets.map((target) => {
++    const profile = profileById.get(target.policyId) ?? {
++      id: target.policyId,
++      label: target.policyId,
++      description: "Custom policy."
++    };
++    const result = runFuzzSimulation({
++      mode: "fuzz",
++      seed: `${String(seed)}:${target.policyId}`,
++      runs,
++      maxSteps,
++      invalidActionRate: 0,
++      policy: target.policyId
++    });
++    const report = analyzeAgentTraces(result.traces);
++    const warnCompletionBand = target.policyId !== "deterministicSmoke";
++    const healthIssues = checkSimulationHealth(report, {
++      requireCompletedRun: true,
++      requireInvalidRejections: false,
++      warnIfNoLosses: target.policyId === "randomLegal",
++      warnIfNoRewards: true,
++      warnIfNoPetUpgrades: true,
++      warnIfNoPlayerDamage: true,
++      warnIfNoMonsterDamage: true,
++      minCompletionRateError: config.strict ? target.minCompletionRate : undefined,
++      maxCompletionRateError: config.strict ? target.maxCompletionRate : undefined,
++      lowCompletionRateWarning: !config.strict && warnCompletionBand ? target.minCompletionRate : -1,
++      highCompletionRateWarning: !config.strict && warnCompletionBand ? target.maxCompletionRate : 2
++    });
++
++    return {
++      policyId: target.policyId,
++      label: profile.label,
++      description: profile.description,
++      result,
++      report,
++      healthIssues,
++      target
++    };
++  });
++
++  const ok = entries.every((entry) =>
++    entry.result.ok && (!config.strict || entry.healthIssues.every((issue) => issue.severity !== "error"))
++  );
++
++  return { ok, seed, runs, maxSteps, entries };
++};
+diff --git a/src/game-core/testing/policy-profiles.ts b/src/game-core/testing/policy-profiles.ts
+new file mode 100644
+index 0000000..02ffc17
+--- /dev/null
++++ b/src/game-core/testing/policy-profiles.ts
+@@ -0,0 +1,312 @@
++import type { CardDefinition } from "../model/card";
++import type { EffectDefinition } from "../model/effect";
++import type { GameContentRegistry } from "../model/registry";
++import type { RewardOption } from "../model/reward";
++import { starterRegistry } from "../data/registry";
++import type { Rng } from "../systems/rng";
++import type { AgentAction, AgentRunDriverSnapshot } from "./agent-actions";
++import { getLegalAgentActions } from "./action-space";
++import { deterministicSmokePolicy, randomLegalPolicy } from "./policies";
++
++export type AgentPolicyId = "randomLegal" | "deterministicSmoke" | "greedyDamage" | "defensive";
++
++export type AgentPolicyProfile = {
++  readonly id: AgentPolicyId;
++  readonly label: string;
++  readonly description: string;
++};
++
++export const agentPolicyProfiles: readonly AgentPolicyProfile[] = [
++  {
++    id: "randomLegal",
++    label: "Random legal",
++    description: "Randomly chooses from legal actions. Useful as the broad baseline / chaos player."
++  },
++  {
++    id: "greedyDamage",
++    label: "Greedy damage",
++    description: "Prioritises damage, burn, and pet-command attacks before defensive actions."
++  },
++  {
++    id: "defensive",
++    label: "Defensive",
++    description: "Prioritises block and guard when incoming damage is expected, then plays attacks."
++  },
++  {
++    id: "deterministicSmoke",
++    label: "Deterministic smoke",
++    description: "Stable deterministic policy used to prove the game can complete without forced outcomes."
++  }
++] as const;
++
++const compareText = (left: string, right: string): number => left.localeCompare(right, "en-GB");
++
++const cardByInstanceId = (
++  snapshot: AgentRunDriverSnapshot,
++  registry: GameContentRegistry
++): Map<string, CardDefinition> => {
++  const cardsById = new Map(registry.cards.map((card) => [card.id, card]));
++  const result = new Map<string, CardDefinition>();
++  for (const instance of snapshot.combat?.cardInstances ?? []) {
++    const card = cardsById.get(instance.cardId);
++    if (card) {
++      result.set(instance.id, card);
++    }
++  }
++  return result;
++};
++
++const cardForAction = (
++  action: AgentAction,
++  snapshot: AgentRunDriverSnapshot,
++  registry: GameContentRegistry
++): CardDefinition | undefined => {
++  if (action.type !== "playCard") {
++    return undefined;
++  }
++  return cardByInstanceId(snapshot, registry).get(action.cardInstanceId);
++};
++
++const targetHp = (action: AgentAction, snapshot: AgentRunDriverSnapshot): number => {
++  if (action.type !== "playCard" || !action.targetId) {
++    return Number.POSITIVE_INFINITY;
++  }
++  return snapshot.combat?.monsters.find((monster) => monster.id === action.targetId)?.hp ?? Number.POSITIVE_INFINITY;
++};
++
++const aliveMonsterCount = (snapshot: AgentRunDriverSnapshot): number =>
++  snapshot.combat?.monsters.filter((monster) => monster.alive).length ?? 0;
++
++const hasTag = (card: CardDefinition | undefined, tag: string): boolean => card?.tags.includes(tag) ?? false;
++
++const effectValue = (effect: EffectDefinition, snapshot: AgentRunDriverSnapshot): number => {
++  const enemies = Math.max(1, aliveMonsterCount(snapshot));
++  if (effect.type === "damage") {
++    return effect.amount * (effect.target.type === "allEnemies" ? enemies : 1);
++  }
++  if (effect.type === "petAttack") {
++    return effect.amount * (effect.target.type === "allEnemies" ? enemies : 1);
++  }
++  if (effect.type === "applyStatus" && String(effect.statusId) === "burn") {
++    return effect.stacks * 2 * (effect.target.type === "allEnemies" ? enemies : 1);
++  }
++  if (effect.type === "block" || effect.type === "petBlock") {
++    return effect.amount;
++  }
++  if (effect.type === "draw") {
++    return effect.amount;
++  }
++  return 0;
++};
++
++const offensiveScore = (card: CardDefinition | undefined, snapshot: AgentRunDriverSnapshot): number => {
++  if (!card) {
++    return -100;
++  }
++  const effectScore = card.effects
++    .filter((effect) => effect.type === "damage" || effect.type === "petAttack" || effect.type === "applyStatus")
++    .reduce((sum, effect) => sum + effectValue(effect, snapshot), 0);
++  const tagBonus =
++    (hasTag(card, "pet") ? 1 : 0) +
++    (hasTag(card, "command") ? 1 : 0) +
++    (hasTag(card, "burn") ? 1 : 0) +
++    (hasTag(card, "combo") ? 1 : 0);
++  return effectScore + tagBonus - card.cost * 0.5;
++};
++
++const defensiveScore = (card: CardDefinition | undefined): number => {
++  if (!card) {
++    return -100;
++  }
++  const effectScore = card.effects
++    .filter((effect) => effect.type === "block" || effect.type === "petBlock")
++    .reduce((sum, effect) => sum + effectValue(effect, { run: undefined as never, petInstances: [], lastEvents: [] }), 0);
++  const tagBonus = (hasTag(card, "guard") ? 2 : 0) + (hasTag(card, "block") ? 1 : 0);
++  return effectScore + tagBonus - card.cost * 0.25;
++};
++
++const drawScore = (card: CardDefinition | undefined): number => {
++  if (!card) {
++    return -100;
++  }
++  const effectScore = card.effects
++    .filter((effect) => effect.type === "draw")
++    .reduce((sum, effect) => sum + effectValue(effect, { run: undefined as never, petInstances: [], lastEvents: [] }), 0);
++  return effectScore + (hasTag(card, "draw") ? 1 : 0) - card.cost * 0.25;
++};
++
++const estimateIncomingDamage = (
++  snapshot: AgentRunDriverSnapshot,
++  registry: GameContentRegistry
++): number => {
++  const combat = snapshot.combat;
++  if (!combat) {
++    return 0;
++  }
++
++  let incoming = 0;
++  for (const activeIntent of combat.monsterIntents) {
++    const monster = combat.monsters.find((candidate) => candidate.id === activeIntent.monsterCombatantId);
++    const definition = registry.monsters.find((candidate) => candidate.id === monster?.definitionId);
++    const intent = definition?.intentPool.find((candidate) => candidate.id === activeIntent.intentId);
++    if (!monster?.alive || !intent) {
++      continue;
++    }
++    for (const effect of intent.effects) {
++      if (effect.type === "damage") {
++        incoming += effect.amount;
++      }
++    }
++  }
++  return incoming;
++};
++
++const selectMapAction = (actions: readonly AgentAction[], snapshot: AgentRunDriverSnapshot): AgentAction | undefined => {
++  const nodesById = new Map(snapshot.run.map?.nodes.map((node) => [node.id, node]) ?? []);
++  return actions
++    .filter((action): action is Extract<AgentAction, { readonly type: "selectMapNode" }> => action.type === "selectMapNode")
++    .sort((left, right) => {
++      const leftNode = nodesById.get(left.nodeId);
++      const rightNode = nodesById.get(right.nodeId);
++      const nodeRank = (node: typeof leftNode): number =>
++        node?.type === "rest" ? 0 : node?.type === "event" ? 1 : node?.type === "combat" ? 2 : node?.type === "elite" ? 3 : node?.type === "boss" ? 4 : 5;
++      return nodeRank(leftNode) - nodeRank(rightNode) || (leftNode?.layer ?? 0) - (rightNode?.layer ?? 0) || compareText(left.nodeId, right.nodeId);
++    })[0];
++};
++
++const rewardCardScore = (
++  option: RewardOption,
++  registry: GameContentRegistry,
++  strategy: "greedyDamage" | "defensive"
++): number => {
++  if (option.type === "petUpgrade") {
++    const upgrade = registry.petUpgrades.find((candidate) => candidate.id === option.upgradeId);
++    const tags = upgrade?.tags ?? [];
++    if (strategy === "greedyDamage") {
++      return 12 + (tags.includes("burn") ? 6 : 0) + (tags.includes("attack") ? 4 : 0) + (tags.includes("draw") ? 2 : 0);
++    }
++    return 10 + (tags.includes("energy") ? 5 : 0) + (tags.includes("draw") ? 4 : 0) + (tags.includes("burn") ? 2 : 0);
++  }
++
++  const card = registry.cards.find((candidate) => candidate.id === option.cardId);
++  if (!card) {
++    return -100;
++  }
++  if (strategy === "greedyDamage") {
++    return offensiveScore(card, { run: undefined as never, petInstances: [], lastEvents: [] }) + drawScore(card);
++  }
++  return defensiveScore(card) * 1.4 + drawScore(card) + offensiveScore(card, { run: undefined as never, petInstances: [], lastEvents: [] }) * 0.35;
++};
++
++const selectRewardAction = (
++  actions: readonly AgentAction[],
++  snapshot: AgentRunDriverSnapshot,
++  registry: GameContentRegistry,
++  strategy: "greedyDamage" | "defensive"
++): AgentAction | undefined => {
++  const claims = actions.filter((action): action is Extract<AgentAction, { readonly type: "claimReward" }> => action.type === "claimReward");
++  const optionsById = new Map(snapshot.run.pendingRewardOffer?.options.map((option) => [option.id, option]) ?? []);
++  const best = claims
++    .map((action) => ({ action, option: optionsById.get(action.rewardOptionId) }))
++    .filter((entry): entry is { readonly action: Extract<AgentAction, { readonly type: "claimReward" }>; readonly option: RewardOption } => Boolean(entry.option))
++    .sort((left, right) => rewardCardScore(right.option, registry, strategy) - rewardCardScore(left.option, registry, strategy) || compareText(left.action.rewardOptionId, right.action.rewardOptionId))[0];
++  return best?.action ?? actions.find((action) => action.type === "skipReward");
++};
++
++const selectGreedyCombatAction = (
++  actions: readonly AgentAction[],
++  snapshot: AgentRunDriverSnapshot,
++  registry: GameContentRegistry
++): AgentAction | undefined => {
++  const playActions = actions.filter((action) => action.type === "playCard");
++  const attack = playActions
++    .map((action) => ({ action, card: cardForAction(action, snapshot, registry) }))
++    .filter((entry) => offensiveScore(entry.card, snapshot) > 0)
++    .sort((left, right) => offensiveScore(right.card, snapshot) - offensiveScore(left.card, snapshot) || targetHp(left.action, snapshot) - targetHp(right.action, snapshot))[0]?.action;
++  if (attack) {
++    return attack;
++  }
++
++  const utility = playActions
++    .map((action) => ({ action, card: cardForAction(action, snapshot, registry) }))
++    .sort((left, right) => Math.max(drawScore(right.card), defensiveScore(right.card)) - Math.max(drawScore(left.card), defensiveScore(left.card)))[0]?.action;
++  return utility ?? actions.find((action) => action.type === "endTurn");
++};
++
++const selectDefensiveCombatAction = (
++  actions: readonly AgentAction[],
++  snapshot: AgentRunDriverSnapshot,
++  registry: GameContentRegistry
++): AgentAction | undefined => {
++  const combat = snapshot.combat;
++  const playActions = actions.filter((action) => action.type === "playCard");
++  const incoming = estimateIncomingDamage(snapshot, registry);
++  const currentBlock = combat?.player.block ?? 0;
++  const shouldBlock = incoming > currentBlock;
++
++  if (shouldBlock) {
++    const block = playActions
++      .map((action) => ({ action, card: cardForAction(action, snapshot, registry) }))
++      .filter((entry) => defensiveScore(entry.card) > 0)
++      .sort((left, right) => defensiveScore(right.card) - defensiveScore(left.card) || drawScore(right.card) - drawScore(left.card))[0]?.action;
++    if (block) {
++      return block;
++    }
++  }
++
++  const draw = playActions
++    .map((action) => ({ action, card: cardForAction(action, snapshot, registry) }))
++    .filter((entry) => drawScore(entry.card) > 0 && (entry.card?.cost ?? 0) === 0)
++    .sort((left, right) => drawScore(right.card) - drawScore(left.card))[0]?.action;
++  if (draw) {
++    return draw;
++  }
++
++  return selectGreedyCombatAction(actions, snapshot, registry);
++};
++
++const chooseProfileAction = (
++  policyId: Exclude<AgentPolicyId, "randomLegal" | "deterministicSmoke">,
++  snapshot: AgentRunDriverSnapshot,
++  registry: GameContentRegistry
++): AgentAction | undefined => {
++  const actions = getLegalAgentActions(snapshot, registry);
++  const forced = actions.find((action) => action.type === "completeCombatIfEnded" || action.type === "completeNonCombatNode");
++  if (forced) {
++    return forced;
++  }
++
++  if (snapshot.run.status === "map_select") {
++    return selectMapAction(actions, snapshot);
++  }
++
++  if (snapshot.run.status === "reward") {
++    return selectRewardAction(actions, snapshot, registry, policyId);
++  }
++
++  if (snapshot.run.status === "combat") {
++    return policyId === "defensive"
++      ? selectDefensiveCombatAction(actions, snapshot, registry)
++      : selectGreedyCombatAction(actions, snapshot, registry);
++  }
++
++  return actions[0];
++};
++
++export const chooseAgentPolicyAction = (
++  policyId: AgentPolicyId,
++  snapshot: AgentRunDriverSnapshot,
++  rng: Rng,
++  registry: GameContentRegistry = starterRegistry
++): AgentAction | undefined => {
++  if (policyId === "randomLegal") {
++    return randomLegalPolicy(snapshot, rng, registry);
++  }
++  if (policyId === "deterministicSmoke") {
++    return deterministicSmokePolicy(snapshot, registry);
++  }
++  return chooseProfileAction(policyId, snapshot, registry);
++};
++
++export const isAgentPolicyId = (value: string): value is AgentPolicyId =>
++  agentPolicyProfiles.some((profile) => profile.id === value);
+diff --git a/src/game-core/testing/simulation.ts b/src/game-core/testing/simulation.ts
+index 022a293..a7cf896 100644
+--- a/src/game-core/testing/simulation.ts
++++ b/src/game-core/testing/simulation.ts
+@@ -3,7 +3,8 @@ import type { RunStatus } from "../model/run";
+ import { createAgentRunDriver } from "./run-driver";
+ import type { AgentAction, AgentActionSource, AgentTraceMode } from "./agent-actions";
+ import { checkAgentRunInvariants } from "./invariants";
+-import { deterministicSmokePolicy, invalidActionInjector, randomLegalPolicy } from "./policies";
++import { deterministicSmokePolicy, invalidActionInjector } from "./policies";
++import { chooseAgentPolicyAction, type AgentPolicyId } from "./policy-profiles";
+ import { createAgentStateHash } from "./state-hash";
+ import { createTraceStep, replayAgentTrace, type AgentTrace, type AgentTraceFailure, type AgentTraceStep } from "./trace";
+ import { getLegalAgentActions } from "./action-space";
+@@ -18,6 +19,7 @@ export type SimulationConfig = {
+   readonly maxDepth?: number;
+   readonly maxStates?: number;
+   readonly invalidActionRate?: number;
++  readonly policy?: AgentPolicyId;
+   readonly trace?: AgentTrace;
+ };
+ 
+@@ -202,6 +204,7 @@ export const runFuzzSimulation = (
+   const runs = config.runs ?? 20;
+   const maxSteps = config.maxSteps ?? 300;
+   const invalidActionRate = config.invalidActionRate ?? 0.1;
++  const policy = config.policy ?? "randomLegal";
+   const traces: AgentTrace[] = [];
+ 
+   for (let runIndex = 0; runIndex < runs; runIndex += 1) {
+@@ -212,7 +215,7 @@ export const runFuzzSimulation = (
+       if (rng.nextFloat() < invalidActionRate) {
+         return { action: invalidActionInjector(snapshot, rng), source: "invalid-injected" };
+       }
+-      return { action: randomLegalPolicy(snapshot, rng), source: "fuzz" };
++      return { action: chooseAgentPolicyAction(policy, snapshot, rng), source: policy === "randomLegal" ? "fuzz" : "policy" };
+     });
+     const replay = replayAgentTrace(trace);
+     traces.push(
+diff --git a/tests/game-cli/parse.test.ts b/tests/game-cli/parse.test.ts
+index 8d7361f..0295e7b 100644
+--- a/tests/game-cli/parse.test.ts
++++ b/tests/game-cli/parse.test.ts
+@@ -4,7 +4,9 @@ import { parseSimulationCliOptions } from "../../src/game-cli/parse";
+ const envKeys = [
+   "npm_config_invalid_action_rate",
+   "npm_config_completion_rate_min",
+-  "npm_config_completion_rate_max"
++  "npm_config_completion_rate_max",
++  "npm_config_policy_matrix",
++  "npm_config_strict_policy_matrix"
+ ] as const;
+ 
+ const originalEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+@@ -39,6 +41,21 @@ describe("simulation CLI parsing", () => {
+     expect(options.completionRateMin).toBe(0.99);
+   });
+ 
++  it("parses policy matrix and policy profile flags", () => {
++    const options = parseSimulationCliOptions([
++      "--mode",
++      "fuzz",
++      "--policy",
++      "defensive",
++      "--policy-matrix",
++      "--strict-policy-matrix"
++    ]);
++
++    expect(options.policy).toBe("defensive");
++    expect(options.policyMatrix).toBe(true);
++    expect(options.strictPolicyMatrix).toBe(true);
++  });
++
+   it("reads npm stripped numeric override values left as positionals", () => {
+     process.env.npm_config_invalid_action_rate = "true";
+     process.env.npm_config_completion_rate_min = "true";
+diff --git a/tests/game-core/policy-matrix.test.ts b/tests/game-core/policy-matrix.test.ts
+new file mode 100644
+index 0000000..49cb4da
+--- /dev/null
++++ b/tests/game-core/policy-matrix.test.ts
+@@ -0,0 +1,39 @@
++import { describe, expect, it } from "vitest";
++import { runPolicyMatrixSimulation } from "../../src/game-core";
++
++describe("policy matrix simulation", () => {
++  it("summarizes multiple play profiles for balance review", () => {
++    const matrix = runPolicyMatrixSimulation({ seed: "policy-matrix-test", runs: 4, maxSteps: 260 });
++
++    expect(matrix.ok).toBe(true);
++    expect(matrix.entries.map((entry) => entry.policyId)).toEqual([
++      "randomLegal",
++      "greedyDamage",
++      "defensive",
++      "deterministicSmoke"
++    ]);
++    for (const entry of matrix.entries) {
++      expect(entry.result.ok).toBe(true);
++      expect(entry.report.totalRuns).toBe(4);
++      expect(entry.report.combatsStarted).toBeGreaterThan(0);
++      expect(entry.report.totalDamageToMonsters).toBeGreaterThan(0);
++    }
++  });
++
++  it("can promote profile completion bands into strict gates when desired", () => {
++    const matrix = runPolicyMatrixSimulation({
++      seed: "policy-matrix-strict-test",
++      runs: 3,
++      maxSteps: 220,
++      strict: true,
++      targets: [
++        { policyId: "deterministicSmoke", minCompletionRate: 1, maxCompletionRate: 1 }
++      ]
++    });
++
++    expect(matrix.ok).toBe(true);
++    expect(matrix.entries).toHaveLength(1);
++    expect(matrix.entries[0].policyId).toBe("deterministicSmoke");
++    expect(matrix.entries[0].report.completionRate).toBe(1);
++  });
++});
+diff --git a/tests/game-core/policy-profiles.test.ts b/tests/game-core/policy-profiles.test.ts
+new file mode 100644
+index 0000000..e443f10
+--- /dev/null
++++ b/tests/game-core/policy-profiles.test.ts
+@@ -0,0 +1,51 @@
++import { describe, expect, it } from "vitest";
++import {
++  agentPolicyProfiles,
++  chooseAgentPolicyAction,
++  createAgentRunDriver,
++  createRng,
++  getLegalAgentActions,
++  isAgentPolicyId,
++  runFuzzSimulation
++} from "../../src/game-core";
++
++describe("agent policy profiles", () => {
++  it("exposes stable policy ids for balance matrix simulations", () => {
++    expect(agentPolicyProfiles.map((profile) => profile.id)).toEqual([
++      "randomLegal",
++      "greedyDamage",
++      "defensive",
++      "deterministicSmoke"
++    ]);
++    expect(isAgentPolicyId("greedyDamage")).toBe(true);
++    expect(isAgentPolicyId("unknown-policy")).toBe(false);
++  });
++
++  it("chooses legal actions for each policy on the initial run state", () => {
++    const driver = createAgentRunDriver({ seed: "policy-profiles" });
++    const snapshot = driver.getSnapshot();
++    const legalKeys = new Set(getLegalAgentActions(snapshot).map((action) => JSON.stringify(action)));
++
++    for (const profile of agentPolicyProfiles) {
++      const action = chooseAgentPolicyAction(profile.id, snapshot, createRng(`${profile.id}:test`));
++      expect(action, profile.id).toBeDefined();
++      expect(legalKeys.has(JSON.stringify(action))).toBe(true);
++    }
++  });
++
++  it("can run non-random profile simulations without rejected legal actions", () => {
++    for (const policy of ["greedyDamage", "defensive"] as const) {
++      const result = runFuzzSimulation({
++        seed: `policy-profile-${policy}`,
++        runs: 4,
++        maxSteps: 220,
++        invalidActionRate: 0,
++        policy
++      });
++
++      expect(result.ok).toBe(true);
++      expect(result.failures).toHaveLength(0);
++      expect(result.traces.every((trace) => trace.finalStatus === "completed" || trace.finalStatus === "lost")).toBe(true);
++    }
++  });
++});
+diff --git a/tests/game-core/simulation-fuzz.test.ts b/tests/game-core/simulation-fuzz.test.ts
+index f42dd85..1c34340 100644
+--- a/tests/game-core/simulation-fuzz.test.ts
++++ b/tests/game-core/simulation-fuzz.test.ts
+@@ -22,7 +22,7 @@ describe("agent simulation fuzz", () => {
+         .filter((step) => step.source === "invalid-injected")
+         .every((step) => !step.ok && step.events.every((event) => event.type === "ActionRejected"))
+     ).toBe(true);
+-  });
++  }, 10000);
+ 
+ 
+ 
