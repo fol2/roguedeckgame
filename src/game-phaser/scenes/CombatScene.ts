@@ -19,6 +19,8 @@ import { PetPresenter } from "../presenters/PetPresenter";
 import { PlayerPresenter } from "../presenters/PlayerPresenter";
 import { TargetingPresenter } from "../presenters/TargetingPresenter";
 import type { CombatCardViewModel, CombatViewModel } from "../view-models/combat-view-model";
+import { resolveCardDropAction } from "../interaction/card-interaction-policy";
+import { resolveCombatDropTarget, type DropPoint } from "../interaction/combat-drop-target-resolver";
 import {
   COMBAT_BACKGROUND_COLOUR,
   COMBAT_BOARD,
@@ -26,31 +28,12 @@ import {
   COMBAT_TEXT,
   CONTINUE_BUTTON,
   ENCOUNTER_LABEL,
-  getMonsterPosition,
-  KEEPER_AVATAR,
   MENU_BUTTON,
-  MONSTER_SLOT,
   OUTCOME_LABEL,
   RESET_RUN_BUTTON
 } from "../layout/combat-layout";
 import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
-import { getPetSlotPosition, PET_SLOT_SIZE } from "../layout/pet-layout";
 import { SceneKeys } from "./SceneKeys";
-
-type DropPoint = {
-  readonly x: number;
-  readonly y: number;
-};
-
-type CardDropResolution =
-  | {
-      readonly accepted: true;
-      readonly targetId?: CombatantId;
-    }
-  | {
-      readonly accepted: false;
-      readonly message: string;
-    };
 
 export class CombatScene extends Scene {
   private sandbox?: RunSandboxController;
@@ -426,7 +409,7 @@ export class CombatScene extends Scene {
       return false;
     }
 
-    const drop = this.resolveCardDrop(card, point, viewModel);
+    const drop = resolveCardDropAction(card, resolveCombatDropTarget(point, viewModel));
     if (!drop.accepted) {
       this.setFeedback(drop.message);
       this.renderCurrentState(false);
@@ -445,51 +428,6 @@ export class CombatScene extends Scene {
       void this.submitDroppedCard(cardInstanceId, drop.targetId, viewModel.revision);
     }, 0);
     return true;
-  }
-
-  private resolveCardDrop(
-    card: CombatCardViewModel,
-    point: DropPoint,
-    viewModel: CombatViewModel
-  ): CardDropResolution {
-    if (card.targetKind === "enemy" || card.targetKind === "petAndEnemy") {
-      const monsterId = this.getMonsterDropTargetAt(point, viewModel, card.validTargetIds);
-      return monsterId
-        ? { accepted: true, targetId: monsterId }
-        : { accepted: false, message: "Drop this card on a valid enemy target." };
-    }
-
-    if (card.targetKind === "allEnemies") {
-      return this.getAnyMonsterDropTargetAt(point, viewModel) || this.isPointInCombatBoard(point)
-        ? { accepted: true }
-        : { accepted: false, message: "Drop this card on an enemy or the combat board." };
-    }
-
-    if (card.targetKind === "self") {
-      return this.isPointInPlayerDropTarget(point)
-        ? { accepted: true }
-        : { accepted: false, message: "Drop this card on the player." };
-    }
-
-    if (card.targetKind === "petAndSelf") {
-      return this.isPointInPlayerDropTarget(point) || this.getPetDropTargetAt(point, viewModel) !== undefined
-        ? { accepted: true }
-        : { accepted: false, message: "Drop this command on the player or active pet." };
-    }
-
-    if (card.targetKind === "pet") {
-      return this.getPetDropTargetAt(point, viewModel) !== undefined
-        ? { accepted: true }
-        : { accepted: false, message: "Drop this command on an active pet." };
-    }
-
-    if (card.targetKind === "none") {
-      return this.isPointInCombatBoard(point)
-        ? { accepted: true }
-        : { accepted: false, message: "Drop this card on the combat board." };
-    }
-
-    return { accepted: false, message: "This card cannot be dragged to a target yet." };
   }
 
   private async submitDroppedCard(
@@ -511,68 +449,6 @@ export class CombatScene extends Scene {
     this.setFeedback(result.errors[0]?.message ?? "Action was rejected.");
     this.restoreSelectionAfterFailedSubmit(cardInstanceId, this.sandbox.getCombatViewModel());
     this.renderCurrentState();
-  }
-
-  private getMonsterDropTargetAt(
-    point: DropPoint,
-    viewModel: CombatViewModel,
-    validTargetIds: readonly CombatantId[]
-  ): CombatantId | undefined {
-    const validTargets = new Set(validTargetIds);
-    const hitZoneHeight = MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2 - MONSTER_SLOT.intentY + MONSTER_SLOT.intentRadius;
-    const hitZoneY = (MONSTER_SLOT.intentY - MONSTER_SLOT.intentRadius + MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2) / 2;
-
-    return viewModel.monsters.find((monster, index) => {
-      if (!monster.alive || !validTargets.has(monster.id)) {
-        return false;
-      }
-
-      const position = getMonsterPosition(index, viewModel.monsters.length);
-      const left = position.x - MONSTER_SLOT.width / 2;
-      const right = position.x + MONSTER_SLOT.width / 2;
-      const top = position.y + hitZoneY - hitZoneHeight / 2;
-      const bottom = position.y + hitZoneY + hitZoneHeight / 2;
-
-      return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
-    })?.id;
-  }
-
-  private getAnyMonsterDropTargetAt(point: DropPoint, viewModel: CombatViewModel): CombatantId | undefined {
-    return this.getMonsterDropTargetAt(
-      point,
-      viewModel,
-      viewModel.monsters.filter((monster) => monster.alive).map((monster) => monster.id)
-    );
-  }
-
-  private getPetDropTargetAt(point: DropPoint, viewModel: CombatViewModel): number | undefined {
-    const slotIndex = viewModel.pets.findIndex((_pet, index) => {
-      const position = getPetSlotPosition(index);
-      const left = position.x - PET_SLOT_SIZE.width / 2;
-      const right = position.x + PET_SLOT_SIZE.width / 2;
-      const top = position.y - PET_SLOT_SIZE.height / 2;
-      const bottom = position.y + PET_SLOT_SIZE.height / 2;
-
-      return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
-    });
-
-    return slotIndex >= 0 ? slotIndex : undefined;
-  }
-
-  private isPointInPlayerDropTarget(point: DropPoint): boolean {
-    const left = KEEPER_AVATAR.x - KEEPER_AVATAR.baseWidth / 2 - 16;
-    const right = KEEPER_AVATAR.x + KEEPER_AVATAR.baseWidth / 2 + 16;
-    const top = KEEPER_AVATAR.y - KEEPER_AVATAR.bodyHeight / 2 - KEEPER_AVATAR.headRadius - 12;
-    const bottom = KEEPER_AVATAR.y + KEEPER_AVATAR.labelY + 20;
-
-    return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
-  }
-
-  private isPointInCombatBoard(point: DropPoint): boolean {
-    return point.x >= COMBAT_BOARD.x &&
-      point.x <= COMBAT_BOARD.x + COMBAT_BOARD.width &&
-      point.y >= COMBAT_BOARD.y &&
-      point.y <= COMBAT_BOARD.y + COMBAT_BOARD.height;
   }
 
   private async handleMonsterSelection(monsterId: CombatantId): Promise<void> {
