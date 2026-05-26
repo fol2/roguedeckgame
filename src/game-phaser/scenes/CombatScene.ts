@@ -1,5 +1,5 @@
 import { Scene, type GameObjects, type Time } from "phaser";
-import type { CardInstanceId, CombatantId } from "../../game-core";
+import type { CardInstanceId, CombatantId, GameEvent } from "../../game-core";
 import {
   getRunSandboxController
 } from "../controllers/run-sandbox-singleton";
@@ -26,12 +26,31 @@ import {
   COMBAT_TEXT,
   CONTINUE_BUTTON,
   ENCOUNTER_LABEL,
+  getMonsterPosition,
+  KEEPER_AVATAR,
   MENU_BUTTON,
+  MONSTER_SLOT,
   OUTCOME_LABEL,
   RESET_RUN_BUTTON
 } from "../layout/combat-layout";
 import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
+import { getPetSlotPosition, PET_SLOT_SIZE } from "../layout/pet-layout";
 import { SceneKeys } from "./SceneKeys";
+
+type DropPoint = {
+  readonly x: number;
+  readonly y: number;
+};
+
+type CardDropResolution =
+  | {
+      readonly accepted: true;
+      readonly targetId?: CombatantId;
+    }
+  | {
+      readonly accepted: false;
+      readonly message: string;
+    };
 
 export class CombatScene extends Scene {
   private sandbox?: RunSandboxController;
@@ -65,6 +84,7 @@ export class CombatScene extends Scene {
   private nextRequestId = 1;
   private pendingRequestId?: string;
   private removeFocusHandlers?: () => void;
+  private playbackFinalViewModel?: CombatViewModel;
 
   public constructor() {
     super(SceneKeys.Combat);
@@ -86,6 +106,7 @@ export class CombatScene extends Scene {
     this.pauseOpen = false;
     this.browserFocused = true;
     this.pendingRequestId = undefined;
+    this.playbackFinalViewModel = undefined;
     configureFixedResolutionStage(this);
     this.cameras.main.setBackgroundColor(COMBAT_BACKGROUND_COLOUR);
     this.input.mouse?.disableContextMenu();
@@ -124,7 +145,9 @@ export class CombatScene extends Scene {
     this.eventLog = new EventLogPresenter(this);
     this.eventLog.setVisible(false);
     this.eventFxPresenter = new CombatEventFxPresenter(this);
-    this.eventPlayer = new CombatEventPlayer(this, this.eventLog, this.eventFxPresenter);
+    this.eventPlayer = new CombatEventPlayer(this, this.eventLog, this.eventFxPresenter, (event) => {
+      return this.playCardMovementForEvent(event);
+    });
     this.playerPresenter = new PlayerPresenter(this);
     this.monsterPresenter = new MonsterPresenter(this, (monsterId) => {
       void this.handleMonsterSelection(monsterId);
@@ -134,7 +157,9 @@ export class CombatScene extends Scene {
     }, (cardInstanceId) => {
       this.hoveredCardId = cardInstanceId;
       this.renderCurrentState(false);
-    }, (cardInstanceId) => this.openCardDetail(cardInstanceId), (tooltip) => this.setTooltip(tooltip));
+    }, (cardInstanceId) => this.openCardDetail(cardInstanceId), (tooltip) => this.setTooltip(tooltip), (cardInstanceId, point) => {
+      return this.handleCardDrop(cardInstanceId, point);
+    });
     this.targetingPresenter = new TargetingPresenter(this);
     this.hudPresenter = new CombatHudPresenter(this, () => {
       void this.handleTurnEnd();
@@ -384,6 +409,172 @@ export class CombatScene extends Scene {
     await this.submitAction((requestId) => this.sandbox!.playHandCard(cardInstanceId, undefined, viewModel.revision, requestId));
   }
 
+  private async handleCardDrop(cardInstanceId: CardInstanceId, point: DropPoint): Promise<boolean> {
+    if (this.inputLocked || this.isModalOpen() || !this.browserFocused || !this.sandbox) {
+      return false;
+    }
+
+    const viewModel = this.sandbox.getCombatViewModel();
+    if (!viewModel) {
+      return false;
+    }
+
+    const card = viewModel.hand.find((candidate) => candidate.cardInstanceId === cardInstanceId);
+    if (!card || !card.playable) {
+      this.setFeedback(card?.unplayableReason ?? "Card cannot be played.");
+      this.renderCurrentState(false);
+      return false;
+    }
+
+    const drop = this.resolveCardDrop(card, point, viewModel);
+    if (!drop.accepted) {
+      this.setFeedback(drop.message);
+      this.renderCurrentState(false);
+      return false;
+    }
+
+    if (drop.targetId) {
+      this.selectedCardId = cardInstanceId;
+      this.selectedCardRevision = viewModel.revision;
+      this.keyboardTargetId = drop.targetId;
+      this.hoveredCardId = undefined;
+    } else {
+      this.clearSelectedCard();
+    }
+    globalThis.setTimeout(() => {
+      void this.submitDroppedCard(cardInstanceId, drop.targetId, viewModel.revision);
+    }, 0);
+    return true;
+  }
+
+  private resolveCardDrop(
+    card: CombatCardViewModel,
+    point: DropPoint,
+    viewModel: CombatViewModel
+  ): CardDropResolution {
+    if (card.targetKind === "enemy" || card.targetKind === "petAndEnemy") {
+      const monsterId = this.getMonsterDropTargetAt(point, viewModel, card.validTargetIds);
+      return monsterId
+        ? { accepted: true, targetId: monsterId }
+        : { accepted: false, message: "Drop this card on a valid enemy target." };
+    }
+
+    if (card.targetKind === "allEnemies") {
+      return this.getAnyMonsterDropTargetAt(point, viewModel) || this.isPointInCombatBoard(point)
+        ? { accepted: true }
+        : { accepted: false, message: "Drop this card on an enemy or the combat board." };
+    }
+
+    if (card.targetKind === "self") {
+      return this.isPointInPlayerDropTarget(point)
+        ? { accepted: true }
+        : { accepted: false, message: "Drop this card on the player." };
+    }
+
+    if (card.targetKind === "petAndSelf") {
+      return this.isPointInPlayerDropTarget(point) || this.getPetDropTargetAt(point, viewModel) !== undefined
+        ? { accepted: true }
+        : { accepted: false, message: "Drop this command on the player or active pet." };
+    }
+
+    if (card.targetKind === "pet") {
+      return this.getPetDropTargetAt(point, viewModel) !== undefined
+        ? { accepted: true }
+        : { accepted: false, message: "Drop this command on an active pet." };
+    }
+
+    if (card.targetKind === "none") {
+      return this.isPointInCombatBoard(point)
+        ? { accepted: true }
+        : { accepted: false, message: "Drop this card on the combat board." };
+    }
+
+    return { accepted: false, message: "This card cannot be dragged to a target yet." };
+  }
+
+  private async submitDroppedCard(
+    cardInstanceId: CardInstanceId,
+    targetId: CombatantId | undefined,
+    revision: number
+  ): Promise<void> {
+    if (!this.sandbox) {
+      return;
+    }
+
+    const result = await this.submitAction((requestId) => this.sandbox!.playHandCard(cardInstanceId, targetId, revision, requestId));
+    if (result.ok) {
+      this.clearSelectedCard();
+      this.renderCurrentState();
+      return;
+    }
+
+    this.setFeedback(result.errors[0]?.message ?? "Action was rejected.");
+    this.restoreSelectionAfterFailedSubmit(cardInstanceId, this.sandbox.getCombatViewModel());
+    this.renderCurrentState();
+  }
+
+  private getMonsterDropTargetAt(
+    point: DropPoint,
+    viewModel: CombatViewModel,
+    validTargetIds: readonly CombatantId[]
+  ): CombatantId | undefined {
+    const validTargets = new Set(validTargetIds);
+    const hitZoneHeight = MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2 - MONSTER_SLOT.intentY + MONSTER_SLOT.intentRadius;
+    const hitZoneY = (MONSTER_SLOT.intentY - MONSTER_SLOT.intentRadius + MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2) / 2;
+
+    return viewModel.monsters.find((monster, index) => {
+      if (!monster.alive || !validTargets.has(monster.id)) {
+        return false;
+      }
+
+      const position = getMonsterPosition(index, viewModel.monsters.length);
+      const left = position.x - MONSTER_SLOT.width / 2;
+      const right = position.x + MONSTER_SLOT.width / 2;
+      const top = position.y + hitZoneY - hitZoneHeight / 2;
+      const bottom = position.y + hitZoneY + hitZoneHeight / 2;
+
+      return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
+    })?.id;
+  }
+
+  private getAnyMonsterDropTargetAt(point: DropPoint, viewModel: CombatViewModel): CombatantId | undefined {
+    return this.getMonsterDropTargetAt(
+      point,
+      viewModel,
+      viewModel.monsters.filter((monster) => monster.alive).map((monster) => monster.id)
+    );
+  }
+
+  private getPetDropTargetAt(point: DropPoint, viewModel: CombatViewModel): number | undefined {
+    const slotIndex = viewModel.pets.findIndex((_pet, index) => {
+      const position = getPetSlotPosition(index);
+      const left = position.x - PET_SLOT_SIZE.width / 2;
+      const right = position.x + PET_SLOT_SIZE.width / 2;
+      const top = position.y - PET_SLOT_SIZE.height / 2;
+      const bottom = position.y + PET_SLOT_SIZE.height / 2;
+
+      return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
+    });
+
+    return slotIndex >= 0 ? slotIndex : undefined;
+  }
+
+  private isPointInPlayerDropTarget(point: DropPoint): boolean {
+    const left = KEEPER_AVATAR.x - KEEPER_AVATAR.baseWidth / 2 - 16;
+    const right = KEEPER_AVATAR.x + KEEPER_AVATAR.baseWidth / 2 + 16;
+    const top = KEEPER_AVATAR.y - KEEPER_AVATAR.bodyHeight / 2 - KEEPER_AVATAR.headRadius - 12;
+    const bottom = KEEPER_AVATAR.y + KEEPER_AVATAR.labelY + 20;
+
+    return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom;
+  }
+
+  private isPointInCombatBoard(point: DropPoint): boolean {
+    return point.x >= COMBAT_BOARD.x &&
+      point.x <= COMBAT_BOARD.x + COMBAT_BOARD.width &&
+      point.y >= COMBAT_BOARD.y &&
+      point.y <= COMBAT_BOARD.y + COMBAT_BOARD.height;
+  }
+
   private async handleMonsterSelection(monsterId: CombatantId): Promise<void> {
     if (this.inputLocked || this.isModalOpen() || !this.browserFocused || !this.sandbox || !this.selectedCardId) {
       return;
@@ -450,6 +641,14 @@ export class CombatScene extends Scene {
     await this.submitAction((requestId) => this.sandbox!.endTurn(viewModel?.revision, requestId));
   }
 
+  private async playCardMovementForEvent(event: GameEvent): Promise<void> {
+    if (event.type !== "CardMoved" || !this.cardPresenter || !this.playbackFinalViewModel) {
+      return;
+    }
+
+    await this.cardPresenter.playCardMoved(event, this.playbackFinalViewModel.hand);
+  }
+
   private async submitAction(
     action: (requestId: string) => ReturnType<RunSandboxController["endTurn"]>
   ): Promise<ReturnType<RunSandboxController["endTurn"]>> {
@@ -462,14 +661,17 @@ export class CombatScene extends Scene {
     const result = action(requestId);
     if (result.ok) {
       this.feedbackMessage = "";
+      this.playbackFinalViewModel = this.sandbox?.getCombatViewModel();
     } else {
       this.setFeedback(result.errors[0]?.message ?? "Action was rejected.");
+      this.playbackFinalViewModel = undefined;
     }
     try {
       await this.eventPlayer?.play(result.events);
     } catch (error) {
       console.warn("CombatScene recovered from event playback failure.", error);
     } finally {
+      this.playbackFinalViewModel = undefined;
       this.renderCurrentState();
       if (this.pendingRequestId === requestId) {
         this.pendingRequestId = undefined;
@@ -493,12 +695,14 @@ export class CombatScene extends Scene {
 
     this.inputLocked = true;
     const result = this.sandbox.completeCombatIfEnded();
+    this.playbackFinalViewModel = this.sandbox.getCombatViewModel();
     this.renderCurrentState(false);
     try {
       await this.eventPlayer?.play(result.events);
     } catch (error) {
       console.warn("CombatScene recovered from continue playback failure.", error);
     }
+    this.playbackFinalViewModel = undefined;
 
     const runStatus = this.sandbox.getState().run.status;
     if (runStatus === "reward") {

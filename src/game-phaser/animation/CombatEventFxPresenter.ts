@@ -9,7 +9,7 @@ import {
   PLAYER_HUD_AREA,
   getMonsterPosition
 } from "../layout/combat-layout";
-import { getHandCardPosition } from "../layout/hand-layout";
+import { HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
 import { getPetSlotPosition } from "../layout/pet-layout";
 import type { CombatViewModel } from "../view-models/combat-view-model";
 
@@ -46,6 +46,11 @@ const PLAYER_HUD_POINT: Point = {
   y: PLAYER_HUD_AREA.y + PLAYER_HUD_AREA.height / 2
 };
 
+const HAND_POINT: Point = {
+  x: (HAND_LAYOUT.leftX + HAND_LAYOUT.rightX) / 2,
+  y: HAND_LAYOUT.y
+};
+
 export class CombatEventFxPresenter {
   private readonly container: GameObjects.Container;
   private combatantPoints = new Map<CombatantId, Point>();
@@ -72,21 +77,16 @@ export class CombatEventFxPresenter {
   public play(event: GameEvent): Promise<void> {
     switch (event.type) {
       case "CardPlayed":
-        return this.playPopup(this.cardPoints.get(event.cardInstanceId) ?? PLAYER_HUD_POINT, "Played", 0xffd166);
+        return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", 0xffd166);
       case "EnergySpent":
         return this.playPulse(ENERGY_POINT, `-${event.amount}`, 0xffb35b);
       case "CardDrawn":
-        return this.playTrace(DRAW_POINT, PLAYER_HUD_POINT, "Draw", 0x7dd3fc);
+        return this.wait(0);
       case "CardMoved":
-        return this.playTrace(
-          this.getPilePoint(event.from),
-          this.getPilePoint(event.to),
-          `${event.from}->${event.to}`,
-          0xffbd66
-        );
+        return this.wait(0);
       case "PetCommanded":
         return this.playTrace(
-          this.cardPoints.get(event.cardInstanceId) ?? PLAYER_HUD_POINT,
+          this.getCardPoint(event.cardInstanceId, event.type),
           this.petPoints.get(event.petInstanceId) ?? PLAYER_POINT,
           "Command",
           0xffb35b
@@ -127,7 +127,20 @@ export class CombatEventFxPresenter {
     return this.combatantPoints.get(combatantId) ?? PLAYER_POINT;
   }
 
-  private getPilePoint(pile: string): Point {
+  private getCardPoint(cardInstanceId: CardInstanceId, eventType: GameEvent["type"]): Point {
+    const point = this.cardPoints.get(cardInstanceId);
+    if (point) {
+      return point;
+    }
+
+    console.warn("CombatEventFxPresenter used a hand fallback point.", {
+      eventType,
+      cardInstanceId
+    });
+    return HAND_POINT;
+  }
+
+  private getPilePoint(pile: string, cardInstanceId?: CardInstanceId): Point {
     if (pile === "draw") {
       return DRAW_POINT;
     }
@@ -137,10 +150,10 @@ export class CombatEventFxPresenter {
     }
 
     if (pile === "hand") {
-      return PLAYER_HUD_POINT;
+      return cardInstanceId ? this.cardPoints.get(cardInstanceId) ?? HAND_POINT : HAND_POINT;
     }
 
-    return PLAYER_HUD_POINT;
+    return HAND_POINT;
   }
 
   private playPopup(point: Point, label: string, colour: number): Promise<void> {

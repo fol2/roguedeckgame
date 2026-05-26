@@ -5,7 +5,7 @@ import type { EventLogPresenter } from "../presenters/EventLogPresenter";
 import { formatCombatEventMessage } from "./combat-event-messages";
 
 const EVENT_DELAY_MS = 70;
-const PLAYBACK_TIMEOUT_MS = 1800;
+const PLAYBACK_TIMEOUT_MS = 5000;
 const KNOWN_COMBAT_EVENT_TYPES = new Set([
   "ActionRejected",
   "BlockGained",
@@ -46,7 +46,8 @@ export class CombatEventPlayer {
   public constructor(
     private readonly scene: Scene,
     private readonly eventLog: EventLogPresenter,
-    private readonly fxPresenter?: CombatEventFxPresenter
+    private readonly fxPresenter?: CombatEventFxPresenter,
+    private readonly onEventPlayed: (event: GameEvent) => void | Promise<void> = () => undefined
   ) {}
 
   public play(events: readonly GameEvent[]): Promise<void> {
@@ -78,12 +79,28 @@ export class CombatEventPlayer {
         }
       };
 
+      const resetPlaybackTimeout = (): void => {
+        timeoutEvent?.remove(false);
+        try {
+          timeoutEvent = this.scene.time.delayedCall(
+            PLAYBACK_TIMEOUT_MS,
+            () => {
+              console.warn("CombatEventPlayer finalized after playback timeout.");
+              settle();
+            }
+          );
+        } catch (error) {
+          console.warn("CombatEventPlayer timeout fallback used.", error);
+        }
+      };
+
       const appendNext = async (): Promise<void> => {
         if (settled) {
           return;
         }
 
         try {
+          resetPlaybackTimeout();
           const event = events[index] as EventLike | undefined;
           if (!event) {
             settle();
@@ -99,6 +116,7 @@ export class CombatEventPlayer {
               console.warn("CombatEventPlayer recovered from FX playback failure.", error);
             });
           }
+          await this.onEventPlayed(event as GameEvent);
           index += 1;
 
           if (index >= events.length) {
@@ -114,18 +132,6 @@ export class CombatEventPlayer {
           settle();
         }
       };
-
-      try {
-        timeoutEvent = this.scene.time.delayedCall(
-          PLAYBACK_TIMEOUT_MS + events.length * EVENT_DELAY_MS,
-          () => {
-            console.warn("CombatEventPlayer finalized after playback timeout.");
-            settle();
-          }
-        );
-      } catch (error) {
-        console.warn("CombatEventPlayer timeout fallback used.", error);
-      }
 
       void appendNext();
     });

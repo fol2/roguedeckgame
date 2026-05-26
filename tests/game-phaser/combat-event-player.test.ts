@@ -167,6 +167,91 @@ describe("CombatEventPlayer", () => {
     warning.mockRestore();
   });
 
+  it("notifies after each visible event has played", async () => {
+    const events: readonly GameEvent[] = [
+      {
+        type: "CardMoved",
+        cardInstanceId: cardInstanceId("card:1"),
+        cardId: cardId("strike"),
+        from: "draw",
+        to: "hand"
+      },
+      {
+        type: "CardDrawn",
+        cardInstanceId: cardInstanceId("card:1"),
+        cardId: cardId("strike")
+      }
+    ];
+    const eventLog = { append: vi.fn() };
+    const playedOrder: string[] = [];
+    const fxPresenter = {
+      play: vi.fn().mockImplementation((event: GameEvent) => {
+        playedOrder.push(`fx:${event.type}`);
+        return Promise.resolve();
+      })
+    };
+    const afterEvent = vi.fn((event: GameEvent) => {
+      playedOrder.push(`after:${event.type}`);
+    });
+    const player = new CombatEventPlayer(createSceneStub() as never, eventLog as never, fxPresenter as never, afterEvent);
+
+    await player.play(events);
+
+    expect(afterEvent).toHaveBeenCalledTimes(2);
+    expect(afterEvent).toHaveBeenNthCalledWith(1, events[0]);
+    expect(afterEvent).toHaveBeenNthCalledWith(2, events[1]);
+    expect(playedOrder).toEqual([
+      "fx:CardMoved",
+      "after:CardMoved",
+      "fx:CardDrawn",
+      "after:CardDrawn"
+    ]);
+  });
+
+  it("refreshes the playback timeout for each event instead of timing out a long queue", async () => {
+    const events: readonly GameEvent[] = [
+      { type: "TurnStarted", turnNumber: 1, actorId: combatantId("player") },
+      {
+        type: "CardMoved",
+        cardInstanceId: cardInstanceId("card:1"),
+        cardId: cardId("strike"),
+        from: "draw",
+        to: "hand"
+      },
+      {
+        type: "CardMoved",
+        cardInstanceId: cardInstanceId("card:2"),
+        cardId: cardId("defend"),
+        from: "draw",
+        to: "hand"
+      }
+    ];
+    const eventLog = { append: vi.fn() };
+    const delayedCalls: Array<{ readonly delay: number; readonly callback: () => void }> = [];
+    const scene = {
+      time: {
+        delayedCall: (delay: number, callback: () => void) => {
+          delayedCalls.push({ delay, callback });
+          if (delay === 70) {
+            callback();
+          }
+
+          return {
+            remove: () => undefined
+          };
+        }
+      }
+    };
+    const fxPresenter = { play: vi.fn().mockResolvedValue(undefined) };
+    const player = new CombatEventPlayer(scene as never, eventLog as never, fxPresenter as never);
+
+    await player.play(events);
+
+    expect(eventLog.append).toHaveBeenCalledTimes(events.length);
+    expect(delayedCalls.filter((entry) => entry.delay === 5000)).toHaveLength(events.length);
+    expect(delayedCalls.filter((entry) => entry.delay === 70)).toHaveLength(events.length - 1);
+  });
+
   it("skips unknown event visuals and still finalizes playback", async () => {
     const eventLog = { append: vi.fn() };
     const fxPresenter = { play: vi.fn().mockResolvedValue(undefined) };

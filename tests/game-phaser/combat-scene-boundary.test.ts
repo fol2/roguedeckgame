@@ -164,7 +164,26 @@ describe("Combat scene boundary", () => {
     expect(source).toMatch(/endTurn\(viewModel\?\.revision, requestId\)/);
     expect(source).toMatch(/combat-ui-\$\{this\.nextRequestId\}/);
     expect(source).toMatch(/this\.inputLocked = true;\n\s+this\.clearTooltip\(\);\n\s+this\.renderCurrentState\(false\);\n\s+const result = action\(requestId\);/);
-    expect(source).toMatch(/finally \{\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
+    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
+  });
+
+  it("drives actual card movement from combat event playback", async () => {
+    const sceneSource = await readSource(scenePath);
+    const cardPresenter = await readSource(join(presentersRoot, "CardPresenter.ts"));
+    const eventPlayer = await readSource(join(root, "src/game-phaser/animation/CombatEventPlayer.ts"));
+
+    expect(sceneSource).toMatch(/playbackFinalViewModel\?: CombatViewModel/);
+    expect(sceneSource).toMatch(/playCardMovementForEvent\(event\)/);
+    expect(sceneSource).toMatch(/event\.type !== "CardMoved"/);
+    expect(sceneSource).toMatch(/cardPresenter\.playCardMoved\(event, this\.playbackFinalViewModel\.hand\)/);
+    expect(cardPresenter).toMatch(/visuals = new Map<CardInstanceId, CardVisual>/);
+    expect(cardPresenter).toMatch(/visualHandOrder: CardInstanceId\[\] = \[\]/);
+    expect(cardPresenter).toMatch(/playCardMoved/);
+    expect(cardPresenter).toMatch(/moveHandCardToPile/);
+    expect(cardPresenter).toMatch(/movePileCardToHand/);
+    expect(cardPresenter).toMatch(/this\.scene\.tweens\.add/);
+    expect(eventPlayer).toMatch(/onEventPlayed: \(event: GameEvent\) => void \| Promise<void>/);
+    expect(eventPlayer).toMatch(/await this\.onEventPlayed\(event as GameEvent\)/);
   });
 
   it("keeps targeting and keyboard interactions inside the Phaser scene only", async () => {
@@ -184,11 +203,30 @@ describe("Combat scene boundary", () => {
     expect(source).toMatch(/selectedCardActive/);
     expect(source).toMatch(/validTargetIds/);
     expect(source).toMatch(/restoreSelectionAfterFailedSubmit/);
+    expect(source).toMatch(/handleCardDrop/);
+    expect(source).toMatch(/resolveCardDrop/);
+    expect(source).toMatch(/getMonsterDropTargetAt/);
+    expect(source).toMatch(/getAnyMonsterDropTargetAt/);
+    expect(source).toMatch(/getPetDropTargetAt/);
+    expect(source).toMatch(/isPointInPlayerDropTarget/);
+    expect(source).toMatch(/isPointInCombatBoard/);
+    expect(source).toMatch(/getMonsterPosition\(index, viewModel\.monsters\.length\)/);
+    expect(source).toMatch(/submitDroppedCard/);
+    expect(source).toMatch(/playHandCard\(cardInstanceId, targetId, revision, requestId\)/);
+    expect(source).toMatch(/card\.targetKind === "enemy" \|\| card\.targetKind === "petAndEnemy"/);
+    expect(source).toMatch(/card\.targetKind === "allEnemies"/);
+    expect(source).toMatch(/card\.targetKind === "self"/);
+    expect(source).toMatch(/card\.targetKind === "petAndSelf"/);
+    expect(source).toMatch(/card\.targetKind === "pet"/);
+    expect(source).toMatch(/card\.targetKind === "none"/);
     expect(source).toMatch(/isModalOpen/);
     expect(source).toMatch(/bindFocusAndResizeSafety/);
     expect(source).toMatch(/tooltipDelayEvent/);
     expect(source).toMatch(/delayedCall\(delayMs/);
     expect(cardPresenter).toMatch(/maxCardVisibleTags/);
+    expect(cardPresenter).toMatch(/setDraggable\(group\)/);
+    expect(cardPresenter).toMatch(/completeDrag/);
+    expect(cardPresenter).toMatch(/onDropped\(visual\.cardInstanceId, point\)/);
     expect(cardPresenter).toMatch(/onInspect/);
     expect(cardPresenter).toMatch(/tagOverflowTooltip/);
     expect(cardPresenter).not.toMatch(/Tag: \$\{/);
