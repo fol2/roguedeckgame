@@ -25,8 +25,11 @@ body {
 }
 
 #game-root {
-  display: grid;
-  place-items: center;
+  position: relative;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   background:
     linear-gradient(135deg, rgba(26, 38, 52, 0.92), rgba(14, 17, 23, 1)),
     #0e1117;

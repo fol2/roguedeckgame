@@ -84,6 +84,7 @@ describe("Map scene boundary", () => {
       "../presenters/MapNodePresenter",
       "../presenters/RunHudPresenter",
       "../layout/map-layout",
+      "../layout/fixed-resolution-camera",
       "./SceneKeys"
     ]);
     expect(moduleSpecifiers.some((specifier) => specifier.includes("game-core"))).toBe(false);

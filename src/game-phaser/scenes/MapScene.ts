@@ -9,6 +9,7 @@ import {
   MAP_RESET_BUTTON,
   MAP_TITLE
 } from "../layout/map-layout";
+import { configureFixedResolutionCamera } from "../layout/fixed-resolution-camera";
 import { SceneKeys } from "./SceneKeys";
 
 export class MapScene extends Scene {
@@ -25,6 +26,7 @@ export class MapScene extends Scene {
 
   public create(): void {
     this.inputLocked = false;
+    configureFixedResolutionCamera(this);
     this.cameras.main.setBackgroundColor(MAP_BACKGROUND_COLOUR);
     this.add.text(MAP_TITLE.x, MAP_TITLE.y, "Run Map", {
       color: "#f6f1e8",

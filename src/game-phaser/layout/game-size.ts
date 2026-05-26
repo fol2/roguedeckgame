@@ -1,5 +1,8 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
+export const GAME_RENDER_SCALE = 1.5;
+export const GAME_RENDER_WIDTH = GAME_WIDTH * GAME_RENDER_SCALE;
+export const GAME_RENDER_HEIGHT = GAME_HEIGHT * GAME_RENDER_SCALE;
 export const GAME_CENTER_X = GAME_WIDTH / 2;
 export const GAME_CENTER_Y = GAME_HEIGHT / 2;
 
