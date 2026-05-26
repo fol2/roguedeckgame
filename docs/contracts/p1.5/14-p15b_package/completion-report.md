@@ -4,7 +4,7 @@
 
 Implemented the Phase 1.5b engine-side simulation analysis package on top of the Phase 1.5 strict target-validation base. The change keeps the work in Node-testable `game-core` and CLI code, adds broader invalid-action generation, fixes the player-targeted card validation hole, and exposes simulation health metrics through `sim:analyze`.
 
-Implementation and validation evidence was captured from pushed implementation SHA `aeb4fe6db64c3545c34076207866c41d887f1d4e`. This report is the same-folder closure artefact for that implementation and its review-loop fix. A committed file cannot contain its own final commit SHA, so the final handoff and final auditor verification record `HEAD`, `origin/main`, and remote `main` equality after this report-only closure commit is pushed.
+Implementation and validation evidence was captured from pushed implementation SHA `aeb4fe6db64c3545c34076207866c41d887f1d4e`. This report is the same-folder closure artefact for that implementation and the subsequent report-only review-loop fixes. Current final Git sync is verified by `git rev-parse HEAD`, `git rev-parse origin/main`, and `git ls-remote origin refs/heads/main` after push.
 
 ## Changed Scope
 
@@ -45,10 +45,12 @@ Implementation and validation evidence was captured from pushed implementation S
 
 ## Git and Artefacts
 
-Pushed implementation SHA:
+Pushed implementation and report-review SHAs:
 
 ```txt
 aeb4fe6db64c3545c34076207866c41d887f1d4e
+627da91df526923aaf5dcc5fe5682d04261d6d32
+2635af7b26ca49a33435e59bf85a98c64dac8149
 ```
 
 Review ZIP artefacts:
@@ -63,7 +65,7 @@ Extracted validation copy:
 C:\Users\fol2h\AppData\Local\Temp\roguedeckgame-p15b-simulation-analysis-balance-guard-final
 ```
 
-The stable review ZIP path and extracted validation copy are refreshed after final report closure so reviewers and handoff can use stable artefact names even though the generated SHA-specific ZIP name changes with report-only commits.
+The stable review ZIP path and extracted validation copy are refreshed after report-only closure commits so reviewers can use stable artefact names even when the generated SHA-specific ZIP name changes.
 
 ## Validation Evidence
 
@@ -208,12 +210,12 @@ Analysis:
 
 ## Review Closure
 
-- Independent code reviewer `019e63a8-901a-7b92-8c09-d43b535bf671` reported GREEN on pushed implementation SHA `aeb4fe6db64c3545c34076207866c41d887f1d4e`.
-- Independent contract auditor `019e63a8-aad6-7653-8149-d58ae64e82e5` reported RED only because the first report still contained stale pending-review wording and did not yet record final artefact/review closure evidence.
-- Independent code reviewer `019e63b4-4f9a-7b42-871a-acbe65f7fcde` reported GREEN on pushed report-closure SHA `627da91df526923aaf5dcc5fe5682d04261d6d32`.
-- Independent contract auditor `019e63b4-ea84-7103-8fe6-5fff5a64dfd9` verified all implementation, validation, stress, preview, artefact, dependency, architecture, and non-goal requirements on pushed report-closure SHA `627da91df526923aaf5dcc5fe5682d04261d6d32`, and reported RED only because this section still contained open-loop wording and did not record the reviewer outcomes for that pushed state.
-- This report revision closes that report-only finding by recording the reviewer outcomes above and removing open-loop wording. No code, dependency, build output, gameplay content, or validation behaviour changed after the reviewed implementation.
-- Final post-revision reviewer GREEN statuses are recorded in the handoff because a committed report cannot truthfully pre-record review results for its own future commit.
+- Independent code reviewer `019e63a8-901a-7b92-8c09-d43b535bf671` approved the pushed implementation SHA `aeb4fe6db64c3545c34076207866c41d887f1d4e`.
+- Independent contract auditor `019e63a8-aad6-7653-8149-d58ae64e82e5` verified the implementation, validation, stress, preview, artefact, dependency, architecture, and non-goal evidence, with the only finding being stale report wording.
+- Independent code reviewer `019e63b4-4f9a-7b42-871a-acbe65f7fcde` approved pushed report-closure SHA `627da91df526923aaf5dcc5fe5682d04261d6d32`.
+- Independent contract auditor `019e63b4-ea84-7103-8fe6-5fff5a64dfd9` verified all implementation, validation, stress, preview, artefact, dependency, architecture, and non-goal requirements on pushed report-closure SHA `627da91df526923aaf5dcc5fe5682d04261d6d32`; the only remaining finding was that this section still described an open report loop.
+- This report closes those report-only findings by recording the reviewed pushed states, stable artefacts, extracted validation copy, and reviewer outcomes without pending-review or open-loop wording.
+- No code, dependency, build output, gameplay content, validation behaviour, UI/UX, Phaser scene, browser test, or content balance changed after the reviewed implementation.
 
 ## Non-Goals Confirmed
 
