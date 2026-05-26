@@ -6,6 +6,14 @@ Implemented the Phase 1.5c engine-side normal-difficulty balance baseline.
 
 The main rules fix is persistent run-level player HP. A run now owns `playerHp` and `playerMaxHp`, combat starts from the run HP, combat completion writes HP back to the run, lost runs normalise HP to zero, and rest nodes heal persistent HP without exceeding max HP.
 
+Implementation commit:
+
+```txt
+c6f66dc8c4fe393d24f89392da56b211c16643f7
+```
+
+The final pushed `HEAD` is verified after the closure/report commit by `git rev-parse HEAD`, `git rev-parse origin/main`, and remote `git ls-remote`; this report does not embed its own containing commit SHA because changing the report changes that SHA.
+
 ## Scope Completed
 
 - Added `src/game-core/data/balance/act1-normal.ts` for Phase 1 / Act 1 normal tuning.
@@ -96,3 +104,4 @@ This is the first simulation-backed normal baseline, not a claim of final human 
 - No Phaser or browser API imports were added to `src/game-core`.
 - No UI/UX, Playwright, browser monkey testing, new art, animation work, large content expansion, or new dependency was added.
 - The unrelated local `docs/ui_ux_interaction.md` change was preserved outside the Phase 1.5c worktree before final staging.
+- No duplicate live `docs/contracts/p1.5/15-p15c-normal-difficulty-balance/` deliverable folder remains outside the supplied package snapshot.
