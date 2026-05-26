@@ -7,6 +7,10 @@ import type { RunNodeType } from "../model/run-map";
 import { burnStatusDefinition } from "../model/status";
 import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
 import { buildContentIndex } from "./content-index";
+import {
+  getRuntimeSupportedStatusIds,
+  validateStatusBehaviourDefinition
+} from "./status-behaviours";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
 import { knownPetModifierSelectorCardTypes } from "./pet-modifier-selectors";
 import { validateEffects } from "./effect-validation";
@@ -817,7 +821,9 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       .map((card) => card.id)
       .filter(isString)
   );
-  const supportedStatusEffectIds = new Set<string>([burnStatusDefinition.id]);
+  const supportedStatusEffectIds = getRuntimeSupportedStatusIds({
+    statuses: statusDefinitions as readonly NonNullable<GameContentRegistry["statuses"]>[number][]
+  });
   const monsterIds = new Set(
     monsterDefinitions
       .filter(isRecord)
@@ -1168,6 +1174,14 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
 
     if (typeof statusValue.description !== "string" || statusValue.description.length === 0) {
       issues.push(issue("error", "invalid_status", "Status description must be a non-empty string.", `statuses[${statusIndex}].description`));
+    }
+
+    if (
+      "behaviour" in statusValue &&
+      statusValue.behaviour !== undefined &&
+      !validateStatusBehaviourDefinition(statusValue.behaviour)
+    ) {
+      issues.push(issue("error", "invalid_status_behaviour", "Status behaviour is not supported.", `statuses[${statusIndex}].behaviour`));
     }
   });
 

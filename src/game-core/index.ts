@@ -36,6 +36,7 @@ export * from "./systems/run-map";
 export * from "./systems/rewards";
 export * from "./systems/save";
 export * from "./systems/story";
+export * from "./systems/status-behaviours";
 export * from "./systems/statuses";
 export * from "./systems/trigger-rules";
 export * from "./systems/validation";
