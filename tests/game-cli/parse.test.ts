@@ -38,4 +38,21 @@ describe("simulation CLI parsing", () => {
     expect(options.invalidActionRate).toBe(0);
     expect(options.completionRateMin).toBe(0.99);
   });
+
+  it("reads npm stripped numeric override values left as positionals", () => {
+    process.env.npm_config_invalid_action_rate = "true";
+    process.env.npm_config_completion_rate_min = "true";
+
+    const options = parseSimulationCliOptions([
+      "--mode",
+      "fuzz",
+      "--strict-balance",
+      "--invalid-action-rate",
+      "0",
+      "0.99"
+    ]);
+
+    expect(options.invalidActionRate).toBe(0);
+    expect(options.completionRateMin).toBe(0.99);
+  });
 });

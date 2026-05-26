@@ -32,6 +32,9 @@ const readFlagValue = (args: readonly string[], flag: string): string | undefine
   return index >= 0 ? args[index + 1] : undefined;
 };
 
+const lastNumericPositionalValue = (args: readonly string[]): string | undefined =>
+  [...args].reverse().find((arg) => !arg.startsWith("-") && Number.isFinite(Number(arg)));
+
 export const parseCliOptions = (args: readonly string[]): CliOptions => {
   const positionalValues = args.filter((arg) => !arg.startsWith("-"));
   let seed: string | number = process.env.npm_config_seed && process.env.npm_config_seed !== "true"
@@ -70,7 +73,10 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
     if (!value) {
       return undefined;
     }
-    return value === "true" ? readFlagValue(args, flag) : value;
+    if (value !== "true") {
+      return value;
+    }
+    return readFlagValue(args, flag) ?? lastNumericPositionalValue(args);
   };
   const readTextNpmValue = (name: string): string | undefined => {
     const value = readNpmRaw(name);
