@@ -1,0 +1,839 @@
+diff --git a/package.json b/package.json
+index 7e4236c..6dd9639 100644
+--- a/package.json
++++ b/package.json
+@@ -10,6 +10,7 @@
+     "game:cli": "node scripts/run-cli-entry.mjs game-cli",
+     "sim:smoke": "node scripts/run-cli-entry.mjs simulate-runs --mode smoke",
+     "sim:fuzz": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz",
++    "sim:analyze": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz --analyze",
+     "sim:exhaustive-small": "node scripts/run-cli-entry.mjs simulate-runs --mode exhaustive-small",
+     "sim:replay": "node scripts/run-cli-entry.mjs simulate-runs --mode replay",
+     "preview": "vite preview",
+diff --git a/src/game-cli/parse.ts b/src/game-cli/parse.ts
+index 2914017..f59adc5 100644
+--- a/src/game-cli/parse.ts
++++ b/src/game-cli/parse.ts
+@@ -17,6 +17,8 @@ export type SimulationCliOptions = {
+   readonly maxStates?: number;
+   readonly trace?: string;
+   readonly traceOutput?: string;
++  readonly analyze: boolean;
++  readonly strictHealth: boolean;
+ };
+ 
+ const readValue = (args: readonly string[], index: number, fallback: string): string => args[index + 1] ?? fallback;
+@@ -120,7 +122,9 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
+     maxDepth: Number.isFinite(maxDepth) ? maxDepth : undefined,
+     maxStates: Number.isFinite(maxStates) ? maxStates : undefined,
+     trace,
+-    traceOutput
++    traceOutput,
++    analyze: args.includes("--analyze") || process.env.npm_config_analyze === "true",
++    strictHealth: args.includes("--strict-health") || process.env.npm_config_strict_health === "true"
+   };
+ };
+ 
+diff --git a/src/game-cli/simulate-runs.ts b/src/game-cli/simulate-runs.ts
+index 6e4f5ce..128dd51 100644
+--- a/src/game-cli/simulate-runs.ts
++++ b/src/game-cli/simulate-runs.ts
+@@ -10,6 +10,13 @@ import {
+   type SimulationResult
+ } from "../game-core/testing/simulation";
+ import { parseAgentTrace, serializeAgentTrace } from "../game-core/testing/trace";
++import {
++  analyzeAgentTraces,
++  checkSimulationHealth,
++  sortedCountEntries,
++  type SimulationAggregateReport,
++  type SimulationHealthIssue
++} from "../game-core/testing/analysis";
+ 
+ const modeLabel = (mode: SimulationResult["mode"]): string => mode === "exhaustive-small" ? "exhaustive-small" : mode;
+ 
+@@ -31,6 +38,43 @@ const printResult = (result: SimulationResult): void => {
+   }
+ };
+ 
++const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
++const decimal = (value: number): string => value.toFixed(1);
++
++const countSummary = (label: string, counts: Record<string, number>, limit = 6): void => {
++  const entries = sortedCountEntries(counts, limit);
++  if (entries.length === 0) {
++    console.log(`${label}: none`);
++    return;
++  }
++  console.log(`${label}: ${entries.map(([key, value]) => `${key}=${value}`).join(", ")}`);
++};
++
++const printAnalysis = (report: SimulationAggregateReport, healthIssues: readonly SimulationHealthIssue[]): void => {
++  console.log("Analysis:");
++  console.log(`  Terminal: completed=${report.completedRuns}, lost=${report.lostRuns}, failed=${report.failedRuns}, other=${report.otherTerminalRuns}`);
++  console.log(`  Rates: completion=${percent(report.completionRate)}, loss=${percent(report.lossRate)}, failure=${percent(report.failureRate)}`);
++  console.log(`  Steps: avg=${decimal(report.averageSteps)}, min=${report.minSteps}, max=${report.maxSteps}`);
++  console.log(`  Actions: accepted=${report.acceptedActions}, rejected=${report.rejectedActions}, invalidRejected=${report.invalidRejectedActions}, invalidAccepted=${report.invalidAcceptedActions}`);
++  console.log(`  Combat: started=${report.combatsStarted}, won=${report.combatsWon}, lost=${report.combatsLost}`);
++  console.log(`  Rewards: offered=${report.rewardsOffered}, selected=${report.rewardsSelected}, skipped=${report.rewardsSkipped}, cards=${report.cardRewardsAdded}, petUpgrades=${report.petUpgradesUnlocked}`);
++  console.log(`  Damage: toPlayer=${report.totalDamageToPlayer}, toMonsters=${report.totalDamageToMonsters}, blocked=${report.totalDamageBlocked}, playerBlock=${report.totalBlockGainedByPlayer}`);
++  countSummary("  Top card plays", report.cardPlaysByCardId);
++  countSummary("  Top card rewards", report.cardRewardsByCardId);
++  countSummary("  Pet upgrades", report.petUpgradesByUpgradeId);
++  countSummary("  Reward types", report.rewardSelectionsByType);
++  countSummary("  Actions", report.actionCounts);
++
++  if (healthIssues.length === 0) {
++    console.log("  Health: no issues");
++    return;
++  }
++
++  for (const issue of healthIssues) {
++    console.log(`  Health ${issue.severity.toUpperCase()} ${issue.code}: ${issue.message}`);
++  }
++};
++
+ const main = () => {
+   const options = parseSimulationCliOptions(process.argv.slice(2));
+   const result =
+@@ -65,7 +109,24 @@ const main = () => {
+   }
+ 
+   printResult(result);
+-  process.exitCode = result.ok ? 0 : 1;
++
++  const report = options.analyze ? analyzeAgentTraces(result.traces) : undefined;
++  const healthIssues = report ? checkSimulationHealth(report, {
++    requireCompletedRun: options.mode !== "replay",
++    requireInvalidRejections: options.mode === "fuzz",
++    warnIfNoLosses: options.mode === "fuzz" && (options.runs ?? 20) >= 20,
++    warnIfNoRewards: options.mode !== "replay",
++    warnIfNoPetUpgrades: options.mode !== "replay",
++    warnIfNoPlayerDamage: options.mode !== "replay",
++    warnIfNoMonsterDamage: options.mode !== "replay"
++  }) : [];
++
++  if (report) {
++    printAnalysis(report, healthIssues);
++  }
++
++  const hasStrictHealthError = options.strictHealth && healthIssues.some((issue) => issue.severity === "error");
++  process.exitCode = result.ok && !hasStrictHealthError ? 0 : 1;
+ };
+ 
+ main();
+diff --git a/src/game-core/index.ts b/src/game-core/index.ts
+index f1a6869..402006a 100644
+--- a/src/game-core/index.ts
++++ b/src/game-core/index.ts
+@@ -33,6 +33,7 @@ export * from "./systems/statuses";
+ export * from "./systems/validation";
+ export * from "./testing/action-space";
+ export * from "./testing/agent-actions";
++export * from "./testing/analysis";
+ export * from "./testing/invariants";
+ export * from "./testing/policies";
+ export * from "./testing/run-driver";
+diff --git a/src/game-core/systems/combat.ts b/src/game-core/systems/combat.ts
+index c4952e6..2f974c6 100644
+--- a/src/game-core/systems/combat.ts
++++ b/src/game-core/systems/combat.ts
+@@ -198,6 +198,10 @@ const validateCombatantTarget = (
+     return error("invalid_target", `Target combatant '${actionTargetId}' does not exist.`, "targetId");
+   }
+ 
++  if (combatant.type !== "monster") {
++    return error("invalid_target_type", "Player card targets must be alive monsters.", "targetId");
++  }
++
+   return combatant.alive
+     ? undefined
+     : error("dead_target", `Target combatant '${actionTargetId}' is defeated.`, "targetId");
+diff --git a/src/game-core/testing/analysis.ts b/src/game-core/testing/analysis.ts
+new file mode 100644
+index 0000000..88c4799
+--- /dev/null
++++ b/src/game-core/testing/analysis.ts
+@@ -0,0 +1,434 @@
++import type { AgentAction, AgentTraceMode } from "./agent-actions";
++import type { AgentTrace } from "./trace";
++import type { RunStatus } from "../model/run";
++
++export type CountMap = Readonly<Record<string, number>>;
++
++export type AgentTraceMetrics = {
++  readonly seed: string | number;
++  readonly mode: AgentTraceMode;
++  readonly finalStatus?: RunStatus;
++  readonly failureCode?: string;
++  readonly steps: number;
++  readonly acceptedActions: number;
++  readonly rejectedActions: number;
++  readonly invalidInjectedActions: number;
++  readonly invalidRejectedActions: number;
++  readonly invalidAcceptedActions: number;
++  readonly maxTurnNumber: number;
++  readonly combatsStarted: number;
++  readonly combatsWon: number;
++  readonly combatsLost: number;
++  readonly rewardsOffered: number;
++  readonly rewardsSelected: number;
++  readonly rewardsSkipped: number;
++  readonly cardRewardsAdded: number;
++  readonly petUpgradesUnlocked: number;
++  readonly storyEventsCompleted: number;
++  readonly totalDamageToPlayer: number;
++  readonly totalDamageToMonsters: number;
++  readonly totalDamageBlocked: number;
++  readonly totalBlockGainedByPlayer: number;
++  readonly totalBlockGainedByMonsters: number;
++  readonly actionCounts: CountMap;
++  readonly eventCounts: CountMap;
++  readonly selectedNodesById: CountMap;
++  readonly cardPlaysByCardId: CountMap;
++  readonly cardRewardsByCardId: CountMap;
++  readonly petUpgradesByUpgradeId: CountMap;
++  readonly rewardSelectionsByType: CountMap;
++};
++
++export type SimulationAggregateReport = {
++  readonly totalRuns: number;
++  readonly completedRuns: number;
++  readonly lostRuns: number;
++  readonly failedRuns: number;
++  readonly otherTerminalRuns: number;
++  readonly completionRate: number;
++  readonly lossRate: number;
++  readonly failureRate: number;
++  readonly minSteps: number;
++  readonly maxSteps: number;
++  readonly averageSteps: number;
++  readonly acceptedActions: number;
++  readonly rejectedActions: number;
++  readonly invalidInjectedActions: number;
++  readonly invalidRejectedActions: number;
++  readonly invalidAcceptedActions: number;
++  readonly combatsStarted: number;
++  readonly combatsWon: number;
++  readonly combatsLost: number;
++  readonly rewardsOffered: number;
++  readonly rewardsSelected: number;
++  readonly rewardsSkipped: number;
++  readonly cardRewardsAdded: number;
++  readonly petUpgradesUnlocked: number;
++  readonly storyEventsCompleted: number;
++  readonly totalDamageToPlayer: number;
++  readonly totalDamageToMonsters: number;
++  readonly totalDamageBlocked: number;
++  readonly totalBlockGainedByPlayer: number;
++  readonly totalBlockGainedByMonsters: number;
++  readonly actionCounts: CountMap;
++  readonly eventCounts: CountMap;
++  readonly selectedNodesById: CountMap;
++  readonly cardPlaysByCardId: CountMap;
++  readonly cardRewardsByCardId: CountMap;
++  readonly petUpgradesByUpgradeId: CountMap;
++  readonly rewardSelectionsByType: CountMap;
++  readonly traces: readonly AgentTraceMetrics[];
++};
++
++export type SimulationHealthIssue = {
++  readonly severity: "error" | "warning";
++  readonly code: string;
++  readonly message: string;
++};
++
++export type SimulationHealthOptions = {
++  readonly requireCompletedRun?: boolean;
++  readonly requireInvalidRejections?: boolean;
++  readonly warnIfNoLosses?: boolean;
++  readonly warnIfNoRewards?: boolean;
++  readonly warnIfNoPetUpgrades?: boolean;
++  readonly warnIfNoPlayerDamage?: boolean;
++  readonly warnIfNoMonsterDamage?: boolean;
++  readonly highCompletionRateWarning?: number;
++  readonly lowCompletionRateWarning?: number;
++};
++
++const emptyCountMap = (): Record<string, number> => ({});
++
++const increment = (counts: Record<string, number>, key: string | number | undefined, amount = 1): void => {
++  if (key === undefined) {
++    return;
++  }
++  const stringKey = String(key);
++  counts[stringKey] = (counts[stringKey] ?? 0) + amount;
++};
++
++const mergeCounts = (target: Record<string, number>, source: CountMap): void => {
++  for (const [key, value] of Object.entries(source)) {
++    increment(target, key, value);
++  }
++};
++
++const actionKey = (action: AgentAction): string => {
++  if (action.type === "playCard") {
++    return action.targetId ? "playCard:targeted" : "playCard:targetless";
++  }
++  return action.type;
++};
++
++const isPlayerCombatant = (combatantId: string): boolean => combatantId === "player" || combatantId.startsWith("player:");
++const isMonsterCombatant = (combatantId: string): boolean => combatantId.startsWith("monster:");
++
++export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
++  const actionCounts = emptyCountMap();
++  const eventCounts = emptyCountMap();
++  const selectedNodesById = emptyCountMap();
++  const cardPlaysByCardId = emptyCountMap();
++  const cardRewardsByCardId = emptyCountMap();
++  const petUpgradesByUpgradeId = emptyCountMap();
++  const rewardSelectionsByType = emptyCountMap();
++
++  let acceptedActions = 0;
++  let rejectedActions = 0;
++  let invalidInjectedActions = 0;
++  let invalidRejectedActions = 0;
++  let invalidAcceptedActions = 0;
++  let maxTurnNumber = 0;
++  let combatsStarted = 0;
++  let combatsWon = 0;
++  let combatsLost = 0;
++  let rewardsOffered = 0;
++  let rewardsSelected = 0;
++  let rewardsSkipped = 0;
++  let cardRewardsAdded = 0;
++  let petUpgradesUnlocked = 0;
++  let storyEventsCompleted = 0;
++  let totalDamageToPlayer = 0;
++  let totalDamageToMonsters = 0;
++  let totalDamageBlocked = 0;
++  let totalBlockGainedByPlayer = 0;
++  let totalBlockGainedByMonsters = 0;
++
++  for (const step of trace.steps) {
++    increment(actionCounts, actionKey(step.action));
++    if (step.ok) {
++      acceptedActions += 1;
++    } else {
++      rejectedActions += 1;
++    }
++    if (step.source === "invalid-injected") {
++      invalidInjectedActions += 1;
++      if (step.ok) {
++        invalidAcceptedActions += 1;
++      } else {
++        invalidRejectedActions += 1;
++      }
++    }
++
++    for (const event of step.events) {
++      increment(eventCounts, event.type);
++      if (event.type === "RunNodeSelected") {
++        increment(selectedNodesById, event.nodeId);
++      } else if (event.type === "RunCombatStarted" || event.type === "CombatStarted") {
++        combatsStarted += event.type === "CombatStarted" ? 1 : 0;
++      } else if (event.type === "RunCombatCompleted" || event.type === "CombatEnded") {
++        if (event.outcome === "won") {
++          combatsWon += event.type === "CombatEnded" ? 1 : 0;
++        } else {
++          combatsLost += event.type === "CombatEnded" ? 1 : 0;
++        }
++      } else if (event.type === "TurnStarted") {
++        maxTurnNumber = Math.max(maxTurnNumber, event.turnNumber);
++      } else if (event.type === "RewardOffered") {
++        rewardsOffered += 1;
++      } else if (event.type === "RewardSelected") {
++        rewardsSelected += 1;
++        increment(rewardSelectionsByType, event.rewardType);
++      } else if (event.type === "RewardSkipped") {
++        rewardsSkipped += 1;
++      } else if (event.type === "CardRewardAdded") {
++        cardRewardsAdded += 1;
++        increment(cardRewardsByCardId, event.cardId);
++      } else if (event.type === "PetUpgradeUnlocked") {
++        petUpgradesUnlocked += 1;
++        increment(petUpgradesByUpgradeId, event.upgradeId);
++      } else if (event.type === "PetStoryEventCompleted") {
++        storyEventsCompleted += 1;
++      } else if (event.type === "CardPlayed") {
++        increment(cardPlaysByCardId, event.cardId);
++      } else if (event.type === "DamageDealt") {
++        totalDamageBlocked += event.blocked;
++        if (isPlayerCombatant(event.targetId)) {
++          totalDamageToPlayer += event.amount;
++        } else if (isMonsterCombatant(event.targetId)) {
++          totalDamageToMonsters += event.amount;
++        }
++      } else if (event.type === "StatusTicked" && event.amount !== undefined) {
++        if (isPlayerCombatant(event.targetId)) {
++          totalDamageToPlayer += event.amount;
++        } else if (isMonsterCombatant(event.targetId)) {
++          totalDamageToMonsters += event.amount;
++        }
++      } else if (event.type === "BlockGained") {
++        if (isPlayerCombatant(event.targetId)) {
++          totalBlockGainedByPlayer += event.amount;
++        } else if (isMonsterCombatant(event.targetId)) {
++          totalBlockGainedByMonsters += event.amount;
++        }
++      }
++    }
++  }
++
++  return {
++    seed: trace.seed,
++    mode: trace.mode,
++    finalStatus: trace.finalStatus,
++    failureCode: trace.failure?.code,
++    steps: trace.steps.length,
++    acceptedActions,
++    rejectedActions,
++    invalidInjectedActions,
++    invalidRejectedActions,
++    invalidAcceptedActions,
++    maxTurnNumber,
++    combatsStarted,
++    combatsWon,
++    combatsLost,
++    rewardsOffered,
++    rewardsSelected,
++    rewardsSkipped,
++    cardRewardsAdded,
++    petUpgradesUnlocked,
++    storyEventsCompleted,
++    totalDamageToPlayer,
++    totalDamageToMonsters,
++    totalDamageBlocked,
++    totalBlockGainedByPlayer,
++    totalBlockGainedByMonsters,
++    actionCounts,
++    eventCounts,
++    selectedNodesById,
++    cardPlaysByCardId,
++    cardRewardsByCardId,
++    petUpgradesByUpgradeId,
++    rewardSelectionsByType
++  };
++};
++
++const safeAverage = (sum: number, count: number): number => count === 0 ? 0 : sum / count;
++
++export const analyzeAgentTraces = (traces: readonly AgentTrace[]): SimulationAggregateReport => {
++  const metrics = traces.map(analyzeAgentTrace);
++  const actionCounts = emptyCountMap();
++  const eventCounts = emptyCountMap();
++  const selectedNodesById = emptyCountMap();
++  const cardPlaysByCardId = emptyCountMap();
++  const cardRewardsByCardId = emptyCountMap();
++  const petUpgradesByUpgradeId = emptyCountMap();
++  const rewardSelectionsByType = emptyCountMap();
++
++  for (const metric of metrics) {
++    mergeCounts(actionCounts, metric.actionCounts);
++    mergeCounts(eventCounts, metric.eventCounts);
++    mergeCounts(selectedNodesById, metric.selectedNodesById);
++    mergeCounts(cardPlaysByCardId, metric.cardPlaysByCardId);
++    mergeCounts(cardRewardsByCardId, metric.cardRewardsByCardId);
++    mergeCounts(petUpgradesByUpgradeId, metric.petUpgradesByUpgradeId);
++    mergeCounts(rewardSelectionsByType, metric.rewardSelectionsByType);
++  }
++
++  const totalRuns = metrics.length;
++  const completedRuns = metrics.filter((metric) => metric.finalStatus === "completed" && !metric.failureCode).length;
++  const lostRuns = metrics.filter((metric) => metric.finalStatus === "lost" && !metric.failureCode).length;
++  const failedRuns = metrics.filter((metric) => metric.failureCode).length;
++  const otherTerminalRuns = Math.max(0, totalRuns - completedRuns - lostRuns - failedRuns);
++  const stepValues = metrics.map((metric) => metric.steps);
++  const totalSteps = stepValues.reduce((sum, value) => sum + value, 0);
++
++  return {
++    totalRuns,
++    completedRuns,
++    lostRuns,
++    failedRuns,
++    otherTerminalRuns,
++    completionRate: safeAverage(completedRuns, totalRuns),
++    lossRate: safeAverage(lostRuns, totalRuns),
++    failureRate: safeAverage(failedRuns, totalRuns),
++    minSteps: stepValues.length > 0 ? Math.min(...stepValues) : 0,
++    maxSteps: stepValues.length > 0 ? Math.max(...stepValues) : 0,
++    averageSteps: safeAverage(totalSteps, totalRuns),
++    acceptedActions: metrics.reduce((sum, metric) => sum + metric.acceptedActions, 0),
++    rejectedActions: metrics.reduce((sum, metric) => sum + metric.rejectedActions, 0),
++    invalidInjectedActions: metrics.reduce((sum, metric) => sum + metric.invalidInjectedActions, 0),
++    invalidRejectedActions: metrics.reduce((sum, metric) => sum + metric.invalidRejectedActions, 0),
++    invalidAcceptedActions: metrics.reduce((sum, metric) => sum + metric.invalidAcceptedActions, 0),
++    combatsStarted: metrics.reduce((sum, metric) => sum + metric.combatsStarted, 0),
++    combatsWon: metrics.reduce((sum, metric) => sum + metric.combatsWon, 0),
++    combatsLost: metrics.reduce((sum, metric) => sum + metric.combatsLost, 0),
++    rewardsOffered: metrics.reduce((sum, metric) => sum + metric.rewardsOffered, 0),
++    rewardsSelected: metrics.reduce((sum, metric) => sum + metric.rewardsSelected, 0),
++    rewardsSkipped: metrics.reduce((sum, metric) => sum + metric.rewardsSkipped, 0),
++    cardRewardsAdded: metrics.reduce((sum, metric) => sum + metric.cardRewardsAdded, 0),
++    petUpgradesUnlocked: metrics.reduce((sum, metric) => sum + metric.petUpgradesUnlocked, 0),
++    storyEventsCompleted: metrics.reduce((sum, metric) => sum + metric.storyEventsCompleted, 0),
++    totalDamageToPlayer: metrics.reduce((sum, metric) => sum + metric.totalDamageToPlayer, 0),
++    totalDamageToMonsters: metrics.reduce((sum, metric) => sum + metric.totalDamageToMonsters, 0),
++    totalDamageBlocked: metrics.reduce((sum, metric) => sum + metric.totalDamageBlocked, 0),
++    totalBlockGainedByPlayer: metrics.reduce((sum, metric) => sum + metric.totalBlockGainedByPlayer, 0),
++    totalBlockGainedByMonsters: metrics.reduce((sum, metric) => sum + metric.totalBlockGainedByMonsters, 0),
++    actionCounts,
++    eventCounts,
++    selectedNodesById,
++    cardPlaysByCardId,
++    cardRewardsByCardId,
++    petUpgradesByUpgradeId,
++    rewardSelectionsByType,
++    traces: metrics
++  };
++};
++
++export const checkSimulationHealth = (
++  report: SimulationAggregateReport,
++  options: SimulationHealthOptions = {}
++): readonly SimulationHealthIssue[] => {
++  const issues: SimulationHealthIssue[] = [];
++  const requireCompletedRun = options.requireCompletedRun ?? true;
++  const requireInvalidRejections = options.requireInvalidRejections ?? report.invalidInjectedActions > 0;
++  const warnIfNoLosses = options.warnIfNoLosses ?? report.totalRuns >= 20;
++  const warnIfNoRewards = options.warnIfNoRewards ?? true;
++  const warnIfNoPetUpgrades = options.warnIfNoPetUpgrades ?? true;
++  const warnIfNoPlayerDamage = options.warnIfNoPlayerDamage ?? true;
++  const warnIfNoMonsterDamage = options.warnIfNoMonsterDamage ?? true;
++  const highCompletionRateWarning = options.highCompletionRateWarning ?? 0.95;
++  const lowCompletionRateWarning = options.lowCompletionRateWarning ?? 0.05;
++
++  if (report.failedRuns > 0 || report.invalidAcceptedActions > 0) {
++    issues.push({
++      severity: "error",
++      code: "simulation_failures_present",
++      message: `Simulation has ${report.failedRuns} failing traces and ${report.invalidAcceptedActions} accepted invalid actions.`
++    });
++  }
++
++  if (requireCompletedRun && report.completedRuns === 0) {
++    issues.push({
++      severity: "error",
++      code: "no_completed_runs",
++      message: "No sampled run reached completed. This can indicate an underpowered policy/content loop or a stuck game flow."
++    });
++  }
++
++  if (requireInvalidRejections && report.invalidRejectedActions === 0) {
++    issues.push({
++      severity: "error",
++      code: "invalid_injection_not_exercised",
++      message: "Invalid-action injection did not produce any safe rejection. The fuzz sample is not exercising validation paths."
++    });
++  }
++
++  if (warnIfNoLosses && report.lostRuns === 0 && report.completedRuns > 0) {
++    issues.push({
++      severity: "warning",
++      code: "no_losses_observed",
++      message: "No sampled run was lost. This may be fine for smoke policy, but random fuzz with many runs can indicate early content is too forgiving."
++    });
++  }
++
++  if (report.totalRuns >= 20 && report.completionRate >= highCompletionRateWarning) {
++    issues.push({
++      severity: "warning",
++      code: "high_completion_rate",
++      message: `Completion rate ${(report.completionRate * 100).toFixed(1)}% is high for a broad random/fuzz sample.`
++    });
++  }
++
++  if (report.totalRuns >= 20 && report.completionRate <= lowCompletionRateWarning) {
++    issues.push({
++      severity: "warning",
++      code: "low_completion_rate",
++      message: `Completion rate ${(report.completionRate * 100).toFixed(1)}% is low. Check for underpowered player choices, overpowered monsters, or random-policy dead ends.`
++    });
++  }
++
++  if (warnIfNoRewards && report.rewardsOffered === 0) {
++    issues.push({
++      severity: "warning",
++      code: "no_rewards_seen",
++      message: "No rewards were offered in the sample, so reward flow was not meaningfully covered."
++    });
++  }
++
++  if (warnIfNoPetUpgrades && report.petUpgradesUnlocked === 0) {
++    issues.push({
++      severity: "warning",
++      code: "no_pet_upgrades_unlocked",
++      message: "No pet upgrade was unlocked in the sample. Pet-upgrade balance and modifier coverage are missing."
++    });
++  }
++
++  if (warnIfNoPlayerDamage && report.totalDamageToPlayer === 0 && report.combatsStarted > 0) {
++    issues.push({
++      severity: "warning",
++      code: "no_player_damage_seen",
++      message: "Combat occurred, but the player took no post-block damage. Check enemy-turn coverage and defensive overpower."
++    });
++  }
++
++  if (warnIfNoMonsterDamage && report.totalDamageToMonsters === 0 && report.combatsStarted > 0) {
++    issues.push({
++      severity: "warning",
++      code: "no_monster_damage_seen",
++      message: "Combat occurred, but monsters took no damage. This usually indicates a broken action policy or combat resolution."
++    });
++  }
++
++  return issues;
++};
++
++export const sortedCountEntries = (counts: CountMap, limit = 8): readonly (readonly [string, number])[] =>
++  Object.entries(counts).sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0], "en-GB")).slice(0, limit);
+diff --git a/src/game-core/testing/policies.ts b/src/game-core/testing/policies.ts
+index a9aa666..d3160d4 100644
+--- a/src/game-core/testing/policies.ts
++++ b/src/game-core/testing/policies.ts
+@@ -19,6 +19,9 @@ const findCardForAction = (
+   return instance ? registry.cards.find((card) => card.id === instance.cardId) : undefined;
+ };
+ 
++const cardNeedsActionTarget = (card: CardDefinition): boolean =>
++  card.effects.some((effect) => "target" in effect && effect.target.type === "target" && effect.target.combatantId === undefined);
++
+ const actionTargetHp = (action: AgentAction, snapshot: AgentRunDriverSnapshot): number => {
+   if (action.type !== "playCard" || !action.targetId) {
+     return Number.POSITIVE_INFINITY;
+@@ -103,25 +106,91 @@ export const randomLegalPolicy = (
+   return actions.length > 0 ? rng.choice(actions) : undefined;
+ };
+ 
+-export const invalidActionInjector = (
++const uniqueActions = (actions: readonly AgentAction[]): readonly AgentAction[] => {
++  const seen = new Set<string>();
++  const result: AgentAction[] = [];
++  for (const action of actions) {
++    const key = JSON.stringify(action);
++    if (!seen.has(key)) {
++      seen.add(key);
++      result.push(action);
++    }
++  }
++  return result;
++};
++
++/**
++ * Enumerates intentionally invalid actions for the current state.
++ *
++ * This is broader than the random injector so tests and simulations can sweep
++ * protocol validation holes deterministically. Every returned action is filtered
++ * against the legal action space, but it may still expose a core validation bug
++ * if the driver accepts it.
++ */
++export const enumerateInvalidAgentActions = (
+   snapshot: AgentRunDriverSnapshot,
+-  rng: Rng
+-): AgentAction => {
+-  const legalKeys = new Set(getLegalAgentActions(snapshot).map((action) => JSON.stringify(action)));
++  registry: GameContentRegistry = starterRegistry
++): readonly AgentAction[] => {
++  const legalKeys = new Set(getLegalAgentActions(snapshot, registry).map((action) => JSON.stringify(action)));
+   const lockedNode = snapshot.run.map?.nodes.find((node) => node.status === "locked");
++  const completedNode = snapshot.run.map?.nodes.find((node) => node.status === "completed");
++  const skippedNode = snapshot.run.map?.nodes.find((node) => node.status === "skipped");
+   const deadMonster = snapshot.combat?.monsters.find((monster) => !monster.alive);
++  const aliveMonster = snapshot.combat?.monsters.find((monster) => monster.alive);
++  const playerTargetId = snapshot.combat?.player.id;
+   const handCard = snapshot.combat?.hand[0];
+-  const options: readonly AgentAction[] = [
++  const nonHandCard = snapshot.combat
++    ? [...snapshot.combat.drawPile, ...snapshot.combat.discardPile, ...snapshot.combat.exhaustPile][0]
++    : undefined;
++  const validRewardOption = snapshot.run.pendingRewardOffer?.options[0];
++  const cardByInstance = new Map(
++    snapshot.combat?.cardInstances.map((instance) => [
++      instance.id,
++      registry.cards.find((card) => card.id === instance.cardId)
++    ]) ?? []
++  );
++
++  const candidates: AgentAction[] = [
+     { type: "selectMapNode", nodeId: runNodeId("missing_node") },
+     ...(lockedNode ? [{ type: "selectMapNode" as const, nodeId: lockedNode.id }] : []),
++    ...(completedNode ? [{ type: "selectMapNode" as const, nodeId: completedNode.id }] : []),
++    ...(skippedNode ? [{ type: "selectMapNode" as const, nodeId: skippedNode.id }] : []),
+     { type: "playCard", cardInstanceId: cardInstanceId("missing_card"), targetId: combatantId("missing_target") },
++    ...(nonHandCard ? [{ type: "playCard" as const, cardInstanceId: nonHandCard, targetId: aliveMonster?.id }] : []),
+     ...(deadMonster && handCard ? [{ type: "playCard" as const, cardInstanceId: handCard, targetId: deadMonster.id }] : []),
++    ...(handCard && playerTargetId ? [{ type: "playCard" as const, cardInstanceId: handCard, targetId: playerTargetId }] : []),
+     { type: "claimReward", rewardOptionId: rewardOptionId("missing_reward_option") },
++    ...(validRewardOption ? [{ type: "claimReward" as const, rewardOptionId: validRewardOption.id }] : []),
+     { type: "endTurn" },
+     { type: "completeCombatIfEnded" },
+     { type: "skipReward" },
+     { type: "completeNonCombatNode" }
+   ];
+-  const invalidOptions = options.filter((action) => !legalKeys.has(JSON.stringify(action)));
++
++  for (const candidateCardInstanceId of snapshot.combat?.hand ?? []) {
++    const card = cardByInstance.get(candidateCardInstanceId);
++    if (!card) {
++      continue;
++    }
++
++    if (cardNeedsActionTarget(card)) {
++      candidates.push({ type: "playCard", cardInstanceId: candidateCardInstanceId });
++      if (playerTargetId) {
++        candidates.push({ type: "playCard", cardInstanceId: candidateCardInstanceId, targetId: playerTargetId });
++      }
++    } else if (aliveMonster) {
++      candidates.push({ type: "playCard", cardInstanceId: candidateCardInstanceId, targetId: aliveMonster.id });
++    }
++  }
++
++  return uniqueActions(candidates).filter((action) => !legalKeys.has(JSON.stringify(action)));
++};
++
++export const invalidActionInjector = (
++  snapshot: AgentRunDriverSnapshot,
++  rng: Rng,
++  registry: GameContentRegistry = starterRegistry
++): AgentAction => {
++  const invalidOptions = enumerateInvalidAgentActions(snapshot, registry);
+   return rng.choice(invalidOptions.length > 0 ? invalidOptions : [{ type: "playCard", cardInstanceId: cardInstanceId("missing_card") }]);
+ };
+diff --git a/tests/game-core/combat-play-card.test.ts b/tests/game-core/combat-play-card.test.ts
+index 8c0ef33..d645802 100644
+--- a/tests/game-core/combat-play-card.test.ts
++++ b/tests/game-core/combat-play-card.test.ts
+@@ -139,6 +139,23 @@ describe("playCard", () => {
+     expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_target"]);
+   });
+ 
++  it("returns ok false when a player card targets the player", () => {
++    const state = createHandTunedCombatFixture();
++    const before = JSON.parse(JSON.stringify(state));
++    const result = playCard(
++      state,
++      { type: "playCard", cardInstanceId: cardInstanceId("strike:1"), targetId: combatantId("player") },
++      starterRegistry,
++      createRng("player-target")
++    );
++
++    expect(result.ok).toBe(false);
++    expect(result.state).toBe(state);
++    expect(JSON.parse(JSON.stringify(state))).toEqual(before);
++    expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_target_type"]);
++    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
++  });
++
+   it("returns ok false for a dead target", () => {
+     const baseState = createHandTunedCombatFixture();
+     const state = { ...baseState, monsters: [{ ...baseState.monsters[0], hp: 0, alive: false }] };
+diff --git a/tests/game-core/simulation-analysis.test.ts b/tests/game-core/simulation-analysis.test.ts
+new file mode 100644
+index 0000000..12e401b
+--- /dev/null
++++ b/tests/game-core/simulation-analysis.test.ts
+@@ -0,0 +1,69 @@
++import { describe, expect, it } from "vitest";
++import {
++  analyzeAgentTrace,
++  analyzeAgentTraces,
++  checkSimulationHealth,
++  runFuzzSimulation,
++  runSmokeSimulation
++} from "../../src/game-core";
++
++describe("simulation analysis", () => {
++  it("summarizes smoke traces into engine-flow and balance metrics", () => {
++    const result = runSmokeSimulation({ seed: "analysis-smoke", maxSteps: 500 });
++    const report = analyzeAgentTraces(result.traces);
++
++    expect(result.ok).toBe(true);
++    expect(report.totalRuns).toBe(result.traces.length);
++    expect(report.completedRuns).toBeGreaterThan(0);
++    expect(report.combatsStarted).toBeGreaterThan(0);
++    expect(report.rewardsOffered).toBeGreaterThan(0);
++    expect(report.totalDamageToMonsters).toBeGreaterThan(0);
++    expect(Object.keys(report.cardPlaysByCardId).length).toBeGreaterThan(0);
++  });
++
++  it("tracks invalid-action rejection coverage in fuzz traces", () => {
++    const result = runFuzzSimulation({ seed: "analysis-fuzz", runs: 6, maxSteps: 160, invalidActionRate: 0.3 });
++    const report = analyzeAgentTraces(result.traces);
++    const health = checkSimulationHealth(report, {
++      requireCompletedRun: false,
++      requireInvalidRejections: true,
++      warnIfNoLosses: false,
++      warnIfNoRewards: false,
++      warnIfNoPetUpgrades: false,
++      warnIfNoPlayerDamage: false,
++      warnIfNoMonsterDamage: false
++    });
++
++    expect(result.ok).toBe(true);
++    expect(report.invalidInjectedActions).toBeGreaterThan(0);
++    expect(report.invalidRejectedActions).toBe(report.invalidInjectedActions);
++    expect(health.filter((issue) => issue.severity === "error")).toEqual([]);
++  });
++
++  it("emits health issues for samples that never complete or exercise invalid validation", () => {
++    const result = runFuzzSimulation({ seed: "analysis-underpowered", runs: 1, maxSteps: 1, invalidActionRate: 0 });
++    const report = analyzeAgentTraces(result.traces);
++    const issues = checkSimulationHealth(report, {
++      requireCompletedRun: true,
++      requireInvalidRejections: true,
++      warnIfNoLosses: false,
++      warnIfNoRewards: false,
++      warnIfNoPetUpgrades: false,
++      warnIfNoPlayerDamage: false,
++      warnIfNoMonsterDamage: false
++    });
++
++    expect(issues.map((issue) => issue.code)).toContain("simulation_failures_present");
++    expect(issues.map((issue) => issue.code)).toContain("no_completed_runs");
++    expect(issues.map((issue) => issue.code)).toContain("invalid_injection_not_exercised");
++  });
++
++  it("can analyze an individual trace", () => {
++    const result = runSmokeSimulation({ seed: "analysis-single", maxSteps: 500 });
++    const metric = analyzeAgentTrace(result.traces[0]);
++
++    expect(metric.steps).toBe(result.traces[0].steps.length);
++    expect(metric.acceptedActions).toBeGreaterThan(0);
++    expect(metric.rejectedActions).toBe(0);
++  });
++});
+diff --git a/tests/game-core/simulation-fuzz.test.ts b/tests/game-core/simulation-fuzz.test.ts
+index f0e3dba..52dcf54 100644
+--- a/tests/game-core/simulation-fuzz.test.ts
++++ b/tests/game-core/simulation-fuzz.test.ts
+@@ -1,5 +1,5 @@
+ import { describe, expect, it } from "vitest";
+-import { createAgentRunDriver, createAgentStateHash, createRng, invalidActionInjector, runFuzzSimulation } from "../../src/game-core";
++import { createAgentRunDriver, createAgentStateHash, createRng, enumerateInvalidAgentActions, invalidActionInjector, runFuzzSimulation } from "../../src/game-core";
+ 
+ describe("agent simulation fuzz", () => {
+   it("runs a small deterministic fuzz sample with invalid injection", () => {
+@@ -16,6 +16,21 @@ describe("agent simulation fuzz", () => {
+     ).toBe(true);
+   });
+ 
++
++
++  it("enumerates broader invalid actions for deterministic validation sweeps", () => {
++    const driver = createAgentRunDriver({ seed: "invalid-enumeration" });
++    driver.applyAction(driver.getLegalActions()[0], "legal");
++
++    const invalidActions = enumerateInvalidAgentActions(driver.getSnapshot());
++
++    expect(invalidActions.length).toBeGreaterThan(0);
++    expect(invalidActions.some((action) => action.type === "playCard")).toBe(true);
++    expect(
++      invalidActions.every((action) => !driver.getLegalActions().some((legalAction) => JSON.stringify(legalAction) === JSON.stringify(action)))
++    ).toBe(true);
++  });
++
+   it("rejects invalid injected actions safely", () => {
+     const driver = createAgentRunDriver({ seed: "invalid-injection" });
+     const before = createAgentStateHash(driver.getSnapshot());
