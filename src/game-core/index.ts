@@ -33,6 +33,7 @@ export * from "./systems/statuses";
 export * from "./systems/validation";
 export * from "./testing/action-space";
 export * from "./testing/agent-actions";
+export * from "./testing/analysis";
 export * from "./testing/invariants";
 export * from "./testing/policies";
 export * from "./testing/run-driver";

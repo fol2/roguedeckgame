@@ -17,6 +17,8 @@ export type SimulationCliOptions = {
   readonly maxStates?: number;
   readonly trace?: string;
   readonly traceOutput?: string;
+  readonly analyze: boolean;
+  readonly strictHealth: boolean;
 };
 
 const readValue = (args: readonly string[], index: number, fallback: string): string => args[index + 1] ?? fallback;
@@ -120,7 +122,9 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
     maxDepth: Number.isFinite(maxDepth) ? maxDepth : undefined,
     maxStates: Number.isFinite(maxStates) ? maxStates : undefined,
     trace,
-    traceOutput
+    traceOutput,
+    analyze: args.includes("--analyze") || process.env.npm_config_analyze === "true",
+    strictHealth: args.includes("--strict-health") || process.env.npm_config_strict_health === "true"
   };
 };
 

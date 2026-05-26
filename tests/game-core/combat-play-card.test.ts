@@ -139,6 +139,23 @@ describe("playCard", () => {
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_target"]);
   });
 
+  it("returns ok false when a player card targets the player", () => {
+    const state = createHandTunedCombatFixture();
+    const before = JSON.parse(JSON.stringify(state));
+    const result = playCard(
+      state,
+      { type: "playCard", cardInstanceId: cardInstanceId("strike:1"), targetId: combatantId("player") },
+      starterRegistry,
+      createRng("player-target")
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.state).toBe(state);
+    expect(JSON.parse(JSON.stringify(state))).toEqual(before);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_target_type"]);
+    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+  });
+
   it("returns ok false for a dead target", () => {
     const baseState = createHandTunedCombatFixture();
     const state = { ...baseState, monsters: [{ ...baseState.monsters[0], hp: 0, alive: false }] };

@@ -198,6 +198,10 @@ const validateCombatantTarget = (
     return error("invalid_target", `Target combatant '${actionTargetId}' does not exist.`, "targetId");
   }
 
+  if (combatant.type !== "monster") {
+    return error("invalid_target_type", "Player card targets must be alive monsters.", "targetId");
+  }
+
   return combatant.alive
     ? undefined
     : error("dead_target", `Target combatant '${actionTargetId}' is defeated.`, "targetId");

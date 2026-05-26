@@ -10,6 +10,7 @@
     "game:cli": "node scripts/run-cli-entry.mjs game-cli",
     "sim:smoke": "node scripts/run-cli-entry.mjs simulate-runs --mode smoke",
     "sim:fuzz": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz",
+    "sim:analyze": "node scripts/run-cli-entry.mjs simulate-runs --mode fuzz --analyze",
     "sim:exhaustive-small": "node scripts/run-cli-entry.mjs simulate-runs --mode exhaustive-small",
     "sim:replay": "node scripts/run-cli-entry.mjs simulate-runs --mode replay",
     "preview": "vite preview",

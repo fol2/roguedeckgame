@@ -19,6 +19,9 @@ const findCardForAction = (
   return instance ? registry.cards.find((card) => card.id === instance.cardId) : undefined;
 };
 
+const cardNeedsActionTarget = (card: CardDefinition): boolean =>
+  card.effects.some((effect) => "target" in effect && effect.target.type === "target" && effect.target.combatantId === undefined);
+
 const actionTargetHp = (action: AgentAction, snapshot: AgentRunDriverSnapshot): number => {
   if (action.type !== "playCard" || !action.targetId) {
     return Number.POSITIVE_INFINITY;
@@ -103,25 +106,91 @@ export const randomLegalPolicy = (
   return actions.length > 0 ? rng.choice(actions) : undefined;
 };
 
-export const invalidActionInjector = (
+const uniqueActions = (actions: readonly AgentAction[]): readonly AgentAction[] => {
+  const seen = new Set<string>();
+  const result: AgentAction[] = [];
+  for (const action of actions) {
+    const key = JSON.stringify(action);
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(action);
+    }
+  }
+  return result;
+};
+
+/**
+ * Enumerates intentionally invalid actions for the current state.
+ *
+ * This is broader than the random injector so tests and simulations can sweep
+ * protocol validation holes deterministically. Every returned action is filtered
+ * against the legal action space, but it may still expose a core validation bug
+ * if the driver accepts it.
+ */
+export const enumerateInvalidAgentActions = (
   snapshot: AgentRunDriverSnapshot,
-  rng: Rng
-): AgentAction => {
-  const legalKeys = new Set(getLegalAgentActions(snapshot).map((action) => JSON.stringify(action)));
+  registry: GameContentRegistry = starterRegistry
+): readonly AgentAction[] => {
+  const legalKeys = new Set(getLegalAgentActions(snapshot, registry).map((action) => JSON.stringify(action)));
   const lockedNode = snapshot.run.map?.nodes.find((node) => node.status === "locked");
+  const completedNode = snapshot.run.map?.nodes.find((node) => node.status === "completed");
+  const skippedNode = snapshot.run.map?.nodes.find((node) => node.status === "skipped");
   const deadMonster = snapshot.combat?.monsters.find((monster) => !monster.alive);
+  const aliveMonster = snapshot.combat?.monsters.find((monster) => monster.alive);
+  const playerTargetId = snapshot.combat?.player.id;
   const handCard = snapshot.combat?.hand[0];
-  const options: readonly AgentAction[] = [
+  const nonHandCard = snapshot.combat
+    ? [...snapshot.combat.drawPile, ...snapshot.combat.discardPile, ...snapshot.combat.exhaustPile][0]
+    : undefined;
+  const validRewardOption = snapshot.run.pendingRewardOffer?.options[0];
+  const cardByInstance = new Map(
+    snapshot.combat?.cardInstances.map((instance) => [
+      instance.id,
+      registry.cards.find((card) => card.id === instance.cardId)
+    ]) ?? []
+  );
+
+  const candidates: AgentAction[] = [
     { type: "selectMapNode", nodeId: runNodeId("missing_node") },
     ...(lockedNode ? [{ type: "selectMapNode" as const, nodeId: lockedNode.id }] : []),
+    ...(completedNode ? [{ type: "selectMapNode" as const, nodeId: completedNode.id }] : []),
+    ...(skippedNode ? [{ type: "selectMapNode" as const, nodeId: skippedNode.id }] : []),
     { type: "playCard", cardInstanceId: cardInstanceId("missing_card"), targetId: combatantId("missing_target") },
+    ...(nonHandCard ? [{ type: "playCard" as const, cardInstanceId: nonHandCard, targetId: aliveMonster?.id }] : []),
     ...(deadMonster && handCard ? [{ type: "playCard" as const, cardInstanceId: handCard, targetId: deadMonster.id }] : []),
+    ...(handCard && playerTargetId ? [{ type: "playCard" as const, cardInstanceId: handCard, targetId: playerTargetId }] : []),
     { type: "claimReward", rewardOptionId: rewardOptionId("missing_reward_option") },
+    ...(validRewardOption ? [{ type: "claimReward" as const, rewardOptionId: validRewardOption.id }] : []),
     { type: "endTurn" },
     { type: "completeCombatIfEnded" },
     { type: "skipReward" },
     { type: "completeNonCombatNode" }
   ];
-  const invalidOptions = options.filter((action) => !legalKeys.has(JSON.stringify(action)));
+
+  for (const candidateCardInstanceId of snapshot.combat?.hand ?? []) {
+    const card = cardByInstance.get(candidateCardInstanceId);
+    if (!card) {
+      continue;
+    }
+
+    if (cardNeedsActionTarget(card)) {
+      candidates.push({ type: "playCard", cardInstanceId: candidateCardInstanceId });
+      if (playerTargetId) {
+        candidates.push({ type: "playCard", cardInstanceId: candidateCardInstanceId, targetId: playerTargetId });
+      }
+    } else if (aliveMonster) {
+      candidates.push({ type: "playCard", cardInstanceId: candidateCardInstanceId, targetId: aliveMonster.id });
+    }
+  }
+
+  return uniqueActions(candidates).filter((action) => !legalKeys.has(JSON.stringify(action)));
+};
+
+export const invalidActionInjector = (
+  snapshot: AgentRunDriverSnapshot,
+  rng: Rng,
+  registry: GameContentRegistry = starterRegistry
+): AgentAction => {
+  const invalidOptions = enumerateInvalidAgentActions(snapshot, registry);
   return rng.choice(invalidOptions.length > 0 ? invalidOptions : [{ type: "playCard", cardInstanceId: cardInstanceId("missing_card") }]);
 };
