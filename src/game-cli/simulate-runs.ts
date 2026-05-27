@@ -18,6 +18,8 @@ import {
   type SimulationHealthIssue
 } from "../game-core/testing/analysis";
 import { act1NormalBalance } from "../game-core/data/balance/act1-normal";
+import { starterRegistry } from "../game-core/data/registry";
+import { buildContentDependencyReport, formatContentDependencyIssue } from "../game-core/testing/content-dependencies";
 
 const modeLabel = (mode: SimulationResult["mode"]): string => mode === "exhaustive-small" ? "exhaustive-small" : mode;
 
@@ -73,6 +75,14 @@ const printAnalysis = (
   countSummary("  Pet upgrades", report.petUpgradesByUpgradeId);
   countSummary("  Reward types", report.rewardSelectionsByType);
   countSummary("  Actions", report.actionCounts);
+
+  const contentDependencies = buildContentDependencyReport(starterRegistry);
+  console.log(`  Content dependencies: references=${contentDependencies.coverage.referenceCount}, missing=${contentDependencies.coverage.missingReferenceCount}, warnings=${contentDependencies.issues.filter((issue) => issue.severity === "warning").length}`);
+  countSummary("  Unused cards", Object.fromEntries(contentDependencies.coverage.unusedCardIds.map((id) => [id, 1])));
+  countSummary("  Unused statuses", Object.fromEntries(contentDependencies.coverage.unusedStatusIds.map((id) => [id, 1])));
+  contentDependencies.issues.forEach((issue) => {
+    console.log(`  Dependency ${formatContentDependencyIssue(issue)}`);
+  });
 
   if (healthIssues.length === 0) {
     console.log("  Health: no issues");

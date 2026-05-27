@@ -3,6 +3,7 @@ import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
 import { knownPlayerClassModifierRuleTypeValues } from "../systems/class-modifiers";
 import { getRuntimeSupportedStatusIds, supportedStatusBehaviourTypes } from "../systems/status-behaviours";
+import { buildContentDependencyReport } from "./content-dependencies";
 
 export type ContentReport = {
   readonly counts: {
@@ -30,6 +31,10 @@ export type ContentReport = {
   readonly scheduledMonsterIds: readonly string[];
   readonly encounterTypes: readonly string[];
   readonly runMapNodeTypes: readonly string[];
+  readonly dependencyReferenceCount: number;
+  readonly dependencyMissingReferenceCount: number;
+  readonly unusedCardIds: readonly string[];
+  readonly unusedStatusIds: readonly string[];
 };
 
 const sorted = (values: Iterable<string>): readonly string[] => [...values].sort((a, b) => a.localeCompare(b));
@@ -59,50 +64,58 @@ const collectEffectTypes = (registry: GameContentRegistry): readonly string[] =>
   return sorted(effectTypes);
 };
 
-export const buildContentReport = (registry: GameContentRegistry): ContentReport => ({
-  counts: {
-    cards: registry.cards.length,
-    statuses: (registry.statuses ?? [burnStatusDefinition]).length,
-    pets: registry.pets.length,
-    monsterAbilities: registry.monsterAbilities?.length ?? 0,
-    monsters: registry.monsters.length,
-    encounters: registry.encounters.length,
-    runMapTemplates: registry.runMapTemplates.length,
-    petUpgrades: registry.petUpgrades.length,
-    playerClassModifiers: registry.playerClassModifiers?.length ?? 0
-  },
-  cardRarities: sorted(new Set(registry.cards.map((card) => card.rarity ?? "unknown"))),
-  cardTags: sorted(new Set(registry.cards.flatMap((card) => card.tags))),
-  effectTypes: collectEffectTypes(registry),
-  statusIds: sorted(new Set((registry.statuses ?? [burnStatusDefinition]).map((status) => status.id))),
-  runtimeSupportedStatusIds: sorted(getRuntimeSupportedStatusIds(registry)),
-  metadataOnlyStatusIds: sorted(
-    (registry.statuses ?? [burnStatusDefinition])
-      .map((status) => status.id)
-      .filter((statusId) => !getRuntimeSupportedStatusIds(registry).has(statusId))
-  ),
-  statusBehaviourTypes: sorted(supportedStatusBehaviourTypes),
-  petModifierRuleTypes: sorted(new Set(
-    registry.petUpgrades
-      .flatMap((upgrade) => upgrade.modifiers)
-      .flatMap((modifier) => modifier.rules)
-      .map((rule) => rule.type)
-  )),
-  playerClassModifierIds: sorted(new Set((registry.playerClassModifiers ?? []).map((modifier) => modifier.id))),
-  playerClassModifierRuleTypes: sorted(new Set([
-    ...knownPlayerClassModifierRuleTypeValues,
-    ...(registry.playerClassModifiers ?? [])
-      .flatMap((modifier) => modifier.rules ?? [])
-      .map((rule) => rule.type)
-  ])),
-  deckOperationRewardTypes: ["remove", "transform", "upgrade"],
-  scheduledMonsterIds: sorted(new Set(
-    registry.monsters
-      .filter((monster) => monster.intentSchedule !== undefined && monster.intentSchedule.length > 0)
-      .map((monster) => monster.id)
-  )),
-  encounterTypes: sorted(new Set(registry.encounters.map((encounter) => encounter.type))),
-  runMapNodeTypes: sorted(new Set(
-    registry.runMapTemplates.flatMap((template) => template.nodes.map((node) => node.type))
-  ))
-});
+export const buildContentReport = (registry: GameContentRegistry): ContentReport => {
+  const dependencies = buildContentDependencyReport(registry);
+
+  return {
+    counts: {
+      cards: registry.cards.length,
+      statuses: (registry.statuses ?? [burnStatusDefinition]).length,
+      pets: registry.pets.length,
+      monsterAbilities: registry.monsterAbilities?.length ?? 0,
+      monsters: registry.monsters.length,
+      encounters: registry.encounters.length,
+      runMapTemplates: registry.runMapTemplates.length,
+      petUpgrades: registry.petUpgrades.length,
+      playerClassModifiers: registry.playerClassModifiers?.length ?? 0
+    },
+    cardRarities: sorted(new Set(registry.cards.map((card) => card.rarity ?? "unknown"))),
+    cardTags: sorted(new Set(registry.cards.flatMap((card) => card.tags))),
+    effectTypes: collectEffectTypes(registry),
+    statusIds: sorted(new Set((registry.statuses ?? [burnStatusDefinition]).map((status) => status.id))),
+    runtimeSupportedStatusIds: sorted(getRuntimeSupportedStatusIds(registry)),
+    metadataOnlyStatusIds: sorted(
+      (registry.statuses ?? [burnStatusDefinition])
+        .map((status) => status.id)
+        .filter((statusId) => !getRuntimeSupportedStatusIds(registry).has(statusId))
+    ),
+    statusBehaviourTypes: sorted(supportedStatusBehaviourTypes),
+    petModifierRuleTypes: sorted(new Set(
+      registry.petUpgrades
+        .flatMap((upgrade) => upgrade.modifiers)
+        .flatMap((modifier) => modifier.rules)
+        .map((rule) => rule.type)
+    )),
+    playerClassModifierIds: sorted(new Set((registry.playerClassModifiers ?? []).map((modifier) => modifier.id))),
+    playerClassModifierRuleTypes: sorted(new Set([
+      ...knownPlayerClassModifierRuleTypeValues,
+      ...(registry.playerClassModifiers ?? [])
+        .flatMap((modifier) => modifier.rules ?? [])
+        .map((rule) => rule.type)
+    ])),
+    deckOperationRewardTypes: ["remove", "transform", "upgrade"],
+    scheduledMonsterIds: sorted(new Set(
+      registry.monsters
+        .filter((monster) => monster.intentSchedule !== undefined && monster.intentSchedule.length > 0)
+        .map((monster) => monster.id)
+    )),
+    encounterTypes: sorted(new Set(registry.encounters.map((encounter) => encounter.type))),
+    runMapNodeTypes: sorted(new Set(
+      registry.runMapTemplates.flatMap((template) => template.nodes.map((node) => node.type))
+    )),
+    dependencyReferenceCount: dependencies.coverage.referenceCount,
+    dependencyMissingReferenceCount: dependencies.coverage.missingReferenceCount,
+    unusedCardIds: dependencies.coverage.unusedCardIds,
+    unusedStatusIds: dependencies.coverage.unusedStatusIds
+  };
+};
