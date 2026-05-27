@@ -8,6 +8,7 @@ import {
   petDefinitionId,
   playerClassModifierId,
   playerClassId,
+  rewardPoolId,
   runTemplateId,
   starterRegistry,
   statusId,
@@ -33,6 +34,7 @@ describe("content index", () => {
     expect(index.monstersById.get(monsterId("training_slime"))?.name).toBe("Training Slime");
     expect(index.encountersById.get(encounterId("forest_duo_encounter"))?.name).toBe("Forest Duo");
     expect(index.runMapTemplatesById.get(runTemplateId("act1_forest"))?.name).toBe("Act 1 - Forest");
+    expect(index.rewardPoolsById.get(rewardPoolId("normal"))?.name).toBe("Normal Encounter Rewards");
     expect(index.petUpgradesById.get(upgradeId("warm_bond"))?.name).toBe("Warm Bond");
     expect(index.storyEventsById.get(storyEventId("ember_fox_side_story"))?.title).toBe("Burned Orchard");
     expect(index.petSideStoriesById.get(storyEventId("ember_fox_side_story"))).toBeDefined();
@@ -85,6 +87,23 @@ describe("content index", () => {
 
     expect(index.duplicateIds).toContainEqual({ collection: "statuses", id: "burn" });
     expect(index.statusesById.get(statusId("burn"))?.description).toBe("Duplicate burn.");
+  });
+
+  it("reports duplicate reward pool ids", () => {
+    const registry = cloneRegistry({
+      rewardPools: [
+        ...(starterRegistry.rewardPools ?? []),
+        {
+          ...(starterRegistry.rewardPools ?? [])[0]!,
+          name: "Duplicate Normal Rewards"
+        }
+      ]
+    });
+
+    const index = buildContentIndex(registry);
+
+    expect(index.duplicateIds).toContainEqual({ collection: "rewardPools", id: "normal" });
+    expect(index.rewardPoolsById.get(rewardPoolId("normal"))?.name).toBe("Duplicate Normal Rewards");
   });
 
   it("indexes player class modifiers", () => {

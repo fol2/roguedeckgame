@@ -6,6 +6,7 @@ import { forestMonsterAbilities, forestMonsters } from "./monsters/forest-monste
 import { pets as petDefinitions } from "./pets/ember-fox";
 import { players as playerDefinitions } from "./players/novice-tamer";
 import { runMapTemplates as forestRunMapTemplates } from "./run-maps/act1-forest";
+import { rewardPools as rewardPoolDefinitions } from "./rewards/reward-pools";
 import { emberFoxPetSideStories, emberFoxStoryEvents } from "./story/ember-fox-story";
 import { emberFoxUpgrades } from "./upgrades/ember-fox-upgrades";
 import type { GameContentRegistry } from "../model/registry";
@@ -21,6 +22,7 @@ export const starterRegistry: GameContentRegistry = {
   monsters: forestMonsters,
   encounters: forestEncounters,
   runMapTemplates: forestRunMapTemplates,
+  rewardPools: rewardPoolDefinitions,
   petUpgrades: emberFoxUpgrades,
   petModifiers: emberFoxUpgrades.flatMap((upgrade) => upgrade.modifiers),
   playerClassModifiers: [],
@@ -36,6 +38,7 @@ export const monsterAbilities = starterRegistry.monsterAbilities ?? [];
 export const monsters = starterRegistry.monsters;
 export const encounters = starterRegistry.encounters;
 export const runMapTemplates = starterRegistry.runMapTemplates;
+export const rewardPools = starterRegistry.rewardPools ?? [];
 export const petUpgrades = starterRegistry.petUpgrades;
 export const petModifiers = starterRegistry.petModifiers ?? [];
 export const playerClassModifiers = starterRegistry.playerClassModifiers ?? [];

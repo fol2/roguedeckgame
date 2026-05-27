@@ -20,6 +20,7 @@ import {
 import { act1NormalBalance } from "../game-core/data/balance/act1-normal";
 import { starterRegistry } from "../game-core/data/registry";
 import { buildContentDependencyReport, formatContentDependencyIssue } from "../game-core/testing/content-dependencies";
+import { buildLevelSimulationAuthoringSummary } from "../game-core/testing/level-authoring-report";
 
 const modeLabel = (mode: SimulationResult["mode"]): string => mode === "exhaustive-small" ? "exhaustive-small" : mode;
 
@@ -75,6 +76,10 @@ const printAnalysis = (
   countSummary("  Pet upgrades", report.petUpgradesByUpgradeId);
   countSummary("  Reward types", report.rewardSelectionsByType);
   countSummary("  Actions", report.actionCounts);
+
+  const levelSummary = buildLevelSimulationAuthoringSummary(starterRegistry, report);
+  console.log(`  Level authoring: completion=${percent(levelSummary.completionRate)}, averageBudget=${decimal(levelSummary.averageEncounterBudget)}, budgetedEncounters=${levelSummary.budgetedEncounterCount}`);
+  countSummary("  Encounter budgets", levelSummary.encounterBudgetsByType);
 
   const contentDependencies = buildContentDependencyReport(starterRegistry);
   console.log(`  Content dependencies: references=${contentDependencies.coverage.referenceCount}, missing=${contentDependencies.coverage.missingReferenceCount}, warnings=${contentDependencies.issues.filter((issue) => issue.severity === "warning").length}`);

@@ -54,6 +54,7 @@ export * from "./testing/analysis";
 export * from "./testing/content-dependencies";
 export * from "./testing/content-report";
 export * from "./testing/invariants";
+export * from "./testing/level-authoring-report";
 export * from "./testing/policies";
 export * from "./testing/run-driver";
 export * from "./testing/simulation";

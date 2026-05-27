@@ -3,6 +3,7 @@ import {
   combatantId,
   encounterId,
   evolutionNodeId,
+  monsterGroupId,
   monsterAbilityId,
   monsterId,
   monsterIntentId,
@@ -13,6 +14,7 @@ import {
   playerClassId,
   playerClassModifierId,
   relicId,
+  rewardPoolId,
   runMapId,
   runNodeId,
   runTemplateId,
@@ -35,6 +37,7 @@ import type {
   PetUpgradeSchemaDefinition,
   PlayerClassModifierSchemaDefinition,
   PlayerClassSchemaDefinition,
+  RewardPoolSchemaDefinition,
   RunMapTemplateSchemaDefinition,
   StatusSchemaDefinition,
   StoryEventSchemaDefinition
@@ -45,6 +48,7 @@ import type { PetModifierDefinition, PetUpgradeDefinition } from "../model/pet";
 import type { PetDefinition } from "../model/pet";
 import type { PlayerClassDefinition, PlayerClassModifierDefinition } from "../model/player";
 import type { GameContentRegistry } from "../model/registry";
+import type { RewardPoolDefinition } from "../model/reward";
 import type { RunMapTemplateDefinition } from "../model/run-map";
 import type { StatusDefinition } from "../model/status";
 import type { PetSideStoryDefinition, StoryEventDefinition } from "../model/story";
@@ -72,6 +76,7 @@ const contentSchemaCollections = [
   "monsters",
   "encounters",
   "runMapTemplates",
+  "rewardPools",
   "petUpgrades",
   "petModifiers",
   "playerClassModifiers",
@@ -423,11 +428,25 @@ const mapMonster = (monster: MonsterSchemaDefinition): MonsterDefinition => ({
   )
 } as MonsterDefinition);
 
+const mapEncounterAuthoring = (authoring: unknown): unknown =>
+  mapRecordValue(authoring, (record) => ({
+    ...record,
+    monsterGroups: mapArrayValue(record.monsterGroups, (group) =>
+      mapRecordValue(group, (groupRecord) => ({
+        ...groupRecord,
+        id: mapIdValue(groupRecord.id, monsterGroupId),
+        monsterIds: mapArrayValue(groupRecord.monsterIds, (id) => mapIdValue(id, monsterId))
+      }))
+    ),
+    rewardPoolId: mapIdValue(record.rewardPoolId, rewardPoolId)
+  }));
+
 const mapEncounter = (encounter: EncounterSchemaDefinition): EncounterDefinition => ({
   ...encounter,
   id: encounterId(encounter.id),
   type: encounter.type as EncounterDefinition["type"],
-  monsterIds: mapArrayValue(encounter.monsterIds, (id) => mapIdValue(id, monsterId))
+  monsterIds: mapArrayValue(encounter.monsterIds, (id) => mapIdValue(id, monsterId)),
+  authoring: mapEncounterAuthoring(encounter.authoring) as EncounterDefinition["authoring"]
 } as EncounterDefinition);
 
 const mapRunMapTemplate = (template: RunMapTemplateSchemaDefinition): RunMapTemplateDefinition => ({
@@ -444,6 +463,11 @@ const mapRunMapTemplate = (template: RunMapTemplateSchemaDefinition): RunMapTemp
     }))
   )
 } as RunMapTemplateDefinition);
+
+const mapRewardPool = (rewardPool: RewardPoolSchemaDefinition): RewardPoolDefinition => ({
+  ...rewardPool,
+  id: rewardPoolId(rewardPool.id)
+} as RewardPoolDefinition);
 
 const mapCardSelector = (selector: unknown): unknown =>
   mapRecordValue(selector, (record) => ({
@@ -534,6 +558,7 @@ const toRegistry = (
 ): GameContentRegistry => {
   const statuses = collectionOrUndefined<StatusSchemaDefinition>(schema, baseRegistry, "statuses");
   const monsterAbilities = collectionOrUndefined<MonsterAbilitySchemaDefinition>(schema, baseRegistry, "monsterAbilities");
+  const rewardPools = collectionOrUndefined<RewardPoolSchemaDefinition>(schema, baseRegistry, "rewardPools");
   const petModifiers = collectionOrUndefined<PetModifierSchemaDefinition>(schema, baseRegistry, "petModifiers");
   const playerClassModifiers = collectionOrUndefined<PlayerClassModifierSchemaDefinition>(schema, baseRegistry, "playerClassModifiers");
 
@@ -549,6 +574,7 @@ const toRegistry = (
     monsters: collectionOrDefault<MonsterSchemaDefinition>(schema, baseRegistry, "monsters").map(mapMonster),
     encounters: collectionOrDefault<EncounterSchemaDefinition>(schema, baseRegistry, "encounters").map(mapEncounter),
     runMapTemplates: collectionOrDefault<RunMapTemplateSchemaDefinition>(schema, baseRegistry, "runMapTemplates").map(mapRunMapTemplate),
+    ...(rewardPools === undefined ? {} : { rewardPools: rewardPools.map(mapRewardPool) }),
     petUpgrades: collectionOrDefault<PetUpgradeSchemaDefinition>(schema, baseRegistry, "petUpgrades").map(mapPetUpgrade),
     ...(petModifiers === undefined ? {} : { petModifiers: petModifiers.map(mapPetModifier) }),
     ...(playerClassModifiers === undefined ? {} : { playerClassModifiers: playerClassModifiers.map(mapPlayerClassModifier) }),

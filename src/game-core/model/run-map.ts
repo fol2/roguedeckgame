@@ -27,11 +27,17 @@ export type RunMapTemplateNodeDefinition = {
   readonly layer: number;
   readonly encounterIds?: readonly EncounterId[];
   readonly nextNodeIds: readonly RunNodeId[];
+  readonly authoring?: {
+    readonly budgetMin?: number;
+    readonly budgetMax?: number;
+    readonly notes?: string;
+  };
 };
 
 export type RunMapTemplateDefinition = {
   readonly id: RunTemplateId;
   readonly name: string;
   readonly mapId: RunMapId;
+  readonly actId?: string;
   readonly nodes: readonly RunMapTemplateNodeDefinition[];
 };
