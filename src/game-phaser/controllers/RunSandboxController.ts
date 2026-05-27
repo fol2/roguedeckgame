@@ -57,6 +57,7 @@ import {
 } from "../view-models/debug-view-model";
 import type { CombatPlaybackObservation } from "../animation/combat-playback-policy";
 import type { CombatParityDiagnostic } from "../debug/combat-parity";
+import { createRunSandboxRequestGuard } from "./run-sandbox-request-guard";
 
 export type RunSandboxState = {
   readonly run: RunState;
@@ -228,7 +229,7 @@ export const createRunSandboxController = (
   let actionRng = createCombatRng(`${String(seed)}:agent-driver`);
   let state = createInitialState(config).state;
   let revision = 0;
-  let seenGameplayRequestIds = new Set<string>();
+  const seenGameplayRequestIds = new Set<string>();
   let traceSteps: AgentTrace["steps"] = [];
   const content = createContentContext(registry);
 
@@ -277,66 +278,11 @@ export const createRunSandboxController = (
     return result;
   };
 
-  const rejectIfStaleRevision = (
-    expectedRevision: number | undefined,
-    path: string
-  ): GameActionResult<RunSandboxState> | undefined => {
-    if (expectedRevision === undefined || expectedRevision === revision) {
-      return undefined;
-    }
-
-    return reject(createError(
-      "stale_combat_revision",
-      `Combat view revision ${expectedRevision} is stale; latest revision is ${revision}.`,
-      path
-    ));
-  };
-
-  const rejectIfStaleRunRevision = (
-    expectedRevision: number | undefined,
-    path: string
-  ): GameActionResult<RunSandboxState> | undefined => {
-    if (expectedRevision === undefined || expectedRevision === revision) {
-      return undefined;
-    }
-
-    return reject(createError(
-      "stale_run_revision",
-      `Run view revision ${expectedRevision} is stale; latest revision is ${revision}.`,
-      path
-    ));
-  };
-
-  const rejectIfInvalidRequest = (
-    requestId: string,
-    path: string
-  ): GameActionResult<RunSandboxState> | undefined => {
-    if (!requestId) {
-      return reject(createError(
-        "missing_request_id",
-        "Gameplay requests must include a request id.",
-        path
-      ));
-    }
-
-    if (seenGameplayRequestIds.has(requestId)) {
-      return reject(createError(
-        "duplicate_request",
-        `Gameplay request '${requestId}' was already submitted.`,
-        path
-      ));
-    }
-
-    seenGameplayRequestIds.add(requestId);
-
-    return undefined;
-  };
-
-  const rejectIfProvidedRequestInvalid = (
-    requestId: string | undefined,
-    path: string
-  ): GameActionResult<RunSandboxState> | undefined =>
-    requestId === undefined ? undefined : rejectIfInvalidRequest(requestId, path);
+  const requestGuard = createRunSandboxRequestGuard<RunSandboxState>(
+    () => revision,
+    seenGameplayRequestIds,
+    reject
+  );
 
   return {
     getState: () => state,
@@ -370,12 +316,12 @@ export const createRunSandboxController = (
       : undefined,
     getRevision: () => revision,
     selectMapNode: (nodeId, expectedRevision, requestId) => {
-      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -414,12 +360,12 @@ export const createRunSandboxController = (
         return reject(createError("missing_combat", "There is no active combat.", "combat"));
       }
 
-      const invalidRequest = rejectIfInvalidRequest(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = rejectIfStaleRevision(expectedRevision, "combat.revision");
+      const staleRevision = requestGuard.rejectIfStaleCombatRevision(expectedRevision, "combat.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -452,12 +398,12 @@ export const createRunSandboxController = (
         return reject(createError("missing_combat", "There is no active combat.", "combat"));
       }
 
-      const invalidRequest = rejectIfInvalidRequest(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = rejectIfStaleRevision(expectedRevision, "combat.revision");
+      const staleRevision = requestGuard.rejectIfStaleCombatRevision(expectedRevision, "combat.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -484,12 +430,12 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "endTurn" }, result);
     },
     completeCombatIfEnded: (expectedRevision, requestId) => {
-      const invalidRequest = rejectIfInvalidRequest(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -538,12 +484,12 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "completeCombatIfEnded" }, result);
     },
     claimRewardOption: (rewardOptionId, expectedRevision, requestId) => {
-      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -587,12 +533,12 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "claimReward", rewardOptionId }, result);
     },
     skipReward: (expectedRevision, requestId) => {
-      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -634,12 +580,12 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "skipReward" }, result);
     },
     completeNonCombatNode: (expectedRevision, requestId) => {
-      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -679,7 +625,7 @@ export const createRunSandboxController = (
       actionRng = createCombatRng(`${String(seed)}:agent-driver`);
       state = resetResult.state;
       revision = 0;
-      seenGameplayRequestIds = new Set();
+      seenGameplayRequestIds.clear();
       traceSteps = [];
 
       return resetResult;

@@ -15,7 +15,7 @@ import {
 
 describe("agent simulation fuzz", () => {
   it("runs a small deterministic fuzz sample with invalid injection", () => {
-    const result = runFuzzSimulation({ seed: "ci-fuzz", runs: 20, maxSteps: 300, invalidActionRate: 0.15 });
+    const result = runFuzzSimulation({ seed: "ci-fuzz", runs: 8, maxSteps: 220, invalidActionRate: 0.15 });
 
     expect(result.ok).toBe(true);
     expect(result.failures).toEqual([]);

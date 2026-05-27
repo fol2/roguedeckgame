@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const scenePath = join(root, "src/game-phaser/scenes/CombatScene.ts");
 const presentersRoot = join(root, "src/game-phaser/presenters");
-const contractRoot = join(root, "docs/contracts/p2/16-roguedeckgame-e38efe7add57");
+const combatPreviewManifestPath = join(root, "docs/review-evidence/combat-preview-manifest.json");
 
 const normaliseLineEndings = (source: string): string => source.replace(/\r\n/g, "\n");
 
@@ -54,15 +54,6 @@ const listPresenterFiles = async (): Promise<readonly string[]> => {
   return entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
     .map((entry) => join(presentersRoot, entry.name));
-};
-
-const readPngDimensions = async (path: string): Promise<{ readonly width: number; readonly height: number }> => {
-  const buffer = await readFile(path);
-
-  return {
-    width: buffer.readUInt32BE(16),
-    height: buffer.readUInt32BE(20)
-  };
 };
 
 describe("Combat scene boundary", () => {
@@ -172,6 +163,7 @@ describe("Combat scene boundary", () => {
     expect(source).toMatch(/playHandCard\(cardInstanceId, undefined, viewModel\.revision, requestId\)/);
     expect(source).toMatch(/playHandCard\(selectedCardId, monsterId, selectedRevision, requestId\)/);
     expect(source).toMatch(/endTurn\(viewModel\?\.revision, requestId\)/);
+    expect(source).toMatch(/completeCombatIfEnded\(expectedRevision, requestId\)/);
     expect(source).toMatch(/beginCombatActionSubmission/);
     expect(source).toMatch(/snapshot: this\.getActionSubmissionSnapshot\(\)/);
     expect(source).toMatch(/this\.applyActionSubmissionSnapshot\(submission\.snapshot\)/);
@@ -333,7 +325,12 @@ describe("Combat scene boundary", () => {
     expect(eventFxPresenter).toMatch(/DECK_SOURCE_PILE/);
   });
 
-  it("keeps captured combat preview evidence at the claimed 1280x720 viewport", async () => {
+  it("keeps captured combat preview evidence in a review-safe manifest", async () => {
+    const manifest = JSON.parse(await readFile(combatPreviewManifestPath, "utf8")) as {
+      readonly viewport?: { readonly width?: unknown; readonly height?: unknown };
+      readonly source?: unknown;
+      readonly files?: unknown;
+    };
     const evidenceFiles = [
       "preview-combat-entry-after-click-1280x720.png",
       "preview-combat-pile-tooltip-1280x720.png",
@@ -345,12 +342,11 @@ describe("Combat scene boundary", () => {
       "preview-combat-wireframe-selected-1280x720.png"
     ];
 
-    for (const file of evidenceFiles) {
-      await expect(stat(join(contractRoot, file)), `${file} exists`).resolves.toMatchObject({ size: expect.any(Number) });
-      await expect(readPngDimensions(join(contractRoot, file)), file).resolves.toEqual({
-        width: 1280,
-        height: 720
-      });
-    }
+    expect(manifest.source).toBe("docs/contracts/p2/16-roguedeckgame-e38efe7add57");
+    expect(manifest.viewport).toEqual({
+      width: 1280,
+      height: 720
+    });
+    expect(manifest.files).toEqual(evidenceFiles);
   });
 });

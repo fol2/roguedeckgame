@@ -118,4 +118,11 @@ describe("Map scene boundary", () => {
     expect(source).toMatch(/if \(run\.status === "reward" && this\.sandbox\.getRewardViewModel\(\)\) \{\n\s+this\.scene\.start\(SceneKeys\.Reward\);\n\s+return;\n\s+\}/);
     expect(source).toMatch(/if \(run\.status === "combat" && this\.sandbox\.getCombatViewModel\(\)\) \{\n\s+this\.scene\.start\(SceneKeys\.Combat\);\n\s+return;\n\s+\}/);
   });
+
+  it("passes revision and request id for mutating controller calls", async () => {
+    const source = await readSource(scenePath);
+
+    expect(source).toMatch(/selectMapNode\(\n\s+nodeId,\n\s+this\.sandbox\.getRevision\(\),\n\s+this\.nextRequestId\("map-select"\)\n\s+\)/);
+    expect(source).toMatch(/completeNonCombatNode\(\n\s+this\.sandbox\.getRevision\(\),\n\s+this\.nextRequestId\("map-complete"\)\n\s+\)/);
+  });
 });

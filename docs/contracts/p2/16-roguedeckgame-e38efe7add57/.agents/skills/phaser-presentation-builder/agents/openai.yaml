@@ -1,4 +1,0 @@
-interface:
-  display_name: "Phaser Presentation Builder"
-  short_description: "Build Phaser presentation layers"
-  default_prompt: "Use $phaser-presentation-builder to build Phaser visuals from game events."

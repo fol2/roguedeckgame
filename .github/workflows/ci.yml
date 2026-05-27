@@ -31,5 +31,17 @@ jobs:
       - name: Build browser bundle
         run: npm run build
 
+      - name: Build CLI bundle
+        run: npm run build:cli
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Smoke simulation analysis
+        run: npm run sim:smoke -- --analyze
+
+      - name: Balance simulation gate
+        run: npm run sim:balance
+
       - name: Audit dependencies
         run: npm audit --audit-level=moderate

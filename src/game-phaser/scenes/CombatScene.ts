@@ -38,6 +38,7 @@ import {
   type CombatActionRejectionDiagnostic,
   type CombatActionSubmissionSnapshot
 } from "../interaction/combat-action-submission";
+import { beginCombatCompletionSubmission } from "../interaction/combat-completion-submission";
 import { resolveCardDropAction } from "../interaction/card-interaction-policy";
 import {
   clearCombatSelection,
@@ -823,9 +824,9 @@ export class CombatScene extends Scene {
     }
 
     this.inputLocked = true;
-    const expectedRevision = viewModel.revision;
-    const requestId = `combat-complete-${this.nextRequestId}`;
-    this.nextRequestId += 1;
+    const submission = beginCombatCompletionSubmission(viewModel, this.nextRequestId);
+    const { expectedRevision, requestId } = submission;
+    this.nextRequestId = submission.nextRequestId;
     this.pendingRequestId = requestId;
     this.lastSubmittedRequestId = requestId;
     this.lastSubmittedExpectedRevision = expectedRevision;

@@ -299,6 +299,27 @@ describe("starterRegistry", () => {
     ]));
   });
 
+  it("prevents starter deck compatibility card lists drifting from the deck registry", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        players: [
+          {
+            ...starterRegistry.players[0],
+            startingDeckCardIds: [
+              ...starterRegistry.players[0].startingDeckCardIds.slice(0, -1),
+              cardId("ember_spark")
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      code: "starting_deck_drift",
+      path: "players[0].startingDeckCardIds"
+    }));
+  });
+
   it("reports missing pet command cards", () => {
     const result = validateRegistry(
       cloneRegistry({

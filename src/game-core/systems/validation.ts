@@ -46,6 +46,12 @@ const issue = (
   path: string
 ): ValidationIssue => ({ severity, code, message, path });
 
+const sameStringSequence = (
+  left: readonly string[],
+  right: readonly string[]
+): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
 const validatePetModifierRule = (
   petDefinitionIds: ReadonlySet<string>,
   statusIds: ReadonlySet<string>,
@@ -1284,6 +1290,13 @@ export const validateRegistry = (
       .map((deck) => deck.id)
       .filter(isString)
   );
+  const decksById = new Map(
+    deckDefinitions
+      .filter((deck): deck is Record<string, unknown> & { readonly id: string } =>
+        isRecord(deck) && typeof deck.id === "string"
+      )
+      .map((deck) => [deck.id, deck])
+  );
   const playerClassModifierIds = new Set(
     playerClassModifierDefinitions
       .filter(isRecord)
@@ -1632,6 +1645,27 @@ export const validateRegistry = (
         );
       }
     });
+
+    if (
+      typeof player.startingDeckId === "string" &&
+      Array.isArray(player.startingDeckCardIds)
+    ) {
+      const starterDeck = decksById.get(player.startingDeckId);
+      const deckCardIds = Array.isArray(starterDeck?.cardIds)
+        ? starterDeck.cardIds.filter(isString)
+        : undefined;
+
+      if (deckCardIds && !sameStringSequence(player.startingDeckCardIds.filter(isString), deckCardIds)) {
+        issues.push(
+          issue(
+            "error",
+            "starting_deck_drift",
+            `Player '${String(player.id)}' startingDeckCardIds must match starter deck '${player.startingDeckId}' while compatibility data remains.`,
+            `players[${playerIndex}].startingDeckCardIds`
+          )
+        );
+      }
+    }
 
     if ("classModifierIds" in player && player.classModifierIds !== undefined && !Array.isArray(player.classModifierIds)) {
       issues.push(issue("error", "invalid_player_class_modifiers", `Player '${String(player.id)}' classModifierIds must be an array.`, `players[${playerIndex}].classModifierIds`));
