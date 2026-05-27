@@ -12,7 +12,8 @@ import type { CombatParityCombatantSnapshot } from "../debug/combat-parity";
 
 type MonsterRenderOptions = {
   readonly validTargetIds?: readonly CombatantId[];
-  readonly selectedTargetId?: CombatantId;
+  readonly focusedTargetId?: CombatantId;
+  readonly hoveredTargetId?: CombatantId;
   readonly locked?: boolean;
 };
 
@@ -76,18 +77,21 @@ export class MonsterPresenter {
   private readonly onSelected: (monsterId: CombatantId) => void;
   private readonly onTooltipChanged: (tooltip?: CombatTooltip) => void;
   private readonly onInspect: (detail: CombatDetailPanel) => void;
+  private readonly onHoverChanged: (monsterId?: CombatantId) => void;
   private latestParitySnapshot: readonly CombatParityCombatantSnapshot[] = [];
 
   public constructor(
     scene: Scene,
     onSelected: (monsterId: CombatantId) => void = () => undefined,
     onTooltipChanged: (tooltip?: CombatTooltip) => void = () => undefined,
-    onInspect: (detail: CombatDetailPanel) => void = () => undefined
+    onInspect: (detail: CombatDetailPanel) => void = () => undefined,
+    onHoverChanged: (monsterId?: CombatantId) => void = () => undefined
   ) {
     this.scene = scene;
     this.onSelected = onSelected;
     this.onTooltipChanged = onTooltipChanged;
     this.onInspect = onInspect;
+    this.onHoverChanged = onHoverChanged;
     this.container = scene.add.container(0, 0);
   }
 
@@ -103,11 +107,12 @@ export class MonsterPresenter {
       const position = getMonsterPosition(index, monsters.length);
       const intent = intents.find((candidate) => candidate.monsterId === monster.id);
       const valid = options.validTargetIds?.includes(monster.id) ?? false;
-      const selected = options.selectedTargetId === monster.id;
+      const focused = options.focusedTargetId === monster.id;
+      const hovered = options.hoveredTargetId === monster.id;
       const group = this.scene.add.container(position.x, position.y);
       const hpFill = monster.maxHp > 0 ? Math.max(0, Math.min(1, monster.hp / monster.maxHp)) : 0;
-      const ringStroke = selected ? 4 : valid ? 3 : 1;
-      const ringAlpha = selected ? 0.85 : valid ? 0.5 : 0.2;
+      const ringStroke = focused ? 4 : hovered ? 3 : valid ? 3 : 1;
+      const ringAlpha = focused ? 0.85 : hovered ? 0.65 : valid ? 0.5 : 0.2;
 
       group.setSize(MONSTER_SLOT.width, MONSTER_SLOT.height);
       if (!options.locked && monster.alive) {
@@ -120,6 +125,9 @@ export class MonsterPresenter {
 
           this.onSelected(monster.id);
         });
+        group.on("pointerover", () => this.onHoverChanged(monster.id));
+        group.on("pointermove", () => this.onHoverChanged(monster.id));
+        group.on("pointerout", () => this.onHoverChanged(undefined));
       }
       const hitZoneHeight = MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2 - MONSTER_SLOT.intentY + MONSTER_SLOT.intentRadius;
       const hitZoneY = (MONSTER_SLOT.intentY - MONSTER_SLOT.intentRadius + MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2) / 2;
@@ -134,10 +142,13 @@ export class MonsterPresenter {
 
           this.onSelected(monster.id);
         });
+        hitZone.on("pointerover", () => this.onHoverChanged(monster.id));
+        hitZone.on("pointermove", () => this.onHoverChanged(monster.id));
+        hitZone.on("pointerout", () => this.onHoverChanged(undefined));
       }
       group.add(hitZone);
       group.add(this.scene.add.ellipse(0, MONSTER_SLOT.targetRingY, MONSTER_SLOT.targetRingWidth, MONSTER_SLOT.targetRingHeight, 0xffb35b, 0)
-        .setStrokeStyle(ringStroke, selected || valid ? 0xffb35b : 0x7b8495, ringAlpha));
+        .setStrokeStyle(ringStroke, focused || hovered || valid ? 0xffb35b : 0x7b8495, ringAlpha));
       const showIntentTooltip = (): void => this.onTooltipChanged({
         title: intent?.tooltip.title ?? "Unknown intent",
         body: intent?.tooltip.body ?? "No details available yet.",
@@ -148,9 +159,18 @@ export class MonsterPresenter {
       const plannedCard = this.scene.add.rectangle(0, MONSTER_SLOT.plannedCardY, MONSTER_SLOT.plannedCardWidth, MONSTER_SLOT.plannedCardHeight, 0x271923, 1)
         .setStrokeStyle(2, intent?.plannedAction.source === "plannedAbility" ? 0xff9aad : 0x8f7180);
       plannedCard.setInteractive();
-      plannedCard.on("pointerover", showIntentTooltip);
-      plannedCard.on("pointermove", showIntentTooltip);
-      plannedCard.on("pointerout", () => this.onTooltipChanged(undefined));
+      plannedCard.on("pointerover", () => {
+        this.onHoverChanged(monster.id);
+        showIntentTooltip();
+      });
+      plannedCard.on("pointermove", () => {
+        this.onHoverChanged(monster.id);
+        showIntentTooltip();
+      });
+      plannedCard.on("pointerout", () => {
+        this.onHoverChanged(undefined);
+        this.onTooltipChanged(undefined);
+      });
       plannedCard.on("pointerup", (pointer: PointerLike) => {
         if (pointer.button === 2 || pointer.rightButtonDown?.() === true) {
           this.onInspect(intent?.detail ?? {

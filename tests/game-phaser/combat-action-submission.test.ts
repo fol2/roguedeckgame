@@ -5,6 +5,7 @@ import {
   type CombatActionSubmissionSnapshot
 } from "../../src/game-phaser/interaction/combat-action-submission";
 import { resolveCombatInputLockState } from "../../src/game-phaser/interaction/combat-interaction-state";
+import type { ResolveCombatInputLockStateInput } from "../../src/game-phaser/interaction/combat-input-lock";
 
 const startCombat = (controller: ReturnType<typeof createRunSandboxController>): void => {
   const node = controller.getRunViewModel().nodes.find((candidate) => candidate.status === "available" && candidate.type === "combat");
@@ -12,6 +13,17 @@ const startCombat = (controller: ReturnType<typeof createRunSandboxController>):
   expect(node).toBeDefined();
   controller.selectMapNode(node!.id);
 };
+
+const inputLock = (
+  overrides: Partial<ResolveCombatInputLockStateInput> = {}
+) => resolveCombatInputLockState({
+  submitting: false,
+  playbackLocked: false,
+  detailOpen: false,
+  pauseOpen: false,
+  browserFocused: true,
+  ...overrides
+});
 
 describe("combat action submission", () => {
   it("accepts one gameplay request and blocks a double-submit while playback is locked", () => {
@@ -23,11 +35,7 @@ describe("combat action submission", () => {
 
     const first = beginCombatActionSubmission({
       snapshot,
-      lock: resolveCombatInputLockState({
-        playbackLocked: false,
-        modalOpen: false,
-        browserFocused: true
-      }),
+      lock: inputLock(),
       expectedRevision: revision,
       getState: () => controller.getState(),
       action: (requestId) => {
@@ -43,11 +51,7 @@ describe("combat action submission", () => {
 
     const duplicateDuringPlayback = beginCombatActionSubmission({
       snapshot,
-      lock: resolveCombatInputLockState({
-        playbackLocked: true,
-        modalOpen: false,
-        browserFocused: true
-      }),
+      lock: inputLock({ playbackLocked: true }),
       expectedRevision: revision,
       getState: () => controller.getState(),
       action: (requestId) => {
@@ -73,6 +77,35 @@ describe("combat action submission", () => {
     expect(controller.getCombatViewModel()!.turnNumber).toBe(2);
   });
 
+  it("blocks gameplay requests before controller submission while submitting is locked", () => {
+    const controller = createRunSandboxController("submission-pending");
+    startCombat(controller);
+    let submitted = 0;
+
+    const blocked = beginCombatActionSubmission({
+      snapshot: { nextRequestId: 1, pendingRequestId: "combat-ui-previous" },
+      lock: inputLock({ submitting: true }),
+      expectedRevision: controller.getCombatViewModel()!.revision,
+      getState: () => controller.getState(),
+      action: (requestId) => {
+        submitted += 1;
+        return controller.endTurn(controller.getCombatViewModel()!.revision, requestId);
+      }
+    });
+
+    expect(blocked.status).toBe("blocked");
+    expect(blocked.snapshot.lastActionRejection).toMatchObject({
+      code: "input_locked",
+      path: "combat.input",
+      requestId: "combat-ui-previous"
+    });
+    expect(blocked.result.events[0]).toMatchObject({
+      type: "ActionRejected",
+      message: "Gameplay input is locked by submitting."
+    });
+    expect(submitted).toBe(0);
+  });
+
   it("records stale and duplicate request diagnostics from controller rejections", () => {
     const controller = createRunSandboxController("submission-rejections");
     startCombat(controller);
@@ -81,11 +114,7 @@ describe("combat action submission", () => {
 
     const first = beginCombatActionSubmission({
       snapshot,
-      lock: resolveCombatInputLockState({
-        playbackLocked: false,
-        modalOpen: false,
-        browserFocused: true
-      }),
+      lock: inputLock(),
       expectedRevision: revision,
       getState: () => controller.getState(),
       action: (requestId) => controller.endTurn(revision, requestId)
@@ -95,11 +124,7 @@ describe("combat action submission", () => {
 
     const stale = beginCombatActionSubmission({
       snapshot,
-      lock: resolveCombatInputLockState({
-        playbackLocked: false,
-        modalOpen: false,
-        browserFocused: true
-      }),
+      lock: inputLock(),
       expectedRevision: revision,
       getState: () => controller.getState(),
       action: (requestId) => controller.endTurn(revision, requestId)
@@ -117,11 +142,7 @@ describe("combat action submission", () => {
 
     const duplicate = beginCombatActionSubmission({
       snapshot,
-      lock: resolveCombatInputLockState({
-        playbackLocked: false,
-        modalOpen: false,
-        browserFocused: true
-      }),
+      lock: inputLock(),
       expectedRevision: controller.getCombatViewModel()!.revision,
       getState: () => controller.getState(),
       action: (requestId) => controller.endTurn(controller.getCombatViewModel()!.revision, requestId)

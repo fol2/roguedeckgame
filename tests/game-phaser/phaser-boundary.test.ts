@@ -228,7 +228,10 @@ describe("Phaser architecture boundary", () => {
   it("uses central layout constants in scenes", async () => {
     const coreSmokeScene = normaliseLineEndings(await readFile(join(sceneRoot, "CoreSmokeScene.ts"), "utf8"));
     const mapScene = normaliseLineEndings(await readFile(join(sceneRoot, "MapScene.ts"), "utf8"));
-    const combatScene = normaliseLineEndings(await readFile(join(sceneRoot, "CombatScene.ts"), "utf8"));
+    const combatScene = normaliseLineEndings([
+      await readFile(join(sceneRoot, "CombatScene.ts"), "utf8"),
+      await readFile(join(root, "src/game-phaser/interaction/combat-scene-orchestrator.ts"), "utf8")
+    ].join("\n"));
     const rewardScene = normaliseLineEndings(await readFile(join(sceneRoot, "RewardScene.ts"), "utf8"));
 
     expect(coreSmokeScene).toMatch(/from\s+["']\.\.\/layout\/game-size["']/);
