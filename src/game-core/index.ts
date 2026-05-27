@@ -20,6 +20,7 @@ export * from "./data/balance/act1-normal";
 export * from "./data/builders";
 export * from "./data/encounters/forest-encounters";
 export * from "./systems/card-actions";
+export * from "./systems/ability-descriptors";
 export * from "./systems/card-piles";
 export * from "./systems/class-modifiers";
 export * from "./systems/combat";
