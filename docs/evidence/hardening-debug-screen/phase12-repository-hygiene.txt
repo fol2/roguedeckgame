@@ -1,0 +1,68 @@
+Phase 12 repository hygiene
+Date: 2026-05-27
+
+$ git diff --check
+(no output)
+Exit code: 0
+
+$ git diff --cached --check
+(no output)
+Exit code: 0
+
+$ rg -n phaser src/game-core
+No matches.
+Exit code: 0
+
+$ rg -n development-combat-preview dist
+No production build matches.
+Exit code: 0
+
+$ git diff --cached --name-only
+docs/evidence/hardening-debug-screen/README.md
+docs/evidence/hardening-debug-screen/phase12-browser-console-warnings.txt
+docs/evidence/hardening-debug-screen/phase12-cli-simulation-bundle.txt
+docs/evidence/hardening-debug-screen/phase12-multi-pet-combat-debug.png
+docs/evidence/hardening-debug-screen/phase12-repository-hygiene.txt
+docs/evidence/hardening-debug-screen/phase12-test-bundle.txt
+src/app/development-combat-preview.ts
+src/game-core/index.ts
+src/game-core/systems/multi-pet-proof.ts
+src/game-phaser/controllers/RunSandboxController.ts
+src/game-phaser/controllers/run-sandbox-singleton.ts
+tests/game-core/multi-pet-readiness.test.ts
+tests/game-phaser/app-entry.test.ts
+tests/game-phaser/debug-view-model.test.ts
+Exit code: 0
+
+$ git ls-files --eol selected text files
+i/lf    w/lf    attr/text eol=lf      	docs/evidence/hardening-debug-screen/README.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase12-browser-console-warnings.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase12-cli-simulation-bundle.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase12-repository-hygiene.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase12-test-bundle.txt
+i/lf    w/lf    attr/text eol=lf      	src/app/development-combat-preview.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-core/systems/multi-pet-proof.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-phaser/controllers/RunSandboxController.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-phaser/controllers/run-sandbox-singleton.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-core/multi-pet-readiness.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/app-entry.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/debug-view-model.test.ts
+Exit code: 0
+
+$ git status --short --branch
+## feat/hardening-debug-screen
+M  docs/evidence/hardening-debug-screen/README.md
+A  docs/evidence/hardening-debug-screen/phase12-browser-console-warnings.txt
+A  docs/evidence/hardening-debug-screen/phase12-cli-simulation-bundle.txt
+A  docs/evidence/hardening-debug-screen/phase12-multi-pet-combat-debug.png
+A  docs/evidence/hardening-debug-screen/phase12-repository-hygiene.txt
+A  docs/evidence/hardening-debug-screen/phase12-test-bundle.txt
+M  src/app/development-combat-preview.ts
+M  src/game-core/index.ts
+A  src/game-core/systems/multi-pet-proof.ts
+M  src/game-phaser/controllers/RunSandboxController.ts
+M  src/game-phaser/controllers/run-sandbox-singleton.ts
+A  tests/game-core/multi-pet-readiness.test.ts
+M  tests/game-phaser/app-entry.test.ts
+M  tests/game-phaser/debug-view-model.test.ts
+Exit code: 0

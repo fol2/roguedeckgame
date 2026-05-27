@@ -23,11 +23,13 @@ import {
   type GameActionError,
   type GameActionResult,
   type GameEvent,
+  type GameContentRegistry,
   type AgentAction,
   type AgentTrace,
   createAgentStateHash,
   createTraceStep,
   type PetInstance,
+  type PetInstanceId,
   type RewardOptionId,
   type RunNodeId,
   type RunState
@@ -57,6 +59,13 @@ export type RunSandboxState = {
   readonly petInstances: readonly PetInstance[];
   readonly combat?: CombatState;
   readonly lastEvents: readonly GameEvent[];
+};
+
+export type RunSandboxControllerConfig = {
+  readonly seed?: string | number;
+  readonly registry?: GameContentRegistry;
+  readonly petInstances?: readonly PetInstance[];
+  readonly activePetInstanceIds?: readonly PetInstanceId[];
 };
 
 export type RunSandboxController = {
@@ -126,12 +135,13 @@ const replaceState = (
 
 const findCardDefinition = (
   state: RunSandboxState,
-  cardInstanceId: CardInstanceId
+  cardInstanceId: CardInstanceId,
+  registry: GameContentRegistry
 ): CardDefinition | undefined => {
   const cardInstance = state.combat?.cardInstances.find((candidate) => candidate.id === cardInstanceId);
 
   return cardInstance
-    ? starterRegistry.cards.find((candidate) => candidate.id === cardInstance.cardId)
+    ? registry.cards.find((candidate) => candidate.id === cardInstance.cardId)
     : undefined;
 };
 
@@ -145,19 +155,43 @@ const cardNeedsDefaultTarget = (card: CardDefinition): boolean =>
 const firstAliveMonsterId = (combat: CombatState): CombatantId | undefined =>
   combat.monsters.find((monster) => monster.alive)?.id;
 
-const createInitialState = (seed: string | number): GameActionResult<RunSandboxState> => {
-  const petInstances = createSandboxPetInstances();
-  const activePetInstanceIds = petInstances.map((pet) => pet.id);
-  const runResult = createRun({
-    seed,
-    playerClassId: playerClassId("novice_tamer"),
-    activePetInstanceIds,
+const normaliseControllerConfig = (
+  seedOrConfig: string | number | RunSandboxControllerConfig
+): Required<Pick<RunSandboxControllerConfig, "seed" | "registry" | "petInstances" | "activePetInstanceIds">> => {
+  if (typeof seedOrConfig === "string" || typeof seedOrConfig === "number") {
+    const petInstances = createSandboxPetInstances();
+
+    return {
+      seed: seedOrConfig,
+      registry: starterRegistry,
+      petInstances,
+      activePetInstanceIds: petInstances.map((pet) => pet.id)
+    };
+  }
+
+  const petInstances = seedOrConfig.petInstances ?? createSandboxPetInstances();
+
+  return {
+    seed: seedOrConfig.seed ?? DEFAULT_SANDBOX_SEED,
+    registry: seedOrConfig.registry ?? starterRegistry,
     petInstances,
-    registry: starterRegistry
+    activePetInstanceIds: seedOrConfig.activePetInstanceIds ?? petInstances.map((pet) => pet.id)
+  };
+};
+
+const createInitialState = (
+  config: Required<Pick<RunSandboxControllerConfig, "seed" | "registry" | "petInstances" | "activePetInstanceIds">>
+): GameActionResult<RunSandboxState> => {
+  const runResult = createRun({
+    seed: config.seed,
+    playerClassId: playerClassId("novice_tamer"),
+    activePetInstanceIds: config.activePetInstanceIds,
+    petInstances: config.petInstances,
+    registry: config.registry
   });
   const state: RunSandboxState = {
     run: runResult.state,
-    petInstances,
+    petInstances: config.petInstances,
     lastEvents: runResult.events
   };
 
@@ -170,14 +204,16 @@ const createInitialState = (seed: string | number): GameActionResult<RunSandboxS
 };
 
 export const createRunSandboxController = (
-  seed: string | number = DEFAULT_SANDBOX_SEED
+  seedOrConfig: string | number | RunSandboxControllerConfig = DEFAULT_SANDBOX_SEED
 ): RunSandboxController => {
+  const config = normaliseControllerConfig(seedOrConfig);
+  const { seed, registry } = config;
   let actionRng = createCombatRng(`${String(seed)}:agent-driver`);
-  let state = createInitialState(seed).state;
+  let state = createInitialState(config).state;
   let revision = 0;
   let seenGameplayRequestIds = new Set<string>();
   let traceSteps: AgentTrace["steps"] = [];
-  const content = createContentContext(starterRegistry);
+  const content = createContentContext(registry);
 
   const commit = (next: RunSandboxState): RunSandboxState => {
     state = next;
@@ -266,7 +302,7 @@ export const createRunSandboxController = (
 
   return {
     getState: () => state,
-    getRunViewModel: () => buildRunViewModel(state.run, state.lastEvents, starterRegistry),
+    getRunViewModel: () => buildRunViewModel(state.run, state.lastEvents, registry),
     getCombatViewModel: () => state.combat
       ? buildCombatViewModel({
           run: state.run,
@@ -308,7 +344,7 @@ export const createRunSandboxController = (
 
       const combatResult = startCombatForRunNode({
         run: selectedRun.state,
-        registry: starterRegistry,
+        registry,
         petInstances: state.petInstances,
         seed: `${String(seed)}:${nodeId}:combat`
       });
@@ -338,7 +374,7 @@ export const createRunSandboxController = (
         return staleRevision;
       }
 
-      const card = findCardDefinition(state, cardInstanceId);
+      const card = findCardDefinition(state, cardInstanceId, registry);
       if (!card) {
         return reject(createError(
           "missing_card_definition",
@@ -351,7 +387,7 @@ export const createRunSandboxController = (
       const cardResult = playCard(
         state.combat,
         { type: "playCard", cardInstanceId, targetId },
-        starterRegistry,
+        registry,
         actionRng
       );
       const nextCombat = cardResult.ok ? cardResult.state : state.combat;
@@ -376,7 +412,7 @@ export const createRunSandboxController = (
         return staleRevision;
       }
 
-      const endResult = endPlayerTurn(state.combat, { registry: starterRegistry, rng: actionRng });
+      const endResult = endPlayerTurn(state.combat, { registry, rng: actionRng });
       if (!endResult.ok) {
         const result = toResult(false, replaceState(state, {}, endResult.events), endResult.events, endResult.errors);
 
@@ -389,7 +425,7 @@ export const createRunSandboxController = (
         return recordAgentAction({ type: "endTurn" }, result);
       }
 
-      const enemyResult = resolveEnemyTurn(endResult.state, starterRegistry, actionRng);
+      const enemyResult = resolveEnemyTurn(endResult.state, registry, actionRng);
       const events = [...endResult.events, ...enemyResult.events];
       const nextCombat = enemyResult.ok ? enemyResult.state : endResult.state;
 
@@ -409,7 +445,7 @@ export const createRunSandboxController = (
       const completeResult = completeRunCombatNode({
         run: state.run,
         combat: state.combat,
-        registry: starterRegistry,
+        registry,
         petInstances: state.petInstances,
         rewardSeed: `${String(seed)}:${state.run.map?.currentNodeId ?? "node"}:reward`
       });
@@ -425,7 +461,7 @@ export const createRunSandboxController = (
       const claimResult = claimRunPendingReward({
         run: state.run,
         selectedOptionId: rewardOptionId,
-        registry: starterRegistry,
+        registry,
         petInstances: state.petInstances
       });
       if (!claimResult.ok) {
@@ -482,7 +518,7 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "completeNonCombatNode" }, result);
     },
     reset: () => {
-      const resetResult = createInitialState(seed);
+      const resetResult = createInitialState(config);
 
       actionRng = createCombatRng(`${String(seed)}:agent-driver`);
       state = resetResult.state;

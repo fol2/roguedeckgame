@@ -1,23 +1,42 @@
 import {
   createRunSandboxController,
+  type RunSandboxControllerConfig,
   type RunSandboxController
 } from "./RunSandboxController";
 
 let sandbox: RunSandboxController | undefined;
+let sandboxMode: "default" | "multi-pet-proof" = "default";
 
 export const getRunSandboxController = (): RunSandboxController => {
-  sandbox ??= createRunSandboxController();
+  if (!sandbox) {
+    sandbox = createRunSandboxController();
+    sandboxMode = "default";
+  }
 
   return sandbox;
 };
 
-export const resetRunSandboxController = (): RunSandboxController => {
-  sandbox = createRunSandboxController();
+export const resetRunSandboxController = (
+  config?: RunSandboxControllerConfig
+): RunSandboxController => {
+  sandbox = createRunSandboxController(config ?? {});
+  sandboxMode = "default";
 
   return sandbox;
 };
 
-export const prepareRunSandboxCombatPreview = (): RunSandboxController => {
+export const prepareRunSandboxCombatPreview = (
+  options: {
+    readonly mode?: "default" | "multi-pet-proof";
+    readonly controllerConfig?: RunSandboxControllerConfig;
+  } = {}
+): RunSandboxController => {
+  const requestedMode = options.mode ?? "default";
+  if (requestedMode !== sandboxMode || options.controllerConfig) {
+    sandbox = createRunSandboxController(options.controllerConfig ?? {});
+    sandboxMode = requestedMode;
+  }
+
   const controller = getRunSandboxController();
   if (controller.getCombatViewModel()) {
     return controller;

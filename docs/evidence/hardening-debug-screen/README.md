@@ -183,3 +183,22 @@ Browser proof:
 Reviewer follow-up:
 
 - Status rules remain in `src/game-core`. The phase adds data-driven stacking metadata, a typed `consumeStatus` effect with `StatusConsumed`, descriptor-backed status preview/debug copy, event/trace schema version 3 provenance with v2 replay projection, and simulation-visible status lifecycle counters without card-name-specific logic.
+
+## Phase 12 - Multi-Pet Readiness Proof
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `phase12-test-bundle.txt` records focused multi-pet, pet-command, save/load, simulation, Phaser view-model, app-entry, and scene-boundary verification, plus `npm run typecheck`, `npm run build`, `npm run build:cli`, `npm test`, and `npm run smoke:localhost` passing. The focused run covered 9 files and 99 tests; the full test run covered 90 files and 722 tests.
+- `phase12-cli-simulation-bundle.txt` records the final CLI and simulation bundle passing: `npm run game:cli -- --help`, `npm run game:cli -- --version`, `npm run game:cli -- --seed cli-dev --auto`, `npm run game:cli -- --seed cli-dev --json --auto`, direct source and built CLI JSON auto runs, simulation version, simulation smoke analysis, replay of `tests/game-core/traces/smoke-complete.json`, `npm run sim:balance`, and `npm run sim:exhaustive-small`. The balance run covered 200 runs with no failures; exhaustive-small covered 1000 runs with no failures.
+- `phase12-repository-hygiene.txt` records `git diff --check` passing, no `phaser` matches in `src/game-core`, staged Phase 12 file scope, and current branch/status output.
+
+Browser proof:
+
+- `phase12-multi-pet-combat-debug.png` - local development-only combat preview at `?combatPreview=1&combatDebug=1&phase12=multi-pet`, showing the debug overlay and combat UI with two active pet slots: `0:Ember` and `1:Cinder`.
+- `phase12-browser-console-warnings.txt` - Playwright console collection for the fresh Phase 12 browser path, with zero errors and zero warnings.
+
+Reviewer follow-up:
+
+- The controlled multi-pet proof does not change starter production content. It uses an explicit proof registry and two Ember Fox pet instances to verify two active slots across run creation, combat creation, pet-command routing, save/load restore, agent-driver simulation entry, combat/debug view models, and development-only browser preview.

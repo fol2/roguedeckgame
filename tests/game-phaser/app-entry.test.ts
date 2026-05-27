@@ -48,8 +48,12 @@ describe("Vite app entry", () => {
 
     expect(preview).toMatch(/import\.meta\.env\.DEV/);
     expect(preview).toMatch(/prepareRunSandboxCombatPreview/);
+    expect(preview).toMatch(/multiPetProof/);
+    expect(preview).toMatch(/phase12/);
+    expect(preview).toMatch(/createMultiPetProofRegistry/);
     expect(preview).not.toMatch(/selectMapNode/);
     expect(singleton).toMatch(/prepareRunSandboxCombatPreview/);
+    expect(singleton).toMatch(/controllerConfig/);
     expect(singleton).toMatch(/selectMapNode/);
     expect(singleton).toMatch(/getCombatViewModel\(\)/);
   });

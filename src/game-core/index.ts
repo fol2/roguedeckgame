@@ -35,6 +35,7 @@ export * from "./systems/draw";
 export * from "./systems/effect-descriptors";
 export * from "./systems/effects";
 export * from "./systems/monster-intents";
+export * from "./systems/multi-pet-proof";
 export * from "./systems/outcome";
 export * from "./systems/pet-modifier-selectors";
 export * from "./systems/pet-modifiers";
