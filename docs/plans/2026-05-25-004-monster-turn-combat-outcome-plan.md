@@ -59,7 +59,7 @@ Source: `docs/contracts/3-monster-turn-combat-outcome.md`
 
 ## Event-Order Risks
 
-- `createCombat` intentionally emits `MonsterIntentSet` before the first `TurnStarted`.
-- Enemy turns emit `MonsterIntentResolved` before the effects of that intent.
+- Current engine order: `createCombat` emits `MonsterAbilityPlanned`, then `MonsterIntentSet`, before the first `TurnStarted`.
+- Current enemy-turn order: enemy turns emit `MonsterAbilityPlayed`, then `MonsterIntentResolved`, then planned ability effect events.
 - Burn emits `StatusTicked` before its damage event; `StatusExpired` is emitted when stacks reach zero.
 - `CombatEnded` is emitted as soon as outcome is known, before any final card movement caused by the already-played card.

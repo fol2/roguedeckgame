@@ -1,0 +1,702 @@
+{
+  "ok": true,
+  "trace": [
+    {
+      "label": "run-created",
+      "runStatus": "map_select",
+      "availableNodes": [
+        {
+          "id": "act1_forest_0_combat_a",
+          "type": "combat",
+          "layer": 0
+        },
+        {
+          "id": "act1_forest_0_combat_b",
+          "type": "combat",
+          "layer": 0
+        }
+      ],
+      "monsterIntents": [],
+      "monsterHp": [],
+      "rewardOptions": [],
+      "lastEvents": [
+        "RunCreated",
+        "RunMapGenerated",
+        "RunNodeAvailable",
+        "RunNodeAvailable"
+      ]
+    },
+    {
+      "label": "combat-started",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 1,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 24,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "RunNodeSelected",
+        "RunCombatStarted",
+        "CombatStarted",
+        "DeckShuffled",
+        "MonsterAbilityPlanned",
+        "MonsterIntentSet",
+        "TurnStarted",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn"
+      ],
+      "selectedOk": true
+    },
+    {
+      "label": "play-Strike",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 1,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 18,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "DamageDealt",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Strike",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 1,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 12,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "DamageDealt",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Focus",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 1,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 12,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Fox Guard",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 1,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 12,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "PetCommanded",
+        "BlockGained",
+        "PetReacted",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "end-turn",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 2,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 12,
+          "block": 4,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardMoved",
+        "CardMoved",
+        "TurnEnded",
+        "MonsterAbilityPlayed",
+        "MonsterIntentResolved",
+        "BlockGained",
+        "MonsterAbilityPlanned",
+        "MonsterIntentSet",
+        "TurnStarted",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "DeckShuffled",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Strike",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 2,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 10,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "DamageDealt",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Defend",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 2,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 10,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "BlockGained",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Fox Fetch",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 2,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 10,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "PetCommanded",
+        "CardMoved",
+        "CardDrawn",
+        "PetReacted",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Strike",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 2,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 4,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "DamageDealt",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "end-turn",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 3,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_attack",
+          "abilityId": "training_slime_attack",
+          "label": "attack",
+          "amount": 6,
+          "targetHint": "keeper"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 4,
+          "block": 4,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardMoved",
+        "CardMoved",
+        "TurnEnded",
+        "MonsterAbilityPlayed",
+        "MonsterIntentResolved",
+        "BlockGained",
+        "MonsterAbilityPlanned",
+        "MonsterIntentSet",
+        "TurnStarted",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "DeckShuffled",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Strike",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 3,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_attack",
+          "abilityId": "training_slime_attack",
+          "label": "attack",
+          "amount": 6,
+          "targetHint": "keeper"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 2,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "DamageDealt",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Fox Guard",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 3,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_attack",
+          "abilityId": "training_slime_attack",
+          "label": "attack",
+          "amount": 6,
+          "targetHint": "keeper"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 2,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "PetCommanded",
+        "BlockGained",
+        "PetReacted",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Defend",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 3,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_attack",
+          "abilityId": "training_slime_attack",
+          "label": "attack",
+          "amount": 6,
+          "targetHint": "keeper"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 2,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "BlockGained",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "end-turn",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "player_turn",
+      "turnNumber": 4,
+      "monsterIntents": [
+        {
+          "intentId": "training_slime_block",
+          "abilityId": "training_slime_block",
+          "label": "block",
+          "targetHint": "self"
+        }
+      ],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 2,
+          "block": 0,
+          "alive": true
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardMoved",
+        "CardMoved",
+        "TurnEnded",
+        "MonsterAbilityPlayed",
+        "MonsterIntentResolved",
+        "DamageDealt",
+        "MonsterAbilityPlanned",
+        "MonsterIntentSet",
+        "TurnStarted",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "CardMoved",
+        "CardDrawn",
+        "DeckShuffled",
+        "CardMoved",
+        "CardDrawn"
+      ],
+      "ok": true
+    },
+    {
+      "label": "play-Strike",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "won",
+      "turnNumber": 4,
+      "monsterIntents": [],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 0,
+          "block": 0,
+          "alive": false
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "DamageDealt",
+        "CombatantDefeated",
+        "CombatEnded",
+        "CardMoved"
+      ],
+      "ok": true
+    },
+    {
+      "label": "combat-won",
+      "runStatus": "combat",
+      "availableNodes": [],
+      "combatPhase": "won",
+      "turnNumber": 4,
+      "monsterIntents": [],
+      "monsterHp": [
+        {
+          "id": "monster:training_slime:0",
+          "hp": 0,
+          "block": 0,
+          "alive": false
+        }
+      ],
+      "playerHp": 70,
+      "rewardOptions": [],
+      "lastEvents": [
+        "CardPlayed",
+        "EnergySpent",
+        "DamageDealt",
+        "CombatantDefeated",
+        "CombatEnded",
+        "CardMoved"
+      ]
+    },
+    {
+      "label": "combat-completed",
+      "runStatus": "reward",
+      "availableNodes": [],
+      "monsterIntents": [],
+      "monsterHp": [],
+      "rewardStatus": "open",
+      "rewardOptions": [
+        {
+          "id": "reward:run:phaser-run-sandbox:phaser-run-sandbox:act1_forest_0_combat_a:reward:card:ember_spark",
+          "type": "card",
+          "title": "Ember Spark"
+        },
+        {
+          "id": "reward:run:phaser-run-sandbox:phaser-run-sandbox:act1_forest_0_combat_a:reward:card:study_command",
+          "type": "card",
+          "title": "Study Command"
+        },
+        {
+          "id": "reward:run:phaser-run-sandbox:phaser-run-sandbox:act1_forest_0_combat_a:reward:card:fox_flare",
+          "type": "card",
+          "title": "Fox Flare"
+        },
+        {
+          "id": "reward:run:phaser-run-sandbox:phaser-run-sandbox:act1_forest_0_combat_a:reward:petUpgrade:sandbox:ember_fox:warm_bond",
+          "type": "petUpgrade",
+          "title": "Warm Bond"
+        }
+      ],
+      "lastEvents": [
+        "RunCombatCompleted",
+        "RewardOffered",
+        "RunRewardPending"
+      ],
+      "ok": true
+    },
+    {
+      "label": "reward-skipped-map-advanced",
+      "runStatus": "map_select",
+      "availableNodes": [
+        {
+          "id": "act1_forest_1_combat_a",
+          "type": "combat",
+          "layer": 1
+        },
+        {
+          "id": "act1_forest_1_event_a",
+          "type": "event",
+          "layer": 1
+        }
+      ],
+      "monsterIntents": [],
+      "monsterHp": [],
+      "rewardOptions": [],
+      "lastEvents": [
+        "RewardSkipped",
+        "RunNodeCompleted",
+        "RunAdvanced"
+      ],
+      "ok": true
+    }
+  ],
+  "finalRunStatus": "map_select",
+  "finalAvailableNodes": [
+    "act1_forest_1_combat_a",
+    "act1_forest_1_event_a"
+  ]
+}

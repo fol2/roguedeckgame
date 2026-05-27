@@ -119,7 +119,9 @@ Add event types needed for monster turns and outcomes.
 Required events:
 
 ```ts
+MonsterAbilityPlanned
 MonsterIntentSet
+MonsterAbilityPlayed
 MonsterIntentResolved
 StatusTicked
 StatusExpired
@@ -129,12 +131,26 @@ CombatEnded
 Suggested shapes:
 
 ```ts
+MonsterAbilityPlanned:
+  type: "MonsterAbilityPlanned"
+  monsterId: CombatantId
+  abilityId: MonsterAbilityId
+  intentId: MonsterIntentId
+  intentType: MonsterIntentType
+  description: string
+
 MonsterIntentSet:
   type: "MonsterIntentSet"
   monsterId: CombatantId
   intentId: MonsterIntentId
   intentType: MonsterIntentType
   description: string
+
+MonsterAbilityPlayed:
+  type: "MonsterAbilityPlayed"
+  monsterId: CombatantId
+  abilityId: MonsterAbilityId
+  intentId: MonsterIntentId
 
 MonsterIntentResolved:
   type: "MonsterIntentResolved"
@@ -179,9 +195,10 @@ Behavior:
 2. Use `MonsterDefinition.intentPool`.
 3. Use deterministic RNG.
 4. Do not select intents for defeated monsters.
-5. Emit `MonsterIntentSet` for every selected intent.
-6. Store selected intents in `state.monsterIntents`.
-7. Return `ok: false` with `ActionRejected` if a monster definition or intent pool is missing.
+5. Resolve registered intents to planned monster abilities when an `abilityId` exists.
+6. Emit `MonsterAbilityPlanned` before `MonsterIntentSet` for every selected registered ability.
+7. Store selected intents in `state.monsterIntents` and planned abilities in `state.plannedMonsterAbilities`.
+8. Return `ok: false` with `ActionRejected` if a monster definition, intent pool, or referenced registered ability is missing.
 
 Intent selection can be random for now, as long as it is seeded and deterministic.
 
@@ -194,6 +211,7 @@ Expected high-level event order:
 ```txt
 CombatStarted
 DeckShuffled
+MonsterAbilityPlanned...
 MonsterIntentSet...
 TurnStarted
 CardMoved/CardDrawn...
@@ -201,7 +219,7 @@ CardMoved/CardDrawn...
 
 If Codex believes the current order should remain `TurnStarted` before `MonsterIntentSet`, it must justify that in the completion report and tests must lock the chosen order.
 
-The important thing is: after `createCombat`, `state.monsterIntents` must be populated for alive monsters.
+The important thing is: after `createCombat`, `state.monsterIntents` and `state.plannedMonsterAbilities` must be populated for alive monsters with registered abilities.
 
 ## Enemy Turn Requirements
 
@@ -217,10 +235,11 @@ Behavior:
 2. Resolve start-of-enemy-turn status ticks for monsters.
 3. If all monsters die from status ticks, set combat to `won` and emit `CombatEnded`.
 4. For each alive monster:
-   - resolve its selected intent
+   - resolve its selected intent to the stored planned monster ability
+   - emit `MonsterAbilityPlayed`
    - emit `MonsterIntentResolved`
-   - use existing effect resolution where possible
-5. Monster intent effects should use:
+   - use existing effect resolution against the planned ability effects where possible
+5. Monster ability effects should use:
    - source = the acting monster
    - `target: { type: "target" }` defaults to the player
    - `target: { type: "self" }` targets the acting monster

@@ -252,6 +252,7 @@ If attack amount is known and provided by the view model, it should be visible n
 
 Rules:
 
+- Enemy intent display data should come from the planned monster ability when one exists.
 - Attack intent may show an amount such as `7`.
 - Multi-hit may show `3x2` or a clear multi-hit marker.
 - Unknown intent may show `?` or a special icon.
@@ -2785,6 +2786,7 @@ type EnemyCombatViewModel = {
 ```ts
 type IntentViewModel = {
   intentId: string;
+  abilityId?: string;
   kind: 'attack' | 'defend' | 'buff' | 'debuff' | 'special' | 'unknown' | 'charging';
   iconKey: string;
   amount?: number;
@@ -3832,6 +3834,7 @@ A combat implementation or mockup should be reviewed against this checklist.
 
 - [ ] Statuses are local to affected combatant.
 - [ ] Enemy intent tooltip explains next action.
+- [ ] Enemy intent detail is backed by planned monster ability metadata when available.
 - [ ] Attack intent amount is visible if view model provides it.
 - [ ] Status tooltip explains stack/timing/duration.
 - [ ] Card detail explains type, target, tags, rules, keywords.

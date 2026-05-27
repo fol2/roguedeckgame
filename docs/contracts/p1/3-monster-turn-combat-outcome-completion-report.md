@@ -39,6 +39,7 @@ tests/game-core/combat-turn.test.ts
 
 - Added `CombatState.monsterIntents` with one current intent per alive monster.
 - Added serialisable `MonsterIntentSet`, `MonsterIntentResolved`, `StatusTicked`, `StatusExpired`, and `CombatEnded` events.
+- Current engine versions also emit `MonsterAbilityPlanned` and `MonsterAbilityPlayed` for registered monster abilities.
 - Added deterministic `chooseMonsterIntents`, with full validation before RNG consumption on rejected actions.
 - Updated `createCombat` to select initial monster intents before the first `TurnStarted` event.
 - Added `resolveEnemyTurn` for enemy phase validation, monster status ticks, selected intent resolution, next intent selection, and next player-turn start.
@@ -49,8 +50,8 @@ tests/game-core/combat-turn.test.ts
 
 ## Event Order
 
-- `createCombat`: `CombatStarted`, `DeckShuffled`, `MonsterIntentSet...`, `TurnStarted`, draw events.
-- Enemy intent resolution: `MonsterIntentResolved` before that intent's effect events.
+- `createCombat`: `CombatStarted`, `DeckShuffled`, `MonsterAbilityPlanned...`, `MonsterIntentSet...`, `TurnStarted`, draw events.
+- Enemy intent resolution: `MonsterAbilityPlayed`, `MonsterIntentResolved`, then planned ability effect events.
 - Burn: `StatusTicked`, `DamageDealt`, optional `CombatantDefeated`, optional `StatusExpired`, optional `CombatEnded`.
 - Card lethal outcome: `CombatEnded` is emitted as soon as outcome is known, before the already-played card is moved to discard.
 
