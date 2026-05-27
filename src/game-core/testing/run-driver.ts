@@ -180,7 +180,7 @@ export const createAgentRunDriver = (config: AgentRunDriverConfig): AgentRunDriv
       return reject(error("missing_combat", "Cannot end turn without active combat.", "combat"));
     }
 
-    const ended = endPlayerTurn(combat);
+    const ended = endPlayerTurn(combat, { registry, rng: actionRng });
     if (!ended.ok) {
       return reject(ended.errors[0] ?? error("end_turn_failed", "End turn was rejected."));
     }

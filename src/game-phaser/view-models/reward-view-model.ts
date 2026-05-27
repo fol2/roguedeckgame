@@ -53,6 +53,23 @@ const buildOptionViewModel = (
     };
   }
 
+  if (option.type === "deckOperation") {
+    const card = option.cardId ? content.index.cardsById.get(option.cardId) : undefined;
+    const operationLabel = option.operation[0]?.toUpperCase() + option.operation.slice(1);
+
+    return {
+      id: option.id,
+      type: option.type,
+      typeLabel: "Deck",
+      title: `${operationLabel} Card`,
+      description: card
+        ? `${operationLabel} ${card.name}.`
+        : `${operationLabel} a card in the run deck.`,
+      subtitle: card?.name ?? "Deck operation",
+      tags: card?.tags ?? []
+    };
+  }
+
   const upgrade = content.index.petUpgradesById.get(option.upgradeId);
   const pet = content.index.petsById.get(option.petDefinitionId);
   const petInstance = petInstances.find((candidate) => candidate.id === option.petInstanceId);

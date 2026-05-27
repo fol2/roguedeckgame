@@ -94,13 +94,19 @@ describe("content authoring helpers", () => {
       statusIds: ["burn"],
       runtimeSupportedStatusIds: ["burn"],
       metadataOnlyStatusIds: [],
-      statusBehaviourTypes: ["startOfTurnDamage"],
+      statusBehaviourTypes: ["duration", "startOfTurnDamage", "statusImmunity"],
       petModifierRuleTypes: [
         "modifyPetCommandCost",
         "modifyPetCommandEffectAmount",
         "triggerOnEnemyDefeatedWithStatus"
       ],
       playerClassModifierIds: [],
+      playerClassModifierRuleTypes: [
+        "triggerOnCardPlayed",
+        "triggerOnStatusApplied"
+      ],
+      deckOperationRewardTypes: ["remove", "transform", "upgrade"],
+      scheduledMonsterIds: [],
       encounterTypes: ["boss", "combat", "elite"],
       runMapNodeTypes: ["boss", "combat", "elite", "event", "rest"]
     });

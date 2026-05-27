@@ -7,12 +7,14 @@ import type { PetInstance } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type {
   CardRewardOption,
+  DeckOperationRewardOption,
   PetUpgradeRewardOption,
   RewardClaimState,
   RewardOfferState,
   RewardOption
 } from "../model/reward";
 import type { RunState } from "../model/run";
+import { removeRunDeckCard, transformRunDeckCard, upgradeRunDeckCard } from "./deck-economy";
 import { createRng } from "./rng";
 
 export type GenerateCombatRewardInput = {
@@ -23,6 +25,7 @@ export type GenerateCombatRewardInput = {
   readonly seed: string | number;
   readonly cardOptionCount?: number;
   readonly petUpgradeOptionCount?: number;
+  readonly deckOperationOptionCount?: number;
 };
 
 export type ClaimRewardInput = {
@@ -185,6 +188,19 @@ const buildPetUpgradeOptions = (
     )
   );
 
+const buildDeckOperationOptions = (
+  run: RunState,
+  offerId: RewardOfferState["id"]
+): readonly DeckOperationRewardOption[] =>
+  uniqueOptions(
+    run.deckCardIds.slice(0, 1).map((cardId) => ({
+      id: rewardOptionId(`${offerId}:deckOperation:upgrade:${cardId}`),
+      type: "deckOperation" as const,
+      operation: "upgrade" as const,
+      cardId
+    }))
+  );
+
 export const generateCombatRewardOffer = (
   input: GenerateCombatRewardInput
 ): GameActionResult<RewardOfferState> => {
@@ -213,6 +229,7 @@ export const generateCombatRewardOffer = (
   const rng = createRng(seed);
   const cardOptionCount = input.cardOptionCount ?? 3;
   const petUpgradeOptionCount = input.petUpgradeOptionCount ?? 1;
+  const deckOperationOptionCount = input.deckOperationOptionCount ?? 0;
   const baseOffer: RewardOfferState = {
     id: offerId,
     source: "combat",
@@ -227,7 +244,8 @@ export const generateCombatRewardOffer = (
   const petUpgradeOptions = rng
     .shuffle(buildPetUpgradeOptions(registry, run, petInstances, offerId))
     .slice(0, Math.max(0, petUpgradeOptionCount));
-  const options = uniqueOptions([...cardOptions, ...petUpgradeOptions]);
+  const deckOperationOptions = buildDeckOperationOptions(run, offerId).slice(0, Math.max(0, deckOperationOptionCount));
+  const options = uniqueOptions([...cardOptions, ...petUpgradeOptions, ...deckOperationOptions]);
   const state: RewardOfferState = { ...baseOffer, options };
   const event: GameEvent = { type: "RewardOffered", rewardOfferId: state.id, options: state.options };
 
@@ -290,6 +308,50 @@ export const claimReward = (
         rewardType: selectedOption.type
       },
       { type: "CardRewardAdded", cardId: selectedOption.cardId }
+    ];
+
+    return { ok: true, state, events, errors: [] };
+  }
+
+  if (selectedOption.type === "deckOperation") {
+    if (!selectedOption.cardId) {
+      return rejectClaim(
+        originalState,
+        error("missing_deck_operation_card", "Deck operation reward requires a card id.", "rewardOffer.options")
+      );
+    }
+
+    const operationResult = selectedOption.operation === "upgrade"
+      ? upgradeRunDeckCard({ run, registry, cardId: selectedOption.cardId })
+      : selectedOption.operation === "remove"
+        ? removeRunDeckCard({ run, registry, cardId: selectedOption.cardId })
+        : transformRunDeckCard({
+            run,
+            registry,
+            cardId: selectedOption.cardId,
+            rng: createRng(`${String(rewardOffer.seed)}:${selectedOption.id}`)
+          });
+    if (!operationResult.ok) {
+      return rejectClaim(
+        originalState,
+        operationResult.errors[0] ?? error("deck_operation_failed", "Deck operation failed.")
+      );
+    }
+
+    const claimedOffer: RewardOfferState = {
+      ...rewardOffer,
+      status: "claimed",
+      selectedOptionId
+    };
+    const state: RewardClaimState = { rewardOffer: claimedOffer, run: operationResult.state, petInstances };
+    const events: readonly GameEvent[] = [
+      {
+        type: "RewardSelected",
+        rewardOfferId: rewardOffer.id,
+        rewardOptionId: selectedOption.id,
+        rewardType: selectedOption.type
+      },
+      ...operationResult.events
     ];
 
     return { ok: true, state, events, errors: [] };

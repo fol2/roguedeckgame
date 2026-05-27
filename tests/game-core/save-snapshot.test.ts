@@ -78,6 +78,38 @@ describe("save snapshots", () => {
     expect(restoreSaveSnapshot(validation.state, starterRegistry).ok).toBe(true);
   });
 
+  it("migrates recognised legacy schema snapshots before validation", () => {
+    const legacySnapshot = clone(createSaveSnapshotFixture()) as Record<string, unknown>;
+    delete legacySnapshot.schemaVersion;
+    delete legacySnapshot.contentVersion;
+
+    const validation = validateSaveSnapshot(legacySnapshot);
+
+    expect(validation.ok).toBe(true);
+    expect(validation.state.schemaVersion).toBe(1);
+    expect(validation.state.contentVersion).toBe(UNKNOWN_SAVE_CONTENT_VERSION);
+    expect(validation.events).toEqual([
+      { type: "SaveSnapshotMigrated", fromSchemaVersion: 0, toSchemaVersion: 1 }
+    ]);
+  });
+
+  it("rejects malformed present schema versions instead of migrating them", () => {
+    const malformedSnapshot = {
+      ...createSaveSnapshotFixture(),
+      schemaVersion: "bad"
+    };
+    const validation = validateSaveSnapshot(malformedSnapshot);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors).toEqual([
+      {
+        code: "invalid_save_schema_version",
+        message: "Save schemaVersion must be a non-negative integer when present.",
+        path: "schemaVersion"
+      }
+    ]);
+  });
+
   it("validates save references against a content registry when requested", () => {
     const snapshot = createSaveSnapshotFixture();
     const missingDeckCard = {

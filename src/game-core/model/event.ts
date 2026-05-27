@@ -9,6 +9,7 @@ import type {
   PetInstanceId,
   PetMemoryId,
   PlayerClassId,
+  PlayerClassModifierId,
   RewardOfferId,
   RewardOptionId,
   RunId,
@@ -102,6 +103,14 @@ export type GameEvent =
       readonly to: CardPile;
     }
   | {
+      readonly type: "CardCreated";
+      readonly cardInstanceId: CardInstanceId;
+      readonly cardId: CardId;
+      readonly to: CardPile;
+    }
+  | { readonly type: "CardRetained"; readonly cardInstanceId: CardInstanceId; readonly cardId: CardId }
+  | { readonly type: "EnergyGained"; readonly amount: number; readonly total: number }
+  | {
       readonly type: "DamageDealt";
       readonly sourceId: CombatantId;
       readonly targetId: CombatantId;
@@ -111,12 +120,32 @@ export type GameEvent =
   | { readonly type: "BlockGained"; readonly targetId: CombatantId; readonly amount: number; readonly total: number }
   | { readonly type: "StatusApplied"; readonly targetId: CombatantId; readonly statusId: StatusId; readonly stacks: number }
   | {
+      readonly type: "StatusApplicationBlocked";
+      readonly targetId: CombatantId;
+      readonly statusId: StatusId;
+      readonly blockedByStatusId: StatusId;
+    }
+  | {
+      readonly type: "StatusCleansed";
+      readonly targetId: CombatantId;
+      readonly statusId: StatusId;
+      readonly stacksRemoved: number;
+      readonly remainingStacks: number;
+    }
+  | {
       readonly type: "StatusTicked";
       readonly targetId: CombatantId;
       readonly statusId: StatusId;
       readonly stacksBefore: number;
       readonly stacksAfter: number;
       readonly amount?: number;
+    }
+  | {
+      readonly type: "StatusDurationChanged";
+      readonly targetId: CombatantId;
+      readonly statusId: StatusId;
+      readonly durationBefore: number;
+      readonly durationAfter: number;
     }
   | { readonly type: "StatusExpired"; readonly targetId: CombatantId; readonly statusId: StatusId }
   | {
@@ -138,6 +167,16 @@ export type GameEvent =
       readonly modifierId: PetModifierId;
       readonly scope: "turn" | "combat";
     }
+  | {
+      readonly type: "PlayerClassModifierActivated";
+      readonly modifierId: PlayerClassModifierId;
+      readonly reason: "cardPlayed" | "statusApplied";
+    }
+  | {
+      readonly type: "TriggerQueueLimitReached";
+      readonly maxDepth: number;
+      readonly pendingEventCount: number;
+    }
   | { readonly type: "PetReacted"; readonly petInstanceId: PetInstanceId; readonly reaction: string }
   | { readonly type: "DeckShuffled"; readonly from: CardPile | "deck"; readonly to: CardPile; readonly count: number }
   | { readonly type: "ActionRejected"; readonly code: string; readonly message: string; readonly path?: string }
@@ -156,6 +195,9 @@ export type GameEvent =
     }
   | { readonly type: "RewardSkipped"; readonly rewardOfferId: RewardOfferId }
   | { readonly type: "CardRewardAdded"; readonly cardId: CardId }
+  | { readonly type: "RunDeckCardUpgraded"; readonly cardId: CardId }
+  | { readonly type: "RunDeckCardRemoved"; readonly cardId: CardId }
+  | { readonly type: "RunDeckCardTransformed"; readonly fromCardId: CardId; readonly toCardId: CardId }
   | { readonly type: "PetUpgradeUnlocked"; readonly petInstanceId: PetInstanceId; readonly upgradeId: UpgradeId }
   | { readonly type: "StoryFlagSet"; readonly flagId: StoryFlagId }
   | { readonly type: "PetStoryEventCompleted"; readonly petInstanceId: PetInstanceId; readonly storyEventId: StoryEventId }
@@ -170,6 +212,7 @@ export type GameEvent =
       readonly schemaVersion: number;
       readonly hasActiveRun: boolean;
     }
+  | { readonly type: "SaveSnapshotMigrated"; readonly fromSchemaVersion: number; readonly toSchemaVersion: number }
   | { readonly type: "SaveSlotWritten"; readonly slotId: string; readonly updatedAt: string; readonly schemaVersion: number }
   | { readonly type: "SaveSlotLoaded"; readonly slotId: string; readonly updatedAt: string; readonly schemaVersion: number }
   | { readonly type: "SaveSlotDeleted"; readonly slotId: string }

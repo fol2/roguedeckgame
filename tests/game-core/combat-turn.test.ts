@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { cardInstanceId, createRng, endPlayerTurn, startPlayerTurn } from "../../src/game-core";
+import {
+  burnStatusDefinition,
+  cardInstanceId,
+  createRng,
+  endPlayerTurn,
+  startPlayerTurn,
+  statusId,
+  type GameContentRegistry
+} from "../../src/game-core";
 import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
+
+const createStatusRegistry = (
+  statuses: GameContentRegistry["statuses"]
+): GameContentRegistry => ({
+  cards: [],
+  statuses,
+  pets: [],
+  players: [],
+  monsters: [],
+  encounters: [],
+  runMapTemplates: [],
+  petUpgrades: [],
+  storyEvents: [],
+  petSideStories: []
+});
 
 describe("combat turn flow", () => {
   it("ends the player turn by discarding the hand and entering enemy turn", () => {
@@ -41,6 +64,42 @@ describe("combat turn flow", () => {
     expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
   });
 
+  it("processes player end-of-turn statuses before entering enemy turn", () => {
+    const fadingStatus = {
+      id: statusId("fading"),
+      name: "Fading",
+      tags: ["debuff"],
+      description: "Expires at end of turn.",
+      behaviour: {
+        type: "duration" as const,
+        timing: "endOfTurn" as const,
+        decrementDurationBy: 1,
+        expiresAtZero: true
+      }
+    };
+    const baseState = createHandTunedCombatFixture();
+    const state = {
+      ...baseState,
+      player: {
+        ...baseState.player,
+        statuses: [{ statusId: statusId("fading"), stacks: 1, duration: 1 }]
+      }
+    };
+    const result = endPlayerTurn(state, {
+      registry: createStatusRegistry([burnStatusDefinition, fadingStatus]),
+      rng: createRng("end-status")
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.player.statuses).toEqual([]);
+    expect(result.state.phase).toBe("enemy_turn");
+    expect(result.events.map((event) => event.type).slice(-3)).toEqual([
+      "StatusDurationChanged",
+      "StatusExpired",
+      "TurnEnded"
+    ]);
+  });
+
   it("starts a new player turn by resetting energy, clearing player block, and drawing", () => {
     const baseState = createHandTunedCombatFixture();
     const state = {
@@ -71,5 +130,46 @@ describe("combat turn flow", () => {
     expect(result.state).toBe(state);
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_phase"]);
     expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+  });
+
+  it("processes registry-defined player start-of-turn statuses before drawing", () => {
+    const fadingStatus = {
+      id: statusId("fading_start"),
+      name: "Fading Start",
+      tags: ["debuff"],
+      description: "Expires at start of turn.",
+      behaviour: {
+        type: "duration" as const,
+        timing: "startOfTurn" as const,
+        decrementDurationBy: 1,
+        expiresAtZero: true
+      }
+    };
+    const baseState = createHandTunedCombatFixture();
+    const state = {
+      ...baseState,
+      phase: "enemy_turn" as const,
+      hand: [],
+      drawPile: [cardInstanceId("strike:1")],
+      player: {
+        ...baseState.player,
+        statuses: [{ statusId: statusId("fading_start"), stacks: 1, duration: 1 }]
+      }
+    };
+    const result = startPlayerTurn(
+      state,
+      createRng("start-status"),
+      createStatusRegistry([burnStatusDefinition, fadingStatus])
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.player.statuses).toEqual([]);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "StatusDurationChanged",
+      "StatusExpired",
+      "TurnStarted",
+      "CardMoved",
+      "CardDrawn"
+    ]);
   });
 });

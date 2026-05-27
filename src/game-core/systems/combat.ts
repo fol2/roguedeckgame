@@ -27,11 +27,11 @@ import {
   applyPetCommandEffectModifiers,
   createRunPetStateWithActiveModifiers,
   resetTurnPetModifierUsage,
-  resolvePetCommandOwnerIds,
-  resolvePetModifierTriggersAfterEvents
+  resolvePetCommandOwnerIds
 } from "./pet-modifiers";
 import { createRng, type Rng } from "./rng";
-import { processStartOfTurnStatuses } from "./statuses";
+import { processEndOfTurnStatuses, processStartOfTurnStatuses } from "./statuses";
+import { resolveTriggerQueueAfterEvents } from "./trigger-queue";
 
 const PLAYER_COMBATANT_ID = combatantId("player");
 const DEFAULT_OPENING_HAND_SIZE = 5;
@@ -491,10 +491,10 @@ const resolveCardEffectStage = (
     };
   }
 
-  const triggerResult = resolvePetModifierTriggersAfterEvents({
+  const triggerResult = resolveTriggerQueueAfterEvents({
     stateBeforeEffects: openingStage.state,
     stateAfterEffects: effectResult.state,
-    effectEvents: effectResult.events,
+    effectEvents: [...openingStage.events, ...effectResult.events],
     registry,
     rng
   });
@@ -696,14 +696,22 @@ export const playCard = (
   };
 };
 
-export const endPlayerTurn = (state: CombatState): GameActionResult<CombatState> => {
+export const endPlayerTurn = (
+  state: CombatState,
+  options?: { readonly registry: GameContentRegistry; readonly rng: Rng }
+): GameActionResult<CombatState> => {
   if (state.phase !== "player_turn") {
     return reject(state, error("invalid_phase", "Only the player turn can be ended by this action.", "phase"));
   }
 
   let movedState = state;
   const moveEvents: GameEvent[] = [];
+  const retainedCardInstanceIds = new Set(state.retainedCardInstanceIds ?? []);
   for (const cardInstanceId of state.hand) {
+    if (retainedCardInstanceIds.has(cardInstanceId)) {
+      continue;
+    }
+
     const moveResult = moveCardBetweenPiles(movedState, {
       cardInstanceId,
       from: "hand",
@@ -717,16 +725,26 @@ export const endPlayerTurn = (state: CombatState): GameActionResult<CombatState>
     moveEvents.push(moveResult.event);
   }
 
+  const statusResult = processEndOfTurnStatuses(movedState, movedState.player.id, options);
+  if (!statusResult.ok) {
+    return reject(state, statusResult.errors[0] ?? error("status_resolution_failed", "Status resolution failed."));
+  }
+
+  if (statusResult.state.phase === "won" || statusResult.state.phase === "lost") {
+    return { ok: true, state: statusResult.state, events: [...moveEvents, ...statusResult.events], errors: [] };
+  }
+
   const turnEnded: GameEvent = {
     type: "TurnEnded",
     turnNumber: state.turnNumber,
     actorId: state.player.id
   };
-  const events = [...moveEvents, turnEnded];
+  const events = [...moveEvents, ...statusResult.events, turnEnded];
   const nextState = appendEvents(
     {
-      ...movedState,
+      ...statusResult.state,
       phase: "enemy_turn",
+      retainedCardInstanceIds: []
     },
     [turnEnded]
   );
@@ -736,7 +754,8 @@ export const endPlayerTurn = (state: CombatState): GameActionResult<CombatState>
 
 export const startPlayerTurn = (
   state: CombatState,
-  rng: Rng
+  rng: Rng,
+  registry?: GameContentRegistry
 ): GameActionResult<CombatState> => {
   if (state.phase === "won" || state.phase === "lost") {
     return reject(state, error("combat_already_ended", "A new player turn cannot start after combat has ended.", "phase"));
@@ -746,7 +765,11 @@ export const startPlayerTurn = (
     return reject(state, error("invalid_phase", "A player turn can only start after the enemy turn.", "phase"));
   }
 
-  const statusResult = processStartOfTurnStatuses(state, state.player.id);
+  const statusResult = processStartOfTurnStatuses(
+    state,
+    state.player.id,
+    registry ? { registry, rng } : undefined
+  );
   if (!statusResult.ok) {
     return statusResult;
   }
@@ -810,7 +833,7 @@ export const resolveEnemyTurn = (
       continue;
     }
 
-    const statusResult = processStartOfTurnStatuses(nextState, monster.id);
+    const statusResult = processStartOfTurnStatuses(nextState, monster.id, { registry, rng });
     if (!statusResult.ok) {
       return reject(originalState, statusResult.errors[0] ?? error("status_resolution_failed", "Status resolution failed."));
     }
@@ -880,7 +903,7 @@ export const resolveEnemyTurn = (
   }
 
   const clearedIntentState = { ...nextState, monsterIntents: [] };
-  const playerStatusResult = processStartOfTurnStatuses(clearedIntentState, clearedIntentState.player.id);
+  const playerStatusResult = processStartOfTurnStatuses(clearedIntentState, clearedIntentState.player.id, { registry, rng });
   if (!playerStatusResult.ok) {
     return reject(
       originalState,
@@ -895,7 +918,7 @@ export const resolveEnemyTurn = (
     return { ok: true, state: nextState, events, errors: [] };
   }
 
-  const intentResult = chooseMonsterIntents(nextState, registry, rng);
+  const intentResult = chooseMonsterIntents(nextState, registry, rng, { scheduledTurnNumber: nextState.turnNumber + 1 });
   if (!intentResult.ok) {
     return reject(
       originalState,

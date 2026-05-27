@@ -24,6 +24,7 @@ const issue = (
 
 const combatantTargetTypes = new Set<CombatantTarget["type"]>(["self", "target", "allEnemies", "allAllies"]);
 const petTargetTypes = new Set<PetTarget["type"]>(["specific", "leading", "allActive", "randomActive", "withTag"]);
+const cardPileTypes = new Set(["draw", "hand", "discard", "exhaust"]);
 
 const validateCombatantTargetPayload = (
   target: unknown,
@@ -132,7 +133,7 @@ const validateEffectPayload = (
   if (descriptor.requiresStatusId) {
     if (!("statusId" in effectDefinition)) {
       issues.push(issue("error", "missing_effect_status", "Status effect is missing a status id.", `${path}.statusId`));
-    } else if (!context.statusIds.has(effectDefinition.statusId)) {
+    } else if (typeof effectDefinition.statusId !== "string" || !context.statusIds.has(effectDefinition.statusId)) {
       issues.push(issue("error", "unknown_effect_status", `Effect references unknown status '${effectDefinition.statusId}'.`, `${path}.statusId`));
     }
   }
@@ -140,8 +141,52 @@ const validateEffectPayload = (
   if (descriptor.requiresStacks) {
     if (!("stacks" in effectDefinition)) {
       issues.push(issue("error", "missing_effect_stacks", "Status effect is missing stacks.", `${path}.stacks`));
-    } else if (!Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0) {
+    } else if (typeof effectDefinition.stacks !== "number" || !Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0) {
       issues.push(issue("error", "invalid_effect_stacks", "Status effect stacks must be a positive integer.", `${path}.stacks`));
+    }
+  }
+
+  if (
+    "duration" in effectDefinition &&
+    effectDefinition.duration !== undefined &&
+    (!Number.isInteger(effectDefinition.duration) || effectDefinition.duration <= 0)
+  ) {
+    issues.push(issue("error", "invalid_effect_duration", "Status effect duration must be a positive integer when present.", `${path}.duration`));
+  }
+
+  if (effectDefinition.type === "cleanseStatus") {
+    if (
+      effectDefinition.statusId !== undefined &&
+      !context.statusIds.has(effectDefinition.statusId)
+    ) {
+      issues.push(issue("error", "unknown_effect_status", `Effect references unknown status '${effectDefinition.statusId}'.`, `${path}.statusId`));
+    }
+
+    if (
+      effectDefinition.tagsAny !== undefined &&
+      (
+        !Array.isArray(effectDefinition.tagsAny) ||
+        effectDefinition.tagsAny.some((tag) => typeof tag !== "string" || tag.length === 0)
+      )
+    ) {
+      issues.push(issue("error", "invalid_effect_status_tags", "Cleanse status tagsAny must be a non-empty string array when present.", `${path}.tagsAny`));
+    }
+
+    if (
+      effectDefinition.stacks !== undefined &&
+      (!Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0)
+    ) {
+      issues.push(issue("error", "invalid_effect_stacks", "Cleanse status stacks must be a positive integer when present.", `${path}.stacks`));
+    }
+  }
+
+  if (effectDefinition.type === "createCard") {
+    if (typeof effectDefinition.cardId !== "string" || effectDefinition.cardId.length === 0) {
+      issues.push(issue("error", "invalid_effect_card", "Create card effect cardId must be a non-empty string.", `${path}.cardId`));
+    }
+
+    if (!cardPileTypes.has(effectDefinition.to)) {
+      issues.push(issue("error", "invalid_effect_pile", "Create card effect target pile is unsupported.", `${path}.to`));
     }
   }
 

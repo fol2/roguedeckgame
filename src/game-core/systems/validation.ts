@@ -1,6 +1,7 @@
 import type { EffectDefinition } from "../model/effect";
 import type { EncounterType } from "../model/encounter";
 import type { PetModifierRule } from "../model/pet";
+import type { PlayerClassModifierRule } from "../model/player";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import type { RunNodeType } from "../model/run-map";
@@ -12,6 +13,7 @@ import {
   validateStatusBehaviourDefinition
 } from "./status-behaviours";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
+import { knownPlayerClassModifierRuleTypeValues } from "./class-modifiers";
 import { knownPetModifierSelectorCardTypes } from "./pet-modifier-selectors";
 import { validateEffects } from "./effect-validation";
 
@@ -271,6 +273,53 @@ const validatePetModifierRule = (
         )
       );
     }
+  }
+
+  return issues;
+};
+
+const validatePlayerClassModifierRule = (
+  statusIds: ReadonlySet<string>,
+  rule: PlayerClassModifierRule,
+  path: string
+): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+
+  if (!isRecord(rule)) {
+    return [issue("error", "invalid_player_class_modifier_rule", "Player class modifier rule must be an object.", path)];
+  }
+
+  if (!knownPlayerClassModifierRuleTypeValues.includes(String(rule.type))) {
+    return [
+      issue(
+        "error",
+        "unknown_player_class_modifier_rule",
+        `Player class modifier rule '${String(rule.type)}' is unknown.`,
+        `${path}.type`
+      )
+    ];
+  }
+
+  if (rule.type === "triggerOnStatusApplied" && rule.statusId !== undefined && !statusIds.has(rule.statusId)) {
+    issues.push(issue("error", "unknown_player_class_modifier_status", `Player class modifier references unknown status '${rule.statusId}'.`, `${path}.statusId`));
+  }
+
+  if (!Array.isArray(rule.effects)) {
+    issues.push(issue("error", "invalid_player_class_modifier_rule", "Player class modifier rule effects must be an array.", `${path}.effects`));
+    return issues;
+  }
+
+  issues.push(...validateEffects(rule.effects, path, { statusIds }));
+
+  if (
+    "limit" in rule &&
+    rule.limit !== undefined &&
+    (
+      !isRecord(rule.limit) ||
+      (rule.limit.type !== "oncePerCombat" && rule.limit.type !== "oncePerTurn")
+    )
+  ) {
+    issues.push(issue("error", "invalid_player_class_modifier_rule", "Player class modifier limit type is unknown.", `${path}.limit`));
   }
 
   return issues;
@@ -1167,6 +1216,19 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     if (!Array.isArray(modifierValue.tags)) {
       issues.push(issue("error", "invalid_player_class_modifier", "Player class modifier tags must be an array.", `playerClassModifiers[${modifierIndex}].tags`));
     }
+
+    if ("rules" in modifierValue && modifierValue.rules !== undefined && !Array.isArray(modifierValue.rules)) {
+      issues.push(issue("error", "invalid_player_class_modifier", "Player class modifier rules must be an array when present.", `playerClassModifiers[${modifierIndex}].rules`));
+    }
+
+    const rules = Array.isArray(modifierValue.rules) ? modifierValue.rules : [];
+    rules.forEach((rule, ruleIndex) => {
+      issues.push(...validatePlayerClassModifierRule(
+        supportedStatusEffectIds,
+        rule as PlayerClassModifierRule,
+        `playerClassModifiers[${modifierIndex}].rules[${ruleIndex}]`
+      ));
+    });
   });
 
   petDefinitions.forEach((petValue, petIndex) => {
@@ -1297,6 +1359,62 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
 
       issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`, { statusIds: supportedStatusEffectIds }));
     });
+
+    if ("intentSchedule" in monster && monster.intentSchedule !== undefined) {
+      if (!Array.isArray(monster.intentSchedule)) {
+        issues.push(issue("error", "invalid_monster_intent_schedule", `Monster '${String(monster.id)}' intentSchedule must be an array when present.`, `monsters[${monsterIndex}].intentSchedule`));
+      } else {
+        const intentIds = new Set(
+          monster.intentPool
+            .filter(isRecord)
+            .map((intent) => intent.id)
+            .filter(isString)
+        );
+        monster.intentSchedule.forEach((step, stepIndex) => {
+          if (!isRecord(step) || typeof step.intentId !== "string" || !intentIds.has(step.intentId)) {
+            issues.push(issue("error", "invalid_monster_intent_schedule", "Monster intent schedule step must reference an intent in the monster intent pool.", `monsters[${monsterIndex}].intentSchedule[${stepIndex}].intentId`));
+          }
+
+          if ("conditions" in step && step.conditions !== undefined && !Array.isArray(step.conditions)) {
+            issues.push(issue("error", "invalid_monster_intent_schedule", "Monster intent schedule conditions must be an array when present.", `monsters[${monsterIndex}].intentSchedule[${stepIndex}].conditions`));
+          }
+
+          const conditions: readonly unknown[] = Array.isArray(step.conditions) ? step.conditions : [];
+          conditions.forEach((condition, conditionIndex) => {
+            const conditionPath = `monsters[${monsterIndex}].intentSchedule[${stepIndex}].conditions[${conditionIndex}]`;
+            if (!isRecord(condition)) {
+              issues.push(issue("error", "invalid_monster_intent_schedule", "Monster intent schedule condition must be an object.", conditionPath));
+              return;
+            }
+
+            if (condition.type === "hpAtOrBelowRatio") {
+              if (typeof condition.ratio !== "number" || !Number.isFinite(condition.ratio) || condition.ratio <= 0 || condition.ratio > 1) {
+                issues.push(issue("error", "invalid_monster_intent_schedule", "Monster intent schedule hp ratio must be above 0 and at most 1.", `${conditionPath}.ratio`));
+              }
+              return;
+            }
+
+            if (condition.type === "turnNumberModulo") {
+              if (typeof condition.modulo !== "number" || !Number.isInteger(condition.modulo) || condition.modulo <= 0) {
+                issues.push(issue("error", "invalid_monster_intent_schedule", "Monster intent schedule modulo must be a positive integer.", `${conditionPath}.modulo`));
+              }
+
+              if (
+                typeof condition.equals !== "number" ||
+                !Number.isInteger(condition.equals) ||
+                condition.equals < 0 ||
+                (typeof condition.modulo === "number" && Number.isInteger(condition.modulo) && condition.modulo > 0 && condition.equals >= condition.modulo)
+              ) {
+                issues.push(issue("error", "invalid_monster_intent_schedule", "Monster intent schedule equals must be an integer from 0 to modulo - 1.", `${conditionPath}.equals`));
+              }
+              return;
+            }
+
+            issues.push(issue("error", "invalid_monster_intent_schedule", `Monster intent schedule condition type '${String(condition.type)}' is unknown.`, `${conditionPath}.type`));
+          });
+        });
+      }
+    }
   });
 
   const knownEncounterTypes = new Set<EncounterType>(["combat", "elite", "boss"]);

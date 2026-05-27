@@ -1,9 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { combatantId, processStartOfTurnStatuses, statusId } from "../../src/game-core";
+import {
+  burnStatusDefinition,
+  combatantId,
+  createRng,
+  processEndOfTurnStatuses,
+  processStartOfTurnStatuses,
+  resolveEffects,
+  statusId,
+  type GameContentRegistry
+} from "../../src/game-core";
 import {
   createBurningMonsterFixture,
   createEnemyTurnFixture
 } from "../../src/game-core/testing/combat-fixtures";
+
+const createStatusRegistry = (
+  statuses: GameContentRegistry["statuses"]
+): GameContentRegistry => ({
+  cards: [],
+  statuses,
+  pets: [],
+  players: [],
+  monsters: [],
+  encounters: [],
+  runMapTemplates: [],
+  petUpgrades: [],
+  storyEvents: [],
+  petSideStories: []
+});
 
 describe("combat statuses", () => {
   it("Burn ticks at the start of a monster turn and decreases stacks", () => {
@@ -122,5 +146,89 @@ describe("combat statuses", () => {
     expect(result.state).toBe(state);
     expect(JSON.parse(JSON.stringify(state))).toEqual(before);
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_target"]);
+  });
+
+  it("expires duration statuses at their configured turn window", () => {
+    const tiredStatus = {
+      id: statusId("tired"),
+      name: "Tired",
+      tags: ["debuff"],
+      description: "Expires after a duration.",
+      behaviour: {
+        type: "duration" as const,
+        timing: "endOfTurn" as const,
+        decrementDurationBy: 1,
+        expiresAtZero: true
+      }
+    };
+    const baseState = createBurningMonsterFixture(1);
+    const state = {
+      ...baseState,
+      monsters: [{
+        ...baseState.monsters[0],
+        statuses: [{ statusId: statusId("tired"), stacks: 1, duration: 2 }]
+      }]
+    };
+    const result = processEndOfTurnStatuses(state, state.monsters[0].id, {
+      registry: createStatusRegistry([burnStatusDefinition, tiredStatus]),
+      rng: createRng("duration")
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsters[0].statuses).toEqual([{ statusId: statusId("tired"), stacks: 1, duration: 1 }]);
+    expect(result.events.map((event) => event.type)).toEqual(["StatusDurationChanged"]);
+  });
+
+  it("blocks incoming statuses through immunity behaviour", () => {
+    const wardStatus = {
+      id: statusId("ember_ward"),
+      name: "Ember Ward",
+      tags: ["guard"],
+      description: "Blocks fire statuses.",
+      behaviour: {
+        type: "statusImmunity" as const,
+        blocksTagsAny: ["fire"]
+      }
+    };
+    const baseState = createBurningMonsterFixture(1);
+    const state = {
+      ...baseState,
+      player: {
+        ...baseState.player,
+        statuses: [{ statusId: statusId("ember_ward"), stacks: 1 }]
+      }
+    };
+    const result = resolveEffects(
+      state,
+      [{ type: "applyStatus", statusId: statusId("burn"), stacks: 2, target: { type: "self" } }],
+      { sourceId: state.player.id },
+      createStatusRegistry([burnStatusDefinition, wardStatus]),
+      createRng("immune")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.player.statuses).toEqual([{ statusId: statusId("ember_ward"), stacks: 1 }]);
+    expect(result.events.map((event) => event.type)).toEqual(["StatusApplicationBlocked"]);
+  });
+
+  it("cleanses matching status stacks", () => {
+    const state = createBurningMonsterFixture(3);
+    const result = resolveEffects(
+      state,
+      [{ type: "cleanseStatus", statusId: statusId("burn"), stacks: 2, target: { type: "allEnemies" } }],
+      { sourceId: state.player.id },
+      createStatusRegistry([burnStatusDefinition]),
+      createRng("cleanse")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsters[0].statuses).toEqual([{ statusId: statusId("burn"), stacks: 1 }]);
+    expect(result.events).toContainEqual({
+      type: "StatusCleansed",
+      targetId: state.monsters[0].id,
+      statusId: statusId("burn"),
+      stacksRemoved: 2,
+      remainingStacks: 1
+    });
   });
 });
