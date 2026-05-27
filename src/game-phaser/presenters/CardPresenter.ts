@@ -41,6 +41,14 @@ type PointerLike = {
   readonly rightButtonDown?: () => boolean;
 };
 
+type ParentTransform = {
+  readonly applyInverse?: (x: number, y: number) => Point;
+};
+
+type ParentContainerLike = {
+  readonly getWorldTransformMatrix?: () => ParentTransform;
+};
+
 type CardHitArea = {
   readonly x: number;
   readonly y: number;
@@ -77,10 +85,22 @@ const containsHitAreaPoint = (hitArea: CardHitArea, x: number, y: number): boole
     y <= hitArea.height
   );
 
-const getPointerPoint = (pointer: PointerLike, fallback: Point): Point => ({
-  x: pointer.worldX ?? pointer.x ?? fallback.x,
-  y: pointer.worldY ?? pointer.y ?? fallback.y
-});
+const toParentLocalPoint = (point: Point, gameObject: GameObjects.Container): Point => {
+  const parent = gameObject.parentContainer as ParentContainerLike | undefined;
+  const parentTransform = parent?.getWorldTransformMatrix?.();
+  const localPoint = parentTransform?.applyInverse?.(point.x, point.y);
+
+  return localPoint ?? point;
+};
+
+const getPointerPoint = (pointer: PointerLike, fallback: Point, gameObject?: GameObjects.Container): Point => {
+  const point = {
+    x: pointer.worldX ?? pointer.x ?? fallback.x,
+    y: pointer.worldY ?? pointer.y ?? fallback.y
+  };
+
+  return gameObject ? toParentLocalPoint(point, gameObject) : point;
+};
 
 const hasPassedDragThreshold = (start: Point | undefined, point: Point): boolean => {
   if (!start) {
@@ -124,7 +144,7 @@ export class CardPresenter {
       return;
     }
 
-    this.updateDragPosition(visual, getPointerPoint(pointer, { x: visual.container.x, y: visual.container.y }));
+    this.updateDragPosition(visual, getPointerPoint(pointer, { x: visual.container.x, y: visual.container.y }, visual.container));
   };
   private readonly handleScenePointerUp = (pointer: PointerLike): void => {
     const visual = this.activeDragVisual;
@@ -137,7 +157,7 @@ export class CardPresenter {
       return;
     }
 
-    void this.completeDrag(visual, getPointerPoint(pointer, { x: visual.container.x, y: visual.container.y }));
+    void this.completeDrag(visual, getPointerPoint(pointer, { x: visual.container.x, y: visual.container.y }, visual.container));
   };
 
   public constructor(
@@ -277,7 +297,7 @@ export class CardPresenter {
       });
       group.on("pointermove", (pointer: PointerLike) => {
         if (visual.dragging) {
-          const point = getPointerPoint(pointer, { x: group.x, y: group.y });
+          const point = getPointerPoint(pointer, { x: group.x, y: group.y }, group);
           group.setPosition(point.x, point.y);
           return;
         }
@@ -296,7 +316,7 @@ export class CardPresenter {
         if (visual.dragging) {
           if (visual.dragMoved) {
             visual.suppressClick = false;
-            void this.completeDrag(visual, getPointerPoint(pointer, { x: group.x, y: group.y }));
+            void this.completeDrag(visual, getPointerPoint(pointer, { x: group.x, y: group.y }, group));
             return;
           }
 
@@ -331,12 +351,12 @@ export class CardPresenter {
         this.onHoverChanged(undefined);
         this.onTooltipChanged(undefined);
       });
-      group.on("drag", (_pointer: PointerLike, dragX: number, dragY: number) => {
+      group.on("drag", (pointer: PointerLike, dragX: number, dragY: number) => {
         if (!visual.dragging) {
           return;
         }
 
-        this.updateDragPosition(visual, { x: dragX, y: dragY });
+        this.updateDragPosition(visual, getPointerPoint(pointer, { x: dragX, y: dragY }, group));
       });
       group.on("dragend", () => {
         if (!visual.dragging) {
