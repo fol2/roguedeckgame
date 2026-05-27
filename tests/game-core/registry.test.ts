@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cardId,
   evolutionNodeId,
+  monsterAbilityId,
   monsterId,
   petModifierId,
   petDefinitionId,
@@ -121,6 +122,98 @@ describe("starterRegistry", () => {
       code: "invalid_monster_intent_schedule",
       path: "monsters[0].intentSchedule[0].conditions[0].ratio"
     }));
+  });
+
+  it("reports malformed monster ability descriptions", () => {
+    const baseAbility = starterRegistry.monsterAbilities![0];
+    const result = validateRegistry(
+      cloneRegistry({
+        monsterAbilities: [
+          { ...baseAbility, id: monsterAbilityId("missing_description"), description: undefined },
+          { ...baseAbility, id: monsterAbilityId("empty_description"), description: "" },
+          { ...baseAbility, id: monsterAbilityId("null_description"), description: null },
+          { ...baseAbility, id: monsterAbilityId("number_description"), description: 123 }
+        ] as unknown as typeof starterRegistry.monsterAbilities
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "invalid_monster_ability_description")).toHaveLength(4);
+  });
+
+  it("reports monster intents that reference missing or unowned abilities", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        monsters: [
+          {
+            ...starterRegistry.monsters[0],
+            abilityIds: [monsterAbilityId("training_slime_attack")],
+            intentPool: [
+              {
+                ...starterRegistry.monsters[0].intentPool[0],
+                abilityId: monsterAbilityId("missing_ability")
+              },
+              {
+                ...starterRegistry.monsters[0].intentPool[1],
+                abilityId: monsterAbilityId("training_slime_block")
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toEqual(expect.arrayContaining([
+      "missing_monster_ability",
+      "monster_ability_not_owned"
+    ]));
+  });
+
+  it("reports monster intents with explicit empty ability ownership", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        monsters: [
+          {
+            ...starterRegistry.monsters[0],
+            abilityIds: [],
+            intentPool: [
+              {
+                ...starterRegistry.monsters[0].intentPool[0],
+                abilityId: monsterAbilityId("training_slime_attack")
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toContain("monster_ability_not_owned");
+  });
+
+  it("reports ability-backed monster intent metadata drift", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        monsters: [
+          {
+            ...starterRegistry.monsters[0],
+            intentPool: [
+              {
+                ...starterRegistry.monsters[0].intentPool[0],
+                type: "block",
+                description: "Drifted description.",
+                effects: [{ type: "block", amount: 1, target: { type: "self" } }]
+              }
+            ]
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.filter((error) => error.code === "monster_intent_ability_mismatch")).toHaveLength(3);
+    expect(result.errors.map((error) => error.path)).toEqual(expect.arrayContaining([
+      "monsters[0].intentPool[0].type",
+      "monsters[0].intentPool[0].description",
+      "monsters[0].intentPool[0].effects"
+    ]));
   });
 
   it("includes Ember Fox base and reward command cards", () => {

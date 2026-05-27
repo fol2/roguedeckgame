@@ -9,9 +9,13 @@ const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatS
 
 export const checkCombatOutcome = (state: CombatState): GameActionResult<CombatState> => {
   const aliveMonsterIds = new Set(state.monsters.filter((monster) => monster.alive).map((monster) => monster.id));
+  const hasPlannedAbilityStorage = Object.prototype.hasOwnProperty.call(state, "plannedMonsterAbilities");
   const stateWithoutDefeatedIntents = {
     ...state,
-    monsterIntents: state.monsterIntents.filter((intent) => aliveMonsterIds.has(intent.monsterCombatantId))
+    monsterIntents: state.monsterIntents.filter((intent) => aliveMonsterIds.has(intent.monsterCombatantId)),
+    ...(hasPlannedAbilityStorage
+      ? { plannedMonsterAbilities: (state.plannedMonsterAbilities ?? []).filter((planned) => aliveMonsterIds.has(planned.monsterCombatantId)) }
+      : {})
   };
 
   if (state.phase === "won" || state.phase === "lost") {

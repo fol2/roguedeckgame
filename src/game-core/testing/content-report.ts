@@ -9,6 +9,7 @@ export type ContentReport = {
     readonly cards: number;
     readonly statuses: number;
     readonly pets: number;
+    readonly monsterAbilities: number;
     readonly monsters: number;
     readonly encounters: number;
     readonly runMapTemplates: number;
@@ -40,6 +41,7 @@ const collectEffectTypes = (registry: GameContentRegistry): readonly string[] =>
   };
 
   registry.cards.flatMap((card) => card.effects).forEach(collect);
+  (registry.monsterAbilities ?? []).flatMap((ability) => ability.effects).forEach(collect);
   registry.monsters.flatMap((monster) => monster.intentPool).flatMap((intent) => intent.effects).forEach(collect);
   registry.petUpgrades
     .flatMap((upgrade) => upgrade.modifiers)
@@ -62,6 +64,7 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
     cards: registry.cards.length,
     statuses: (registry.statuses ?? [burnStatusDefinition]).length,
     pets: registry.pets.length,
+    monsterAbilities: registry.monsterAbilities?.length ?? 0,
     monsters: registry.monsters.length,
     encounters: registry.encounters.length,
     runMapTemplates: registry.runMapTemplates.length,

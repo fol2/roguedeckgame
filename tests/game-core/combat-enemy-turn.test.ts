@@ -3,6 +3,7 @@ import {
   combatantId,
   createRng,
   endPlayerTurn,
+  monsterAbilityId,
   monsterId,
   monsterIntentId,
   resolveEnemyTurn,
@@ -44,6 +45,29 @@ describe("enemy turn resolution", () => {
     expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
   });
 
+  it("rejects with the original state when a registered intent has no planned ability", () => {
+    const state = { ...createForcedIntentCombatFixture(), plannedMonsterAbilities: [] };
+    const before = JSON.parse(JSON.stringify(state));
+    const result = resolveEnemyTurn(state, starterRegistry, createRng("missing-planned-ability"));
+
+    expect(result.ok).toBe(false);
+    expect(result.state).toBe(state);
+    expect(JSON.parse(JSON.stringify(state))).toEqual(before);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["missing_planned_monster_ability"]);
+    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+  });
+
+  it("resolves legacy combat state without planned ability storage", () => {
+    const { plannedMonsterAbilities: _plannedMonsterAbilities, ...legacyState } = createForcedIntentCombatFixture();
+    const state = legacyState as unknown as ReturnType<typeof createForcedIntentCombatFixture>;
+    const result = resolveEnemyTurn(state, starterRegistry, createRng("legacy-missing-planned-ability"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.player.hp).toBe(64);
+    expect(result.events.map((event) => event.type)).toContain("MonsterAbilityPlayed");
+    expect(result.events.map((event) => event.type)).toContain("MonsterIntentResolved");
+  });
+
   it("rejects with the original state when an intent pool is missing during resolution", () => {
     const registry = {
       ...starterRegistry,
@@ -73,6 +97,7 @@ describe("enemy turn resolution", () => {
 
     expect(result.ok).toBe(true);
     expect(result.state.player.hp).toBe(64);
+    expect(result.events.map((event) => event.type)).toContain("MonsterAbilityPlayed");
     expect(result.events.map((event) => event.type)).toContain("MonsterIntentResolved");
     expect(result.events).toContainEqual({
       type: "DamageDealt",
@@ -111,6 +136,13 @@ describe("enemy turn resolution", () => {
           intentId: monsterIntentId("ash_mite_burn")
         }
       ],
+      plannedMonsterAbilities: [
+        {
+          monsterCombatantId: baseState.monsters[0].id,
+          intentId: monsterIntentId("ash_mite_burn"),
+          abilityId: monsterAbilityId("ash_mite_burn")
+        }
+      ],
       events: []
     };
 
@@ -131,7 +163,8 @@ describe("enemy turn resolution", () => {
     expect(result.state.energy).toBe(result.state.maxEnergy);
     expect(result.state.hand.length).toBeGreaterThan(0);
     expect(result.state.monsterIntents).toHaveLength(1);
-    expect(result.events.map((event) => event.type)).toEqual(expect.arrayContaining(["MonsterIntentSet", "TurnStarted", "CardDrawn"]));
+    expect(result.state.plannedMonsterAbilities).toHaveLength(1);
+    expect(result.events.map((event) => event.type)).toEqual(expect.arrayContaining(["MonsterAbilityPlanned", "MonsterIntentSet", "TurnStarted", "CardDrawn"]));
   });
 
   it("does not select next monster intents when player start-turn Burn ends combat", () => {
@@ -149,7 +182,9 @@ describe("enemy turn resolution", () => {
     expect(result.ok).toBe(true);
     expect(result.state.phase).toBe("lost");
     expect(result.state.monsterIntents).toEqual([]);
+    expect(result.state.plannedMonsterAbilities).toEqual([]);
     expect(result.events.map((event) => event.type)).toEqual([
+      "MonsterAbilityPlayed",
       "MonsterIntentResolved",
       "BlockGained",
       "StatusTicked",

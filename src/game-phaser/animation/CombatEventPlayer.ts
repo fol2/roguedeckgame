@@ -19,6 +19,8 @@ const KNOWN_COMBAT_EVENT_TYPES = new Set([
   "DamageDealt",
   "DeckShuffled",
   "EnergySpent",
+  "MonsterAbilityPlanned",
+  "MonsterAbilityPlayed",
   "MonsterIntentResolved",
   "MonsterIntentSet",
   "PetCommanded",

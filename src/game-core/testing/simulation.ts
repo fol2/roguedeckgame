@@ -5,7 +5,14 @@ import type { AgentAction, AgentActionSource, AgentTraceMode } from "./agent-act
 import { checkAgentRunInvariants } from "./invariants";
 import { deterministicSmokePolicy, invalidActionInjector, randomLegalPolicy } from "./policies";
 import { createAgentStateHash } from "./state-hash";
-import { createTraceStep, replayAgentTrace, type AgentTrace, type AgentTraceFailure, type AgentTraceStep } from "./trace";
+import {
+  AGENT_TRACE_SCHEMA_VERSION,
+  createTraceStep,
+  replayAgentTrace,
+  type AgentTrace,
+  type AgentTraceFailure,
+  type AgentTraceStep
+} from "./trace";
 import { getLegalAgentActions } from "./action-space";
 
 export type SimulationMode = "smoke" | "fuzz" | "exhaustive-small" | "replay";
@@ -39,7 +46,7 @@ const makeTrace = (
   finalStatus?: RunStatus,
   failure?: AgentTraceFailure
 ): AgentTrace => ({
-  schemaVersion: 1,
+  schemaVersion: AGENT_TRACE_SCHEMA_VERSION,
   seed,
   mode,
   finalStatus,
@@ -73,7 +80,7 @@ const runPolicyTrace = (
 
     const result = driver.applyAction(selected.action, selected.source);
     const nextSnapshot = driver.getSnapshot();
-    const stateHashAfter = createAgentStateHash(nextSnapshot);
+    const stateHashAfter = createAgentStateHash(nextSnapshot, { schemaVersion: AGENT_TRACE_SCHEMA_VERSION });
     steps.push(createTraceStep(step, selected.action, selected.source, result.ok, result.events, result.errors, stateHashAfter));
 
     if (!result.ok && selected.source !== "invalid-injected") {
@@ -138,7 +145,7 @@ const runSmokeTrace = (seed: string | number, maxSteps: number): AgentTrace => {
     }
     const result = driver.applyAction(action, "policy");
     const nextSnapshot = driver.getSnapshot();
-    const stateHashAfter = createAgentStateHash(nextSnapshot);
+    const stateHashAfter = createAgentStateHash(nextSnapshot, { schemaVersion: AGENT_TRACE_SCHEMA_VERSION });
     steps.push(createTraceStep(step, action, "policy", result.ok, result.events, result.errors, stateHashAfter));
     if (!result.ok) {
       return makeTrace(seed, "smoke", steps, nextSnapshot.run.status, {
@@ -172,7 +179,7 @@ const normaliseSmokeResult = (seed: string | number, traces: readonly AgentTrace
     ? []
     : [
         {
-          schemaVersion: 1,
+          schemaVersion: AGENT_TRACE_SCHEMA_VERSION,
           seed,
           mode: "smoke",
           finalStatus: traces[0]?.finalStatus,
@@ -260,7 +267,7 @@ export const runBoundedExhaustiveSimulation = (
 
     for (let index = 0; index < path.length; index += 1) {
       const result = driver.applyAction(path[index], "legal");
-      const stateHashAfter = createAgentStateHash(driver.getSnapshot());
+      const stateHashAfter = createAgentStateHash(driver.getSnapshot(), { schemaVersion: AGENT_TRACE_SCHEMA_VERSION });
       steps.push(createTraceStep(index, path[index], "legal", result.ok, result.events, result.errors, stateHashAfter));
       if (!result.ok) {
         failed = true;

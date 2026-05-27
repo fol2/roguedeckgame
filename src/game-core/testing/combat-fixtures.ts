@@ -2,6 +2,7 @@ import {
   cardInstanceId,
   cardId,
   combatantId,
+  monsterAbilityId,
   monsterId,
   monsterIntentId,
   petInstanceId,
@@ -107,6 +108,13 @@ export const createHandTunedCombatFixture = (): CombatState => ({
       intentId: monsterIntentId("training_slime_attack")
     }
   ],
+  plannedMonsterAbilities: [
+    {
+      monsterCombatantId: combatantId("monster:training_slime:0"),
+      intentId: monsterIntentId("training_slime_attack"),
+      abilityId: monsterAbilityId("training_slime_attack")
+    }
+  ],
   cardInstances: [
     { id: cardInstanceId("strike:1"), cardId: cardId("strike"), ownerId: combatantId("player") },
     { id: cardInstanceId("defend:1"), cardId: cardId("defend"), ownerId: combatantId("player") },
@@ -155,6 +163,13 @@ export const createForcedIntentCombatFixture = (
         monsterCombatantId: baseState.monsters[0].id,
         intentId
       }
+    ],
+    plannedMonsterAbilities: [
+      {
+        monsterCombatantId: baseState.monsters[0].id,
+        intentId,
+        abilityId: monsterAbilityId(intentId)
+      }
     ]
   };
 };
@@ -196,6 +211,7 @@ export const createWonCombatFixture = (overrides: Partial<CombatState> = {}): Co
     activeActorId: combatantId("player"),
     monsters: baseState.monsters.map((monster) => ({ ...monster, hp: 0, alive: false })),
     monsterIntents: [],
+    plannedMonsterAbilities: [],
     events: [],
     ...overrides
   };
@@ -208,6 +224,7 @@ export const createLostCombatFixture = (overrides: Partial<CombatState> = {}): C
     phase: "lost",
     player: { ...baseState.player, hp: 0, alive: false },
     monsterIntents: [],
+    plannedMonsterAbilities: [],
     events: [],
     ...overrides
   };

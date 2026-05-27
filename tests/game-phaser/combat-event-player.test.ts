@@ -3,6 +3,7 @@ import {
   cardId,
   cardInstanceId,
   combatantId,
+  monsterAbilityId,
   monsterIntentId,
   petInstanceId,
   petModifierId,
@@ -69,6 +70,20 @@ describe("Combat event messages", () => {
   });
 
   it("formats monster intent and combat outcome events", () => {
+    const planned: GameEvent = {
+      type: "MonsterAbilityPlanned",
+      monsterId: combatantId("monster:training_slime:0"),
+      abilityId: monsterAbilityId("training_slime_attack"),
+      intentId: monsterIntentId("training_slime_attack"),
+      intentType: "attack",
+      description: "Attack the Keeper."
+    };
+    const played: GameEvent = {
+      type: "MonsterAbilityPlayed",
+      monsterId: combatantId("monster:training_slime:0"),
+      abilityId: monsterAbilityId("training_slime_attack"),
+      intentId: monsterIntentId("training_slime_attack")
+    };
     const intent: GameEvent = {
       type: "MonsterIntentResolved",
       monsterId: combatantId("monster:training_slime:0"),
@@ -76,6 +91,8 @@ describe("Combat event messages", () => {
     };
     const ended: GameEvent = { type: "CombatEnded", outcome: "won" };
 
+    expect(formatCombatEventMessage(planned)).toContain("Attack the Keeper");
+    expect(formatCombatEventMessage(played)).toContain("training_slime_attack");
     expect(formatCombatEventMessage(intent)).toContain("training_slime_attack");
     expect(formatCombatEventMessage(ended)).toBe("Combat won.");
   });

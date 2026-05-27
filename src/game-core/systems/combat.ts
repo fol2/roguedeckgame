@@ -21,7 +21,7 @@ import { moveCardBetweenPiles } from "./card-piles";
 import { drawCards } from "./draw";
 import { resolveCardEffects, resolveEffects } from "./effects";
 import { checkCombatOutcome } from "./outcome";
-import { chooseMonsterIntents, findMonsterDefinition, findMonsterIntent } from "./monster-intents";
+import { chooseMonsterIntents, findMonsterDefinition, findPlannedMonsterAbility } from "./monster-intents";
 import {
   applyPetCommandCostModifiers,
   applyPetCommandEffectModifiers,
@@ -89,6 +89,7 @@ const createRejectedState = (input: CreateCombatInput): CombatState => {
     petInstances: activePetInstances,
     runPetStates: activePetInstances.map(createRunPetState),
     monsterIntents: [],
+    plannedMonsterAbilities: [],
     cardInstances,
     drawPile: [],
     hand: [],
@@ -627,6 +628,7 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     petInstances: activePetInstances as readonly PetInstance[],
     runPetStates,
     monsterIntents: [],
+    plannedMonsterAbilities: [],
     cardInstances,
     drawPile: shuffledDrawPile,
     hand: [],
@@ -859,26 +861,32 @@ export const resolveEnemyTurn = (
       );
     }
 
-    const intent = findMonsterIntent(monsterDefinition, monster.id, nextState);
-    if ("code" in intent) {
-      return reject(originalState, intent);
+    const planned = findPlannedMonsterAbility(registry, monsterDefinition, monster.id, nextState);
+    if ("code" in planned) {
+      return reject(originalState, planned);
     }
 
+    const abilityPlayedEvent: GameEvent = {
+      type: "MonsterAbilityPlayed",
+      monsterId: monster.id,
+      abilityId: planned.ability.id,
+      intentId: planned.intent.id
+    };
     const resolvedEvent: GameEvent = {
       type: "MonsterIntentResolved",
       monsterId: monster.id,
-      intentId: intent.id
+      intentId: planned.intent.id
     };
-    nextState = appendEvents({ ...nextState, activeActorId: monster.id }, [resolvedEvent]);
-    events.push(resolvedEvent);
+    nextState = appendEvents({ ...nextState, activeActorId: monster.id }, [abilityPlayedEvent, resolvedEvent]);
+    events.push(abilityPlayedEvent, resolvedEvent);
 
     const effectResult = resolveEffects(
       nextState,
-      intent.effects,
+      planned.ability.effects,
       {
         sourceId: monster.id,
         defaultTargetId: nextState.player.id,
-        intentId: intent.id
+        intentId: planned.intent.id
       },
       registry,
       rng
@@ -902,7 +910,7 @@ export const resolveEnemyTurn = (
     }
   }
 
-  const clearedIntentState = { ...nextState, monsterIntents: [] };
+  const clearedIntentState = { ...nextState, monsterIntents: [], plannedMonsterAbilities: [] };
   const playerStatusResult = processStartOfTurnStatuses(clearedIntentState, clearedIntentState.player.id, { registry, rng });
   if (!playerStatusResult.ok) {
     return reject(

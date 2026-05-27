@@ -62,6 +62,7 @@ describe("content authoring helpers", () => {
         cards: 12,
         statuses: 1,
         pets: 1,
+        monsterAbilities: 10,
         monsters: 4,
         encounters: 5,
         runMapTemplates: 1,

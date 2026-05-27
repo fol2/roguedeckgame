@@ -28,6 +28,10 @@ export const formatCombatEventMessage = (event: EventLike): string => {
       return `Shuffled ${event.count} card(s) into ${event.to}.`;
     case "EnergySpent":
       return `Spent ${event.amount} energy (${event.remaining} remaining).`;
+    case "MonsterAbilityPlanned":
+      return `${event.monsterId} planned ${event.abilityId}: ${event.description}`;
+    case "MonsterAbilityPlayed":
+      return `${event.monsterId} played ${event.abilityId}.`;
     case "MonsterIntentResolved":
       return `${event.monsterId} resolved ${event.intentId}.`;
     case "MonsterIntentSet":

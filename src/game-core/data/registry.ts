@@ -2,7 +2,7 @@ import { emberFoxCards } from "./cards/ember-fox-cards";
 import { rewardCards } from "./cards/reward-cards";
 import { starterCards } from "./cards/starter-cards";
 import { forestEncounters } from "./encounters/forest-encounters";
-import { forestMonsters } from "./monsters/forest-monsters";
+import { forestMonsterAbilities, forestMonsters } from "./monsters/forest-monsters";
 import { pets as petDefinitions } from "./pets/ember-fox";
 import { players as playerDefinitions } from "./players/novice-tamer";
 import { runMapTemplates as forestRunMapTemplates } from "./run-maps/act1-forest";
@@ -17,6 +17,7 @@ export const starterRegistry: GameContentRegistry = {
   statuses: [burnStatusDefinition],
   pets: petDefinitions,
   players: playerDefinitions,
+  monsterAbilities: forestMonsterAbilities,
   monsters: forestMonsters,
   encounters: forestEncounters,
   runMapTemplates: forestRunMapTemplates,
@@ -31,6 +32,7 @@ export const cards = starterRegistry.cards;
 export const statuses = starterRegistry.statuses;
 export const pets = starterRegistry.pets;
 export const players = starterRegistry.players;
+export const monsterAbilities = starterRegistry.monsterAbilities ?? [];
 export const monsters = starterRegistry.monsters;
 export const encounters = starterRegistry.encounters;
 export const runMapTemplates = starterRegistry.runMapTemplates;

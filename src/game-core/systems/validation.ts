@@ -767,6 +767,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     readonly cards?: unknown;
     readonly pets?: unknown;
     readonly players?: unknown;
+    readonly monsterAbilities?: unknown;
     readonly monsters?: unknown;
     readonly encounters?: unknown;
     readonly runMapTemplates?: unknown;
@@ -784,6 +785,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     statuses: Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition],
     pets: Array.isArray(registryRecord.pets) ? registryRecord.pets : [],
     players: Array.isArray(registryRecord.players) ? registryRecord.players : [],
+    monsterAbilities: Array.isArray(registryRecord.monsterAbilities) ? registryRecord.monsterAbilities : [],
     monsters: Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [],
     encounters: Array.isArray(registryRecord.encounters) ? registryRecord.encounters : [],
     runMapTemplates: Array.isArray(registryRecord.runMapTemplates) ? registryRecord.runMapTemplates : [],
@@ -822,6 +824,10 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     issues.push(issue("error", "invalid_players", "Players must be an array.", "players"));
   }
 
+  if (registryRecord.monsterAbilities !== undefined && !Array.isArray(registryRecord.monsterAbilities)) {
+    issues.push(issue("error", "invalid_monster_abilities", "Monster abilities must be an array when present.", "monsterAbilities"));
+  }
+
   if (!Array.isArray(registryRecord.monsters)) {
     issues.push(issue("error", "invalid_monsters", "Monsters must be an array.", "monsters"));
   }
@@ -853,6 +859,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   const cardDefinitions = Array.isArray(registryRecord.cards) ? registryRecord.cards : [];
   const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition];
   const playerDefinitions = Array.isArray(registryRecord.players) ? registryRecord.players : [];
+  const monsterAbilityDefinitions = Array.isArray(registryRecord.monsterAbilities) ? registryRecord.monsterAbilities : [];
   const monsterDefinitions = Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [];
   const storyEventDefinitions = Array.isArray(registryRecord.storyEvents) ? registryRecord.storyEvents : [];
   const petSideStoryDefinitions = Array.isArray(registryRecord.petSideStories) ? registryRecord.petSideStories : [];
@@ -874,6 +881,19 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       .filter(isRecord)
       .map((monster) => monster.id)
       .filter(isString)
+  );
+  const monsterAbilityIds = new Set(
+    monsterAbilityDefinitions
+      .filter(isRecord)
+      .map((ability) => ability.id)
+      .filter(isString)
+  );
+  const monsterAbilitiesById = new Map(
+    monsterAbilityDefinitions
+      .filter((ability): ability is Record<string, unknown> & { readonly id: string } =>
+        isRecord(ability) && typeof ability.id === "string"
+      )
+      .map((ability) => [ability.id, ability])
   );
   const petDefinitionIds = new Set<string>(
     petDefinitions
@@ -1339,6 +1359,40 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     issues.push(...validateEffects(card.effects as readonly EffectDefinition[], `cards[${cardIndex}]`, { statusIds: supportedStatusEffectIds }));
   });
 
+  monsterAbilityDefinitions.forEach((abilityValue, abilityIndex) => {
+    if (!isRecord(abilityValue)) {
+      issues.push(issue("error", "invalid_monster_ability", "Monster ability definition must be an object.", `monsterAbilities[${abilityIndex}]`));
+      return;
+    }
+
+    if (typeof abilityValue.id !== "string" || abilityValue.id.length === 0) {
+      issues.push(issue("error", "invalid_monster_ability_id", "Monster ability id must be a string.", `monsterAbilities[${abilityIndex}].id`));
+    }
+
+    if (typeof abilityValue.name !== "string" || abilityValue.name.length === 0) {
+      issues.push(issue("error", "invalid_monster_ability_name", `Monster ability '${String(abilityValue.id)}' name must be a non-empty string.`, `monsterAbilities[${abilityIndex}].name`));
+    }
+
+    if (typeof abilityValue.description !== "string" || abilityValue.description.length === 0) {
+      issues.push(issue("error", "invalid_monster_ability_description", `Monster ability '${String(abilityValue.id)}' description must be a non-empty string.`, `monsterAbilities[${abilityIndex}].description`));
+    }
+
+    if (abilityValue.intentType !== "attack" && abilityValue.intentType !== "block" && abilityValue.intentType !== "debuff" && abilityValue.intentType !== "special") {
+      issues.push(issue("error", "invalid_monster_ability_intent_type", `Monster ability '${String(abilityValue.id)}' has unknown intent type '${String(abilityValue.intentType)}'.`, `monsterAbilities[${abilityIndex}].intentType`));
+    }
+
+    if (!Array.isArray(abilityValue.tags) || abilityValue.tags.some((tag) => typeof tag !== "string" || tag.length === 0)) {
+      issues.push(issue("error", "invalid_monster_ability_tags", `Monster ability '${String(abilityValue.id)}' tags must be a string array.`, `monsterAbilities[${abilityIndex}].tags`));
+    }
+
+    if (!Array.isArray(abilityValue.effects)) {
+      issues.push(issue("error", "invalid_monster_ability_effects", `Monster ability '${String(abilityValue.id)}' effects must be an array.`, `monsterAbilities[${abilityIndex}].effects`));
+      return;
+    }
+
+    issues.push(...validateEffects(abilityValue.effects as readonly EffectDefinition[], `monsterAbilities[${abilityIndex}]`, { statusIds: supportedStatusEffectIds }));
+  });
+
   monsterDefinitions.forEach((monsterValue, monsterIndex) => {
     if (!isRecord(monsterValue)) {
       issues.push(issue("error", "invalid_monster", "Monster definition must be an object.", `monsters[${monsterIndex}]`));
@@ -1346,6 +1400,23 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     }
 
     const monster = monsterValue;
+    const monsterAbilityIdsForDefinition = new Set(
+      Array.isArray(monster.abilityIds)
+        ? monster.abilityIds.filter(isString)
+        : []
+    );
+    if ("abilityIds" in monster && monster.abilityIds !== undefined) {
+      if (!Array.isArray(monster.abilityIds)) {
+        issues.push(issue("error", "invalid_monster_ability_ids", `Monster '${String(monster.id)}' abilityIds must be an array when present.`, `monsters[${monsterIndex}].abilityIds`));
+      } else {
+        monster.abilityIds.forEach((abilityId, abilityIndex) => {
+          if (typeof abilityId !== "string" || !monsterAbilityIds.has(abilityId)) {
+            issues.push(issue("error", "missing_monster_ability", `Monster '${String(monster.id)}' references missing ability '${String(abilityId)}'.`, `monsters[${monsterIndex}].abilityIds[${abilityIndex}]`));
+          }
+        });
+      }
+    }
+
     if (!Array.isArray(monster.intentPool)) {
       issues.push(issue("error", "invalid_monster_intents", `Monster '${String(monster.id)}' intentPool must be an array.`, `monsters[${monsterIndex}].intentPool`));
       return;
@@ -1355,6 +1426,31 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       if (!isRecord(intent) || !Array.isArray(intent.effects)) {
         issues.push(issue("error", "invalid_monster_intent", "Monster intent must be an object with effects.", `monsters[${monsterIndex}].intentPool[${intentIndex}]`));
         return;
+      }
+
+      if ("abilityId" in intent && intent.abilityId !== undefined) {
+        if (typeof intent.abilityId !== "string" || !monsterAbilityIds.has(intent.abilityId)) {
+          issues.push(issue("error", "missing_monster_ability", `Monster intent '${String(intent.id)}' references missing ability '${String(intent.abilityId)}'.`, `monsters[${monsterIndex}].intentPool[${intentIndex}].abilityId`));
+        }
+
+        if (Array.isArray(monster.abilityIds) && typeof intent.abilityId === "string" && !monsterAbilityIdsForDefinition.has(intent.abilityId)) {
+          issues.push(issue("error", "monster_ability_not_owned", `Monster intent '${String(intent.id)}' references ability '${intent.abilityId}' that is not owned by monster '${String(monster.id)}'.`, `monsters[${monsterIndex}].intentPool[${intentIndex}].abilityId`));
+        }
+
+        const ability = typeof intent.abilityId === "string" ? monsterAbilitiesById.get(intent.abilityId) : undefined;
+        if (ability) {
+          if (intent.type !== ability.intentType) {
+            issues.push(issue("error", "monster_intent_ability_mismatch", `Monster intent '${String(intent.id)}' type must match ability '${intent.abilityId}'.`, `monsters[${monsterIndex}].intentPool[${intentIndex}].type`));
+          }
+
+          if (intent.description !== ability.description) {
+            issues.push(issue("error", "monster_intent_ability_mismatch", `Monster intent '${String(intent.id)}' description must match ability '${intent.abilityId}'.`, `monsters[${monsterIndex}].intentPool[${intentIndex}].description`));
+          }
+
+          if (JSON.stringify(intent.effects) !== JSON.stringify(ability.effects)) {
+            issues.push(issue("error", "monster_intent_ability_mismatch", `Monster intent '${String(intent.id)}' effects must match ability '${intent.abilityId}'.`, `monsters[${monsterIndex}].intentPool[${intentIndex}].effects`));
+          }
+        }
       }
 
       issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`, { statusIds: supportedStatusEffectIds }));

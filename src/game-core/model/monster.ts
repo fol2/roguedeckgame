@@ -1,13 +1,23 @@
-import type { MonsterId, MonsterIntentId } from "../ids";
+import type { MonsterAbilityId, MonsterId, MonsterIntentId } from "../ids";
 import type { EffectDefinition } from "./effect";
 
 export type MonsterIntentType = "attack" | "block" | "debuff" | "special";
+
+export type MonsterAbilityDefinition = {
+  readonly id: MonsterAbilityId;
+  readonly name: string;
+  readonly intentType: MonsterIntentType;
+  readonly description: string;
+  readonly tags: readonly string[];
+  readonly effects: readonly EffectDefinition[];
+};
 
 export type MonsterIntentDefinition = {
   readonly id: MonsterIntentId;
   readonly type: MonsterIntentType;
   readonly description: string;
   readonly effects: readonly EffectDefinition[];
+  readonly abilityId?: MonsterAbilityId;
 };
 
 export type MonsterIntentScheduleCondition =
@@ -24,6 +34,7 @@ export type MonsterDefinition = {
   readonly name: string;
   readonly maxHp: number;
   readonly tags: readonly string[];
+  readonly abilityIds?: readonly MonsterAbilityId[];
   readonly intentPool: readonly MonsterIntentDefinition[];
   readonly intentSchedule?: readonly MonsterIntentScheduleStep[];
 };

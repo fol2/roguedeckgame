@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  AGENT_TRACE_LEGACY_SCHEMA_VERSION,
   parseAgentTrace,
+  projectAgentTraceEventsForSchema,
+  createAgentRunDriver,
+  createAgentStateHash,
+  deterministicSmokePolicy,
   replayAgentTrace,
   runSmokeSimulation,
   serializeAgentTrace,
@@ -104,9 +109,39 @@ describe("agent trace replay", () => {
   });
 
   it("parses numeric zero seeds", () => {
-    const trace = parseAgentTrace('{"schemaVersion":1,"seed":0,"mode":"regression","steps":[]}');
+    const trace = parseAgentTrace('{"schemaVersion":2,"seed":0,"mode":"regression","steps":[]}');
 
     expect(trace.seed).toBe(0);
+  });
+
+  it("replays legacy v1 traces with projected events and hashes", () => {
+    const seed = "legacy-v1";
+    const driver = createAgentRunDriver({ seed });
+    const action = deterministicSmokePolicy(driver.getSnapshot());
+    if (!action) {
+      throw new Error("Expected deterministic smoke action.");
+    }
+    const result = driver.applyAction(action, "policy");
+    const trace: AgentTrace = {
+      schemaVersion: AGENT_TRACE_LEGACY_SCHEMA_VERSION,
+      seed,
+      mode: "smoke",
+      finalStatus: driver.getSnapshot().run.status,
+      steps: [
+        {
+          step: 0,
+          action,
+          source: "policy",
+          ok: result.ok,
+          events: projectAgentTraceEventsForSchema(result.events, AGENT_TRACE_LEGACY_SCHEMA_VERSION),
+          errors: result.errors,
+          stateHashAfter: createAgentStateHash(driver.getSnapshot(), { schemaVersion: AGENT_TRACE_LEGACY_SCHEMA_VERSION })
+        }
+      ]
+    };
+
+    expect(trace.steps[0].events.some((event) => event.type === "MonsterAbilityPlanned")).toBe(false);
+    expect(replayAgentTrace(parseAgentTrace(serializeAgentTrace(trace))).ok).toBe(true);
   });
 
   it("replays committed trace files", () => {

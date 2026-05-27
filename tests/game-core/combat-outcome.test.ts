@@ -3,6 +3,7 @@ import {
   cardInstanceId,
   combatantId,
   createRng,
+  endPlayerTurn,
   playCard,
   resolveEnemyTurn,
   startPlayerTurn,
@@ -63,6 +64,7 @@ describe("combat outcomes", () => {
     expect(result.state.phase).toBe("lost");
     expect(result.state.player.alive).toBe(false);
     expect(result.events.map((event) => event.type)).toEqual([
+      "MonsterAbilityPlayed",
       "MonsterIntentResolved",
       "DamageDealt",
       "CombatantDefeated",
@@ -109,5 +111,26 @@ describe("combat outcomes", () => {
     expect(lostResult.state).toBe(lostState);
     expect(wonResult.errors.map((combatError) => combatError.code)).toEqual(["combat_already_ended"]);
     expect(lostResult.errors.map((combatError) => combatError.code)).toEqual(["combat_already_ended"]);
+  });
+
+  it("preserves legacy missing planned ability storage through non-lethal outcome checks", () => {
+    const { plannedMonsterAbilities: _plannedMonsterAbilities, ...legacyState } = createHandTunedCombatFixture();
+    const played = playCard(
+      legacyState,
+      { type: "playCard", cardInstanceId: cardInstanceId("strike:1"), targetId: combatantId("monster:training_slime:0") },
+      starterRegistry,
+      createRng("legacy-non-lethal-play")
+    );
+
+    expect(played.ok).toBe(true);
+    expect("plannedMonsterAbilities" in played.state).toBe(false);
+
+    const ended = endPlayerTurn({ ...played.state, hand: [] });
+    expect(ended.ok).toBe(true);
+    expect("plannedMonsterAbilities" in ended.state).toBe(false);
+
+    const resolved = resolveEnemyTurn(ended.state, starterRegistry, createRng("legacy-non-lethal-enemy"));
+    expect(resolved.ok).toBe(true);
+    expect(resolved.events.map((event) => event.type)).toContain("MonsterAbilityPlayed");
   });
 });

@@ -2,6 +2,7 @@ import type {
   CardId,
   EncounterId,
   MonsterId,
+  MonsterAbilityId,
   PetDefinitionId,
   PetModifierId,
   PlayerClassModifierId,
@@ -13,7 +14,7 @@ import type {
 } from "../ids";
 import type { CardDefinition } from "../model/card";
 import type { EncounterDefinition } from "../model/encounter";
-import type { MonsterDefinition } from "../model/monster";
+import type { MonsterAbilityDefinition, MonsterDefinition } from "../model/monster";
 import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from "../model/pet";
 import type { PlayerClassDefinition, PlayerClassModifierDefinition } from "../model/player";
 import type { GameContentRegistry } from "../model/registry";
@@ -26,6 +27,7 @@ export type IndexedContentCollection =
   | "statuses"
   | "pets"
   | "players"
+  | "monsterAbilities"
   | "monsters"
   | "encounters"
   | "runMapTemplates"
@@ -45,6 +47,7 @@ export type ContentIndex = {
   readonly statusesById: ReadonlyMap<StatusId, StatusDefinition>;
   readonly petsById: ReadonlyMap<PetDefinitionId, PetDefinition>;
   readonly playersById: ReadonlyMap<PlayerClassId, PlayerClassDefinition>;
+  readonly monsterAbilitiesById?: ReadonlyMap<MonsterAbilityId, MonsterAbilityDefinition>;
   readonly monstersById: ReadonlyMap<MonsterId, MonsterDefinition>;
   readonly encountersById: ReadonlyMap<EncounterId, EncounterDefinition>;
   readonly runMapTemplatesById: ReadonlyMap<RunTemplateId, RunMapTemplateDefinition>;
@@ -116,6 +119,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
   const statuses = collect<StatusId, StatusDefinition>("statuses", registry.statuses ?? [burnStatusDefinition]);
   const pets = collect<PetDefinitionId, PetDefinition>("pets", registry.pets);
   const players = collect<PlayerClassId, PlayerClassDefinition>("players", registry.players);
+  const monsterAbilities = collect<MonsterAbilityId, MonsterAbilityDefinition>("monsterAbilities", registry.monsterAbilities ?? []);
   const monsters = collect<MonsterId, MonsterDefinition>("monsters", registry.monsters);
   const encounters = collect<EncounterId, EncounterDefinition>("encounters", registry.encounters);
   const runMapTemplates = collect<RunTemplateId, RunMapTemplateDefinition>("runMapTemplates", registry.runMapTemplates);
@@ -130,6 +134,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
     statusesById: statuses.map,
     petsById: pets.map,
     playersById: players.map,
+    monsterAbilitiesById: monsterAbilities.map,
     monstersById: monsters.map,
     encountersById: encounters.map,
     runMapTemplatesById: runMapTemplates.map,
@@ -143,6 +148,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
       ...statuses.duplicateIds,
       ...pets.duplicateIds,
       ...players.duplicateIds,
+      ...monsterAbilities.duplicateIds,
       ...monsters.duplicateIds,
       ...encounters.duplicateIds,
       ...runMapTemplates.duplicateIds,

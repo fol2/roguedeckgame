@@ -1,13 +1,24 @@
 import type { GameActionError } from "../model/action";
-import type { GameEvent } from "../model/event";
+import {
+  GAME_EVENT_LEGACY_SCHEMA_VERSION,
+  GAME_EVENT_SCHEMA_VERSION,
+  projectGameEventsForSchema,
+  type GameEvent,
+  type GameEventSchemaVersion
+} from "../model/event";
 import type { RunStatus } from "../model/run";
 import { createAgentRunDriver } from "./run-driver";
 import type { AgentAction, AgentActionSource, AgentRunDriverConfig, AgentTraceMode } from "./agent-actions";
 import { checkAgentRunInvariants, type InvariantIssue } from "./invariants";
 import { createAgentStateHash } from "./state-hash";
 
+export const AGENT_TRACE_SCHEMA_VERSION = GAME_EVENT_SCHEMA_VERSION;
+export const AGENT_TRACE_LEGACY_SCHEMA_VERSION = GAME_EVENT_LEGACY_SCHEMA_VERSION;
+
+export type AgentTraceSchemaVersion = GameEventSchemaVersion;
+
 export type AgentTrace = {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: AgentTraceSchemaVersion;
   readonly seed: string | number;
   readonly mode: AgentTraceMode;
   readonly createdAt?: string;
@@ -41,21 +52,33 @@ export type ReplayResult = {
 
 export const serializeAgentTrace = (trace: AgentTrace): string => `${JSON.stringify(trace, null, 2)}\n`;
 
+const isSupportedTraceSchemaVersion = (schemaVersion: unknown): schemaVersion is AgentTraceSchemaVersion =>
+  schemaVersion === AGENT_TRACE_LEGACY_SCHEMA_VERSION || schemaVersion === AGENT_TRACE_SCHEMA_VERSION;
+
 export const parseAgentTrace = (text: string): AgentTrace => {
   const parsed = JSON.parse(text) as Partial<AgentTrace>;
   if (
-    parsed.schemaVersion !== 1 ||
+    !isSupportedTraceSchemaVersion(parsed.schemaVersion) ||
     parsed.seed === undefined ||
     parsed.seed === null ||
     !parsed.mode ||
     !Array.isArray(parsed.steps)
   ) {
+    if (!isSupportedTraceSchemaVersion(parsed.schemaVersion)) {
+      throw new Error(`Unsupported agent trace schema version '${String(parsed.schemaVersion)}'.`);
+    }
+
     throw new Error("Invalid agent trace.");
   }
   return parsed as AgentTrace;
 };
 
 const stableJson = (value: unknown): string => JSON.stringify(value);
+
+export const projectAgentTraceEventsForSchema = (
+  events: readonly GameEvent[],
+  schemaVersion: AgentTraceSchemaVersion
+): readonly GameEvent[] => projectGameEventsForSchema(events, schemaVersion);
 
 export const replayAgentTrace = (
   trace: AgentTrace,
@@ -89,7 +112,10 @@ export const replayAgentTrace = (
       };
     }
 
-    if (stableJson(result.events) !== stableJson(step.events)) {
+    if (
+      stableJson(projectAgentTraceEventsForSchema(result.events, trace.schemaVersion)) !==
+      stableJson(projectAgentTraceEventsForSchema(step.events, trace.schemaVersion))
+    ) {
       return {
         ok: false,
         failure: {
@@ -111,7 +137,7 @@ export const replayAgentTrace = (
       };
     }
 
-    const stateHashAfter = createAgentStateHash(result.state);
+    const stateHashAfter = createAgentStateHash(result.state, { schemaVersion: trace.schemaVersion });
     if (stateHashAfter !== step.stateHashAfter) {
       return {
         ok: false,
