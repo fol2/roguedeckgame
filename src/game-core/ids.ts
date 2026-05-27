@@ -2,6 +2,7 @@ type Brand<K, T extends string> = K & { readonly __brand: T };
 
 export type CardId = Brand<string, "CardId">;
 export type CardInstanceId = Brand<string, "CardInstanceId">;
+export type EnemyCardInstanceId = Brand<string, "EnemyCardInstanceId">;
 export type DeckId = Brand<string, "DeckId">;
 export type PetDefinitionId = Brand<string, "PetDefinitionId">;
 export type PetInstanceId = Brand<string, "PetInstanceId">;
@@ -31,6 +32,7 @@ export type RunTemplateId = Brand<string, "RunTemplateId">;
 
 export const cardId = (value: string): CardId => value as CardId;
 export const cardInstanceId = (value: string): CardInstanceId => value as CardInstanceId;
+export const enemyCardInstanceId = (value: string): EnemyCardInstanceId => value as EnemyCardInstanceId;
 export const deckId = (value: string): DeckId => value as DeckId;
 export const petDefinitionId = (value: string): PetDefinitionId => value as PetDefinitionId;
 export const petInstanceId = (value: string): PetInstanceId => value as PetInstanceId;

@@ -451,7 +451,80 @@ describe("Combat view model", () => {
     expect(intent.visibilityLevel).toBe("rough");
     expect(intent.abilityId).toBeUndefined();
     expect(intent.amount).toBeUndefined();
-    expect(intent.plannedAction.effectLines).toEqual(["Rough strength: unknown", "Specific card text is hidden."]);
+    expect(intent.plannedAction.effectLines).toEqual(expect.arrayContaining(["Specific card text is hidden."]));
+    expect(intent.plannedAction.effectLines[0]).toMatch(/^Rough strength: /);
+  });
+
+  it("keeps scoped intent visibility from exposing exact card text", () => {
+    const controller = createCombatSandboxController("view-model-scoped-intent");
+    const state = controller.getState();
+    const scribeId = combatantId("monster:cinder_scribe:0");
+    const viewModel = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        monsters: [{
+          ...state.combat.monsters[0]!,
+          id: scribeId,
+          definitionId: monsterId("cinder_scribe"),
+          name: "Cinder Scribe"
+        }],
+        monsterIntents: [{
+          monsterCombatantId: scribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark")
+        }],
+        plannedMonsterAbilities: [{
+          monsterCombatantId: scribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark"),
+          abilityId: monsterAbilityId("cinder_scribe_ink_spark")
+        }],
+        intentVisibilityOverrides: [{
+          monsterCombatantId: scribeId,
+          level: "scoped",
+          source: "debug",
+          expires: "never"
+        }]
+      }
+    });
+    const intent = viewModel.monsterIntents[0]!;
+
+    expect(intent).toMatchObject({
+      visibilityLevel: "scoped",
+      abilityId: undefined,
+      label: "special scoped",
+      amount: undefined,
+      plannedAction: {
+        title: "special candidate",
+        effectLines: expect.arrayContaining(["Specific card name, amount, and effects are hidden."])
+      }
+    });
+    expect(intent.description).not.toContain("Deal");
+    expect(intent.plannedAction.title).not.toBe("Ink Spark");
+  });
+
+  it("renders none visibility as no useful intent instead of an unknown intent", () => {
+    const controller = createCombatSandboxController("view-model-no-intent");
+    const state = controller.getState();
+    const monsterCombatantId = state.combat.monsters[0]!.id;
+    const viewModel = buildCombatViewModel(state, {
+      ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === state.combat.plannedMonsterAbilities?.[0]?.abilityId
+          ? { ...ability, telegraph: { ...ability.telegraph, defaultVisibility: "none" as const } }
+          : ability
+      )
+    });
+    const intent = viewModel.monsterIntents.find((candidate) => candidate.monsterId === monsterCombatantId)!;
+
+    expect(intent).toMatchObject({
+      visibilityLevel: "none",
+      label: "Idle",
+      description: "No useful intent is available.",
+      plannedAction: {
+        title: "Idle",
+        effectLines: ["No useful intent marker."]
+      }
+    });
   });
 
   it("redacts hidden enemy planned cards until intent visibility is improved", () => {

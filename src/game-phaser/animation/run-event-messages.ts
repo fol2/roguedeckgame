@@ -41,7 +41,7 @@ export const formatRunEventMessage = (event: GameEvent): string => {
     case "CombatEnded":
       return `Combat ended: ${event.outcome}`;
     case "MonsterIntentSet":
-      return `Intent set: ${event.description}`;
+      return `Intent set: ${event.intentType}`;
     case "MonsterIntentResolved":
       return `Intent resolved: ${event.intentId}`;
     case "DamageDealt":

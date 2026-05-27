@@ -173,7 +173,13 @@ describe("agent simulation invariants", () => {
             abilityId: customAbilityId,
             effects: [{ type: "damage" as const, amount: 1, target: { type: "target" as const } }]
           }
-        ]
+        ],
+        cardGame: monster.cardGame
+          ? {
+              ...monster.cardGame,
+              deck: [{ abilityId: customAbilityId, copies: 1 }]
+            }
+          : monster.cardGame
       }))
     };
     const driver = createAgentRunDriver({ seed: "invariant-custom-registry", registry });

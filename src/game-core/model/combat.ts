@@ -1,6 +1,7 @@
 import type {
   CardId,
   CardInstanceId,
+  EnemyCardInstanceId,
   MonsterAbilityId,
   CombatantId,
   MonsterIntentId,
@@ -75,13 +76,25 @@ export type PlannedMonsterAbility = {
 
 export type MonsterCardZone = "draw" | "hand" | "planned" | "discard" | "exhaust";
 
+export type CombatMonsterCardInstance = {
+  readonly id: EnemyCardInstanceId;
+  readonly abilityId: MonsterAbilityId;
+};
+
+export type CombatMonsterCardPlanState = {
+  readonly planMode: "locked" | "adaptive" | "charging" | "scriptedPhase";
+  readonly lockedCardInstanceId?: EnemyCardInstanceId;
+  readonly candidateCardInstanceIds: readonly EnemyCardInstanceId[];
+};
+
 export type CombatMonsterCardState = {
   readonly monsterCombatantId: CombatantId;
-  readonly drawPile: readonly MonsterAbilityId[];
-  readonly hand: readonly MonsterAbilityId[];
-  readonly planned: readonly MonsterAbilityId[];
-  readonly discardPile: readonly MonsterAbilityId[];
-  readonly exhaustPile: readonly MonsterAbilityId[];
+  readonly cardInstances: readonly CombatMonsterCardInstance[];
+  readonly drawPile: readonly EnemyCardInstanceId[];
+  readonly hand: readonly EnemyCardInstanceId[];
+  readonly planned: CombatMonsterCardPlanState;
+  readonly discardPile: readonly EnemyCardInstanceId[];
+  readonly exhaustPile: readonly EnemyCardInstanceId[];
 };
 
 export type CombatState = {
