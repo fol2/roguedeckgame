@@ -1,4 +1,0 @@
-interface:
-  display_name: "Pet System Designer"
-  short_description: "Design persistent pet systems"
-  default_prompt: "Use $pet-system-designer to design pets, pet slots, upgrades, or command cards."

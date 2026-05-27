@@ -1,4 +1,0 @@
-interface:
-  display_name: "Content Author"
-  short_description: "Author cards, pets, rewards, and tags"
-  default_prompt: "Use $content-author to define game content data and combo surfaces."

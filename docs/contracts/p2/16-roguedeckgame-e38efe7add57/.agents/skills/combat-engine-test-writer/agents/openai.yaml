@@ -1,4 +1,0 @@
-interface:
-  display_name: "Combat Engine Test Writer"
-  short_description: "Test deterministic combat logic"
-  default_prompt: "Use $combat-engine-test-writer to add deterministic combat engine tests."

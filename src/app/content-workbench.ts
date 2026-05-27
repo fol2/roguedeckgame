@@ -4,6 +4,7 @@ import {
   type ContentWorkbenchDiagnostics,
   type ContentWorkbenchViewModel
 } from "../game-core/workbench";
+import { renderSpecialisedDetailPanel } from "./content-workbench-detail-panels";
 import {
   analyzeAgentTraces,
   buildBalanceDashboardViewModel,
@@ -25,6 +26,7 @@ type BalanceDashboardState =
   | { readonly status: "error"; readonly message: string };
 
 export type RenderContentWorkbenchOptions = {
+  readonly createContentModel?: () => ContentWorkbenchViewModel;
   readonly createBalanceDashboard?: () => BalanceDashboardViewModel;
 };
 
@@ -564,7 +566,7 @@ export const renderContentWorkbench = (
   mount: HTMLElement,
   options: RenderContentWorkbenchOptions = {}
 ): void => {
-  const viewModel = createContentWorkbenchModel();
+  const viewModel = options.createContentModel?.() ?? createContentWorkbenchModel();
   const createBalanceDashboard = options.createBalanceDashboard ?? createWorkbenchBalanceDashboard;
   let balanceDashboardState: BalanceDashboardState = { status: "idle" };
   let restoreSearchSelection: { readonly start: number; readonly end: number } | undefined;
@@ -748,7 +750,19 @@ export const renderContentWorkbench = (
           } : undefined)
         : renderReportsPanel(viewModel, getBalanceDashboardState());
 
-    detail.append(detailTitle, detailMeta, tabs, panel);
+    const specialisedDetailPanel = renderSpecialisedDetailPanel(
+      selectedCollection.id,
+      selectedItem,
+      viewModel
+    );
+
+    detail.append(
+      detailTitle,
+      detailMeta,
+      ...(specialisedDetailPanel ? [specialisedDetailPanel] : []),
+      tabs,
+      panel
+    );
 
     const layout = appendChildren(element("div", "content-workbench__layout"), [
       navigation,

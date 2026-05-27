@@ -111,4 +111,11 @@ describe("Reward scene boundary", () => {
     expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
     expect(source).toMatch(/private routeAfterReward\(\): void \{\n\s+this\.inputLocked = false;/);
   });
+
+  it("passes revision and request id for mutating controller calls", async () => {
+    const source = await readSource(scenePath);
+
+    expect(source).toMatch(/claimRewardOption\(\n\s+optionId,\n\s+this\.sandbox\.getRevision\(\),\n\s+this\.nextRequestId\("reward-claim"\)\n\s+\)/);
+    expect(source).toMatch(/skipReward\(\n\s+this\.sandbox\.getRevision\(\),\n\s+this\.nextRequestId\("reward-skip"\)\n\s+\)/);
+  });
 });

@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   createContentWorkbenchModel,
-  createWorkbenchBalanceDashboard,
   createWorkbenchCollections,
   filterWorkbenchItems,
   formatWorkbenchJson,
@@ -11,6 +10,9 @@ import {
   summariseWorkbenchDiagnostics
 } from "../../src/app/content-workbench";
 import { isContentWorkbenchRoute } from "../../src/app/content-workbench-route";
+import { currentRuntimeMetadata, runNodeId, starterRegistry } from "../../src/game-core";
+import { buildContentWorkbenchViewModel } from "../../src/game-core/workbench";
+import type { BalanceDashboardViewModel } from "../../src/game-core/testing";
 
 const root = process.cwd();
 const readProjectFile = (path: string): Promise<string> => readFile(join(root, path), "utf8");
@@ -136,6 +138,41 @@ const findByTestId = (rootElement: FakeElement, testId: string): FakeElement => 
   return element;
 };
 
+const fakeBalanceDashboard = (): BalanceDashboardViewModel => ({
+  runtimeMetadata: currentRuntimeMetadata,
+  contentVersion: "starter-act1-forest-v1",
+  summary: [
+    { label: "Runs", value: "2" },
+    { label: "Completion rate", value: "50.0%" },
+    { label: "Damage to player", value: "12" },
+    { label: "Damage to monsters", value: "30" }
+  ],
+  healthIssues: [],
+  sections: {
+    encounterOutcomes: [{
+      id: "ash_mite_encounter",
+      label: "Ash Mite",
+      value: 2,
+      valueLabel: "50.0% win, 1 lost",
+      started: 2,
+      won: 1,
+      lost: 1,
+      winRate: 0.5
+    }],
+    damageByEncounter: [{
+      id: "ash_mite_encounter",
+      label: "Ash Mite",
+      value: 42,
+      valueLabel: "to player 12, to monsters 30",
+      playerDamage: 12,
+      monsterDamage: 30
+    }],
+    rewardPickRates: [{ id: "card", label: "card", value: 1, valueLabel: "100.0%" }],
+    monsterAbilityFrequency: [{ id: "ash_mite_burn", label: "ash_mite_burn", value: 2, valueLabel: "2" }],
+    runPaths: [{ id: "act1_path", label: "act1_path", value: 1, valueLabel: "1" }]
+  }
+});
+
 describe("content workbench UI", () => {
   it("routes only local content workbench URLs away from the Phaser game", () => {
     expect(isContentWorkbenchRoute({ pathname: "/", search: "?workbench=content" })).toBe(true);
@@ -235,8 +272,8 @@ describe("content workbench UI", () => {
     expect(summary.unusedCardCount).toBeGreaterThanOrEqual(0);
   });
 
-  it("builds the balance dashboard from simulation aggregate data", () => {
-    const dashboard = createWorkbenchBalanceDashboard();
+  it("renders balance dashboard data supplied by the reports lane", () => {
+    const dashboard = fakeBalanceDashboard();
 
     expect(dashboard.runtimeMetadata.packageName).toBe("roguedeckgame");
     expect(dashboard.contentVersion).toBe("starter-act1-forest-v1");
@@ -257,7 +294,9 @@ describe("content workbench UI", () => {
     const mount = new FakeElement("div");
 
     try {
-      renderContentWorkbench(mount as unknown as HTMLElement);
+      renderContentWorkbench(mount as unknown as HTMLElement, {
+        createBalanceDashboard: fakeBalanceDashboard
+      });
 
       expect(mount.textContent).toContain("Content Workbench");
       expect(mount.textContent).toContain("fingerprint");
@@ -269,6 +308,29 @@ describe("content workbench UI", () => {
       expect(mount.textContent).toContain("Monsters");
       expect(mount.textContent).toContain("Forest Warden");
 
+      findByTestId(mount, "workbench-collection-decks").click();
+      expect(findByTestId(mount, "workbench-deck-view").textContent).toContain("Deck view");
+      expect(findByTestId(mount, "workbench-deck-view").textContent).toContain("Deck size");
+      expect(findByTestId(mount, "workbench-deck-view").textContent).toContain("Card family distribution");
+      expect(findByTestId(mount, "workbench-deck-view").textContent).toContain("Rarity mix");
+      expect(findByTestId(mount, "workbench-deck-view").textContent).toContain("Tag distribution");
+      expect(findByTestId(mount, "workbench-deck-view").textContent).toContain("novice_tamer");
+
+      findByTestId(mount, "workbench-collection-runMapTemplates").click();
+      const levelView = findByTestId(mount, "workbench-level-view");
+      expect(levelView.textContent).toContain("Level viewer");
+      expect(levelView.textContent).toContain("act1_forest_3_elite_a");
+      expect(levelView.textContent).toContain("charred_stag");
+      expect(levelView.textContent).toContain("Charred Stag");
+      expect(levelView.textContent).toContain("tags: beast, burn, elite, forest");
+      expect(levelView.textContent).toContain("Reward pools: elite");
+      expect(levelView.textContent).toContain("act1_forest_4_boss_a");
+      expect(levelView.textContent).toContain("forest_warden");
+      expect(levelView.textContent).toContain("Forest Warden");
+      expect(levelView.textContent).toContain("tags: boss, burn, forest, guardian");
+      expect(levelView.textContent).toContain("Reward pools: boss");
+
+      findByTestId(mount, "workbench-collection-monsters").click();
       const search = findByTestId(mount, "workbench-search");
       search.focus();
       search.value = "warden";
@@ -369,6 +431,40 @@ describe("content workbench UI", () => {
       findByTestId(mount, "workbench-tab-json").click();
       findByTestId(mount, "workbench-tab-reports").click();
       expect(dashboardCalls).toBe(1);
+    } finally {
+      restoreDocument();
+    }
+  });
+
+  it("renders run-map broken-reference counts at the affected node", () => {
+    const restoreDocument = installFakeDocument();
+    const mount = new FakeElement("div");
+    const brokenRegistry = {
+      ...starterRegistry,
+      runMapTemplates: [{
+        ...starterRegistry.runMapTemplates[0],
+        nodes: starterRegistry.runMapTemplates[0].nodes.map((node, index) =>
+          index === 0
+            ? {
+                ...node,
+                nextNodeIds: [runNodeId("missing_next_node")]
+              }
+            : node
+        )
+      }]
+    };
+
+    try {
+      renderContentWorkbench(mount as unknown as HTMLElement, {
+        createContentModel: () => buildContentWorkbenchViewModel(brokenRegistry),
+        createBalanceDashboard: fakeBalanceDashboard
+      });
+      findByTestId(mount, "workbench-collection-runMapTemplates").click();
+
+      const levelView = findByTestId(mount, "workbench-level-view");
+      expect(levelView.textContent).toContain("act1_forest_0_combat_a");
+      expect(levelView.textContent).toContain("Next nodes: missing_next_node");
+      expect(levelView.textContent).toContain("Broken references: 1");
     } finally {
       restoreDocument();
     }

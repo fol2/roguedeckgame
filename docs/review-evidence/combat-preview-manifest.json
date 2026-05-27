@@ -1,0 +1,18 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "source": "docs/contracts/p2/16-roguedeckgame-e38efe7add57",
+  "note": "Compact manifest for combat preview evidence. The source p2 artifact folder is intentionally excluded from review ZIPs.",
+  "files": [
+    "preview-combat-entry-after-click-1280x720.png",
+    "preview-combat-pile-tooltip-1280x720.png",
+    "preview-combat-card-detail-1280x720.png",
+    "preview-combat-intent-detail-1280x720.png",
+    "preview-combat-pause-overlay-1280x720.png",
+    "preview-combat-normal-attack-fx-1280x720.png",
+    "preview-combat-pet-command-fx-1280x720.png",
+    "preview-combat-wireframe-selected-1280x720.png"
+  ]
+}

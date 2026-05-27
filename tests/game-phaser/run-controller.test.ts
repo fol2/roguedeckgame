@@ -78,6 +78,20 @@ describe("Run sandbox controller", () => {
     expect(state.lastEvents.map((event) => event.type)).toContain("RunCreated");
   });
 
+  it("clears submitted request ids when the sandbox resets", () => {
+    const controller = createRunSandboxController("run-controller-reset-request-ids");
+    const node = firstAvailableNode(controller, (type) => type === "combat");
+
+    expect(node).toBeDefined();
+    expect(controller.selectMapNode(node!.id, controller.getRevision(), "map-select-reused").ok).toBe(true);
+
+    controller.reset();
+    const resetNode = firstAvailableNode(controller, (type) => type === "combat");
+
+    expect(resetNode).toBeDefined();
+    expect(controller.selectMapNode(resetNode!.id, controller.getRevision(), "map-select-reused").ok).toBe(true);
+  });
+
   it("selects an available combat node and starts combat with returned events", () => {
     const controller = createRunSandboxController("run-controller-combat");
     const result = startFirstCombat(controller);
