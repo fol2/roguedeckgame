@@ -27,6 +27,7 @@ export * from "./systems/class-modifiers";
 export * from "./systems/combat";
 export * from "./systems/content-index";
 export * from "./systems/content-schema";
+export * from "./systems/content-workbench";
 export * from "./systems/deck-economy";
 export * from "./systems/draw";
 export * from "./systems/effect-descriptors";
