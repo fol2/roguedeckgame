@@ -268,6 +268,20 @@ describe("CombatEventFxPresenter", () => {
     warning.mockRestore();
   });
 
+  it("warns and skips unknown future event visuals", async () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CombatEventFxPresenter(scene);
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    presenter.setViewModel(createViewModel());
+
+    await presenter.play({ type: "FutureEvent" } as never);
+
+    expect(warning).toHaveBeenCalledWith("CombatEventFxPresenter skipped unknown event visual: FutureEvent");
+    expect(records.lines).toEqual([]);
+    expect(records.texts).toEqual([]);
+    warning.mockRestore();
+  });
+
   it("uses the real hand card point for CardPlayed effects", async () => {
     const expectedCardPoint = getHandCardPosition(0, 2);
     const playedScene = createSceneStub();
@@ -370,7 +384,10 @@ describe("CombatEventFxPresenter", () => {
       cardInstanceId: petCommandCardInstanceId,
       cardId: cardId("fox_bite")
     })).resolves.toMatchObject({
-      lines: [expect.objectContaining({ x1: secondCardPoint.x, y1: secondCardPoint.y, x2: petPoint.x, y2: petPoint.y })],
+      lines: expect.arrayContaining([
+        expect.objectContaining({ x1: secondCardPoint.x, y1: secondCardPoint.y }),
+        expect.objectContaining({ x2: petPoint.x, y2: petPoint.y })
+      ]),
       texts: [expect.objectContaining({ text: "Command", x: petPoint.x, y: petPoint.y })]
     });
 
@@ -380,7 +397,6 @@ describe("CombatEventFxPresenter", () => {
     });
 
     await expect(playSingleEvent({ type: "DamageDealt", sourceId: playerId, targetId: monsterId, amount: 6, blocked: 0 })).resolves.toMatchObject({
-      lines: [expect.objectContaining({ x1: playerPoint.x, y1: playerPoint.y, x2: monsterPoint.x, y2: monsterPoint.y })],
       circles: [expect.objectContaining({ x: monsterPoint.x, y: monsterPoint.y, radius: MONSTER_SLOT.intentRadius / 2 })],
       texts: [expect.objectContaining({ text: "-6", x: monsterPoint.x, y: monsterPoint.y })]
     });
@@ -436,9 +452,9 @@ describe("CombatEventFxPresenter", () => {
       monsterId,
       intentId: monsterIntentId("training_slime_attack")
     })).resolves.toMatchObject({
-      lines: [expect.objectContaining({ x1: monsterPoint.x, y1: monsterPoint.y, x2: playerPoint.x, y2: playerPoint.y })],
-      circles: [expect.objectContaining({ x: playerPoint.x, y: playerPoint.y, radius: MONSTER_SLOT.intentRadius / 2 })],
-      texts: [expect.objectContaining({ text: "Attack", x: playerPoint.x, y: playerPoint.y })]
+      lines: [],
+      circles: [expect.objectContaining({ x: monsterPoint.x, y: monsterPoint.y })],
+      texts: [expect.objectContaining({ text: "Resolve", x: monsterPoint.x, y: monsterPoint.y - 20 })]
     });
 
     await expect(playSingleEvent({

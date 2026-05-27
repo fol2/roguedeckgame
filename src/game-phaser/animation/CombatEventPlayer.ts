@@ -33,7 +33,8 @@ export class CombatEventPlayer {
     private readonly eventLog: EventLogPresenter,
     private readonly fxPresenter?: CombatEventFxPresenter,
     private readonly onEventPlayed: (event: GameEvent) =>
-      void | CombatPlaybackFallbackObservation | Promise<void | CombatPlaybackFallbackObservation> = () => undefined
+      void | CombatPlaybackFallbackObservation | Promise<void | CombatPlaybackFallbackObservation> = () => undefined,
+    private readonly onEventVisualStarted: (event: GameEvent) => void = () => undefined
   ) {}
 
   public getPlaybackObservations(): readonly CombatPlaybackObservation[] {
@@ -155,6 +156,7 @@ export class CombatEventPlayer {
             console.warn(`CombatEventPlayer skipped unknown event visual: ${event.type}`);
           }
           this.eventLog.append(formatCombatEventMessage(event));
+          this.onEventVisualStarted(event as GameEvent);
           let outcome: CombatPlaybackOutcome = policy ? "completed" : "skippedUnknown";
           let fallbackUsed = !policy;
           let warningCode = observation.warningCode;

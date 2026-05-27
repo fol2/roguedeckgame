@@ -2,7 +2,7 @@ import type { GameObjects, Scene } from "phaser";
 import type { CardInstanceId, CardPile, GameEvent } from "../../game-core";
 import { COMBAT_UI_CAPS, type CombatCardViewModel } from "../view-models/combat-view-model";
 import { DISCARD_PILE, DRAW_PILE } from "../layout/combat-layout";
-import { CARD_SIZE, CARD_TEXT, HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
+import { CARD_FRAME_ZONES, CARD_SIZE, CARD_TEXT, HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
 import { TOOLTIP_DELAYS_MS, type CombatTooltip } from "./CombatOverlayPresenter";
 import type { CombatParityCardSnapshot } from "../debug/combat-parity";
 
@@ -298,7 +298,10 @@ export class CardPresenter {
     const isHovered = this.renderOptions.hoveredCardId === card.cardInstanceId;
     const disabled = this.locked || !card.playable || visual.moving;
     const borderColour = card.isPetCommand ? 0xffb35b : card.type === "attack" ? 0x7dd3fc : 0xa7f3d0;
-    const fillColour = disabled ? 0x2f3540 : card.isPetCommand ? 0x4a321f : 0x263f4e;
+    const fillColour = disabled ? 0x2f3540 : card.isPetCommand ? 0x4a321f : card.type === "attack" ? 0x3b3328 : 0x263f4e;
+    const titleBandColour = card.isPetCommand ? 0x5a351d : 0x1a2432;
+    const rulesBoxColour = card.isPetCommand ? 0x2b241d : 0x152131;
+    const badgeLabel = card.isPetCommand ? "PAW" : card.type.toUpperCase().slice(0, 4);
     const strokeWidth = isSelected ? 4 : isHovered ? 3 : 2;
     const group = visual.container;
 
@@ -419,7 +422,10 @@ export class CardPresenter {
 
     group.add(this.scene.add.rectangle(0, 0, CARD_SIZE.width, CARD_SIZE.height, fillColour, 1)
       .setStrokeStyle(strokeWidth, disabled ? 0x687386 : borderColour));
-    group.add(this.scene.add.rectangle(-CARD_SIZE.width / 2 + CARD_TEXT.costInsetX, -CARD_SIZE.height / 2 + CARD_TEXT.topPadding + 6, 26, 26, 0x151923, 1)
+    group.add(this.scene.add.rectangle(-CARD_SIZE.width / 2 + 3, 0, 5, CARD_SIZE.height - 10, borderColour, disabled ? 0.25 : 0.72));
+    group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.titleBand.x, CARD_FRAME_ZONES.titleBand.y, CARD_FRAME_ZONES.titleBand.width, CARD_FRAME_ZONES.titleBand.height, titleBandColour, 1)
+      .setStrokeStyle(1, disabled ? 0x687386 : borderColour, 0.55));
+    group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.costSocket.x, CARD_FRAME_ZONES.costSocket.y, CARD_FRAME_ZONES.costSocket.width, CARD_FRAME_ZONES.costSocket.height, 0x151923, 1)
       .setStrokeStyle(2, disabled ? 0x687386 : 0xffd166));
     group.add(this.scene.add.text(-CARD_SIZE.width / 2 + CARD_TEXT.costInsetX, -CARD_SIZE.height / 2 + CARD_TEXT.topPadding - 1, String(card.cost), {
       color: disabled ? "#aab4c5" : "#ffd166",
@@ -432,13 +438,24 @@ export class CardPresenter {
       fontSize: CARD_TEXT.fontSize.name,
       wordWrap: { width: CARD_SIZE.width - CARD_TEXT.nameWrapPadding }
     }));
-    group.add(this.scene.add.text(-CARD_SIZE.width / 2 + CARD_TEXT.leftPadding, CARD_TEXT.typeY, card.isPetCommand ? "PET-CMD" : card.type.toUpperCase(), {
+    group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.familyBadge.x, CARD_FRAME_ZONES.familyBadge.y, CARD_FRAME_ZONES.familyBadge.width, CARD_FRAME_ZONES.familyBadge.height, 0x151923, 1)
+      .setStrokeStyle(1, disabled ? 0x687386 : borderColour));
+    group.add(this.scene.add.text(CARD_FRAME_ZONES.familyBadge.x, CARD_FRAME_ZONES.familyBadge.y - 5, badgeLabel, {
       color: card.isPetCommand ? "#ffcf8a" : "#8fd6b5",
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.type
-    }));
-    group.add(this.scene.add.rectangle(0, CARD_TEXT.artY, CARD_SIZE.width - CARD_TEXT.textWrapPadding, 30, 0x1a2432, 1)
+    }).setOrigin(0.5, 0));
+    if (card.isPetCommand) {
+      group.add(this.scene.add.text(CARD_FRAME_ZONES.familyBadge.x + 28, CARD_FRAME_ZONES.familyBadge.y - 5, "CMD", {
+        color: "#ffc36b",
+        fontFamily: "Inter, sans-serif",
+        fontSize: CARD_TEXT.fontSize.type
+      }).setOrigin(0.5, 0));
+    }
+    group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.artWindow.x, CARD_FRAME_ZONES.artWindow.y, CARD_FRAME_ZONES.artWindow.width, CARD_FRAME_ZONES.artWindow.height, 0x1a2432, 1)
       .setStrokeStyle(1, 0x5f6f89));
+    group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.rulesTextBox.x, CARD_FRAME_ZONES.rulesTextBox.y, CARD_FRAME_ZONES.rulesTextBox.width, CARD_FRAME_ZONES.rulesTextBox.height, rulesBoxColour, 0.65)
+      .setStrokeStyle(1, disabled ? 0x3a4352 : 0x5f6f89, 0.6));
     group.add(this.scene.add.text(-CARD_SIZE.width / 2 + CARD_TEXT.leftPadding, CARD_TEXT.descriptionY, getCardPreviewDescription(card.description), {
       color: disabled ? "#8d98aa" : "#c4d0df",
       fontFamily: "Inter, sans-serif",
@@ -483,6 +500,10 @@ export class CardPresenter {
     if (isSelected) {
       group.add(this.scene.add.rectangle(0, 0, CARD_SIZE.width + 8, CARD_SIZE.height + 8, 0xffb35b, 0)
         .setStrokeStyle(2, 0xffe0a3));
+    }
+    if (!card.playable) {
+      group.add(this.scene.add.rectangle(0, 0, CARD_SIZE.width, CARD_SIZE.height, 0x10151f, 0.42)
+        .setStrokeStyle(1, 0x687386, 0.7));
     }
   }
 

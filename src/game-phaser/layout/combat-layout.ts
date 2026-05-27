@@ -119,12 +119,11 @@ export const MONSTER_SLOT = {
   spriteHeight: 110,
   intentY: -112,
   intentRadius: 25,
-  plannedCardY: -118,
-  plannedCardWidth: 126,
-  plannedCardHeight: 68,
-  plannedCardTitleY: -136,
-  plannedCardTypeY: -118,
-  plannedCardAmountY: -100,
+  intentTokenY: -118,
+  intentTokenWidth: 70,
+  intentTokenHeight: 46,
+  intentGlyphY: -124,
+  intentAmountY: -106,
   nameY: -70,
   hpBarY: 54,
   hpBarWidth: 118,
@@ -140,8 +139,7 @@ export const MONSTER_SLOT = {
     hp: "12px",
     intent: "12px",
     amount: "13px",
-    plannedTitle: "11px",
-    plannedType: "10px",
+    intentGlyph: "10px",
     status: "10px"
   }
 } as const;

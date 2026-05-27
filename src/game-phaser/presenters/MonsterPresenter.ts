@@ -2,6 +2,7 @@ import type { GameObjects, Scene } from "phaser";
 import type { CombatantId } from "../../game-core";
 import {
   COMBAT_UI_CAPS,
+  type CombatIntentTokenViewModel,
   type CombatantStatusViewModel,
   type CombatantViewModel,
   type MonsterIntentViewModel
@@ -9,10 +10,19 @@ import {
 import { getMonsterPosition, MONSTER_SLOT } from "../layout/combat-layout";
 import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from "./CombatOverlayPresenter";
 import type { CombatParityCombatantSnapshot } from "../debug/combat-parity";
+import { resolveCombatDetailCopy, resolveCombatTooltipCopy } from "../assets/combat-fallback-assets";
+import {
+  getEnemyTargetRingStyle,
+  resolveEnemyTargetVisualState,
+  type EnemyTargetVisualState
+} from "./combat-visual-states";
 
 type MonsterRenderOptions = {
   readonly validTargetIds?: readonly CombatantId[];
-  readonly selectedTargetId?: CombatantId;
+  readonly focusedTargetId?: CombatantId;
+  readonly hoveredTargetId?: CombatantId;
+  readonly submittedTargetId?: CombatantId;
+  readonly impactTargetId?: CombatantId;
   readonly locked?: boolean;
 };
 
@@ -67,8 +77,28 @@ const parseMonsterHpLabel = (
   };
 };
 
-const formatPlannedCardTitle = (title: string): string =>
-  title.length > 18 ? `${title.slice(0, 15)}...` : title;
+const getIntentTokenGlyph = (token: CombatIntentTokenViewModel | undefined): string => {
+  if (!token || token.visibility === "unknown" || token.visibility === "none") {
+    return "?";
+  }
+
+  switch (token.kind) {
+    case "attack":
+      return "ATK";
+    case "defend":
+      return "BLK";
+    case "buff":
+      return "UP";
+    case "debuff":
+      return "HEX";
+    case "special":
+      return "SP";
+    case "charging":
+      return "...";
+    case "unknown":
+      return "?";
+  }
+};
 
 export class MonsterPresenter {
   private readonly container: GameObjects.Container;
@@ -76,18 +106,21 @@ export class MonsterPresenter {
   private readonly onSelected: (monsterId: CombatantId) => void;
   private readonly onTooltipChanged: (tooltip?: CombatTooltip) => void;
   private readonly onInspect: (detail: CombatDetailPanel) => void;
+  private readonly onHoverChanged: (monsterId?: CombatantId) => void;
   private latestParitySnapshot: readonly CombatParityCombatantSnapshot[] = [];
 
   public constructor(
     scene: Scene,
     onSelected: (monsterId: CombatantId) => void = () => undefined,
     onTooltipChanged: (tooltip?: CombatTooltip) => void = () => undefined,
-    onInspect: (detail: CombatDetailPanel) => void = () => undefined
+    onInspect: (detail: CombatDetailPanel) => void = () => undefined,
+    onHoverChanged: (monsterId?: CombatantId) => void = () => undefined
   ) {
     this.scene = scene;
     this.onSelected = onSelected;
     this.onTooltipChanged = onTooltipChanged;
     this.onInspect = onInspect;
+    this.onHoverChanged = onHoverChanged;
     this.container = scene.add.container(0, 0);
   }
 
@@ -103,11 +136,13 @@ export class MonsterPresenter {
       const position = getMonsterPosition(index, monsters.length);
       const intent = intents.find((candidate) => candidate.monsterId === monster.id);
       const valid = options.validTargetIds?.includes(monster.id) ?? false;
-      const selected = options.selectedTargetId === monster.id;
+      const focused = options.focusedTargetId === monster.id;
+      const hovered = options.hoveredTargetId === monster.id;
+      const submitted = options.submittedTargetId === monster.id;
+      const impact = options.impactTargetId === monster.id;
+      const targetState = resolveEnemyTargetVisualState({ valid, focused, hovered, submitted, impact });
       const group = this.scene.add.container(position.x, position.y);
       const hpFill = monster.maxHp > 0 ? Math.max(0, Math.min(1, monster.hp / monster.maxHp)) : 0;
-      const ringStroke = selected ? 4 : valid ? 3 : 1;
-      const ringAlpha = selected ? 0.85 : valid ? 0.5 : 0.2;
 
       group.setSize(MONSTER_SLOT.width, MONSTER_SLOT.height);
       if (!options.locked && monster.alive) {
@@ -120,6 +155,9 @@ export class MonsterPresenter {
 
           this.onSelected(monster.id);
         });
+        group.on("pointerover", () => this.onHoverChanged(monster.id));
+        group.on("pointermove", () => this.onHoverChanged(monster.id));
+        group.on("pointerout", () => this.onHoverChanged(undefined));
       }
       const hitZoneHeight = MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2 - MONSTER_SLOT.intentY + MONSTER_SLOT.intentRadius;
       const hitZoneY = (MONSTER_SLOT.intentY - MONSTER_SLOT.intentRadius + MONSTER_SLOT.statusY + MONSTER_SLOT.statusSize / 2) / 2;
@@ -134,57 +172,13 @@ export class MonsterPresenter {
 
           this.onSelected(monster.id);
         });
+        hitZone.on("pointerover", () => this.onHoverChanged(monster.id));
+        hitZone.on("pointermove", () => this.onHoverChanged(monster.id));
+        hitZone.on("pointerout", () => this.onHoverChanged(undefined));
       }
       group.add(hitZone);
-      group.add(this.scene.add.ellipse(0, MONSTER_SLOT.targetRingY, MONSTER_SLOT.targetRingWidth, MONSTER_SLOT.targetRingHeight, 0xffb35b, 0)
-        .setStrokeStyle(ringStroke, selected || valid ? 0xffb35b : 0x7b8495, ringAlpha));
-      const showIntentTooltip = (): void => this.onTooltipChanged({
-        title: intent?.tooltip.title ?? "Unknown intent",
-        body: intent?.tooltip.body ?? "No details available yet.",
-        x: position.x,
-        y: position.y + MONSTER_SLOT.intentY,
-        delayMs: TOOLTIP_DELAYS_MS.statusIntent
-      });
-      const plannedCard = this.scene.add.rectangle(0, MONSTER_SLOT.plannedCardY, MONSTER_SLOT.plannedCardWidth, MONSTER_SLOT.plannedCardHeight, 0x271923, 1)
-        .setStrokeStyle(2, intent?.plannedAction.source === "plannedAbility" ? 0xff9aad : 0x8f7180);
-      plannedCard.setInteractive();
-      plannedCard.on("pointerover", showIntentTooltip);
-      plannedCard.on("pointermove", showIntentTooltip);
-      plannedCard.on("pointerout", () => this.onTooltipChanged(undefined));
-      plannedCard.on("pointerup", (pointer: PointerLike) => {
-        if (pointer.button === 2 || pointer.rightButtonDown?.() === true) {
-          this.onInspect(intent?.detail ?? {
-            title: "Unknown intent",
-            subtitle: monster.name,
-            lines: ["No details available yet."],
-            footer: "Intent detail."
-          });
-          return;
-        }
-
-        if (!options.locked && monster.alive) {
-          this.onSelected(monster.id);
-        }
-      });
-      group.add(plannedCard);
-      const plannedTitle = formatPlannedCardTitle(intent?.plannedAction.title ?? "Unknown");
-      group.add(this.scene.add.text(0, MONSTER_SLOT.plannedCardTitleY, plannedTitle, {
-        color: "#ffe4ec",
-        fontFamily: "Inter, sans-serif",
-        fontSize: MONSTER_SLOT.fontSize.plannedTitle
-      }).setOrigin(0.5));
-      group.add(this.scene.add.text(0, MONSTER_SLOT.plannedCardTypeY, intent?.type === "attack" ? "ATK" : intent?.type.toUpperCase().slice(0, 3) ?? "?", {
-        color: "#ffd1dc",
-        fontFamily: "Inter, sans-serif",
-        fontSize: MONSTER_SLOT.fontSize.plannedType
-      }).setOrigin(0.5));
-      if (intent?.amount !== undefined) {
-        group.add(this.scene.add.text(0, MONSTER_SLOT.plannedCardAmountY, String(intent.amount), {
-          color: "#ffe0a3",
-          fontFamily: "Inter, sans-serif",
-          fontSize: MONSTER_SLOT.fontSize.amount
-        }).setOrigin(0.5));
-      }
+      this.renderTargetRing(group, targetState);
+      this.renderIntentToken(group, monster, intent, position, options.locked ?? false);
       group.add(this.scene.add.text(0, MONSTER_SLOT.nameY, monster.name, {
         color: "#f6f1e8",
         fontFamily: "Inter, sans-serif",
@@ -248,5 +242,106 @@ export class MonsterPresenter {
 
   public getParitySnapshot(): readonly CombatParityCombatantSnapshot[] {
     return this.latestParitySnapshot;
+  }
+
+  private renderTargetRing(group: GameObjects.Container, state: EnemyTargetVisualState): void {
+    const style = getEnemyTargetRingStyle(state);
+    if (state === "hidden") {
+      return;
+    }
+
+    group.add(this.scene.add.ellipse(
+      0,
+      MONSTER_SLOT.targetRingY,
+      MONSTER_SLOT.targetRingWidth * style.pulseScale,
+      MONSTER_SLOT.targetRingHeight * style.pulseScale,
+      style.strokeColour,
+      0
+    ).setStrokeStyle(style.strokeWidth, style.strokeColour, style.alpha));
+  }
+
+  private renderIntentToken(
+    group: GameObjects.Container,
+    monster: CombatantViewModel,
+    intent: MonsterIntentViewModel | undefined,
+    position: { readonly x: number; readonly y: number },
+    locked: boolean
+  ): void {
+    const token = intent?.token;
+    const tokenColour = token?.kind === "attack"
+      ? 0x5a2330
+      : token?.kind === "defend"
+        ? 0x263f4e
+        : token?.kind === "debuff"
+          ? 0x3a284b
+          : 0x2f2415;
+    const tokenStroke = token?.visibility === "unknown" ? 0xaab4c5 : 0xff9aad;
+    const showIntentTooltip = (): void => {
+      const tooltip = resolveCombatTooltipCopy(token?.tooltip ?? {
+        title: "Unknown intent"
+      });
+      this.onTooltipChanged({
+        title: tooltip.title,
+        body: tooltip.body,
+        x: position.x,
+        y: position.y + MONSTER_SLOT.intentTokenY,
+        delayMs: TOOLTIP_DELAYS_MS.statusIntent
+      });
+    };
+    const inspectIntent = (): void => this.onInspect(token?.detail ?? resolveCombatDetailCopy({
+      title: "Unknown intent",
+      subtitle: monster.name,
+      footer: "Intent detail."
+    }));
+    const isRightClick = (pointer: PointerLike): boolean =>
+      pointer.button === 2 || pointer.rightButtonDown?.() === true;
+    let inspectedOnPointerDown = false;
+    const tokenBody = this.scene.add.ellipse(0, MONSTER_SLOT.intentTokenY, MONSTER_SLOT.intentTokenWidth, MONSTER_SLOT.intentTokenHeight, tokenColour, 1)
+      .setStrokeStyle(2, tokenStroke, token?.visibility === "unknown" ? 0.65 : 0.9);
+    tokenBody.setInteractive();
+    tokenBody.on("pointerover", () => {
+      this.onHoverChanged(monster.id);
+      showIntentTooltip();
+    });
+    tokenBody.on("pointermove", () => {
+      this.onHoverChanged(monster.id);
+      showIntentTooltip();
+    });
+    tokenBody.on("pointerout", () => {
+      this.onHoverChanged(undefined);
+      this.onTooltipChanged(undefined);
+    });
+    tokenBody.on("pointerdown", (pointer: PointerLike) => {
+      if (isRightClick(pointer)) {
+        inspectedOnPointerDown = true;
+        inspectIntent();
+      }
+    });
+    tokenBody.on("pointerup", (pointer: PointerLike) => {
+      if (isRightClick(pointer)) {
+        if (!inspectedOnPointerDown) {
+          inspectIntent();
+        }
+        inspectedOnPointerDown = false;
+        return;
+      }
+
+      if (!locked && monster.alive) {
+        this.onSelected(monster.id);
+      }
+    });
+    group.add(tokenBody);
+    group.add(this.scene.add.text(0, MONSTER_SLOT.intentGlyphY, getIntentTokenGlyph(token), {
+      color: token?.visibility === "unknown" ? "#d5dce8" : "#ffe4ec",
+      fontFamily: "Inter, sans-serif",
+      fontSize: MONSTER_SLOT.fontSize.intentGlyph
+    }).setOrigin(0.5));
+    if (token?.amountLabel) {
+      group.add(this.scene.add.text(0, MONSTER_SLOT.intentAmountY, token.amountLabel, {
+        color: "#ffe0a3",
+        fontFamily: "Inter, sans-serif",
+        fontSize: MONSTER_SLOT.fontSize.amount
+      }).setOrigin(0.5));
+    }
   }
 }

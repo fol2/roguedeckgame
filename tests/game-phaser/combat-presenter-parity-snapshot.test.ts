@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { combatantId, type CombatantId } from "../../src/game-core";
 import { CombatHudPresenter } from "../../src/game-phaser/presenters/CombatHudPresenter";
 import { MonsterPresenter } from "../../src/game-phaser/presenters/MonsterPresenter";
+import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
 import type { CombatViewModel, CombatantViewModel } from "../../src/game-phaser/view-models/combat-view-model";
 
 type Handler = (...args: unknown[]) => void;
@@ -98,16 +99,37 @@ const createCombatViewModel = (): CombatViewModel => ({
     amount: 6,
     tooltip: { title: "Clumsy Strike", body: "Attack the Keeper." },
     detail: {
-      title: "Clumsy Strike",
-      subtitle: "Training Slime · attack planned card",
-      lines: ["Attack the Keeper."],
-      footer: "Monster planned card detail."
+      title: "Attack",
+      subtitle: "Enemy intent",
+      lines: ["Attack the Keeper.", "Damage: 6", "Target: Keeper"],
+      footer: "Intent detail."
+    },
+    token: {
+      monsterId: combatantId("monster"),
+      visibility: "exact",
+      kind: "attack",
+      iconKey: CombatAssetKeys.icons.intentAttack,
+      amountLabel: "6",
+      targetHint: "keeper",
+      tooltip: { title: "Attack", body: "This enemy is preparing to attack the Keeper.\nDamage: 6" },
+      detail: {
+        title: "Attack",
+        subtitle: "Enemy intent",
+        lines: ["Attack the Keeper.", "Damage: 6", "Target: Keeper"],
+        footer: "Intent detail."
+      },
+      debug: {
+        source: "plannedAbility",
+        abilityId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["abilityId"],
+        intentId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["intentId"],
+        tags: ["attack"]
+      }
     },
     plannedAction: {
       source: "plannedAbility",
       revealPolicy: "exact",
       title: "Clumsy Strike",
-      subtitle: "attack planned card",
+      subtitle: "attack debug plan",
       abilityId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["abilityId"],
       intentId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["intentId"],
       intentType: "attack",
@@ -180,7 +202,7 @@ describe("combat presenter parity snapshots", () => {
     }]);
   });
 
-  it("renders monster intent metadata as a planned action card", () => {
+  it("renders monster intent metadata as a compact token", () => {
     const scene = createSceneStub();
     const presenter = new MonsterPresenter(scene);
     const viewModel = createCombatViewModel();
@@ -190,15 +212,76 @@ describe("combat presenter parity snapshots", () => {
     const created = (scene as unknown as { readonly created: readonly { readonly kind: string; readonly text?: string }[] }).created;
     expect(created).toContainEqual(expect.objectContaining({
       kind: "text",
-      text: "Clumsy Strike"
+      text: "ATK"
     }));
     expect(created).toContainEqual(expect.objectContaining({
       kind: "text",
-      text: "ATK"
+      text: "6"
     }));
   });
 
-  it("keeps long planned action titles inside the monster card label", () => {
+  it("opens clean intent detail from right-clicking the compact token", () => {
+    const scene = createSceneStub();
+    const onSelected = vi.fn();
+    const onInspect = vi.fn();
+    const presenter = new MonsterPresenter(scene, onSelected, vi.fn(), onInspect);
+    const viewModel = createCombatViewModel();
+
+    presenter.render(viewModel.monsters, viewModel.monsterIntents);
+
+    const created = (scene as unknown as {
+      readonly created: readonly {
+        readonly kind: string;
+        readonly handlers: Record<string, readonly Handler[]>;
+      }[];
+    }).created;
+    const tokenBody = created.find((object) =>
+      object.kind === "ellipse" && object.handlers.pointerdown && object.handlers.pointerup
+    );
+
+    expect(tokenBody).toBeDefined();
+    tokenBody?.handlers.pointerdown?.[0]?.({ button: 2 });
+    tokenBody?.handlers.pointerup?.[0]?.({ button: 2 });
+
+    expect(onInspect).toHaveBeenCalledTimes(1);
+    expect(onInspect).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Attack",
+      lines: expect.not.arrayContaining([
+        expect.stringMatching(/Reveal policy|Metadata source|Intent ID/)
+      ])
+    }));
+    expect(onSelected).not.toHaveBeenCalled();
+  });
+
+  it("uses centralized detail fallback copy when intent data is missing", () => {
+    const scene = createSceneStub();
+    const onInspect = vi.fn();
+    const presenter = new MonsterPresenter(scene, vi.fn(), vi.fn(), onInspect);
+    const viewModel = createCombatViewModel();
+
+    presenter.render(viewModel.monsters, []);
+
+    const created = (scene as unknown as {
+      readonly created: readonly {
+        readonly kind: string;
+        readonly handlers: Record<string, readonly Handler[]>;
+      }[];
+    }).created;
+    const tokenBody = created.find((object) =>
+      object.kind === "ellipse" && object.handlers.pointerdown && object.handlers.pointerup
+    );
+
+    tokenBody?.handlers.pointerdown?.[0]?.({ button: 2 });
+
+    expect(onInspect).toHaveBeenCalledWith({
+      title: "Unknown intent",
+      subtitle: "Training Slime",
+      lines: ["No details available yet."],
+      footer: "Intent detail."
+    });
+  });
+
+  it("renders unknown intent tokens without missing-data copy", () => {
     const scene = createSceneStub();
     const presenter = new MonsterPresenter(scene);
     const viewModel = createCombatViewModel();
@@ -206,16 +289,18 @@ describe("combat presenter parity snapshots", () => {
 
     presenter.render(viewModel.monsters, [{
       ...monsterIntent,
-      plannedAction: {
-        ...monsterIntent.plannedAction,
-        title: "Very Long Monster Planned Action"
+      token: {
+        ...monsterIntent.token,
+        visibility: "unknown",
+        kind: "unknown",
+        amountLabel: undefined
       }
     }]);
 
     const created = (scene as unknown as { readonly created: readonly { readonly kind: string; readonly text?: string }[] }).created;
     expect(created).toContainEqual(expect.objectContaining({
       kind: "text",
-      text: "Very Long Monst..."
+      text: "?"
     }));
   });
 });

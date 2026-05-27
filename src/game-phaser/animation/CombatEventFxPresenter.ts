@@ -10,12 +10,13 @@ import {
   PLAYER_HUD_AREA,
   getMonsterPosition
 } from "../layout/combat-layout";
+import { COMBAT_ANIMATION_DURATIONS, COMBAT_PLACEHOLDER_COLOURS } from "../layout/combat-ui-tokens";
 import { HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
 import { getPetSlotPosition } from "../layout/pet-layout";
 import type { CombatViewModel } from "../view-models/combat-view-model";
 
-const FX_DURATION_MS = 170;
-const FLOAT_DISTANCE = 24;
+const FX_DURATION_MS = COMBAT_ANIMATION_DURATIONS.eventFxMs;
+const FLOAT_DISTANCE = COMBAT_ANIMATION_DURATIONS.popupFloatDistance;
 
 type Point = {
   readonly x: number;
@@ -91,12 +92,45 @@ export class CombatEventFxPresenter {
 
     switch (event.type) {
       case "CardPlayed":
-        return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", 0xffd166);
+        return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", COMBAT_PLACEHOLDER_COLOURS.status);
       case "EnergySpent":
-        return this.playPulse(ENERGY_POINT, `-${event.amount}`, 0xffb35b);
+        return this.playPulse(ENERGY_POINT, `-${event.amount}`, COMBAT_PLACEHOLDER_COLOURS.commandThread);
       case "CardDrawn":
         return this.wait(0);
       case "CardMoved":
+        return this.wait(0);
+      case "RunCombatStarted":
+      case "RunCombatCompleted":
+      case "RunEnded":
+      case "CombatStarted":
+      case "TurnStarted":
+      case "TurnEnded":
+      case "CardCostModified":
+      case "CardCreated":
+      case "CardRetained":
+      case "EnergyGained":
+      case "PetModifierConsumed":
+      case "RewardOffered":
+      case "RewardSelected":
+      case "RewardSkipped":
+      case "CardRewardAdded":
+      case "RunDeckCardUpgraded":
+      case "RunDeckCardRemoved":
+      case "RunDeckCardTransformed":
+      case "PetUpgradeUnlocked":
+      case "StoryFlagSet":
+      case "PetStoryEventCompleted":
+      case "PetMemoryUnlocked":
+      case "PetBondXpAdded":
+      case "PetStoryFlagSet":
+      case "PetEvolutionNodeUnlocked":
+      case "StoryEventSeen":
+      case "SaveSnapshotCreated":
+      case "SaveSnapshotMigrated":
+      case "SaveSlotWritten":
+      case "SaveSlotLoaded":
+      case "SaveSlotDeleted":
+      case "ValidationWarning":
         return this.wait(0);
       case "DeckShuffled":
         return this.playTrace(
@@ -106,60 +140,60 @@ export class CombatEventFxPresenter {
           0x7dd3fc
         );
       case "PetCommanded":
-        return this.playTrace(
+        return this.playCommandThread(
           this.getCardPoint(event.cardInstanceId, event.type),
           this.getPetPoint(event.petInstanceId, event.type),
           "Command",
-          0xffb35b
+          COMBAT_PLACEHOLDER_COLOURS.commandThread
         );
       case "PetReacted":
-        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.reaction, 0xffd166);
+        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.reaction, COMBAT_PLACEHOLDER_COLOURS.status);
       case "PetModifierActivated":
-        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.modifierId, 0xffd166);
+        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.modifierId, COMBAT_PLACEHOLDER_COLOURS.status);
       case "DamageDealt":
-        return this.playImpact(
-          this.getCombatantPoint(event.sourceId),
+        return this.playImpactAtTarget(
           this.getCombatantPoint(event.targetId),
           `-${event.amount}`,
-          0xff758f
+          COMBAT_PLACEHOLDER_COLOURS.impact
         );
       case "BlockGained":
-        return this.playPulse(this.getCombatantPoint(event.targetId), `+${event.amount} block`, 0x7dd3fc);
+        return this.playPulse(this.getCombatantPoint(event.targetId), `+${event.amount} block`, COMBAT_PLACEHOLDER_COLOURS.shield);
       case "StatusApplied":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} +${event.stacks}`, 0xffd166);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} +${event.stacks}`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusApplicationBlocked":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} blocked`, 0xaab4c5);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} blocked`, COMBAT_PLACEHOLDER_COLOURS.muted);
       case "StatusCleansed":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} cleansed`, 0x7dd3fc);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} cleansed`, COMBAT_PLACEHOLDER_COLOURS.shield);
       case "StatusConsumed":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} consumed`, 0xffd166);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} consumed`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusTicked":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} tick`, 0xff9aad);
       case "StatusDurationChanged":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} duration`, 0xffd166);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} duration`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusExpired":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} expired`, 0xaab4c5);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} expired`, COMBAT_PLACEHOLDER_COLOURS.muted);
       case "MonsterAbilityPlanned":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Intent", 0xff9aad);
       case "MonsterAbilityPlayed":
-        return this.playPulse(this.getCombatantPoint(event.monsterId), "Act", 0xffd166);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Act", COMBAT_PLACEHOLDER_COLOURS.status);
       case "MonsterIntentResolved":
-        return this.playImpact(this.getCombatantPoint(event.monsterId), PLAYER_POINT, "Attack", 0xff758f);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", COMBAT_PLACEHOLDER_COLOURS.status);
       case "MonsterIntentSet":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Intent", 0xff9aad);
       case "EnemyIntentVisibilityChanged":
         return this.playPulse(this.getCombatantPoint(event.monsterId), event.level, 0x7dd3fc);
       case "CombatantDefeated":
-        return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", 0xffd166);
+        return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", COMBAT_PLACEHOLDER_COLOURS.status);
       case "CombatEnded":
-        return this.playPopup(PLAYER_HUD_POINT, event.outcome === "won" ? "Victory" : "Defeat", 0xffd166);
+        return this.playPopup(PLAYER_HUD_POINT, event.outcome === "won" ? "Victory" : "Defeat", COMBAT_PLACEHOLDER_COLOURS.status);
       case "ActionRejected":
-        return this.playPopup(PLAYER_HUD_POINT, "Rejected", 0xff758f);
+        return this.playPopup(PLAYER_HUD_POINT, "Rejected", COMBAT_PLACEHOLDER_COLOURS.impact);
       case "PlayerClassModifierActivated":
-        return this.playPulse(PLAYER_HUD_POINT, event.modifierId, 0x7dd3fc);
+        return this.playPulse(PLAYER_HUD_POINT, event.modifierId, COMBAT_PLACEHOLDER_COLOURS.shield);
       case "TriggerQueueLimitReached":
-        return this.playPopup(PLAYER_HUD_POINT, "Trigger limit", 0xff758f);
+        return this.playPopup(PLAYER_HUD_POINT, "Trigger limit", COMBAT_PLACEHOLDER_COLOURS.impact);
       default:
+        console.warn(`CombatEventFxPresenter skipped unknown event visual: ${event.type}`);
         return this.wait(FX_DURATION_MS);
     }
   }
@@ -292,6 +326,21 @@ export class CombatEventFxPresenter {
     return this.playPopup(to, label, colour);
   }
 
+  private playImpactAtTarget(to: Point, label: string, colour: number): Promise<void> {
+    const burst = this.scene.add.circle(to.x, to.y, MONSTER_SLOT.intentRadius / 2, colour, 0.35)
+      .setStrokeStyle(3, colour, 0.95);
+    this.container.add(burst);
+    this.scene.tweens.add({
+      targets: burst,
+      scale: 1.65,
+      alpha: 0,
+      duration: FX_DURATION_MS,
+      onComplete: () => burst.destroy()
+    });
+
+    return this.playPopup(to, label, colour);
+  }
+
   private playTrace(from: Point, to: Point, label: string, colour: number): Promise<void> {
     const line = this.scene.add.line(0, 0, from.x, from.y, to.x, to.y, colour, 0.9)
       .setOrigin(0, 0)
@@ -314,6 +363,53 @@ export class CombatEventFxPresenter {
     });
 
     return this.playPopup(to, label, colour);
+  }
+
+  private playCommandThread(from: Point, to: Point, label: string, colour: number): Promise<void> {
+    const points = this.sampleCommandCurve(from, to);
+    const lines = points.slice(1).map((point, index) => {
+      const previous = points[index]!;
+      return this.scene.add.line(0, 0, previous.x, previous.y, point.x, point.y, colour, 0.72)
+        .setOrigin(0, 0)
+        .setLineWidth(3);
+    });
+    const marker = this.scene.add.circle(from.x, from.y, 7, 0xffd166, 1);
+    this.container.add([...lines, marker]);
+    this.scene.tweens.add({
+      targets: marker,
+      x: to.x,
+      y: to.y,
+      duration: FX_DURATION_MS,
+      onComplete: () => marker.destroy()
+    });
+    this.scene.tweens.add({
+      targets: lines,
+      alpha: 0,
+      delay: FX_DURATION_MS / 2,
+      duration: FX_DURATION_MS / 2,
+      onComplete: () => lines.forEach((line) => line.destroy())
+    });
+
+    return this.playPopup(to, label, colour);
+  }
+
+  private sampleCommandCurve(from: Point, to: Point): readonly Point[] {
+    const control = {
+      x: from.x + (to.x - from.x) * 0.38,
+      y: Math.min(from.y, to.y) - 84
+    };
+    const points: Point[] = [];
+
+    for (let index = 0; index <= 16; index += 1) {
+      const t = index / 16;
+      const inverse = 1 - t;
+      points.push({
+        x: inverse * inverse * from.x + 2 * inverse * t * control.x + t * t * to.x,
+        y: inverse * inverse * from.y + 2 * inverse * t * control.y + t * t * to.y
+      });
+    }
+
+    return points;
   }
 
   private wait(duration: number): Promise<void> {

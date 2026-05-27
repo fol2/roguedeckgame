@@ -33,9 +33,12 @@ import type { CardType } from "../../game-core/model/card";
 import type { EffectDefinition } from "../../game-core/model/effect";
 import type { MonsterAbilityDefinition, MonsterDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
+import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
+import { COMBAT_UI_CAPS } from "../layout/combat-ui-caps";
 import { buildCombatPileViewModel } from "./combat-pile-view-model";
 
 export type { CardPlayMode, CardTargetKind } from "../../game-core";
+export { COMBAT_UI_CAPS } from "../layout/combat-ui-caps";
 
 export type CombatSandboxState = {
   readonly run: RunState;
@@ -110,6 +113,34 @@ export type CombatantViewModel = {
   readonly detail: CombatDetailCopyViewModel;
 };
 
+export type IntentVisibilityDisplayLevel =
+  | "none"
+  | "unknown"
+  | "category"
+  | "rough"
+  | "exact"
+  | "scoped";
+
+export type CombatIntentTargetHint = "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
+
+export type CombatIntentTokenViewModel = {
+  readonly monsterId: CombatantId;
+  readonly visibility: IntentVisibilityDisplayLevel;
+  readonly kind: "attack" | "defend" | "buff" | "debuff" | "special" | "unknown" | "charging";
+  readonly iconKey: CombatAssetKey;
+  readonly amountLabel?: string;
+  readonly strengthLabel?: "Low" | "Med" | "High";
+  readonly targetHint?: CombatIntentTargetHint;
+  readonly tooltip: CombatTooltipCopyViewModel;
+  readonly detail: CombatDetailCopyViewModel;
+  readonly debug?: {
+    readonly source?: MonsterPlannedActionViewModel["source"];
+    readonly abilityId?: MonsterAbilityId;
+    readonly intentId?: MonsterIntentId;
+    readonly tags?: readonly string[];
+  };
+};
+
 export type MonsterIntentViewModel = {
   readonly monsterId: CombatantId;
   readonly intentId: MonsterIntentId;
@@ -117,11 +148,12 @@ export type MonsterIntentViewModel = {
   readonly type: MonsterIntentType | "intent";
   readonly label: string;
   readonly description: string;
-  readonly targetHint: "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
+  readonly targetHint: CombatIntentTargetHint;
   readonly amount?: number;
   readonly visibilityLevel: IntentVisibilityLevel;
   readonly tooltip: CombatTooltipCopyViewModel;
   readonly detail: CombatDetailCopyViewModel;
+  readonly token: CombatIntentTokenViewModel;
   readonly plannedAction: MonsterPlannedActionViewModel;
 };
 
@@ -203,16 +235,6 @@ export type CombatViewModel = {
   };
 };
 
-export const COMBAT_UI_CAPS = {
-  maxHandCards: 10,
-  maxEnemies: 3,
-  maxPetSlots: 3,
-  maxEnemyVisibleStatuses: 4,
-  maxPlayerVisibleStatuses: 5,
-  maxPetVisibleStatuses: 3,
-  maxCardVisibleTags: 4
-} as const;
-
 const findCard = (content: ContentContext, cardId: CardId) =>
   content.index.cardsById.get(cardId);
 
@@ -237,13 +259,7 @@ const keywordCopyByTag: Readonly<Record<string, CombatKeywordExplanationViewMode
   setup: { keyword: "Setup", explanation: "Builds advantage for a later action or turn." },
   combo: { keyword: "Combo", explanation: "Rewards being combined with another card, tag, or status." },
   finisher: { keyword: "Finisher", explanation: "Has extra value when ending a fight or defeating a target." },
-  mark: { keyword: "Mark", explanation: "Flags a target for a later effect." },
-  keeper: { keyword: "Keeper", explanation: "Belongs to the Ashbound Keeper class kit." },
-  scout: { keyword: "Scout", explanation: "Improves information or helps read enemy plans." },
-  reveal: { keyword: "Reveal", explanation: "Improves Intent visibility for hidden or partial enemy plans." },
-  signal: { keyword: "Signal", explanation: "Represents field signs, hand cues, or tactical communication." },
-  scope: { keyword: "Scope", explanation: "Advanced read of elite or boss plan information." },
-  legacy: { keyword: "Legacy", explanation: "Kept for old traces, fixtures, or migration compatibility." }
+  mark: { keyword: "Mark", explanation: "Flags a target for a later effect." }
 };
 
 const keywordCopyByCardType: Readonly<Partial<Record<CardType, CombatKeywordExplanationViewModel>>> = {
@@ -387,16 +403,25 @@ const toCombatantViewModel = (combatant: CombatantState, content: ContentContext
   };
 };
 
-const getIntentAmount = (intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined): number | undefined => {
-  const damageAmounts = intentDefinition?.effects
-    .filter((effect): effect is Extract<EffectDefinition, { readonly type: "damage" }> => effect.type === "damage")
+const getIntentAmount = (
+  intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined,
+  intentType: MonsterIntentType | "intent"
+): number | undefined => {
+  const amountTypes: readonly EffectDefinition["type"][] =
+    intentType === "block" ? ["block", "petBlock"] :
+      intentType === "attack" ? ["damage", "petAttack"] :
+        [];
+  const amounts = intentDefinition?.effects
+    .filter((effect): effect is Extract<EffectDefinition, { readonly amount: number }> =>
+      amountTypes.includes(effect.type) && "amount" in effect
+    )
     .map((effect) => effect.amount) ?? [];
 
-  if (damageAmounts.length === 0) {
+  if (amounts.length === 0) {
     return undefined;
   }
 
-  return damageAmounts.reduce((sum, amount) => sum + amount, 0);
+  return amounts.reduce((sum, amount) => sum + amount, 0);
 };
 
 const getIntentTargetHint = (
@@ -522,7 +547,7 @@ const buildPlannedActionViewModel = (
       source: resolvedAbility.source,
       revealPolicy: visibilityLevel,
       title: resolvedAbility.ability.name,
-      subtitle: `${resolvedAbility.ability.intentType} planned card`,
+      subtitle: `${resolvedAbility.ability.intentType} intent debug`,
       abilityId: resolvedAbility.ability.id,
       intentId: intent.intentId,
       intentType: resolvedAbility.ability.intentType,
@@ -535,7 +560,7 @@ const buildPlannedActionViewModel = (
     source: intentDefinition ? "fallbackMetadata" : "unknown",
     revealPolicy: visibilityLevel,
     title: intentDefinition?.description ?? "Unknown planned action",
-    subtitle: `${intentDefinition?.type ?? "intent"} planned card`,
+    subtitle: `${intentDefinition?.type ?? "intent"} intent debug`,
     intentId: intent.intentId,
     intentType: intentDefinition?.type ?? "intent",
     tags: [],
@@ -641,6 +666,7 @@ const buildVisibleIntentCopy = (input: {
         : input.amount <= 8
           ? "moderate"
           : "heavy";
+
     return {
       abilityId: undefined,
       type: intentType,
@@ -716,6 +742,230 @@ const buildVisibleIntentCopy = (input: {
       intentType: "unknown",
       tags: [],
       effectLines: ["Intent hidden."]
+    }
+  };
+};
+
+const getIntentTokenKind = (
+  intentType: MonsterIntentType | "intent"
+): CombatIntentTokenViewModel["kind"] => {
+  switch (intentType) {
+    case "attack":
+      return "attack";
+    case "block":
+      return "defend";
+    case "buff":
+      return "buff";
+    case "debuff":
+      return "debuff";
+    case "charge":
+      return "charging";
+    case "special":
+      return "special";
+    case "unknown":
+    case "intent":
+      return "unknown";
+  }
+};
+
+const getIntentTitle = (kind: CombatIntentTokenViewModel["kind"]): string => {
+  switch (kind) {
+    case "attack":
+      return "Attack";
+    case "defend":
+      return "Guard";
+    case "buff":
+      return "Buff";
+    case "debuff":
+      return "Debuff";
+    case "special":
+      return "Special";
+    case "charging":
+      return "Charging";
+    case "unknown":
+      return "Unknown intent";
+  }
+};
+
+const getIntentGlyph = (kind: CombatIntentTokenViewModel["kind"]): string => {
+  switch (kind) {
+    case "attack":
+      return "ATK";
+    case "defend":
+      return "BLK";
+    case "buff":
+      return "UP";
+    case "debuff":
+      return "HEX";
+    case "special":
+      return "SP";
+    case "charging":
+      return "...";
+    case "unknown":
+      return "?";
+  }
+};
+
+const getIntentIconKey = (kind: CombatIntentTokenViewModel["kind"]): CombatAssetKey => {
+  switch (kind) {
+    case "attack":
+      return CombatAssetKeys.icons.intentAttack;
+    case "defend":
+      return CombatAssetKeys.icons.intentDefend;
+    case "buff":
+      return CombatAssetKeys.icons.intentBuff;
+    case "debuff":
+      return CombatAssetKeys.icons.intentDebuff;
+    case "special":
+      return CombatAssetKeys.icons.intentSpecial;
+    case "charging":
+      return CombatAssetKeys.icons.intentCharging;
+    case "unknown":
+      return CombatAssetKeys.icons.intentUnknown;
+  }
+};
+
+const getIntentTargetCopy = (targetHint: CombatIntentTargetHint): string => {
+  switch (targetHint) {
+    case "keeper":
+      return "Keeper";
+    case "self":
+      return "Self";
+    case "ally":
+      return "Ally";
+    case "allEnemies":
+      return "All enemies";
+    case "pet":
+      return "Pet";
+    case "unknown":
+      return "Unknown";
+  }
+};
+
+const getIntentExplanation = (
+  kind: CombatIntentTokenViewModel["kind"],
+  targetHint: CombatIntentTargetHint
+): string => {
+  switch (kind) {
+    case "attack":
+      return `This enemy is preparing to attack ${getIntentTargetCopy(targetHint).toLowerCase()}.`;
+    case "defend":
+      return "This enemy is preparing to protect itself or an ally.";
+    case "debuff":
+      return `This enemy is preparing to weaken ${getIntentTargetCopy(targetHint).toLowerCase()}.`;
+    case "special":
+      return "This enemy is preparing a special action.";
+    case "buff":
+      return "This enemy is preparing to strengthen itself or an ally.";
+    case "charging":
+      return "This enemy is building up for a future action.";
+    case "unknown":
+      return "This enemy is preparing an action, but the details are hidden.";
+  }
+};
+
+const getIntentAmountLine = (
+  kind: CombatIntentTokenViewModel["kind"],
+  amount: number | undefined
+): string | undefined => {
+  if (amount === undefined) {
+    return undefined;
+  }
+
+  if (kind === "attack") {
+    return `Damage: ${amount}`;
+  }
+
+  if (kind === "defend") {
+    return `Block: ${amount}`;
+  }
+
+  return `Amount: ${amount}`;
+};
+
+const getTokenVisibility = (
+  visibilityLevel: IntentVisibilityLevel,
+  kind: CombatIntentTokenViewModel["kind"]
+): IntentVisibilityDisplayLevel => {
+  if (visibilityLevel === "exact" || visibilityLevel === "scoped" || visibilityLevel === "rough" || visibilityLevel === "category" || visibilityLevel === "none") {
+    return visibilityLevel;
+  }
+
+  return kind === "unknown" ? "unknown" : "category";
+};
+
+const describeKnownIntentDetail = (visibility: IntentVisibilityDisplayLevel): string => {
+  switch (visibility) {
+    case "exact":
+      return "Exact";
+    case "scoped":
+      return "Scoped";
+    case "rough":
+      return "Rough";
+    case "category":
+      return "Category only";
+    case "none":
+      return "None";
+    case "unknown":
+      return "Unknown";
+  }
+};
+
+const buildIntentTokenViewModel = ({
+  monsterId,
+  plannedAction,
+  intentType,
+  targetHint,
+  amount,
+  description,
+  visibilityLevel
+}: {
+  readonly monsterId: CombatantId;
+  readonly plannedAction: MonsterPlannedActionViewModel;
+  readonly intentType: MonsterIntentType | "intent";
+  readonly targetHint: CombatIntentTargetHint;
+  readonly amount: number | undefined;
+  readonly description: string;
+  readonly visibilityLevel: IntentVisibilityLevel;
+}): CombatIntentTokenViewModel => {
+  const kind = getIntentTokenKind(intentType);
+  const title = getIntentTitle(kind);
+  const amountLine = getIntentAmountLine(kind, amount);
+  const explanation = getIntentExplanation(kind, targetHint);
+  const visibility = getTokenVisibility(visibilityLevel, kind);
+
+  return {
+    monsterId,
+    visibility,
+    kind,
+    iconKey: getIntentIconKey(kind),
+    amountLabel: amount !== undefined ? String(amount) : undefined,
+    targetHint,
+    tooltip: {
+      title,
+      body: [
+        explanation,
+        amountLine,
+        `Target: ${getIntentTargetCopy(targetHint)}`
+      ].filter((line): line is string => Boolean(line)).join("\n")
+    },
+    detail: {
+      title,
+      subtitle: "Enemy intent",
+      lines: [
+        description,
+        explanation,
+        amountLine,
+        `Target: ${getIntentTargetCopy(targetHint)}`,
+        `Known detail: ${describeKnownIntentDetail(visibility)}`
+      ].filter((line): line is string => Boolean(line)),
+      footer: "Intent detail."
+    },
+    debug: {
+      source: plannedAction.source,
+      abilityId: plannedAction.abilityId,
+      intentId: plannedAction.intentId,
+      tags: plannedAction.tags
     }
   };
 };
@@ -827,7 +1077,8 @@ export const buildCombatViewModel = (
       const ability = resolvedAbility?.ability;
       const displaySource = ability ?? intentDefinition;
       const targetHint = getIntentTargetHint(displaySource);
-      const amount = getIntentAmount(displaySource);
+      const intentType = ability?.intentType ?? intentDefinition?.type ?? "intent";
+      const amount = getIntentAmount(displaySource, intentType);
       const visibilityLevel = resolveIntentVisibilityLevel(state.combat, content, monster, monsterDefinition, ability);
       const visibleIntent = buildVisibleIntentCopy({
         intent,
@@ -835,6 +1086,15 @@ export const buildCombatViewModel = (
         resolvedAbility,
         targetHint,
         amount,
+        visibilityLevel
+      });
+      const token = buildIntentTokenViewModel({
+        monsterId: intent.monsterCombatantId,
+        plannedAction: visibleIntent.plannedAction,
+        intentType: visibleIntent.type,
+        targetHint: visibleIntent.targetHint,
+        amount: visibleIntent.amount,
+        description: visibleIntent.description,
         visibilityLevel
       });
 
@@ -848,26 +1108,9 @@ export const buildCombatViewModel = (
         description: visibleIntent.description,
         targetHint: visibleIntent.targetHint,
         amount: visibleIntent.amount,
-        tooltip: {
-          title: visibleIntent.label,
-          body: visibleIntent.description
-        },
-        detail: {
-          title: visibleIntent.plannedAction.title,
-          subtitle: `${monster?.name ?? "Enemy"} · ${visibleIntent.plannedAction.subtitle}`,
-          lines: [
-            visibleIntent.description,
-            `Visibility: ${visibilityLevel}`,
-            `Reveal policy: ${visibleIntent.plannedAction.revealPolicy}`,
-            `Metadata source: ${visibleIntent.plannedAction.source}`,
-            `Tags: ${visibleIntent.plannedAction.tags.join(", ") || "none"}`,
-            `Target: ${visibleIntent.targetHint}`,
-            visibleIntent.amount !== undefined ? `Amount: ${visibleIntent.amount}` : "Amount: not shown",
-            "Effects:",
-            ...(visibleIntent.plannedAction.effectLines.length > 0 ? visibleIntent.plannedAction.effectLines : ["No effects shown."])
-          ],
-          footer: "Monster planned card detail."
-        },
+        tooltip: token.tooltip,
+        detail: token.detail,
+        token,
         plannedAction: visibleIntent.plannedAction
       };
     }),
