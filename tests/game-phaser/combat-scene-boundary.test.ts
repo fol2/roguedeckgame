@@ -176,8 +176,16 @@ describe("Combat scene boundary", () => {
     expect(source).toMatch(/snapshot: this\.getActionSubmissionSnapshot\(\)/);
     expect(source).toMatch(/this\.applyActionSubmissionSnapshot\(submission\.snapshot\)/);
     expect(source).toMatch(/if \(submission\.status === "blocked"\)/);
-    expect(source).toMatch(/this\.inputLocked = true;\n\s+this\.clearTooltip\(\);\n\s+this\.renderCurrentState\(false\);\n\s+const result = submission\.result;/);
-    expect(source).toMatch(/if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}/);
+    const acceptedSubmissionStart = source.indexOf("const requestId = submission.requestId;");
+    const resultRead = source.indexOf("const result = submission.result;", acceptedSubmissionStart);
+    expect(acceptedSubmissionStart).toBeGreaterThanOrEqual(0);
+    expect(resultRead).toBeGreaterThan(acceptedSubmissionStart);
+    const beforeResultRead = source.slice(acceptedSubmissionStart, resultRead);
+    expect(beforeResultRead).toMatch(/this\.inputLocked = true;/);
+    expect(beforeResultRead).toMatch(/this\.clearTooltip\(\);/);
+    expect(beforeResultRead).toMatch(/this\.cardPresenter\?\.setLocked\(true\);/);
+    expect(beforeResultRead).not.toMatch(/this\.renderCurrentState\(false\);/);
+    expect(source).toMatch(/if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+this\.playbackFinalViewModel = this\.sandbox\?\.getCombatViewModel\(\);\n\s+\} else \{\n\s+this\.setFeedback\(result\.errors\[0\]\?\.message \?\? "Action was rejected\."\);\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.renderCurrentState\(false\);\n\s+\}/);
     expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.debugDragState = "idle";\n\s+if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
   });
 
@@ -193,6 +201,7 @@ describe("Combat scene boundary", () => {
     expect(sceneSource).toMatch(/Card movement planner fallback/);
     expect(cardPresenter).toMatch(/visuals = new Map<CardInstanceId, CardVisual>/);
     expect(cardPresenter).toMatch(/visualHandOrder: CardInstanceId\[\] = \[\]/);
+    expect(cardPresenter).toMatch(/public setLocked\(locked: boolean\)/);
     expect(cardPresenter).toMatch(/playCardMoved/);
     expect(cardPresenter).toMatch(/moveHandCardToPile/);
     expect(cardPresenter).toMatch(/movePileCardToHand/);

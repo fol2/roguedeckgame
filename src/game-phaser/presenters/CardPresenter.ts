@@ -220,6 +220,18 @@ export class CardPresenter {
     this.layoutHand(false);
   }
 
+  public setLocked(locked: boolean): void {
+    if (this.locked === locked) {
+      return;
+    }
+
+    this.locked = locked;
+    for (const visual of this.visuals.values()) {
+      this.renderCardVisual(visual);
+    }
+    this.layoutHand(false);
+  }
+
   public getParitySnapshot(): readonly CombatParityCardSnapshot[] {
     return [...this.visuals.values()].map((visual) => ({
       cardInstanceId: visual.cardInstanceId,

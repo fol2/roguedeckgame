@@ -761,7 +761,7 @@ export class CombatScene extends Scene {
     const requestId = submission.requestId;
     this.inputLocked = true;
     this.clearTooltip();
-    this.renderCurrentState(false);
+    this.cardPresenter?.setLocked(true);
     const result = submission.result;
     if (result.ok) {
       this.feedbackMessage = "";
@@ -769,6 +769,7 @@ export class CombatScene extends Scene {
     } else {
       this.setFeedback(result.errors[0]?.message ?? "Action was rejected.");
       this.playbackFinalViewModel = undefined;
+      this.renderCurrentState(false);
     }
     this.captureParityDiagnostics("after_action_result");
     this.renderDebugOverlay();
