@@ -14,6 +14,7 @@ import { createAgentStateHash } from "./state-hash";
 
 export const AGENT_TRACE_SCHEMA_VERSION = TRACE_SCHEMA_VERSION;
 export const AGENT_TRACE_LEGACY_SCHEMA_VERSION = GAME_EVENT_LEGACY_SCHEMA_VERSION;
+export const BROWSER_DEBUG_TRACE_SCHEMA_VERSION = 1;
 
 export type AgentTraceSchemaVersion = GameEventSchemaVersion;
 
@@ -25,6 +26,11 @@ export type AgentTrace = {
   readonly finalStatus?: RunStatus;
   readonly steps: readonly AgentTraceStep[];
   readonly failure?: AgentTraceFailure;
+};
+
+type BrowserDebugTraceEnvelope = {
+  readonly traceKind?: string;
+  readonly debugTraceVersion?: unknown;
 };
 
 export type AgentTraceStep = {
@@ -56,7 +62,11 @@ const isSupportedTraceSchemaVersion = (schemaVersion: unknown): schemaVersion is
   schemaVersion === AGENT_TRACE_LEGACY_SCHEMA_VERSION || schemaVersion === AGENT_TRACE_SCHEMA_VERSION;
 
 export const parseAgentTrace = (text: string): AgentTrace => {
-  const parsed = JSON.parse(text) as Partial<AgentTrace>;
+  const parsed = JSON.parse(text) as Partial<AgentTrace> & BrowserDebugTraceEnvelope;
+  if (parsed.debugTraceVersion !== undefined && parsed.debugTraceVersion !== BROWSER_DEBUG_TRACE_SCHEMA_VERSION) {
+    throw new Error(`Unsupported browser debug trace version '${String(parsed.debugTraceVersion)}'.`);
+  }
+
   if (
     !isSupportedTraceSchemaVersion(parsed.schemaVersion) ||
     parsed.seed === undefined ||

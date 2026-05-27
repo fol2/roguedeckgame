@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardInstanceId,
+  replayAgentTrace,
   runNodeId
 } from "../../src/game-core";
 import { createRunSandboxController } from "../../src/game-phaser/controllers/RunSandboxController";
@@ -126,6 +127,47 @@ describe("Run sandbox controller", () => {
       "TurnEnded",
       "TurnStarted"
     ]));
+  });
+
+  it("records replay-compatible agent trace steps for browser actions", () => {
+    const controller = createRunSandboxController("run-controller-trace");
+
+    startFirstCombat(controller);
+    const viewModel = controller.getCombatViewModel()!;
+    const card = viewModel.hand.find((candidate) => candidate.playable);
+
+    expect(card).toBeDefined();
+    controller.playHandCard(
+      card!.cardInstanceId,
+      card!.requiresManualTarget ? card!.validTargetIds[0] : undefined,
+      viewModel.revision,
+      "run-trace-card"
+    );
+
+    const trace = controller.getAgentTrace();
+
+    expect(trace.seed).toBe("run-controller-trace");
+    expect(trace.steps.map((step) => step.action.type)).toEqual(["selectMapNode", "playCard"]);
+    expect(trace.steps[0]?.events.map((event) => event.type)).toEqual([
+      "RunNodeSelected",
+      "RunCombatStarted",
+      "CombatStarted",
+      "DeckShuffled",
+      "MonsterAbilityPlanned",
+      "MonsterIntentSet",
+      "TurnStarted",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn"
+    ]);
+    expect(replayAgentTrace(trace).ok).toBe(true);
   });
 
   it("keeps rejected combat actions in the controller event stream", () => {

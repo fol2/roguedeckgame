@@ -259,11 +259,22 @@ describe("Combat scene boundary", () => {
 
     expect(sceneSource).toMatch(/CombatOverlayPresenter/);
     expect(sceneSource).toMatch(/CombatDebugOverlayPresenter/);
+    expect(sceneSource).toMatch(/buildBrowserDebugTrace/);
+    expect(sceneSource).toMatch(/serializeBrowserDebugTrace/);
     expect(sceneSource).toMatch(/getCombatDebugViewModel\(\n\s+this\.getDebugInputSnapshot\(\),\n\s+this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\],\n\s+this\.parityDiagnostics\n\s+\)/);
     expect(sceneSource).toMatch(/combatDebug/);
     expect(sceneSource).toMatch(/isDebugOverlayAvailable/);
     expect(sceneSource).toMatch(/import\.meta\.env\.DEV/);
     expect(sceneSource).toMatch(/this\.isDebugOverlayAvailable\(\) && \(event\.key === "`" \|\| event\.key === "F2"\)/);
+    expect(sceneSource).toMatch(/copyDebugEventBatchJson/);
+    expect(sceneSource).toMatch(/copyDebugTraceJson/);
+    expect(sceneSource).toMatch(/event\.key === "F7"/);
+    expect(sceneSource).toMatch(/event\.key === "F8"/);
+    expect(sceneSource).toMatch(/event\.key === "F7"[\s\S]*?event\.preventDefault\(\);[\s\S]*?copyDebugEventBatchJson/);
+    expect(sceneSource).toMatch(/event\.key === "F8"[\s\S]*?event\.preventDefault\(\);[\s\S]*?copyDebugTraceJson/);
+    expect(sceneSource).toMatch(/navigator\.clipboard\.writeText/);
+    expect(sceneSource).toMatch(/try \{[\s\S]*?navigator\.clipboard\.writeText\(payload\);[\s\S]*?\} catch \{[\s\S]*?console\.info\(payload\);[\s\S]*?\}/);
+    expect(sceneSource).toMatch(/this\.sandbox\.getAgentTrace\(\)/);
     expect(sceneSource).toMatch(/const debugOverlayVisible = this\.isDebugOverlayAvailable\(\) && this\.debugOverlayEnabled/);
     expect(sceneSource).toMatch(/debugOverlayVisible\s+\? this\.sandbox\?\.getCombatDebugViewModel\(\n\s+this\.getDebugInputSnapshot\(\),\n\s+this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\],\n\s+this\.parityDiagnostics\n\s+\)\s+: undefined/);
     expect(sceneSource).toMatch(/debugDragState: DebugInputSnapshot\["dragState"\] = "idle"/);

@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 2,
+  "seed": "phaser-run-sandbox",
+  "mode": "regression",
+  "finalStatus": "combat",
+  "steps": [
+    {
+      "step": 0,
+      "action": {
+        "type": "selectMapNode",
+        "nodeId": "act1_forest_0_combat_a"
+      },
+      "source": "legal",
+      "ok": true,
+      "events": [
+        {
+          "type": "RunNodeSelected",
+          "nodeId": "act1_forest_0_combat_a"
+        },
+        {
+          "type": "RunCombatStarted",
+          "nodeId": "act1_forest_0_combat_a",
+          "encounterId": "training_slime_encounter",
+          "combatId": "run:phaser-run-sandbox"
+        },
+        {
+          "type": "CombatStarted",
+          "combatId": "run:phaser-run-sandbox",
+          "seed": "phaser-run-sandbox:act1_forest_0_combat_a:combat"
+        },
+        {
+          "type": "DeckShuffled",
+          "from": "deck",
+          "to": "draw",
+          "count": 9
+        },
+        {
+          "type": "MonsterAbilityPlanned",
+          "monsterId": "monster:training_slime:0",
+          "abilityId": "training_slime_block",
+          "intentId": "training_slime_block",
+          "intentType": "block",
+          "description": "Gain 4 block."
+        },
+        {
+          "type": "MonsterIntentSet",
+          "monsterId": "monster:training_slime:0",
+          "intentId": "training_slime_block",
+          "intentType": "block",
+          "description": "Gain 4 block."
+        },
+        {
+          "type": "TurnStarted",
+          "turnNumber": 1,
+          "actorId": "player"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:5:focus",
+          "cardId": "focus",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:5:focus",
+          "cardId": "focus"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:2:strike",
+          "cardId": "strike",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:2:strike",
+          "cardId": "strike"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:0:strike",
+          "cardId": "strike",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:0:strike",
+          "cardId": "strike"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:7:fox_guard",
+          "cardId": "fox_guard",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:7:fox_guard",
+          "cardId": "fox_guard"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:4:defend",
+          "cardId": "defend",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:4:defend",
+          "cardId": "defend"
+        }
+      ],
+      "errors": [],
+      "stateHashAfter": "{\"combat\":{\"discardPile\":[],\"drawPile\":[{\"cardId\":\"fox_bite\",\"id\":\"run:phaser-run-sandbox:card:6:fox_bite\"},{\"cardId\":\"strike\",\"id\":\"run:phaser-run-sandbox:card:1:strike\"},{\"cardId\":\"defend\",\"id\":\"run:phaser-run-sandbox:card:3:defend\"},{\"cardId\":\"fox_fetch\",\"id\":\"run:phaser-run-sandbox:card:8:fox_fetch\"}],\"energy\":3,\"exhaustPile\":[],\"hand\":[{\"cardId\":\"focus\",\"id\":\"run:phaser-run-sandbox:card:5:focus\"},{\"cardId\":\"strike\",\"id\":\"run:phaser-run-sandbox:card:2:strike\"},{\"cardId\":\"strike\",\"id\":\"run:phaser-run-sandbox:card:0:strike\"},{\"cardId\":\"fox_guard\",\"id\":\"run:phaser-run-sandbox:card:7:fox_guard\"},{\"cardId\":\"defend\",\"id\":\"run:phaser-run-sandbox:card:4:defend\"}],\"maxEnergy\":3,\"monsters\":[{\"alive\":true,\"block\":0,\"hp\":24,\"id\":\"monster:training_slime:0\",\"intents\":[{\"intentId\":\"training_slime_block\",\"monsterCombatantId\":\"monster:training_slime:0\"}],\"plannedAbilities\":[{\"abilityId\":\"training_slime_block\",\"intentId\":\"training_slime_block\",\"monsterCombatantId\":\"monster:training_slime:0\"}],\"statuses\":[]}],\"phase\":\"player_turn\",\"player\":{\"alive\":true,\"block\":0,\"hp\":70,\"statuses\":[]},\"turnNumber\":1},\"run\":{\"currentNodeId\":\"act1_forest_0_combat_a\",\"deckCardIds\":[\"strike\",\"strike\",\"strike\",\"defend\",\"defend\",\"focus\",\"fox_bite\",\"fox_guard\",\"fox_fetch\"],\"nodes\":[{\"encounterId\":\"training_slime_encounter\",\"id\":\"act1_forest_0_combat_a\",\"layer\":0,\"status\":\"active\",\"type\":\"combat\"},{\"encounterId\":\"ash_mite_encounter\",\"id\":\"act1_forest_0_combat_b\",\"layer\":0,\"status\":\"locked\",\"type\":\"combat\"},{\"encounterId\":\"training_slime_encounter\",\"id\":\"act1_forest_1_combat_a\",\"layer\":1,\"status\":\"locked\",\"type\":\"combat\"},{\"id\":\"act1_forest_1_event_a\",\"layer\":1,\"status\":\"locked\",\"type\":\"event\"},{\"id\":\"act1_forest_2_rest_a\",\"layer\":2,\"status\":\"locked\",\"type\":\"rest\"},{\"encounterId\":\"forest_elite_placeholder\",\"id\":\"act1_forest_3_elite_a\",\"layer\":3,\"status\":\"locked\",\"type\":\"elite\"},{\"encounterId\":\"forest_boss_placeholder\",\"id\":\"act1_forest_4_boss_a\",\"layer\":4,\"status\":\"locked\",\"type\":\"boss\"}],\"petUpgrades\":[{\"id\":\"ember_fox_001\",\"upgrades\":[]}],\"playerHp\":70,\"playerMaxHp\":70,\"status\":\"combat\"}}"
+    }
+  ],
+  "traceKind": "browser-debug",
+  "debugTraceVersion": 1,
+  "runtimeMetadata": {
+    "schemaVersion": 1,
+    "packageName": "roguedeckgame",
+    "packageVersion": "0.0.0",
+    "contentVersion": "starter-act1-forest-v1",
+    "gameEventSchemaVersion": 2,
+    "traceSchemaVersion": 2,
+    "saveSchemaVersion": 1,
+    "registryFingerprint": "fnv1a32:b4084f1f"
+  },
+  "selectedNodeId": "act1_forest_0_combat_a",
+  "finalRunStateSummary": {
+    "status": "combat",
+    "currentNodeId": "act1_forest_0_combat_a",
+    "currentNodeType": "combat",
+    "combatPhase": "player_turn",
+    "combatTurnNumber": 1,
+    "handCount": 5,
+    "drawPileCount": 4,
+    "discardPileCount": 0
+  },
+  "eventBatches": [
+    {
+      "step": 0,
+      "actionType": "selectMapNode",
+      "events": [
+        {
+          "type": "RunNodeSelected",
+          "nodeId": "act1_forest_0_combat_a"
+        },
+        {
+          "type": "RunCombatStarted",
+          "nodeId": "act1_forest_0_combat_a",
+          "encounterId": "training_slime_encounter",
+          "combatId": "run:phaser-run-sandbox"
+        },
+        {
+          "type": "CombatStarted",
+          "combatId": "run:phaser-run-sandbox",
+          "seed": "phaser-run-sandbox:act1_forest_0_combat_a:combat"
+        },
+        {
+          "type": "DeckShuffled",
+          "from": "deck",
+          "to": "draw",
+          "count": 9
+        },
+        {
+          "type": "MonsterAbilityPlanned",
+          "monsterId": "monster:training_slime:0",
+          "abilityId": "training_slime_block",
+          "intentId": "training_slime_block",
+          "intentType": "block",
+          "description": "Gain 4 block."
+        },
+        {
+          "type": "MonsterIntentSet",
+          "monsterId": "monster:training_slime:0",
+          "intentId": "training_slime_block",
+          "intentType": "block",
+          "description": "Gain 4 block."
+        },
+        {
+          "type": "TurnStarted",
+          "turnNumber": 1,
+          "actorId": "player"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:5:focus",
+          "cardId": "focus",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:5:focus",
+          "cardId": "focus"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:2:strike",
+          "cardId": "strike",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:2:strike",
+          "cardId": "strike"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:0:strike",
+          "cardId": "strike",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:0:strike",
+          "cardId": "strike"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:7:fox_guard",
+          "cardId": "fox_guard",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:7:fox_guard",
+          "cardId": "fox_guard"
+        },
+        {
+          "type": "CardMoved",
+          "cardInstanceId": "run:phaser-run-sandbox:card:4:defend",
+          "cardId": "defend",
+          "from": "draw",
+          "to": "hand"
+        },
+        {
+          "type": "CardDrawn",
+          "cardInstanceId": "run:phaser-run-sandbox:card:4:defend",
+          "cardId": "defend"
+        }
+      ]
+    }
+  ],
+  "diagnostics": [],
+  "conversion": {
+    "simulationReplayCommand": "npm run sim:replay -- -- --trace <exported-trace>",
+    "replayTracePathPlaceholder": "<exported-trace>"
+  }
+}

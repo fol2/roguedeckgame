@@ -66,3 +66,32 @@ Browser proof:
 - `phase6-input-hardening-after-double-end-turn-v2.png` - overlay after a double End Turn interaction has settled, showing only one accepted request (`last=combat-ui-1 exp=1`), turn 2, revision 2, cleared disabled feedback, and no rejection or parity drift.
 - `phase6-request-rejection-diagnostics.json` - automated evidence index for stale revision, duplicate request, and input-locked overlay assertions.
 - `phase6-console-warnings.txt` - Playwright console collection for the Phase 6 browser path, with zero errors and zero warnings.
+
+## Phase 7 - Trace Export and Replay Support
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `npm run typecheck` - passed.
+- `npx vitest run tests/game-phaser/debug-trace-export.test.ts tests/game-core/trace-replay.test.ts tests/game-phaser/run-controller.test.ts tests/game-phaser/combat-scene-boundary.test.ts tests/game-cli/parse.test.ts` - passed, 5 files and 48 tests.
+- `npm run sim:replay -- -- --trace docs/evidence/hardening-debug-screen/phase7-browser-debug-trace.json` - passed with no warnings.
+- `npm run build` - passed with no warnings.
+- `npm test` - passed, 88 files and 699 tests.
+- `npm run smoke:localhost` - passed.
+- `npm run build:cli` - passed with no warnings.
+- `node scripts/run-cli-entry.mjs game-cli --version` - passed and matched shared runtime metadata.
+- `node scripts/run-cli-entry.mjs simulate-runs --version` - passed and matched shared runtime metadata.
+- `node scripts/run-cli-entry.mjs simulate-runs --mode smoke --analyze` - passed with no health issues.
+- `npm run sim:balance` - passed with completion rate inside the configured balance target.
+- `npm run sim:exhaustive-small` - passed, 1000 runs and zero failures.
+- `git diff --check` - passed.
+- `rg -n "from ['\"](.*phaser|phaser)['\"]|from \"phaser\"|from 'phaser'" src/game-core` - no matches.
+
+Browser proof:
+
+- `phase7-debug-trace-export-overlay.png` - combat debug overlay after pressing the debug trace export control (`F8`), showing the copied trace feedback.
+- `phase7-normal-combat-after-card.png` - normal combat proof after playing a card with the debug overlay enabled.
+- `phase7-browser-debug-trace.json` - browser-exported debug trace JSON with runtime metadata, event batches, final run summary, diagnostics, and replay conversion command.
+- `phase7-cli-provenance-and-replay.txt` - CLI version/provenance output and replay output for the exported browser debug trace.
+- `phase7-console-warnings.txt` - Playwright console collection for the Phase 7 browser path, with zero errors and zero warnings.

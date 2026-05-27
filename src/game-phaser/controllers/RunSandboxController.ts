@@ -14,6 +14,7 @@ import {
   selectRunNode,
   startCombatForRunNode,
   starterRegistry,
+  currentRuntimeMetadata,
   skipRunPendingReward,
   type CardDefinition,
   type CardInstanceId,
@@ -22,6 +23,10 @@ import {
   type GameActionError,
   type GameActionResult,
   type GameEvent,
+  type AgentAction,
+  type AgentTrace,
+  createAgentStateHash,
+  createTraceStep,
   type PetInstance,
   type RewardOptionId,
   type RunNodeId,
@@ -58,6 +63,7 @@ export type RunSandboxController = {
   readonly getState: () => RunSandboxState;
   readonly getRunViewModel: () => RunViewModel;
   readonly getCombatViewModel: () => CombatViewModel | undefined;
+  readonly getAgentTrace: () => AgentTrace;
   readonly getCombatDebugViewModel: (
     input?: DebugInputSnapshot,
     playbackObservations?: readonly CombatPlaybackObservation[],
@@ -83,7 +89,7 @@ const DEFAULT_SANDBOX_SEED = "phaser-run-sandbox";
 
 const createSandboxPetInstances = (): readonly PetInstance[] => [
   {
-    id: petInstanceId("sandbox:ember_fox"),
+    id: petInstanceId("ember_fox_001"),
     definitionId: petDefinitionId("ember_fox"),
     nickname: "Ember",
     bondLevel: 1,
@@ -166,10 +172,11 @@ const createInitialState = (seed: string | number): GameActionResult<RunSandboxS
 export const createRunSandboxController = (
   seed: string | number = DEFAULT_SANDBOX_SEED
 ): RunSandboxController => {
-  let actionRng = createCombatRng(`${String(seed)}:actions`);
+  let actionRng = createCombatRng(`${String(seed)}:agent-driver`);
   let state = createInitialState(seed).state;
   let revision = 0;
   let seenGameplayRequestIds = new Set<string>();
+  let traceSteps: AgentTrace["steps"] = [];
   const content = createContentContext(starterRegistry);
 
   const commit = (next: RunSandboxState): RunSandboxState => {
@@ -195,6 +202,26 @@ export const createRunSandboxController = (
     const events = [rejectedEvent(error)];
 
     return toResult(false, replaceState(state, {}, events), events, [error]);
+  };
+
+  const recordAgentAction = (
+    action: AgentAction,
+    result: GameActionResult<RunSandboxState>
+  ): GameActionResult<RunSandboxState> => {
+    traceSteps = [
+      ...traceSteps,
+      createTraceStep(
+        traceSteps.length,
+        action,
+        "legal",
+        result.ok,
+        result.events,
+        result.errors,
+        createAgentStateHash(result.state, { schemaVersion: currentRuntimeMetadata.traceSchemaVersion })
+      )
+    ];
+
+    return result;
   };
 
   const rejectIfStaleRevision = (
@@ -248,6 +275,13 @@ export const createRunSandboxController = (
           lastEvents: state.lastEvents
         }, content, revision)
       : undefined,
+    getAgentTrace: () => ({
+      schemaVersion: currentRuntimeMetadata.traceSchemaVersion,
+      seed,
+      mode: "regression",
+      finalStatus: state.run.status,
+      steps: traceSteps
+    }),
     getCombatDebugViewModel: (input, playbackObservations, parityDiagnostics) => buildCombatDebugViewModel(state, state.combat
       ? buildCombatViewModel({
           run: state.run,
@@ -267,7 +301,9 @@ export const createRunSandboxController = (
       }
 
       if (selectedRun.state.status !== "combat") {
-        return toResult(true, replaceState(state, { run: selectedRun.state, combat: undefined }, selectedRun.events), selectedRun.events, []);
+        const result = toResult(true, replaceState(state, { run: selectedRun.state, combat: undefined }, selectedRun.events), selectedRun.events, []);
+
+        return recordAgentAction({ type: "selectMapNode", nodeId }, result);
       }
 
       const combatResult = startCombatForRunNode({
@@ -283,7 +319,9 @@ export const createRunSandboxController = (
         events
       );
 
-      return toResult(combatResult.ok, next, events, combatResult.errors);
+      const result = toResult(combatResult.ok, next, events, combatResult.errors);
+
+      return recordAgentAction({ type: "selectMapNode", nodeId }, result);
     },
     playHandCard: (cardInstanceId, explicitTargetId, expectedRevision, requestId) => {
       if (!state.combat) {
@@ -321,7 +359,7 @@ export const createRunSandboxController = (
 
       const result = toResult(cardResult.ok, next, cardResult.events, cardResult.errors);
 
-      return result;
+      return recordAgentAction({ type: "playCard", cardInstanceId, targetId }, result);
     },
     endTurn: (expectedRevision, requestId) => {
       if (!state.combat) {
@@ -340,13 +378,15 @@ export const createRunSandboxController = (
 
       const endResult = endPlayerTurn(state.combat, { registry: starterRegistry, rng: actionRng });
       if (!endResult.ok) {
-        return toResult(false, replaceState(state, {}, endResult.events), endResult.events, endResult.errors);
+        const result = toResult(false, replaceState(state, {}, endResult.events), endResult.events, endResult.errors);
+
+        return recordAgentAction({ type: "endTurn" }, result);
       }
 
       if (endResult.state.phase === "won" || endResult.state.phase === "lost") {
         const result = toResult(true, replaceState(state, { combat: endResult.state }, endResult.events), endResult.events, []);
 
-        return result;
+        return recordAgentAction({ type: "endTurn" }, result);
       }
 
       const enemyResult = resolveEnemyTurn(endResult.state, starterRegistry, actionRng);
@@ -355,7 +395,7 @@ export const createRunSandboxController = (
 
       const result = toResult(enemyResult.ok, replaceState(state, { combat: nextCombat }, events), events, enemyResult.errors);
 
-      return result;
+      return recordAgentAction({ type: "endTurn" }, result);
     },
     completeCombatIfEnded: () => {
       if (!state.combat) {
@@ -377,7 +417,9 @@ export const createRunSandboxController = (
         ? replaceState(state, { run: completeResult.state, combat: undefined }, completeResult.events)
         : replaceState(state, { run: completeResult.state }, completeResult.events);
 
-      return toResult(completeResult.ok, next, completeResult.events, completeResult.errors);
+      const result = toResult(completeResult.ok, next, completeResult.events, completeResult.errors);
+
+      return recordAgentAction({ type: "completeCombatIfEnded" }, result);
     },
     claimRewardOption: (rewardOptionId) => {
       const claimResult = claimRunPendingReward({
@@ -400,7 +442,9 @@ export const createRunSandboxController = (
         claimResult.events
       );
 
-      return toResult(claimResult.ok, next, claimResult.events, claimResult.errors);
+      const result = toResult(claimResult.ok, next, claimResult.events, claimResult.errors);
+
+      return recordAgentAction({ type: "claimReward", rewardOptionId }, result);
     },
     skipReward: () => {
       const skipResult = skipRunPendingReward({
@@ -421,7 +465,9 @@ export const createRunSandboxController = (
         skipResult.events
       );
 
-      return toResult(skipResult.ok, next, skipResult.events, skipResult.errors);
+      const result = toResult(skipResult.ok, next, skipResult.events, skipResult.errors);
+
+      return recordAgentAction({ type: "skipReward" }, result);
     },
     completeNonCombatNode: () => {
       const completion = completeRunNonCombatNode(state.run);
@@ -431,15 +477,18 @@ export const createRunSandboxController = (
 
       const next = replaceState(state, { run: completion.state, combat: undefined }, completion.events);
 
-      return toResult(completion.ok, next, completion.events, completion.errors);
+      const result = toResult(completion.ok, next, completion.events, completion.errors);
+
+      return recordAgentAction({ type: "completeNonCombatNode" }, result);
     },
     reset: () => {
       const resetResult = createInitialState(seed);
 
-      actionRng = createCombatRng(`${String(seed)}:actions`);
+      actionRng = createCombatRng(`${String(seed)}:agent-driver`);
       state = resetResult.state;
       revision = 0;
       seenGameplayRequestIds = new Set();
+      traceSteps = [];
 
       return resetResult;
     }

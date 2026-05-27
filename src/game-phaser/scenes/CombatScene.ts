@@ -13,6 +13,11 @@ import {
   type CombatParityPresenterSnapshot,
   type CombatParityStage
 } from "../debug/combat-parity";
+import {
+  buildBrowserDebugEventBatchCopyPayload,
+  buildBrowserDebugTrace,
+  serializeBrowserDebugTrace
+} from "../debug/debug-trace-export";
 import { CardPresenter, type CardDragDebugState } from "../presenters/CardPresenter";
 import { CombatHudPresenter } from "../presenters/CombatHudPresenter";
 import { CombatDebugOverlayPresenter } from "../presenters/CombatDebugOverlayPresenter";
@@ -868,6 +873,33 @@ export class CombatScene extends Scene {
       return;
     }
 
+    if (this.isDebugOverlayAvailable() && this.debugOverlayEnabled && (event.ctrlKey || event.metaKey)) {
+      const key = event.key.toLowerCase();
+      if (key === "e") {
+        event.preventDefault();
+        await this.copyDebugEventBatchJson();
+        return;
+      }
+
+      if (key === "t") {
+        event.preventDefault();
+        await this.copyDebugTraceJson();
+        return;
+      }
+    }
+
+    if (this.isDebugOverlayAvailable() && this.debugOverlayEnabled && event.key === "F7") {
+      event.preventDefault();
+      await this.copyDebugEventBatchJson();
+      return;
+    }
+
+    if (this.isDebugOverlayAvailable() && this.debugOverlayEnabled && event.key === "F8") {
+      event.preventDefault();
+      await this.copyDebugTraceJson();
+      return;
+    }
+
     if (this.inputLocked || this.isModalOpen() || !this.browserFocused || !this.sandbox) {
       return;
     }
@@ -905,6 +937,53 @@ export class CombatScene extends Scene {
     if (event.key === "Enter") {
       await this.handleMonsterSelection(this.keyboardTargetId ?? selectedCard.validTargetIds[0]!);
     }
+  }
+
+  private async copyDebugEventBatchJson(): Promise<void> {
+    if (!this.sandbox) {
+      return;
+    }
+
+    const payload = JSON.stringify(buildBrowserDebugEventBatchCopyPayload(
+      this.sandbox.getAgentTrace(),
+      this.sandbox.getState()
+    ), null, 2);
+
+    await this.copyDebugJson(payload, "Copied event batch JSON.");
+  }
+
+  private async copyDebugTraceJson(): Promise<void> {
+    if (!this.sandbox) {
+      return;
+    }
+
+    const trace = buildBrowserDebugTrace({
+      trace: this.sandbox.getAgentTrace(),
+      state: this.sandbox.getState(),
+      selectedCardId: this.selectedCardId,
+      playbackObservations: this.eventPlayer?.getPlaybackObservations() ?? [],
+      parityDiagnostics: this.parityDiagnostics
+    });
+
+    await this.copyDebugJson(serializeBrowserDebugTrace(trace), "Copied debug trace JSON.");
+  }
+
+  private async copyDebugJson(payload: string, successMessage: string): Promise<void> {
+    let copiedToClipboard = false;
+
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(payload);
+        copiedToClipboard = true;
+      } catch {
+        console.info(payload);
+      }
+    } else {
+      console.info(payload);
+    }
+
+    this.setFeedback(copiedToClipboard ? successMessage : "Clipboard unavailable; logged debug JSON.");
+    this.renderCurrentState(false);
   }
 
   private renderCurrentState(syncEventLog = true): void {
