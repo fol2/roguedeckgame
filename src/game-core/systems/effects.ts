@@ -159,7 +159,7 @@ export const applyDamage = (
   options: { readonly ignoreBlock?: boolean } = {}
 ): { readonly state: CombatState; readonly events: readonly GameEvent[] } => {
   const target = getCombatant(state, targetId);
-  if (!target) {
+  if (!target || !target.alive) {
     return { state, events: [] };
   }
 
@@ -383,7 +383,9 @@ const resolvePileMoveEffect = (
   let nextState = input.state;
   const events: GameEvent[] = [];
   const destination = input.effect.type === "discard" ? "discard" : "exhaust";
-  const cardsToMove = nextState.hand.slice(0, input.effect.amount);
+  const cardsToMove = nextState.hand
+    .filter((cardInstanceIdValue) => cardInstanceIdValue !== input.context.cardInstanceId)
+    .slice(0, input.effect.amount);
 
   for (const cardToMove of cardsToMove) {
     const moveResult = moveCardBetweenPiles(nextState, {

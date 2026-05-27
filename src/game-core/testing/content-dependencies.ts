@@ -109,6 +109,7 @@ const buildRegistries = (registry: GameContentRegistry): ReadonlyMap<ContentDepe
     ["monsters", index.monstersById as DefinitionById],
     ["encounters", index.encountersById as DefinitionById],
     ["runMapTemplates", index.runMapTemplatesById as DefinitionById],
+    ["rewardPools", index.rewardPoolsById as DefinitionById],
     ["petUpgrades", index.petUpgradesById as DefinitionById],
     ["petModifiers", index.petModifiersById as DefinitionById],
     ["playerClassModifiers", index.playerClassModifiersById as DefinitionById],
@@ -416,6 +417,28 @@ const collectEncounterReferences = (collector: ReferenceCollector, registry: Gam
     const refSource = source("encounters", encounter.id, `encounters[${encounterIndex}]`);
     encounter.monsterIds.forEach((monsterId, monsterIndex) => {
       addReference(collector, "encounterMonster", refSource, "monsters", monsterId, `encounters[${encounterIndex}].monsterIds[${monsterIndex}]`);
+    });
+    if (encounter.authoring?.rewardPoolId !== undefined) {
+      addReference(collector, "encounterRewardPool", refSource, "rewardPools", encounter.authoring.rewardPoolId, `encounters[${encounterIndex}].authoring.rewardPoolId`);
+    }
+    const monsterGroups: readonly { readonly monsterIds?: unknown }[] =
+      encounter.authoring && Array.isArray(encounter.authoring.monsterGroups)
+        ? encounter.authoring.monsterGroups
+        : [];
+    monsterGroups.forEach((monsterGroup, groupIndex) => {
+      const monsterIds: readonly unknown[] = Array.isArray(monsterGroup.monsterIds)
+        ? monsterGroup.monsterIds
+        : [];
+      monsterIds.forEach((monsterId, monsterIndex) => {
+        addReference(
+          collector,
+          "encounterMonsterGroupMonster",
+          refSource,
+          "monsters",
+          monsterId,
+          `encounters[${encounterIndex}].authoring.monsterGroups[${groupIndex}].monsterIds[${monsterIndex}]`
+        );
+      });
     });
   });
 };

@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  buildContentWorkbenchViewModel,
   cardId,
   starterRegistry
 } from "../../src/game-core";
+import { buildContentWorkbenchViewModel } from "../../src/game-core/workbench";
 
 describe("content workbench view model", () => {
   it("builds deterministic read-only sections for starter content", () => {

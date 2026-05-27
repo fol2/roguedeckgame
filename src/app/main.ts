@@ -1,10 +1,13 @@
 import "./styles.css";
 import { isContentWorkbenchRoute } from "./content-workbench-route";
 
-const renderMountError = (): void => {
+const bootErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const renderBootError = (message: string): void => {
   const errorElement = document.createElement("main");
   errorElement.className = "app-error";
-  errorElement.textContent = "Unable to start game: #game-root was not found.";
+  errorElement.textContent = `Unable to start game: ${message}`;
   document.body.replaceChildren(errorElement);
 };
 
@@ -12,7 +15,7 @@ const mount = document.querySelector<HTMLElement>("#game-root");
 
 const boot = async (): Promise<void> => {
   if (!mount) {
-    renderMountError();
+    renderBootError("#game-root was not found.");
     return;
   }
 
@@ -31,4 +34,6 @@ const boot = async (): Promise<void> => {
   createGame(mount);
 };
 
-void boot();
+void boot().catch((error: unknown) => {
+  renderBootError(bootErrorMessage(error));
+});

@@ -71,4 +71,15 @@ describe("simulation CLI parsing", () => {
     expect(options.version).toBe(true);
     expect(options.mode).toBe("smoke");
   });
+
+  it("rejects unknown simulation modes before dispatch", () => {
+    expect(() => parseSimulationCliOptions(["--mode", "unknown"])).toThrow(
+      "Invalid simulation mode 'unknown'. Expected one of: smoke, fuzz, exhaustive-small, replay."
+    );
+  });
+
+  it("rejects simulation mode flags without values", () => {
+    expect(() => parseSimulationCliOptions(["--mode"])).toThrow("Missing value for --mode.");
+    expect(() => parseSimulationCliOptions(["--mode", "--seed", "x"])).toThrow("Missing value for --mode.");
+  });
 });

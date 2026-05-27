@@ -4,8 +4,10 @@ import {
   combatantId,
   type CardInstanceId,
   type CombatantId,
+  type EncounterId,
   type MonsterId,
-  type PetInstanceId
+  type PetInstanceId,
+  type RunNodeId
 } from "../ids";
 import type { GameActionError, GameActionResult, PlayCardAction, CreateCombatResult } from "../model/action";
 import type { CardDefinition } from "../model/card";
@@ -44,6 +46,8 @@ export type CreateCombatInput = {
   readonly petInstances: readonly PetInstance[];
   readonly monsterIds: readonly MonsterId[];
   readonly seed: string | number;
+  readonly runNodeId?: RunNodeId;
+  readonly encounterId?: EncounterId;
   readonly openingHandSize?: number;
 };
 
@@ -79,6 +83,8 @@ const createRejectedState = (input: CreateCombatInput): CombatState => {
 
   return {
     id: input.run.id,
+    runNodeId: input.runNodeId,
+    encounterId: input.encounterId,
     seed: input.seed,
     turnNumber: 0,
     phase: "not_started",
@@ -618,6 +624,8 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
 
   let initialState: CombatState = {
     id: input.run.id,
+    runNodeId: input.runNodeId,
+    encounterId: input.encounterId,
     seed: input.seed,
     turnNumber: 1,
     phase: "player_turn",

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildLevelAuthoringReport,
-  buildLevelSimulationAuthoringSummary,
   encounterId,
   monsterId,
   starterRegistry,
   validateLevelAuthoringRegistry
 } from "../../src/game-core";
+import {
+  buildLevelAuthoringReport,
+  buildLevelSimulationAuthoringSummary
+} from "../../src/game-core/testing";
 
 const errorCodes = (result: ReturnType<typeof validateLevelAuthoringRegistry>): readonly string[] =>
   result.errors.map((error) => error.code);

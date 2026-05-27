@@ -245,7 +245,23 @@ export class CombatScene extends Scene {
     const params = new URLSearchParams(window.location.search);
     return params.get("combatDebug") === "1" ||
       params.get("debugCombat") === "1" ||
-      window.localStorage.getItem("combatDebugOverlay") === "1";
+      this.readDebugOverlayPreference();
+  }
+
+  private readDebugOverlayPreference(): boolean {
+    try {
+      return window.localStorage.getItem("combatDebugOverlay") === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  private writeDebugOverlayPreference(): void {
+    try {
+      window.localStorage.setItem("combatDebugOverlay", this.debugOverlayEnabled ? "1" : "0");
+    } catch {
+      // Storage can be blocked in private or embedded browser contexts.
+    }
   }
 
   private isDebugOverlayAvailable(): boolean {
@@ -868,7 +884,7 @@ export class CombatScene extends Scene {
     if (this.isDebugOverlayAvailable() && (event.key === "`" || event.key === "F2")) {
       this.debugOverlayEnabled = !this.debugOverlayEnabled;
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("combatDebugOverlay", this.debugOverlayEnabled ? "1" : "0");
+        this.writeDebugOverlayPreference();
       }
       this.renderCurrentState(false);
       return;
@@ -963,7 +979,8 @@ export class CombatScene extends Scene {
       state: this.sandbox.getState(),
       selectedCardId: this.selectedCardId,
       playbackObservations: this.eventPlayer?.getPlaybackObservations() ?? [],
-      parityDiagnostics: this.parityDiagnostics
+      parityDiagnostics: this.parityDiagnostics,
+      runtimeMetadata: this.sandbox.getRuntimeMetadata()
     });
 
     await this.copyDebugJson(serializeBrowserDebugTrace(trace), "Copied debug trace JSON.");

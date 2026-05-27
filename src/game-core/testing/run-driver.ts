@@ -6,6 +6,7 @@ import type { PetInstance } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import type { CombatState } from "../model/combat";
+import type { RunNodeType } from "../model/run-map";
 import { createRng, type Rng } from "../systems/rng";
 import { endPlayerTurn, playCard, resolveEnemyTurn } from "../systems/combat";
 import {
@@ -17,6 +18,7 @@ import {
   skipRunPendingReward,
   startCombatForRunNode
 } from "../systems/run-lifecycle";
+import { applyNodeCompletedPetSideStories } from "../systems/story";
 import { createEmberFoxInstanceFixture } from "./fixtures";
 import { getLegalAgentActions } from "./action-space";
 import type {
@@ -108,6 +110,28 @@ export const createAgentRunDriver = (config: AgentRunDriverConfig): AgentRunDriv
   const setSnapshotEvents = (events: readonly GameEvent[]): AgentRunDriverSnapshot => {
     lastEvents = events;
     return snapshot();
+  };
+
+  const applyNodeCompletedSideStories = (
+    nextRun: RunState,
+    nextPetInstances: readonly PetInstance[],
+    completedNodeType: RunNodeType | undefined,
+    priorEvents: readonly GameEvent[]
+  ): GameActionResult<AgentRunDriverSnapshot> => {
+    const storyResult = applyNodeCompletedPetSideStories({
+      run: nextRun,
+      petInstances: nextPetInstances,
+      registry,
+      completedNodeType,
+      priorEvents
+    });
+    if (!storyResult.ok) {
+      return reject(storyResult.errors[0] ?? error("pet_side_story_failed", "Pet side-story evaluation failed."));
+    }
+
+    run = storyResult.state.run ?? nextRun;
+    petInstances = storyResult.state.petInstances;
+    return { ok: true, state: setSnapshotEvents(storyResult.events), events: storyResult.events, errors: [] };
   };
 
   const initialise = (): GameActionResult<AgentRunDriverSnapshot> => {
@@ -204,6 +228,7 @@ export const createAgentRunDriver = (config: AgentRunDriverConfig): AgentRunDriv
     if (!combat) {
       return reject(error("missing_combat", "Cannot complete combat without active combat.", "combat"));
     }
+    const completedNodeType = run.map?.nodes.find((node) => node.status === "active")?.type;
 
     const completed = completeRunCombatNode({
       run,
@@ -216,12 +241,23 @@ export const createAgentRunDriver = (config: AgentRunDriverConfig): AgentRunDriv
       return reject(completed.errors[0] ?? error("complete_combat_failed", "Combat completion was rejected."));
     }
 
-    run = completed.state;
+    if (completed.state.status === "reward") {
+      run = completed.state;
+      combat = undefined;
+      return { ok: true, state: setSnapshotEvents(completed.events), events: completed.events, errors: [] };
+    }
+
+    const storyResult = applyNodeCompletedSideStories(completed.state, petInstances, completedNodeType, completed.events);
+    if (!storyResult.ok) {
+      return storyResult;
+    }
+
     combat = undefined;
-    return { ok: true, state: setSnapshotEvents(completed.events), events: completed.events, errors: [] };
+    return { ok: true, state: setSnapshotEvents(storyResult.events), events: storyResult.events, errors: [] };
   };
 
   const applyClaimReward = (rewardOptionIdValue: RewardOptionId) => {
+    const completedNodeType = run.map?.nodes.find((node) => node.status === "active")?.type;
     const result = claimRunPendingReward({
       run,
       selectedOptionId: rewardOptionIdValue,
@@ -232,30 +268,27 @@ export const createAgentRunDriver = (config: AgentRunDriverConfig): AgentRunDriv
       return reject(result.errors[0] ?? error("claim_reward_failed", "Reward claim was rejected."));
     }
 
-    run = result.state.run;
-    petInstances = result.state.petInstances;
-    return { ok: true, state: setSnapshotEvents(result.events), events: result.events, errors: [] };
+    return applyNodeCompletedSideStories(result.state.run, result.state.petInstances, completedNodeType, result.events);
   };
 
   const applySkipReward = () => {
+    const completedNodeType = run.map?.nodes.find((node) => node.status === "active")?.type;
     const result = skipRunPendingReward({ run, petInstances });
     if (!result.ok) {
       return reject(result.errors[0] ?? error("skip_reward_failed", "Reward skip was rejected."));
     }
 
-    run = result.state.run;
-    petInstances = result.state.petInstances;
-    return { ok: true, state: setSnapshotEvents(result.events), events: result.events, errors: [] };
+    return applyNodeCompletedSideStories(result.state.run, result.state.petInstances, completedNodeType, result.events);
   };
 
   const applyCompleteNonCombatNode = () => {
+    const completedNodeType = run.map?.nodes.find((node) => node.status === "active")?.type;
     const result = completeRunNonCombatNode(run);
     if (!result.ok) {
       return reject(result.errors[0] ?? error("complete_non_combat_failed", "Non-combat node completion was rejected."));
     }
 
-    run = result.state;
-    return { ok: true, state: setSnapshotEvents(result.events), events: result.events, errors: [] };
+    return applyNodeCompletedSideStories(result.state, petInstances, completedNodeType, result.events);
   };
 
   initialise();

@@ -1,6 +1,7 @@
 import { starterRegistry } from "../data/registry";
 import type { CombatState } from "../model/combat";
 import type { GameEvent } from "../model/event";
+import type { GameContentRegistry } from "../model/registry";
 import type { RewardOption } from "../model/reward";
 import type { RunState } from "../model/run";
 import type { AgentRunDriverSnapshot } from "./agent-actions";
@@ -61,7 +62,11 @@ const containsFunction = (value: unknown): boolean => {
   return Object.values(value as Record<string, unknown>).some(containsFunction);
 };
 
-const checkRunInvariants = (snapshot: AgentRunDriverSnapshot, issues: InvariantIssue[]) => {
+const checkRunInvariants = (
+  snapshot: AgentRunDriverSnapshot,
+  registry: GameContentRegistry,
+  issues: InvariantIssue[]
+) => {
   const run = snapshot.run;
   const openReward = run.pendingRewardOffer?.status === "open";
 
@@ -108,7 +113,7 @@ const checkRunInvariants = (snapshot: AgentRunDriverSnapshot, issues: InvariantI
     issues.push(issue("terminal_run_with_active_combat", "Terminal run status must not retain active combat state.", "combat"));
   }
 
-  if ((run.status === "completed" || run.status === "lost") && getLegalAgentActions(snapshot).length > 0) {
+  if ((run.status === "completed" || run.status === "lost") && getLegalAgentActions(snapshot, registry).length > 0) {
     issues.push(issue("terminal_run_has_legal_actions", "Terminal run status must expose no legal gameplay actions."));
   }
 
@@ -150,7 +155,12 @@ const checkRunInvariants = (snapshot: AgentRunDriverSnapshot, issues: InvariantI
   }
 };
 
-const checkCombatInvariants = (combat: CombatState, run: RunState, issues: InvariantIssue[]) => {
+const checkCombatInvariants = (
+  combat: CombatState,
+  run: RunState,
+  registry: GameContentRegistry,
+  issues: InvariantIssue[]
+) => {
   const piles = [
     ...combat.drawPile.map((id) => ({ id, pile: "drawPile" })),
     ...combat.hand.map((id) => ({ id, pile: "hand" })),
@@ -233,7 +243,7 @@ const checkCombatInvariants = (combat: CombatState, run: RunState, issues: Invar
     if (unplannedIntent) {
       issues.push(issue("monster_intent_without_planned_ability", "Active monster intents should have matching planned abilities.", "combat.plannedMonsterAbilities"));
     }
-    const monsterDefinitionsById = new Map(starterRegistry.monsters.map((monster) => [String(monster.id), monster]));
+    const monsterDefinitionsById = new Map(registry.monsters.map((monster) => [String(monster.id), monster]));
     const mismatchedPlannedAbility = plannedMonsterAbilities.find((planned) => {
       const monster = combat.monsters.find((candidate) => candidate.id === planned.monsterCombatantId);
       const monsterDefinition = monster?.definitionId ? monsterDefinitionsById.get(String(monster.definitionId)) : undefined;
@@ -262,7 +272,11 @@ const checkCombatInvariants = (combat: CombatState, run: RunState, issues: Invar
   }
 };
 
-const checkRewardInvariants = (snapshot: AgentRunDriverSnapshot, issues: InvariantIssue[]) => {
+const checkRewardInvariants = (
+  snapshot: AgentRunDriverSnapshot,
+  registry: GameContentRegistry,
+  issues: InvariantIssue[]
+) => {
   const offer = snapshot.run.pendingRewardOffer;
   if (!offer || offer.status !== "open") {
     return;
@@ -276,8 +290,8 @@ const checkRewardInvariants = (snapshot: AgentRunDriverSnapshot, issues: Invaria
     "run.pendingRewardOffer.options"
   );
 
-  const cards = new Set(starterRegistry.cards.map((card) => card.id));
-  const upgrades = new Set(starterRegistry.petUpgrades.map((upgrade) => upgrade.id));
+  const cards = new Set(registry.cards.map((card) => card.id));
+  const upgrades = new Set(registry.petUpgrades.map((upgrade) => upgrade.id));
   const pets = new Set(snapshot.petInstances.map((petInstance) => petInstance.id));
 
   for (const option of offer.options) {
@@ -318,15 +332,16 @@ const checkSerializationInvariants = (snapshot: AgentRunDriverSnapshot, events: 
 };
 
 export const checkAgentRunInvariants = (
-  snapshot: AgentRunDriverSnapshot
+  snapshot: AgentRunDriverSnapshot,
+  registry = starterRegistry
 ): InvariantCheckResult => {
   const issues: InvariantIssue[] = [];
 
-  checkRunInvariants(snapshot, issues);
+  checkRunInvariants(snapshot, registry, issues);
   if (snapshot.combat) {
-    checkCombatInvariants(snapshot.combat, snapshot.run, issues);
+    checkCombatInvariants(snapshot.combat, snapshot.run, registry, issues);
   }
-  checkRewardInvariants(snapshot, issues);
+  checkRewardInvariants(snapshot, registry, issues);
   checkSerializationInvariants(snapshot, snapshot.lastEvents, issues);
 
   return {

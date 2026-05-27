@@ -27,7 +27,28 @@ export type SimulationCliOptions = {
   readonly completionRateMax?: number;
 };
 
+const simulationModes = ["smoke", "fuzz", "exhaustive-small", "replay"] as const;
+
+const isSimulationMode = (value: string): value is SimulationCliOptions["mode"] =>
+  simulationModes.some((mode) => mode === value);
+
+const parseSimulationMode = (value: string): SimulationCliOptions["mode"] => {
+  if (isSimulationMode(value)) {
+    return value;
+  }
+
+  throw new Error(`Invalid simulation mode '${value}'. Expected one of: ${simulationModes.join(", ")}.`);
+};
+
 const readValue = (args: readonly string[], index: number, fallback: string): string => args[index + 1] ?? fallback;
+const readRequiredFlagValue = (args: readonly string[], index: number, flag: string): string => {
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("-")) {
+    throw new Error(`Missing value for ${flag}.`);
+  }
+
+  return value;
+};
 
 const readFlagValue = (args: readonly string[], flag: string): string | undefined => {
   const index = args.indexOf(flag);
@@ -111,7 +132,7 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--mode") {
-      mode = readValue(args, index, mode) as SimulationCliOptions["mode"];
+      mode = parseSimulationMode(readRequiredFlagValue(args, index, "--mode"));
       index += 1;
     } else if (arg === "--seed") {
       seed = readValue(args, index, String(seed));

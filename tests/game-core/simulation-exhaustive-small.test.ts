@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createAgentRunDriver, createAgentStateHash, runBoundedExhaustiveSimulation } from "../../src/game-core";
+import {
+  createAgentRunDriver,
+  createAgentStateHash,
+  runBoundedExhaustiveSimulation
+} from "../../src/game-core/testing";
 
 describe("agent bounded exhaustive simulation", () => {
   it("explores a capped deterministic state space", () => {

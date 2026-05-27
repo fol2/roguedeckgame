@@ -194,6 +194,76 @@ describe("playCard", () => {
     expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
   });
 
+  it("does not discard the played card before its final card movement", () => {
+    const registry = {
+      ...starterRegistry,
+      cards: starterRegistry.cards.map((card) =>
+        card.id === cardId("strike")
+          ? {
+              ...card,
+              effects: [
+                { type: "discard" as const, amount: 1 },
+                { type: "damage" as const, amount: 6, target: { type: "target" as const } }
+              ]
+            }
+          : card
+      )
+    };
+    const result = playCard(
+      createHandTunedCombatFixture(),
+      { type: "playCard", cardInstanceId: cardInstanceId("strike:1"), targetId },
+      registry,
+      createRng("discard-played-card")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.discardPile).toEqual([
+      cardInstanceId("defend:1"),
+      cardInstanceId("strike:1")
+    ]);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "CardPlayed",
+      "EnergySpent",
+      "CardMoved",
+      "DamageDealt",
+      "CardMoved"
+    ]);
+  });
+
+  it("does not exhaust the played card before its final card movement", () => {
+    const registry = {
+      ...starterRegistry,
+      cards: starterRegistry.cards.map((card) =>
+        card.id === cardId("strike")
+          ? {
+              ...card,
+              effects: [
+                { type: "exhaust" as const, amount: 1 },
+                { type: "damage" as const, amount: 6, target: { type: "target" as const } }
+              ]
+            }
+          : card
+      )
+    };
+    const result = playCard(
+      createHandTunedCombatFixture(),
+      { type: "playCard", cardInstanceId: cardInstanceId("strike:1"), targetId },
+      registry,
+      createRng("exhaust-played-card")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.exhaustPile).toEqual([cardInstanceId("defend:1")]);
+    expect(result.state.discardPile).toEqual([cardInstanceId("strike:1")]);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "CardPlayed",
+      "EnergySpent",
+      "CardMoved",
+      "DamageDealt",
+      "CardMoved"
+    ]);
+  });
+
   it("applies damage after block", () => {
     const baseState = createHandTunedCombatFixture();
     const state = {

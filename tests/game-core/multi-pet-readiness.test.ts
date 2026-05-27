@@ -2,13 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   cardInstanceId,
   combatantId,
-  createAgentRunDriver,
   createMultiPetProofPetInstances,
   createMultiPetProofRegistry,
   createRng,
   createRun,
   createSaveSnapshot,
-  deterministicSmokePolicy,
   MULTI_PET_PROOF_ACTIVE_PET_INSTANCE_IDS,
   parseSaveSnapshot,
   playCard,
@@ -19,6 +17,12 @@ import {
   startCombatForRunNode,
   starterRegistry
 } from "../../src/game-core";
+import {
+  createAgentRunDriver,
+  deterministicSmokePolicy,
+  replayAgentTrace,
+  runSmokeSimulation
+} from "../../src/game-core/testing";
 import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
 
 const targetId = combatantId("monster:training_slime:0");
@@ -160,5 +164,24 @@ describe("multi-pet readiness proof", () => {
     expect(result.ok).toBe(true);
     expect(driver.getSnapshot().combat?.activePetInstanceIds).toEqual(MULTI_PET_PROOF_ACTIVE_PET_INSTANCE_IDS);
     expect(driver.getSnapshot().combat?.runPetStates.map((pet) => pet.petInstanceId)).toEqual(MULTI_PET_PROOF_ACTIVE_PET_INSTANCE_IDS);
+  });
+
+  it("can run and replay smoke simulation with two active pets", () => {
+    const config = {
+      seed: "phase12-two-pet-simulation",
+      registry: createMultiPetProofRegistry(),
+      petInstances: createMultiPetProofPetInstances(),
+      activePetInstanceIds: MULTI_PET_PROOF_ACTIVE_PET_INSTANCE_IDS,
+      maxSteps: 500
+    };
+    const result = runSmokeSimulation(config);
+    const completedTrace = result.traces.find((trace) => trace.finalStatus === "completed" && !trace.failure);
+
+    expect(result.ok).toBe(true);
+    expect(completedTrace).toBeDefined();
+    expect(completedTrace!.steps.some((step) =>
+      step.events.some((event) => event.type === "RunRewardPending" || event.type === "RunEnded")
+    )).toBe(true);
+    expect(replayAgentTrace(completedTrace!, config).ok).toBe(true);
   });
 });

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  upgradeId
+} from "../../src/game-core";
+import {
   createAgentRunDriver,
   getLegalAgentActions,
   deterministicSmokePolicy,
-  upgradeId,
   type AgentRunDriverSnapshot
-} from "../../src/game-core";
+} from "../../src/game-core/testing";
 import { createEmberFoxInstanceFixture } from "../../src/game-core/testing/fixtures";
 
 const driveUntil = (

@@ -5,6 +5,7 @@ import {
   createCombatRng,
   createContentContext,
   createRun,
+  createRuntimeMetadata,
   endPlayerTurn,
   petDefinitionId,
   petInstanceId,
@@ -14,7 +15,6 @@ import {
   selectRunNode,
   startCombatForRunNode,
   starterRegistry,
-  currentRuntimeMetadata,
   skipRunPendingReward,
   type CardDefinition,
   type CardInstanceId,
@@ -24,16 +24,20 @@ import {
   type GameActionResult,
   type GameEvent,
   type GameContentRegistry,
-  type AgentAction,
-  type AgentTrace,
-  createAgentStateHash,
-  createTraceStep,
   type PetInstance,
   type PetInstanceId,
   type RewardOptionId,
   type RunNodeId,
   type RunState
 } from "../../game-core";
+import {
+  createAgentStateHash,
+  createTraceStep,
+  type AgentAction,
+  type AgentTrace
+} from "../../game-core/debug";
+import { applyNodeCompletedPetSideStories } from "../../game-core/systems/story";
+import type { RuntimeMetadata } from "../../game-core/model/runtime-metadata";
 import {
   buildCombatViewModel,
   type CombatViewModel
@@ -73,6 +77,7 @@ export type RunSandboxController = {
   readonly getRunViewModel: () => RunViewModel;
   readonly getCombatViewModel: () => CombatViewModel | undefined;
   readonly getAgentTrace: () => AgentTrace;
+  readonly getRuntimeMetadata: () => RuntimeMetadata;
   readonly getCombatDebugViewModel: (
     input?: DebugInputSnapshot,
     playbackObservations?: readonly CombatPlaybackObservation[],
@@ -105,8 +110,10 @@ const createSandboxPetInstances = (): readonly PetInstance[] => [
     bondXp: 0,
     unlockedUpgradeIds: [],
     chosenEvolutionNodeIds: [],
+    unlockedEvolutionNodeIds: [],
     unlockedMemoryIds: [],
-    storyFlags: []
+    storyFlags: [],
+    seenStoryEventIds: []
   }
 ];
 
@@ -208,6 +215,7 @@ export const createRunSandboxController = (
 ): RunSandboxController => {
   const config = normaliseControllerConfig(seedOrConfig);
   const { seed, registry } = config;
+  const runtimeMetadata = createRuntimeMetadata(registry);
   let actionRng = createCombatRng(`${String(seed)}:agent-driver`);
   let state = createInitialState(config).state;
   let revision = 0;
@@ -253,7 +261,7 @@ export const createRunSandboxController = (
         result.ok,
         result.events,
         result.errors,
-        createAgentStateHash(result.state, { schemaVersion: currentRuntimeMetadata.traceSchemaVersion })
+        createAgentStateHash(result.state, { schemaVersion: runtimeMetadata.traceSchemaVersion })
       )
     ];
 
@@ -312,12 +320,13 @@ export const createRunSandboxController = (
         }, content, revision)
       : undefined,
     getAgentTrace: () => ({
-      schemaVersion: currentRuntimeMetadata.traceSchemaVersion,
+      schemaVersion: runtimeMetadata.traceSchemaVersion,
       seed,
       mode: "regression",
       finalStatus: state.run.status,
       steps: traceSteps
     }),
+    getRuntimeMetadata: () => runtimeMetadata,
     getCombatDebugViewModel: (input, playbackObservations, parityDiagnostics) => buildCombatDebugViewModel(state, state.combat
       ? buildCombatViewModel({
           run: state.run,
@@ -442,6 +451,7 @@ export const createRunSandboxController = (
         return reject(createError("combat_not_ended", `Combat is '${state.combat.phase}'.`, "combat.phase"));
       }
 
+      const completedNodeType = state.run.map?.nodes.find((node) => node.status === "active")?.type;
       const completeResult = completeRunCombatNode({
         run: state.run,
         combat: state.combat,
@@ -453,7 +463,26 @@ export const createRunSandboxController = (
         ? replaceState(state, { run: completeResult.state, combat: undefined }, completeResult.events)
         : replaceState(state, { run: completeResult.state }, completeResult.events);
 
-      const result = toResult(completeResult.ok, next, completeResult.events, completeResult.errors);
+      if (!completeResult.ok || completeResult.state.status === "reward") {
+        const result = toResult(completeResult.ok, next, completeResult.events, completeResult.errors);
+
+        return recordAgentAction({ type: "completeCombatIfEnded" }, result);
+      }
+
+      const storyResult = applyNodeCompletedPetSideStories({
+        run: completeResult.state,
+        petInstances: state.petInstances,
+        registry,
+        completedNodeType,
+        priorEvents: completeResult.events
+      });
+      const result = storyResult.ok
+        ? toResult(true, replaceState(state, {
+            run: storyResult.state.run ?? completeResult.state,
+            petInstances: storyResult.state.petInstances,
+            combat: undefined
+          }, storyResult.events), storyResult.events, [])
+        : toResult(false, replaceState(state, {}, storyResult.events), storyResult.events, storyResult.errors);
 
       return recordAgentAction({ type: "completeCombatIfEnded" }, result);
     },
@@ -468,17 +497,31 @@ export const createRunSandboxController = (
         return toResult(false, replaceState(state, {}, claimResult.events), claimResult.events, claimResult.errors);
       }
 
+      const completedNodeType = state.run.map?.nodes.find((node) => node.status === "active")?.type;
+      const storyResult = applyNodeCompletedPetSideStories({
+        run: claimResult.state.run,
+        petInstances: claimResult.state.petInstances,
+        registry,
+        completedNodeType,
+        priorEvents: claimResult.events
+      });
+      if (!storyResult.ok) {
+        const result = toResult(false, replaceState(state, {}, storyResult.events), storyResult.events, storyResult.errors);
+
+        return recordAgentAction({ type: "claimReward", rewardOptionId }, result);
+      }
+
       const next = replaceState(
         state,
         {
-          run: claimResult.state.run,
-          petInstances: claimResult.state.petInstances,
+          run: storyResult.state.run ?? claimResult.state.run,
+          petInstances: storyResult.state.petInstances,
           combat: undefined
         },
-        claimResult.events
+        storyResult.events
       );
 
-      const result = toResult(claimResult.ok, next, claimResult.events, claimResult.errors);
+      const result = toResult(claimResult.ok, next, storyResult.events, claimResult.errors);
 
       return recordAgentAction({ type: "claimReward", rewardOptionId }, result);
     },
@@ -491,17 +534,31 @@ export const createRunSandboxController = (
         return toResult(false, replaceState(state, {}, skipResult.events), skipResult.events, skipResult.errors);
       }
 
+      const completedNodeType = state.run.map?.nodes.find((node) => node.status === "active")?.type;
+      const storyResult = applyNodeCompletedPetSideStories({
+        run: skipResult.state.run,
+        petInstances: skipResult.state.petInstances,
+        registry,
+        completedNodeType,
+        priorEvents: skipResult.events
+      });
+      if (!storyResult.ok) {
+        const result = toResult(false, replaceState(state, {}, storyResult.events), storyResult.events, storyResult.errors);
+
+        return recordAgentAction({ type: "skipReward" }, result);
+      }
+
       const next = replaceState(
         state,
         {
-          run: skipResult.state.run,
-          petInstances: skipResult.state.petInstances,
+          run: storyResult.state.run ?? skipResult.state.run,
+          petInstances: storyResult.state.petInstances,
           combat: undefined
         },
-        skipResult.events
+        storyResult.events
       );
 
-      const result = toResult(skipResult.ok, next, skipResult.events, skipResult.errors);
+      const result = toResult(skipResult.ok, next, storyResult.events, skipResult.errors);
 
       return recordAgentAction({ type: "skipReward" }, result);
     },
@@ -511,9 +568,27 @@ export const createRunSandboxController = (
         return toResult(false, replaceState(state, {}, completion.events), completion.events, completion.errors);
       }
 
-      const next = replaceState(state, { run: completion.state, combat: undefined }, completion.events);
+      const completedNodeType = state.run.map?.nodes.find((node) => node.status === "active")?.type;
+      const storyResult = applyNodeCompletedPetSideStories({
+        run: completion.state,
+        petInstances: state.petInstances,
+        registry,
+        completedNodeType,
+        priorEvents: completion.events
+      });
+      if (!storyResult.ok) {
+        const result = toResult(false, replaceState(state, {}, storyResult.events), storyResult.events, storyResult.errors);
 
-      const result = toResult(completion.ok, next, completion.events, completion.errors);
+        return recordAgentAction({ type: "completeNonCombatNode" }, result);
+      }
+
+      const next = replaceState(state, {
+        run: storyResult.state.run ?? completion.state,
+        petInstances: storyResult.state.petInstances,
+        combat: undefined
+      }, storyResult.events);
+
+      const result = toResult(completion.ok, next, storyResult.events, completion.errors);
 
       return recordAgentAction({ type: "completeNonCombatNode" }, result);
     },

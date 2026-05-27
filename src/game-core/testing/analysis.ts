@@ -124,6 +124,7 @@ export type SimulationHealthOptions = {
   readonly warnIfNoLosses?: boolean;
   readonly warnIfNoRewards?: boolean;
   readonly warnIfNoPetUpgrades?: boolean;
+  readonly warnIfNoStoryEvents?: boolean;
   readonly warnIfNoPlayerDamage?: boolean;
   readonly warnIfNoMonsterDamage?: boolean;
   readonly highCompletionRateWarning?: number;
@@ -541,6 +542,7 @@ export const checkSimulationHealth = (
   const warnIfNoLosses = options.warnIfNoLosses ?? report.totalRuns >= 20;
   const warnIfNoRewards = options.warnIfNoRewards ?? true;
   const warnIfNoPetUpgrades = options.warnIfNoPetUpgrades ?? true;
+  const warnIfNoStoryEvents = options.warnIfNoStoryEvents ?? false;
   const warnIfNoPlayerDamage = options.warnIfNoPlayerDamage ?? true;
   const warnIfNoMonsterDamage = options.warnIfNoMonsterDamage ?? true;
   const highCompletionRateWarning = options.highCompletionRateWarning ?? 0.95;
@@ -623,6 +625,14 @@ export const checkSimulationHealth = (
       severity: "warning",
       code: "no_pet_upgrades_unlocked",
       message: "No pet upgrade was unlocked in the sample. Pet-upgrade balance and modifier coverage are missing."
+    });
+  }
+
+  if (warnIfNoStoryEvents && report.completedRuns > 0 && report.storyEventsCompleted === 0) {
+    issues.push({
+      severity: "warning",
+      code: "no_story_events_completed",
+      message: "Completed sampled runs did not complete any pet side-story events. Story progression coverage is missing."
     });
   }
 

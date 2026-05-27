@@ -1,4 +1,5 @@
 import type { EffectDefinition } from "../model/effect";
+import type { PetModifierDefinition } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
 import { knownPlayerClassModifierRuleTypeValues } from "../systems/class-modifiers";
@@ -14,7 +15,9 @@ export type ContentReport = {
     readonly monsters: number;
     readonly encounters: number;
     readonly runMapTemplates: number;
+    readonly rewardPools: number;
     readonly petUpgrades: number;
+    readonly petModifiers: number;
     readonly playerClassModifiers: number;
   };
   readonly cardRarities: readonly string[];
@@ -39,6 +42,11 @@ export type ContentReport = {
 
 const sorted = (values: Iterable<string>): readonly string[] => [...values].sort((a, b) => a.localeCompare(b));
 
+const collectPetModifiers = (registry: GameContentRegistry): readonly PetModifierDefinition[] => [
+  ...registry.petUpgrades.flatMap((upgrade) => upgrade.modifiers),
+  ...(registry.petModifiers ?? [])
+];
+
 const collectEffectTypes = (registry: GameContentRegistry): readonly string[] => {
   const effectTypes = new Set<string>();
   const collect = (effect: EffectDefinition): void => {
@@ -48,8 +56,7 @@ const collectEffectTypes = (registry: GameContentRegistry): readonly string[] =>
   registry.cards.flatMap((card) => card.effects).forEach(collect);
   (registry.monsterAbilities ?? []).flatMap((ability) => ability.effects).forEach(collect);
   registry.monsters.flatMap((monster) => monster.intentPool).flatMap((intent) => intent.effects).forEach(collect);
-  registry.petUpgrades
-    .flatMap((upgrade) => upgrade.modifiers)
+  collectPetModifiers(registry)
     .flatMap((modifier) => modifier.rules)
     .forEach((rule) => {
       if (rule.type === "triggerOnEnemyDefeatedWithStatus") {
@@ -76,7 +83,9 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
       monsters: registry.monsters.length,
       encounters: registry.encounters.length,
       runMapTemplates: registry.runMapTemplates.length,
+      rewardPools: registry.rewardPools?.length ?? 0,
       petUpgrades: registry.petUpgrades.length,
+      petModifiers: registry.petModifiers?.length ?? 0,
       playerClassModifiers: registry.playerClassModifiers?.length ?? 0
     },
     cardRarities: sorted(new Set(registry.cards.map((card) => card.rarity ?? "unknown"))),
@@ -91,8 +100,7 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
     ),
     statusBehaviourTypes: sorted(supportedStatusBehaviourTypes),
     petModifierRuleTypes: sorted(new Set(
-      registry.petUpgrades
-        .flatMap((upgrade) => upgrade.modifiers)
+      collectPetModifiers(registry)
         .flatMap((modifier) => modifier.rules)
         .map((rule) => rule.type)
     )),

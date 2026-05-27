@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  AGENT_TRACE_SCHEMA_VERSION,
-  analyzeAgentTrace,
-  analyzeAgentTraces,
   cardId,
-  checkSimulationHealth,
   combatantId,
   encounterId,
   monsterAbilityId,
@@ -13,16 +9,22 @@ import {
   petInstanceId,
   rewardOfferId,
   rewardOptionId,
-  runFuzzSimulation,
   runId,
   runNodeId,
-  runSmokeSimulation,
   statusId,
-  upgradeId,
+  upgradeId
+} from "../../src/game-core";
+import {
+  AGENT_TRACE_SCHEMA_VERSION,
+  analyzeAgentTrace,
+  analyzeAgentTraces,
+  checkSimulationHealth,
+  runFuzzSimulation,
+  runSmokeSimulation,
   type AgentTrace,
   type AgentTraceMetrics,
   type SimulationAggregateReport
-} from "../../src/game-core";
+} from "../../src/game-core/testing";
 
 describe("simulation analysis", () => {
   it("summarizes smoke traces into engine-flow and balance metrics", () => {
@@ -174,7 +176,25 @@ describe("simulation analysis", () => {
     expect(issues.map((issue) => issue.code)).toContain("invalid_injection_not_exercised");
   });
 
+  it("can warn when completed samples do not exercise pet side stories", () => {
+    const result = runFuzzSimulation({ seed: "analysis-story-coverage", runs: 6, maxSteps: 300, invalidActionRate: 0 });
+    const report = analyzeAgentTraces(result.traces);
+    const issues = checkSimulationHealth(
+      { ...report, storyEventsCompleted: 0, completedRuns: Math.max(1, report.completedRuns) },
+      {
+        requireCompletedRun: false,
+        requireInvalidRejections: false,
+        warnIfNoLosses: false,
+        warnIfNoRewards: false,
+        warnIfNoPetUpgrades: false,
+        warnIfNoStoryEvents: true,
+        warnIfNoPlayerDamage: false,
+        warnIfNoMonsterDamage: false
+      }
+    );
 
+    expect(issues.map((issue) => issue.code)).toContain("no_story_events_completed");
+  });
 
   it("tracks persistent run HP metrics across analyzed traces", () => {
     const result = runFuzzSimulation({ seed: "analysis-hp", runs: 12, maxSteps: 300, invalidActionRate: 0 });
