@@ -103,6 +103,7 @@ export const createAgentStateHash = (
           energy: combat.energy,
           maxEnergy: combat.maxEnergy,
           intentVisibilityOverrides: includeIntentVisibility ? combat.intentVisibilityOverrides : undefined,
+          monsterCardStates: includeIntentVisibility ? combat.monsterCardStates : undefined,
           hand: combat.hand.map((id) => cardIdentity(snapshot, id)),
           drawPile: combat.drawPile.map((id) => cardIdentity(snapshot, id)),
           discardPile: combat.discardPile.map((id) => cardIdentity(snapshot, id)),

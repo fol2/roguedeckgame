@@ -24,7 +24,7 @@ import { moveCardBetweenPiles } from "./card-piles";
 import { drawCards } from "./draw";
 import { resolveCardEffects, resolveEffects } from "./effects";
 import { checkCombatOutcome } from "./outcome";
-import { chooseMonsterIntents, findMonsterDefinition, findPlannedMonsterAbility } from "./monster-intents";
+import { chooseMonsterIntents, discardPlannedMonsterCard, findMonsterDefinition, findPlannedMonsterAbility } from "./monster-intents";
 import {
   applyPetCommandCostModifiers,
   applyPetCommandEffectModifiers,
@@ -97,6 +97,7 @@ const createRejectedState = (input: CreateCombatInput): CombatState => {
     runPetStates: activePetInstances.map(createRunPetState),
     monsterIntents: [],
     plannedMonsterAbilities: [],
+    monsterCardStates: [],
     cardInstances,
     drawPile: [],
     hand: [],
@@ -638,6 +639,7 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     runPetStates,
     monsterIntents: [],
     plannedMonsterAbilities: [],
+    monsterCardStates: [],
     cardInstances,
     drawPile: shuffledDrawPile,
     hand: [],
@@ -919,7 +921,7 @@ export const resolveEnemyTurn = (
       );
     }
 
-    nextState = effectResult.state;
+    nextState = discardPlannedMonsterCard(effectResult.state, monster.id);
     events.push(...effectResult.events);
 
     const outcomeResult = checkCombatOutcome(nextState);

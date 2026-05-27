@@ -73,6 +73,17 @@ export type PlannedMonsterAbility = {
   readonly abilityId: MonsterAbilityId;
 };
 
+export type MonsterCardZone = "draw" | "hand" | "planned" | "discard" | "exhaust";
+
+export type CombatMonsterCardState = {
+  readonly monsterCombatantId: CombatantId;
+  readonly drawPile: readonly MonsterAbilityId[];
+  readonly hand: readonly MonsterAbilityId[];
+  readonly planned: readonly MonsterAbilityId[];
+  readonly discardPile: readonly MonsterAbilityId[];
+  readonly exhaustPile: readonly MonsterAbilityId[];
+};
+
 export type CombatState = {
   readonly id: RunId;
   readonly runNodeId?: RunNodeId;
@@ -91,6 +102,7 @@ export type CombatState = {
   readonly runPetStates: readonly RunPetState[];
   readonly monsterIntents: readonly ActiveMonsterIntent[];
   readonly plannedMonsterAbilities?: readonly PlannedMonsterAbility[];
+  readonly monsterCardStates?: readonly CombatMonsterCardState[];
   readonly intentVisibilityOverrides?: readonly CombatIntentVisibilityState[];
   readonly cardInstances: readonly CombatCardInstance[];
   readonly drawPile: readonly CardInstanceId[];

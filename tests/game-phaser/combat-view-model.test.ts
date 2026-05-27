@@ -451,7 +451,7 @@ describe("Combat view model", () => {
     expect(intent.visibilityLevel).toBe("rough");
     expect(intent.abilityId).toBeUndefined();
     expect(intent.amount).toBeUndefined();
-    expect(intent.plannedAction.effectLines).toEqual(["Specific card text is hidden."]);
+    expect(intent.plannedAction.effectLines).toEqual(["Rough strength: unknown", "Specific card text is hidden."]);
   });
 
   it("redacts hidden enemy planned cards until intent visibility is improved", () => {

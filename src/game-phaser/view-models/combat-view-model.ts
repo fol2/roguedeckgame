@@ -588,7 +588,7 @@ const buildVisibleIntentCopy = (input: {
   const intentType = ability?.intentType ?? intentDefinition?.type ?? "intent";
   const source = resolvedAbility?.source ?? (intentDefinition ? "fallbackMetadata" : "unknown");
 
-  if (visibilityLevel === "exact" || visibilityLevel === "scoped") {
+  if (visibilityLevel === "exact") {
     return {
       abilityId: ability?.id,
       type: intentType,
@@ -607,13 +607,45 @@ const buildVisibleIntentCopy = (input: {
     };
   }
 
+  if (visibilityLevel === "scoped") {
+    return {
+      abilityId: undefined,
+      type: intentType,
+      label: `${intentType} scoped`,
+      description: `Scoped ${intentType} intent. Card text remains hidden.`,
+      targetHint: input.targetHint,
+      amount: undefined,
+      plannedAction: {
+        source,
+        revealPolicy: visibilityLevel,
+        title: `${intentType} candidate`,
+        subtitle: "Scoped planned card",
+        intentId: intent.intentId,
+        intentType,
+        tags: [],
+        effectLines: [
+          `Candidate category: ${intentType}`,
+          `Likely target: ${input.targetHint}`,
+          "Specific card name, amount, and effects are hidden."
+        ]
+      }
+    };
+  }
+
   if (visibilityLevel === "rough") {
     const roughTarget = ability?.telegraph?.targetHint ?? input.targetHint;
+    const roughStrength = input.amount === undefined
+      ? "unknown"
+      : input.amount <= 4
+        ? "light"
+        : input.amount <= 8
+          ? "moderate"
+          : "heavy";
     return {
       abilityId: undefined,
       type: intentType,
       label: `${intentType} intent`,
-      description: `Rough ${intentType} intent.`,
+      description: `Rough ${intentType} intent with ${roughStrength} strength.`,
       targetHint: roughTarget,
       amount: undefined,
       plannedAction: {
@@ -624,7 +656,7 @@ const buildVisibleIntentCopy = (input: {
         intentId: intent.intentId,
         intentType,
         tags: [],
-        effectLines: ["Specific card text is hidden."]
+        effectLines: [`Rough strength: ${roughStrength}`, "Specific card text is hidden."]
       }
     };
   }
@@ -645,6 +677,26 @@ const buildVisibleIntentCopy = (input: {
         intentType,
         tags: [],
         effectLines: ["Card name, amount, target, and effects are hidden."]
+      }
+    };
+  }
+
+  if (visibilityLevel === "none") {
+    return {
+      abilityId: undefined,
+      type: "unknown",
+      label: "Idle",
+      description: "No useful intent is available.",
+      targetHint: "unknown",
+      plannedAction: {
+        source: "unknown",
+        revealPolicy: visibilityLevel,
+        title: "Idle",
+        subtitle: "No intent",
+        intentId: intent.intentId,
+        intentType: "unknown",
+        tags: [],
+        effectLines: ["No useful intent marker."]
       }
     };
   }

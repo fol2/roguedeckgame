@@ -333,7 +333,7 @@ export const runBoundedExhaustiveSimulation = (
     }
 
     const snapshot = driver.getSnapshot();
-    const hash = createAgentStateHash(snapshot);
+    const hash = createAgentStateHash(snapshot, { schemaVersion: AGENT_TRACE_SCHEMA_VERSION });
     if (visited.has(hash)) {
       continue;
     }

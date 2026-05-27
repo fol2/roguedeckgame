@@ -1,6 +1,6 @@
-import type { CombatantId } from "../ids";
+import type { CombatantId, MonsterAbilityId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
-import type { ActiveMonsterIntent, CombatState, PlannedMonsterAbility } from "../model/combat";
+import type { ActiveMonsterIntent, CombatMonsterCardState, CombatState, PlannedMonsterAbility } from "../model/combat";
 import type { GameEvent } from "../model/event";
 import type {
   MonsterAbilityDefinition,
@@ -20,6 +20,11 @@ type IntentSelectionCandidate = {
 type ResolvedIntentSelection = {
   readonly intent: MonsterIntentDefinition;
   readonly ability: MonsterAbilityDefinition;
+};
+
+type MonsterCardPlanResult = {
+  readonly selected?: ResolvedIntentSelection;
+  readonly cardState?: CombatMonsterCardState;
 };
 
 const error = (code: string, message: string, path?: string): GameActionError => ({
@@ -45,6 +50,126 @@ const reject = (state: CombatState, actionError: GameActionError): GameActionRes
 const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatState => ({
   ...state,
   events: [...state.events, ...events]
+});
+
+const removeFirst = <T>(items: readonly T[], item: T): readonly T[] => {
+  const index = items.indexOf(item);
+  return index === -1 ? items : [...items.slice(0, index), ...items.slice(index + 1)];
+};
+
+const expandMonsterCardDeck = (monsterDefinition: MonsterDefinition): readonly MonsterAbilityId[] =>
+  (monsterDefinition.cardGame?.deck ?? []).flatMap((entry) =>
+    Array.from({ length: entry.copies }, () => entry.abilityId)
+  );
+
+const getExistingCardState = (
+  state: CombatState,
+  monsterCombatantId: CombatantId
+): CombatMonsterCardState | undefined =>
+  state.monsterCardStates?.find((cardState) => cardState.monsterCombatantId === monsterCombatantId);
+
+const createMonsterCardState = (
+  monsterCombatantId: CombatantId,
+  monsterDefinition: MonsterDefinition,
+  rng: Rng
+): CombatMonsterCardState => ({
+  monsterCombatantId,
+  drawPile: rng.shuffle(expandMonsterCardDeck(monsterDefinition)),
+  hand: [],
+  planned: [],
+  discardPile: [],
+  exhaustPile: []
+});
+
+const drawMonsterCardHand = (
+  cardState: CombatMonsterCardState,
+  monsterDefinition: MonsterDefinition,
+  rng: Rng
+): CombatMonsterCardState => {
+  const handSize = monsterDefinition.cardGame?.handSize ?? 0;
+  let drawPile = [...cardState.drawPile];
+  let hand = [...cardState.hand];
+  let discardPile = [...cardState.discardPile, ...cardState.planned];
+
+  while (hand.length < handSize) {
+    if (drawPile.length === 0) {
+      if (discardPile.length === 0) {
+        break;
+      }
+
+      drawPile = rng.shuffle(discardPile);
+      discardPile = [];
+    }
+
+    const [drawn, ...remainingDrawPile] = drawPile;
+    if (!drawn) {
+      break;
+    }
+
+    hand = [...hand, drawn];
+    drawPile = remainingDrawPile;
+  }
+
+  return {
+    ...cardState,
+    drawPile,
+    hand,
+    planned: [],
+    discardPile
+  };
+};
+
+const selectMonsterCardPlan = (
+  state: CombatState,
+  monster: CombatState["monsters"][number],
+  monsterDefinition: MonsterDefinition,
+  intentPool: readonly ResolvedIntentSelection[],
+  scheduledIntent: MonsterIntentDefinition | undefined,
+  rng: Rng
+): MonsterCardPlanResult => {
+  if (!monsterDefinition.cardGame) {
+    return {};
+  }
+
+  const existingCardState = getExistingCardState(state, monster.id) ??
+    createMonsterCardState(monster.id, monsterDefinition, rng);
+  const drawnState = drawMonsterCardHand(existingCardState, monsterDefinition, rng);
+  const scheduledSelection = scheduledIntent
+    ? intentPool.find((candidate) => candidate.intent.id === scheduledIntent.id)
+    : undefined;
+  const selectedAbilityId = scheduledSelection?.ability.id ?? rng.choice(drawnState.hand);
+  const selected = selectedAbilityId
+    ? intentPool.find((candidate) => candidate.ability.id === selectedAbilityId)
+    : scheduledSelection;
+
+  if (!selected) {
+    return { cardState: drawnState };
+  }
+
+  return {
+    selected,
+    cardState: {
+      ...drawnState,
+      hand: removeFirst(drawnState.hand, selected.ability.id),
+      planned: [selected.ability.id]
+    }
+  };
+};
+
+export const discardPlannedMonsterCard = (
+  state: CombatState,
+  monsterCombatantId: CombatantId
+): CombatState => ({
+  ...state,
+  monsterCardStates: (state.monsterCardStates ?? []).map((cardState) =>
+    cardState.monsterCombatantId === monsterCombatantId
+      ? {
+          ...cardState,
+          planned: [],
+          discardPile: [...cardState.discardPile, ...cardState.planned]
+        }
+      : cardState
+  )
 });
 
 export const findMonsterDefinition = (
@@ -212,6 +337,7 @@ export const chooseMonsterIntents = (
   const candidates: IntentSelectionCandidate[] = [];
   const activeIntents: ActiveMonsterIntent[] = [];
   const plannedAbilities: PlannedMonsterAbility[] = [];
+  const monsterCardStates = [...(state.monsterCardStates ?? [])];
   const events: GameEvent[] = [];
 
   for (const monster of state.monsters) {
@@ -265,9 +391,12 @@ export const chooseMonsterIntents = (
       state,
       options?.scheduledTurnNumber ?? state.turnNumber
     );
-    const selected = scheduledIntent
-      ? intentPool.find((candidate) => candidate.intent.id === scheduledIntent.id)
-      : rng.choice(intentPool);
+    const cardPlan = selectMonsterCardPlan(state, monster, monsterDefinition, intentPool, scheduledIntent, rng);
+    const selected = cardPlan.selected ?? (
+      scheduledIntent
+        ? intentPool.find((candidate) => candidate.intent.id === scheduledIntent.id)
+        : rng.choice(intentPool)
+    );
     if (!selected) {
       return reject(
         state,
@@ -280,6 +409,14 @@ export const chooseMonsterIntents = (
     }
     const intent = selected.intent;
     const ability = selected.ability;
+    if (cardPlan.cardState) {
+      const existingIndex = monsterCardStates.findIndex((cardState) => cardState.monsterCombatantId === monster.id);
+      if (existingIndex >= 0) {
+        monsterCardStates[existingIndex] = cardPlan.cardState;
+      } else {
+        monsterCardStates.push(cardPlan.cardState);
+      }
+    }
 
     activeIntents.push({ monsterCombatantId: monster.id, intentId: intent.id });
     plannedAbilities.push({ monsterCombatantId: monster.id, intentId: intent.id, abilityId: ability.id });
@@ -307,6 +444,7 @@ export const chooseMonsterIntents = (
     ...state,
     monsterIntents: activeIntents,
     plannedMonsterAbilities: plannedAbilities,
+    monsterCardStates,
     intentVisibilityOverrides: persistentIntentVisibilityOverrides
   }, events);
   return { ok: true, state: nextState, events, errors: [] };
