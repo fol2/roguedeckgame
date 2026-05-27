@@ -3,6 +3,23 @@ import type { AgentTrace } from "./trace";
 import type { RunStatus } from "../model/run";
 
 export type CountMap = Readonly<Record<string, number>>;
+export type RateMap = Readonly<Record<string, number>>;
+
+export type SimulationBalanceMetrics = {
+  readonly monsterAbilityPlansByAbilityId: CountMap;
+  readonly monsterAbilityPlaysByAbilityId: CountMap;
+  readonly statusesAppliedByStatusId: CountMap;
+  readonly statusesAppliedToPlayerByStatusId: CountMap;
+  readonly statusesAppliedToMonstersByStatusId: CountMap;
+  readonly encountersStartedById: CountMap;
+  readonly encountersWonById: CountMap;
+  readonly encountersLostById: CountMap;
+  readonly runPathsByNodeIds: CountMap;
+  readonly totalDamageToPlayerByEncounterId: CountMap;
+  readonly totalDamageToMonstersByEncounterId: CountMap;
+  readonly rewardOffersByType: CountMap;
+  readonly rewardSelectionRatesByType: RateMap;
+};
 
 export type AgentTraceMetrics = {
   readonly seed: string | number;
@@ -41,6 +58,7 @@ export type AgentTraceMetrics = {
   readonly cardRewardsByCardId: CountMap;
   readonly petUpgradesByUpgradeId: CountMap;
   readonly rewardSelectionsByType: CountMap;
+  readonly balance?: SimulationBalanceMetrics;
 };
 
 export type SimulationAggregateReport = {
@@ -85,6 +103,7 @@ export type SimulationAggregateReport = {
   readonly cardRewardsByCardId: CountMap;
   readonly petUpgradesByUpgradeId: CountMap;
   readonly rewardSelectionsByType: CountMap;
+  readonly balance?: SimulationBalanceMetrics;
   readonly traces: readonly AgentTraceMetrics[];
 };
 
@@ -124,6 +143,15 @@ const mergeCounts = (target: Record<string, number>, source: CountMap): void => 
   }
 };
 
+const buildRates = (numerators: CountMap, denominators: CountMap): CountMap => {
+  const keys = new Set([...Object.keys(numerators), ...Object.keys(denominators)]);
+  const rates: Record<string, number> = {};
+  for (const key of keys) {
+    rates[key] = safeAverage(numerators[key] ?? 0, denominators[key] ?? 0);
+  }
+  return rates;
+};
+
 const actionKey = (action: AgentAction): string => {
   if (action.type === "playCard") {
     return action.targetId ? "playCard:targeted" : "playCard:targetless";
@@ -140,7 +168,19 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
   const eventCounts = emptyCountMap();
   const selectedNodesById = emptyCountMap();
   const cardPlaysByCardId = emptyCountMap();
+  const monsterAbilityPlansByAbilityId = emptyCountMap();
+  const monsterAbilityPlaysByAbilityId = emptyCountMap();
+  const statusesAppliedByStatusId = emptyCountMap();
+  const statusesAppliedToPlayerByStatusId = emptyCountMap();
+  const statusesAppliedToMonstersByStatusId = emptyCountMap();
+  const encountersStartedById = emptyCountMap();
+  const encountersWonById = emptyCountMap();
+  const encountersLostById = emptyCountMap();
+  const selectedRunNodePath: string[] = [];
+  const totalDamageToPlayerByEncounterId = emptyCountMap();
+  const totalDamageToMonstersByEncounterId = emptyCountMap();
   const cardRewardsByCardId = emptyCountMap();
+  const rewardOffersByType = emptyCountMap();
   const petUpgradesByUpgradeId = emptyCountMap();
   const rewardSelectionsByType = emptyCountMap();
 
@@ -168,6 +208,7 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
   let totalDamageBlocked = 0;
   let totalBlockGainedByPlayer = 0;
   let totalBlockGainedByMonsters = 0;
+  let activeEncounterId: string | undefined;
 
   for (const step of trace.steps) {
     increment(actionCounts, actionKey(step.action));
@@ -194,7 +235,11 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
         runMaxHp = event.playerMaxHp;
       } else if (event.type === "RunNodeSelected") {
         increment(selectedNodesById, event.nodeId);
-      } else if (event.type === "RunCombatStarted" || event.type === "CombatStarted") {
+        selectedRunNodePath.push(String(event.nodeId));
+      } else if (event.type === "RunCombatStarted") {
+        activeEncounterId = String(event.encounterId);
+        increment(encountersStartedById, activeEncounterId);
+      } else if (event.type === "CombatStarted") {
         combatsStarted += event.type === "CombatStarted" ? 1 : 0;
       } else if (event.type === "RunCombatCompleted" || event.type === "CombatEnded") {
         if (event.type === "RunCombatCompleted") {
@@ -203,8 +248,17 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
         }
         if (event.outcome === "won") {
           combatsWon += event.type === "CombatEnded" ? 1 : 0;
+          if (event.type === "CombatEnded") {
+            increment(encountersWonById, activeEncounterId);
+          }
         } else {
           combatsLost += event.type === "CombatEnded" ? 1 : 0;
+          if (event.type === "CombatEnded") {
+            increment(encountersLostById, activeEncounterId);
+          }
+        }
+        if (event.type === "RunCombatCompleted") {
+          activeEncounterId = undefined;
         }
       } else if (event.type === "RunPlayerHealed") {
         runHp = event.hpAfter;
@@ -215,6 +269,9 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
         maxTurnNumber = Math.max(maxTurnNumber, event.turnNumber);
       } else if (event.type === "RewardOffered") {
         rewardsOffered += 1;
+        new Set(event.options.map((option) => option.type)).forEach((rewardType) =>
+          increment(rewardOffersByType, rewardType)
+        );
       } else if (event.type === "RewardSelected") {
         rewardsSelected += 1;
         increment(rewardSelectionsByType, event.rewardType);
@@ -230,13 +287,26 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
         storyEventsCompleted += 1;
       } else if (event.type === "CardPlayed") {
         increment(cardPlaysByCardId, event.cardId);
+      } else if (event.type === "MonsterAbilityPlanned") {
+        increment(monsterAbilityPlansByAbilityId, event.abilityId);
+      } else if (event.type === "MonsterAbilityPlayed") {
+        increment(monsterAbilityPlaysByAbilityId, event.abilityId);
+      } else if (event.type === "StatusApplied") {
+        increment(statusesAppliedByStatusId, event.statusId);
+        if (isPlayerCombatant(event.targetId)) {
+          increment(statusesAppliedToPlayerByStatusId, event.statusId);
+        } else if (isMonsterCombatant(event.targetId)) {
+          increment(statusesAppliedToMonstersByStatusId, event.statusId);
+        }
       } else if (event.type === "DamageDealt") {
         totalDamageBlocked += event.blocked;
         if (isPlayerCombatant(event.targetId)) {
           totalDamageToPlayer += event.amount;
+          increment(totalDamageToPlayerByEncounterId, activeEncounterId, event.amount);
           runHp = runHp === undefined ? undefined : Math.max(0, runHp - event.amount);
         } else if (isMonsterCombatant(event.targetId)) {
           totalDamageToMonsters += event.amount;
+          increment(totalDamageToMonstersByEncounterId, activeEncounterId, event.amount);
         }
       } else if (event.type === "BlockGained") {
         if (isPlayerCombatant(event.targetId)) {
@@ -284,7 +354,22 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
     cardPlaysByCardId,
     cardRewardsByCardId,
     petUpgradesByUpgradeId,
-    rewardSelectionsByType
+    rewardSelectionsByType,
+    balance: {
+      monsterAbilityPlansByAbilityId,
+      monsterAbilityPlaysByAbilityId,
+      statusesAppliedByStatusId,
+      statusesAppliedToPlayerByStatusId,
+      statusesAppliedToMonstersByStatusId,
+      encountersStartedById,
+      encountersWonById,
+      encountersLostById,
+      runPathsByNodeIds: selectedRunNodePath.length === 0 ? {} : { [selectedRunNodePath.join(" > ")]: 1 },
+      totalDamageToPlayerByEncounterId,
+      totalDamageToMonstersByEncounterId,
+      rewardOffersByType,
+      rewardSelectionRatesByType: buildRates(rewardSelectionsByType, rewardOffersByType)
+    }
   };
 };
 
@@ -294,7 +379,19 @@ export const analyzeAgentTraces = (traces: readonly AgentTrace[]): SimulationAgg
   const eventCounts = emptyCountMap();
   const selectedNodesById = emptyCountMap();
   const cardPlaysByCardId = emptyCountMap();
+  const monsterAbilityPlansByAbilityId = emptyCountMap();
+  const monsterAbilityPlaysByAbilityId = emptyCountMap();
+  const statusesAppliedByStatusId = emptyCountMap();
+  const statusesAppliedToPlayerByStatusId = emptyCountMap();
+  const statusesAppliedToMonstersByStatusId = emptyCountMap();
+  const encountersStartedById = emptyCountMap();
+  const encountersWonById = emptyCountMap();
+  const encountersLostById = emptyCountMap();
+  const runPathsByNodeIds = emptyCountMap();
+  const totalDamageToPlayerByEncounterId = emptyCountMap();
+  const totalDamageToMonstersByEncounterId = emptyCountMap();
   const cardRewardsByCardId = emptyCountMap();
+  const rewardOffersByType = emptyCountMap();
   const petUpgradesByUpgradeId = emptyCountMap();
   const rewardSelectionsByType = emptyCountMap();
 
@@ -303,7 +400,19 @@ export const analyzeAgentTraces = (traces: readonly AgentTrace[]): SimulationAgg
     mergeCounts(eventCounts, metric.eventCounts);
     mergeCounts(selectedNodesById, metric.selectedNodesById);
     mergeCounts(cardPlaysByCardId, metric.cardPlaysByCardId);
+    mergeCounts(monsterAbilityPlansByAbilityId, metric.balance?.monsterAbilityPlansByAbilityId ?? {});
+    mergeCounts(monsterAbilityPlaysByAbilityId, metric.balance?.monsterAbilityPlaysByAbilityId ?? {});
+    mergeCounts(statusesAppliedByStatusId, metric.balance?.statusesAppliedByStatusId ?? {});
+    mergeCounts(statusesAppliedToPlayerByStatusId, metric.balance?.statusesAppliedToPlayerByStatusId ?? {});
+    mergeCounts(statusesAppliedToMonstersByStatusId, metric.balance?.statusesAppliedToMonstersByStatusId ?? {});
+    mergeCounts(encountersStartedById, metric.balance?.encountersStartedById ?? {});
+    mergeCounts(encountersWonById, metric.balance?.encountersWonById ?? {});
+    mergeCounts(encountersLostById, metric.balance?.encountersLostById ?? {});
+    mergeCounts(runPathsByNodeIds, metric.balance?.runPathsByNodeIds ?? {});
+    mergeCounts(totalDamageToPlayerByEncounterId, metric.balance?.totalDamageToPlayerByEncounterId ?? {});
+    mergeCounts(totalDamageToMonstersByEncounterId, metric.balance?.totalDamageToMonstersByEncounterId ?? {});
     mergeCounts(cardRewardsByCardId, metric.cardRewardsByCardId);
+    mergeCounts(rewardOffersByType, metric.balance?.rewardOffersByType ?? {});
     mergeCounts(petUpgradesByUpgradeId, metric.petUpgradesByUpgradeId);
     mergeCounts(rewardSelectionsByType, metric.rewardSelectionsByType);
   }
@@ -363,6 +472,21 @@ export const analyzeAgentTraces = (traces: readonly AgentTrace[]): SimulationAgg
     cardRewardsByCardId,
     petUpgradesByUpgradeId,
     rewardSelectionsByType,
+    balance: {
+      monsterAbilityPlansByAbilityId,
+      monsterAbilityPlaysByAbilityId,
+      statusesAppliedByStatusId,
+      statusesAppliedToPlayerByStatusId,
+      statusesAppliedToMonstersByStatusId,
+      encountersStartedById,
+      encountersWonById,
+      encountersLostById,
+      runPathsByNodeIds,
+      totalDamageToPlayerByEncounterId,
+      totalDamageToMonstersByEncounterId,
+      rewardOffersByType,
+      rewardSelectionRatesByType: buildRates(rewardSelectionsByType, rewardOffersByType)
+    },
     traces: metrics
   };
 };

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { parseSimulationCliOptions } from "./parse";
+import { formatCountSummary, formatRateSummary } from "./report-format";
 import {
   runBoundedExhaustiveSimulation,
   runFuzzSimulation,
@@ -13,7 +14,6 @@ import { parseAgentTrace, serializeAgentTrace } from "../game-core/testing/trace
 import {
   analyzeAgentTraces,
   checkSimulationHealth,
-  sortedCountEntries,
   type SimulationAggregateReport,
   type SimulationHealthIssue
 } from "../game-core/testing/analysis";
@@ -46,12 +46,11 @@ const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 const decimal = (value: number): string => value.toFixed(1);
 
 const countSummary = (label: string, counts: Record<string, number>, limit = 6): void => {
-  const entries = sortedCountEntries(counts, limit);
-  if (entries.length === 0) {
-    console.log(`${label}: none`);
-    return;
-  }
-  console.log(`${label}: ${entries.map(([key, value]) => `${key}=${value}`).join(", ")}`);
+  console.log(formatCountSummary(label, counts, limit));
+};
+
+const rateSummary = (label: string, rates: Record<string, number>, limit = 6): void => {
+  console.log(formatRateSummary(label, rates, limit));
 };
 
 const printAnalysis = (
@@ -72,9 +71,23 @@ const printAnalysis = (
     console.log(`  Balance target: completion ${percent(balanceTarget.min)} - ${percent(balanceTarget.max)}`);
   }
   countSummary("  Top card plays", report.cardPlaysByCardId);
+  const balance = report.balance;
+  countSummary("  Monster ability plans", balance?.monsterAbilityPlansByAbilityId ?? {});
+  countSummary("  Monster ability plays", balance?.monsterAbilityPlaysByAbilityId ?? {});
+  countSummary("  Status applications", balance?.statusesAppliedByStatusId ?? {});
+  countSummary("  Statuses to player", balance?.statusesAppliedToPlayerByStatusId ?? {});
+  countSummary("  Statuses to monsters", balance?.statusesAppliedToMonstersByStatusId ?? {});
   countSummary("  Top card rewards", report.cardRewardsByCardId);
   countSummary("  Pet upgrades", report.petUpgradesByUpgradeId);
+  countSummary("  Reward offers", balance?.rewardOffersByType ?? {});
   countSummary("  Reward types", report.rewardSelectionsByType);
+  rateSummary("  Reward pick rates", balance?.rewardSelectionRatesByType ?? {});
+  countSummary("  Encounters started", balance?.encountersStartedById ?? {});
+  countSummary("  Encounters won", balance?.encountersWonById ?? {});
+  countSummary("  Encounters lost", balance?.encountersLostById ?? {});
+  countSummary("  Run paths", balance?.runPathsByNodeIds ?? {});
+  countSummary("  Player damage by encounter", balance?.totalDamageToPlayerByEncounterId ?? {});
+  countSummary("  Monster damage by encounter", balance?.totalDamageToMonstersByEncounterId ?? {});
   countSummary("  Actions", report.actionCounts);
 
   const levelSummary = buildLevelSimulationAuthoringSummary(starterRegistry, report);
