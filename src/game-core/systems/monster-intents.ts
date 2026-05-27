@@ -211,8 +211,9 @@ const selectMonsterCardPlan = (
     return { cardState: drawnState };
   }
   const stateWithoutSelected = removeCardInstanceFromZones(drawnState, selectedCardInstanceId);
-  const candidateCardInstanceIds = monsterDefinition.cardGame.defaultPlanMode === "adaptive" ||
-    monsterDefinition.cardGame.defaultPlanMode === "charging"
+  const selectedPlanMode = selected.ability.planMode ?? monsterDefinition.cardGame.defaultPlanMode;
+  const candidateCardInstanceIds = selectedPlanMode === "adaptive" ||
+    selectedPlanMode === "charging"
     ? stateWithoutSelected.hand.slice(0, Math.max(0, monsterDefinition.cardGame.planSlots - 1))
     : [];
   const stateWithoutPlannedCards = removeCardInstancesFromZones(stateWithoutSelected, candidateCardInstanceIds);
@@ -222,7 +223,7 @@ const selectMonsterCardPlan = (
     cardState: {
       ...stateWithoutPlannedCards,
       planned: {
-        planMode: monsterDefinition.cardGame.defaultPlanMode,
+        planMode: selectedPlanMode,
         lockedCardInstanceId: selectedCardInstanceId,
         candidateCardInstanceIds
       }

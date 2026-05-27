@@ -418,7 +418,7 @@ describe("CombatEventFxPresenter", () => {
       description: "Attack."
     })).resolves.toMatchObject({
       circles: [expect.objectContaining({ x: monsterPoint.x, y: monsterPoint.y })],
-      texts: [expect.objectContaining({ text: "attack", x: monsterPoint.x, y: monsterPoint.y - 20 })]
+      texts: [expect.objectContaining({ text: "Intent", x: monsterPoint.x, y: monsterPoint.y - 20 })]
     });
 
     await expect(playSingleEvent({
@@ -449,7 +449,7 @@ describe("CombatEventFxPresenter", () => {
       description: "Attack."
     })).resolves.toMatchObject({
       circles: [expect.objectContaining({ x: monsterPoint.x, y: monsterPoint.y })],
-      texts: [expect.objectContaining({ text: "attack", x: monsterPoint.x, y: monsterPoint.y - 20 })]
+      texts: [expect.objectContaining({ text: "Intent", x: monsterPoint.x, y: monsterPoint.y - 20 })]
     });
 
     await expect(playSingleEvent({ type: "DeckShuffled", from: "discard", to: "draw", count: 3 })).resolves.toMatchObject({

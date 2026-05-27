@@ -140,13 +140,13 @@ export class CombatEventFxPresenter {
       case "StatusExpired":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} expired`, 0xaab4c5);
       case "MonsterAbilityPlanned":
-        return this.playPulse(this.getCombatantPoint(event.monsterId), event.intentType, 0xff9aad);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Intent", 0xff9aad);
       case "MonsterAbilityPlayed":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Act", 0xffd166);
       case "MonsterIntentResolved":
         return this.playImpact(this.getCombatantPoint(event.monsterId), PLAYER_POINT, "Attack", 0xff758f);
       case "MonsterIntentSet":
-        return this.playPulse(this.getCombatantPoint(event.monsterId), event.intentType, 0xff9aad);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Intent", 0xff9aad);
       case "EnemyIntentVisibilityChanged":
         return this.playPulse(this.getCombatantPoint(event.monsterId), event.level, 0x7dd3fc);
       case "CombatantDefeated":

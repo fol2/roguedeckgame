@@ -211,6 +211,12 @@ describe("monster intents", () => {
     };
     const registry = {
       ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === monsterAbilityId("training_slime_attack") ||
+        ability.id === monsterAbilityId("training_slime_block")
+          ? { ...ability, planMode: "adaptive" as const }
+          : ability
+      ),
       monsters: starterRegistry.monsters.map((monster) =>
         monster.id === monsterId("training_slime")
           ? {
@@ -244,6 +250,101 @@ describe("monster intents", () => {
     expect(cardState?.hand).toEqual([]);
     expect(cardState?.drawPile).toEqual([]);
     expect(cardState?.discardPile).toEqual([]);
+  });
+
+  it("uses ability-level charging plan mode in the planned enemy card state", () => {
+    const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const state = {
+      ...createEnemyTurnFixture(),
+      monsterIntents: [],
+      plannedMonsterAbilities: [],
+      monsterCardStates: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        cardInstances: [
+          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
+          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
+        ],
+        drawPile: [],
+        hand: [attackInstanceId, blockInstanceId],
+        planned: { planMode: "adaptive" as const, candidateCardInstanceIds: [] },
+        discardPile: [],
+        exhaustPile: []
+      }]
+    };
+    const registry = {
+      ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === monsterAbilityId("training_slime_block")
+          ? { ...ability, planMode: "charging" as const }
+          : ability
+      ),
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              intentSchedule: [{ intentId: monsterIntentId("training_slime_block") }],
+              cardGame: monster.cardGame
+                ? {
+                    ...monster.cardGame,
+                    handSize: 2,
+                    planSlots: 2,
+                    defaultPlanMode: "adaptive" as const
+                  }
+                : monster.cardGame
+            }
+          : monster
+      )
+    };
+    const result = chooseMonsterIntents(state, registry, createRng("charging-card-zone"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterCardStates?.[0]).toMatchObject({
+      hand: [],
+      planned: {
+        planMode: "charging",
+        lockedCardInstanceId: blockInstanceId,
+        candidateCardInstanceIds: [attackInstanceId]
+      }
+    });
+  });
+
+  it("authored adaptive enemies expose candidate card plans", () => {
+    const state = createCombatFixture({ monsterIds: [monsterId("charred_stag")] });
+    const cardState = state.monsterCardStates?.[0];
+
+    expect(["adaptive", "charging"]).toContain(cardState?.planned.planMode);
+    expect(cardState?.planned.lockedCardInstanceId).toEqual(expect.any(String));
+    expect(cardState?.planned.candidateCardInstanceIds).toHaveLength(1);
+    expect(cardState?.hand).toHaveLength(0);
+  });
+
+  it("authored charging enemy abilities enter charging plan state", () => {
+    const baseState = createCombatFixture({ monsterIds: [monsterId("charred_stag")] });
+    const state = {
+      ...baseState,
+      monsterIntents: [],
+      plannedMonsterAbilities: []
+    };
+    const registry = {
+      ...starterRegistry,
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("charred_stag")
+          ? {
+              ...monster,
+              intentSchedule: [{ intentId: monsterIntentId("charred_stag_paw_the_ash") }]
+            }
+          : monster
+      )
+    };
+    const result = chooseMonsterIntents(state, registry, createRng("authored-charging-plan"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterCardStates?.[0]?.planned).toMatchObject({
+      planMode: "charging",
+      lockedCardInstanceId: expect.any(String),
+      candidateCardInstanceIds: [expect.any(String)]
+    });
   });
 
   it("does not select intents for defeated monsters", () => {
