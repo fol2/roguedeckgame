@@ -57,7 +57,9 @@ describe("content authoring helpers", () => {
   });
 
   it("builds a deterministic starter content report", () => {
-    expect(buildContentReport(starterRegistry)).toEqual({
+    const report = buildContentReport(starterRegistry);
+
+    expect(report).toMatchObject({
       counts: {
         cards: 12,
         statuses: 1,
@@ -111,5 +113,9 @@ describe("content authoring helpers", () => {
       encounterTypes: ["boss", "combat", "elite"],
       runMapNodeTypes: ["boss", "combat", "elite", "event", "rest"]
     });
+    expect(report.dependencyReferenceCount).toBeGreaterThan(0);
+    expect(report.dependencyMissingReferenceCount).toBe(0);
+    expect(report.unusedCardIds).toEqual([]);
+    expect(report.unusedStatusIds).toEqual([]);
   });
 });
