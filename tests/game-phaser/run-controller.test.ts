@@ -108,6 +108,27 @@ describe("Run sandbox controller", () => {
     expect(controller.getRunViewModel().eventMessages[0]).toContain("Rejected:");
   });
 
+  it("rejects duplicate map selection request ids before applying a second run action", () => {
+    const controller = createRunSandboxController("run-controller-map-duplicate");
+    const node = firstAvailableNode(controller, (type) => type === "combat");
+
+    expect(node).toBeDefined();
+    const first = controller.selectMapNode(node!.id, controller.getRevision(), "map-duplicate");
+
+    expect(first.ok).toBe(true);
+    const before = controller.getState();
+    const duplicate = controller.selectMapNode(node!.id, controller.getRevision(), "map-duplicate");
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.state.run).toBe(before.run);
+    expect(duplicate.state.combat).toBe(before.combat);
+    expect(duplicate.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "duplicate_request",
+      path: "requestId"
+    });
+  });
+
   it("delegates card play and end turn while keeping combat state current", () => {
     const controller = createRunSandboxController("run-controller-actions");
 
@@ -288,6 +309,58 @@ describe("Run sandbox controller", () => {
     expect(skipResult.state.run.status).toBe("map_select");
     expect(skipResult.state.run.pendingRewardOffer).toBeUndefined();
     expect(skipResult.events.map((event) => event.type)).toContain("RewardSkipped");
+  });
+
+  it("rejects stale reward revisions before mutating reward state", () => {
+    const controller = createRunSandboxController("run-controller-reward-stale");
+
+    startFirstCombat(controller);
+    finishCombat(controller);
+    controller.completeCombatIfEnded(controller.getRevision(), "complete-before-stale");
+    const rewardOption = controller.getRewardViewModel()?.options[0];
+    const staleRevision = controller.getRevision();
+
+    expect(rewardOption).toBeDefined();
+    const skipped = controller.skipReward(staleRevision, "skip-before-stale");
+
+    expect(skipped.ok).toBe(true);
+    const before = controller.getState();
+    const stale = controller.claimRewardOption(rewardOption!.id, staleRevision, "claim-stale");
+
+    expect(stale.ok).toBe(false);
+    expect(stale.state.run).toBe(before.run);
+    expect(stale.state.combat).toBe(before.combat);
+    expect(stale.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "stale_run_revision",
+      path: "run.revision"
+    });
+  });
+
+  it("rejects duplicate non-combat completion request ids before applying twice", () => {
+    const controller = createRunSandboxController("run-controller-non-combat-duplicate");
+
+    startFirstCombat(controller);
+    finishCombat(controller);
+    controller.completeCombatIfEnded();
+    controller.skipReward();
+    const eventNode = firstAvailableNode(controller, (type) => type === "event");
+
+    expect(eventNode).toBeDefined();
+    controller.selectMapNode(eventNode!.id, controller.getRevision(), "event-select");
+    const first = controller.completeNonCombatNode(controller.getRevision(), "event-complete");
+
+    expect(first.ok).toBe(true);
+    const before = controller.getState();
+    const duplicate = controller.completeNonCombatNode(controller.getRevision(), "event-complete");
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.state.run).toBe(before.run);
+    expect(duplicate.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "duplicate_request",
+      path: "requestId"
+    });
   });
 
   it("preserves active combat when reward or non-combat actions reject", () => {

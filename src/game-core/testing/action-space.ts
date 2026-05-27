@@ -3,8 +3,7 @@ import type { CardDefinition } from "../model/card";
 import type { CombatantTarget, EffectDefinition } from "../model/effect";
 import type { GameContentRegistry } from "../model/registry";
 import { starterRegistry } from "../data/registry";
-import { applyPetCommandCostModifiers, resolvePetCommandOwnerIds } from "../systems/pet-modifiers";
-import { createRng } from "../systems/rng";
+import { buildCardActionContract } from "../systems/card-action-contract";
 import type { AgentAction, AgentRunDriverSnapshot } from "./agent-actions";
 
 const combatNodeTypes = new Set(["combat", "elite", "boss"]);
@@ -36,40 +35,6 @@ const cardByInstanceId = (
 
 const hasEffectTarget = (effect: EffectDefinition): effect is EffectDefinition & { readonly target: CombatantTarget } =>
   "target" in effect;
-
-const effectiveCardCost = (
-  snapshot: AgentRunDriverSnapshot,
-  card: CardDefinition,
-  cardInstanceId: CardInstanceId,
-  registry: GameContentRegistry
-): number => {
-  if (!snapshot.combat || card.type !== "pet-command") {
-    return card.cost;
-  }
-
-  const ownerPetResult = resolvePetCommandOwnerIds(
-    snapshot.combat,
-    registry,
-    card,
-    createRng(`${String(snapshot.combat.seed)}:${cardInstanceId}:legal-owner`)
-  );
-  if (!ownerPetResult.ok) {
-    return Number.POSITIVE_INFINITY;
-  }
-
-  const modifiedCost = applyPetCommandCostModifiers(
-    {
-      state: snapshot.combat,
-      card,
-      cardInstanceId,
-      cardId: card.id,
-      ownerPetInstanceIds: ownerPetResult.value
-    },
-    registry
-  );
-
-  return modifiedCost.ok ? modifiedCost.value.cost : Number.POSITIVE_INFINITY;
-};
 
 export const getLegalAgentActions = (
   snapshot: AgentRunDriverSnapshot,
@@ -112,7 +77,10 @@ export const getLegalAgentActions = (
 
     for (const cardInstanceId of combat.hand) {
       const card = cards.get(cardInstanceId);
-      if (!card || effectiveCardCost(snapshot, card, cardInstanceId, registry) > combat.energy) {
+      const contract = card
+        ? buildCardActionContract(combat, { cardInstanceId }, registry)
+        : undefined;
+      if (!card || !contract?.playable) {
         continue;
       }
 

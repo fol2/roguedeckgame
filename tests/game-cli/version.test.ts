@@ -25,9 +25,9 @@ const runNpm = (args: readonly string[]) => {
         shell: false
       })
     : spawnSync("npm", args, {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    shell: true
+        cwd: process.cwd(),
+        encoding: "utf8",
+        shell: true
       });
 
   return {
@@ -40,14 +40,14 @@ const runNpm = (args: readonly string[]) => {
 const parseRuntimeMetadata = (stdout: string): unknown => JSON.parse(stdout).runtimeMetadata;
 
 describe("CLI runtime metadata", () => {
-  it("runs npm-safe CLI smoke commands without npm warnings", () => {
-    const human = runNpm(["run", "game:auto", "--silent"]);
-    const json = runNpm(["run", "game:auto:json", "--silent"]);
+  it("runs CLI smoke commands without nested npm processes", () => {
+    const human = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--seed", "cli-dev", "--auto"]);
+    const json = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--seed", "cli-dev", "--json", "--auto"]);
 
     expect(human.status).toBe(0);
     expect(json.status).toBe(0);
-    expect(human.stderr).not.toContain("npm warn");
-    expect(json.stderr).not.toContain("npm warn");
+    expect(human.stderr).toBe("");
+    expect(json.stderr).toBe("");
     expect(human.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
     expect(parseRuntimeMetadata(json.stdout)).toEqual(currentRuntimeMetadata);
   });

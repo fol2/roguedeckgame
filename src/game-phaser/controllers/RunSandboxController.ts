@@ -84,7 +84,12 @@ export type RunSandboxController = {
     parityDiagnostics?: readonly CombatParityDiagnostic[]
   ) => CombatDebugViewModel;
   readonly getRewardViewModel: () => RewardViewModel | undefined;
-  readonly selectMapNode: (nodeId: RunNodeId) => GameActionResult<RunSandboxState>;
+  readonly getRevision: () => number;
+  readonly selectMapNode: (
+    nodeId: RunNodeId,
+    expectedRevision?: number,
+    requestId?: string
+  ) => GameActionResult<RunSandboxState>;
   readonly playHandCard: (
     cardInstanceId: CardInstanceId,
     targetId: CombatantId | undefined,
@@ -92,10 +97,14 @@ export type RunSandboxController = {
     requestId: string
   ) => GameActionResult<RunSandboxState>;
   readonly endTurn: (expectedRevision: number | undefined, requestId: string) => GameActionResult<RunSandboxState>;
-  readonly completeCombatIfEnded: () => GameActionResult<RunSandboxState>;
-  readonly claimRewardOption: (rewardOptionId: RewardOptionId) => GameActionResult<RunSandboxState>;
-  readonly skipReward: () => GameActionResult<RunSandboxState>;
-  readonly completeNonCombatNode: () => GameActionResult<RunSandboxState>;
+  readonly completeCombatIfEnded: (expectedRevision?: number, requestId?: string) => GameActionResult<RunSandboxState>;
+  readonly claimRewardOption: (
+    rewardOptionId: RewardOptionId,
+    expectedRevision?: number,
+    requestId?: string
+  ) => GameActionResult<RunSandboxState>;
+  readonly skipReward: (expectedRevision?: number, requestId?: string) => GameActionResult<RunSandboxState>;
+  readonly completeNonCombatNode: (expectedRevision?: number, requestId?: string) => GameActionResult<RunSandboxState>;
   readonly reset: () => GameActionResult<RunSandboxState>;
 };
 
@@ -283,6 +292,21 @@ export const createRunSandboxController = (
     ));
   };
 
+  const rejectIfStaleRunRevision = (
+    expectedRevision: number | undefined,
+    path: string
+  ): GameActionResult<RunSandboxState> | undefined => {
+    if (expectedRevision === undefined || expectedRevision === revision) {
+      return undefined;
+    }
+
+    return reject(createError(
+      "stale_run_revision",
+      `Run view revision ${expectedRevision} is stale; latest revision is ${revision}.`,
+      path
+    ));
+  };
+
   const rejectIfInvalidRequest = (
     requestId: string,
     path: string
@@ -307,6 +331,12 @@ export const createRunSandboxController = (
 
     return undefined;
   };
+
+  const rejectIfProvidedRequestInvalid = (
+    requestId: string | undefined,
+    path: string
+  ): GameActionResult<RunSandboxState> | undefined =>
+    requestId === undefined ? undefined : rejectIfInvalidRequest(requestId, path);
 
   return {
     getState: () => state,
@@ -338,7 +368,18 @@ export const createRunSandboxController = (
     getRewardViewModel: () => state.run.pendingRewardOffer
       ? buildRewardViewModel(state.run.pendingRewardOffer, state.lastEvents, content, state.petInstances)
       : undefined,
-    selectMapNode: (nodeId) => {
+    getRevision: () => revision,
+    selectMapNode: (nodeId, expectedRevision, requestId) => {
+      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      if (invalidRequest) {
+        return invalidRequest;
+      }
+
+      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      if (staleRevision) {
+        return staleRevision;
+      }
+
       const selectedRun = selectRunNode(state.run, nodeId);
 
       if (!selectedRun.ok) {
@@ -442,7 +483,17 @@ export const createRunSandboxController = (
 
       return recordAgentAction({ type: "endTurn" }, result);
     },
-    completeCombatIfEnded: () => {
+    completeCombatIfEnded: (expectedRevision, requestId) => {
+      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      if (invalidRequest) {
+        return invalidRequest;
+      }
+
+      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      if (staleRevision) {
+        return staleRevision;
+      }
+
       if (!state.combat) {
         return reject(createError("missing_combat", "There is no active combat to complete.", "combat"));
       }
@@ -486,7 +537,17 @@ export const createRunSandboxController = (
 
       return recordAgentAction({ type: "completeCombatIfEnded" }, result);
     },
-    claimRewardOption: (rewardOptionId) => {
+    claimRewardOption: (rewardOptionId, expectedRevision, requestId) => {
+      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      if (invalidRequest) {
+        return invalidRequest;
+      }
+
+      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      if (staleRevision) {
+        return staleRevision;
+      }
+
       const claimResult = claimRunPendingReward({
         run: state.run,
         selectedOptionId: rewardOptionId,
@@ -525,7 +586,17 @@ export const createRunSandboxController = (
 
       return recordAgentAction({ type: "claimReward", rewardOptionId }, result);
     },
-    skipReward: () => {
+    skipReward: (expectedRevision, requestId) => {
+      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      if (invalidRequest) {
+        return invalidRequest;
+      }
+
+      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      if (staleRevision) {
+        return staleRevision;
+      }
+
       const skipResult = skipRunPendingReward({
         run: state.run,
         petInstances: state.petInstances
@@ -562,7 +633,17 @@ export const createRunSandboxController = (
 
       return recordAgentAction({ type: "skipReward" }, result);
     },
-    completeNonCombatNode: () => {
+    completeNonCombatNode: (expectedRevision, requestId) => {
+      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      if (invalidRequest) {
+        return invalidRequest;
+      }
+
+      const staleRevision = rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      if (staleRevision) {
+        return staleRevision;
+      }
+
       const completion = completeRunNonCombatNode(state.run);
       if (!completion.ok) {
         return toResult(false, replaceState(state, {}, completion.events), completion.events, completion.errors);

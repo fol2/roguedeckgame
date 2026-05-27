@@ -19,6 +19,7 @@ export class RewardScene extends Scene {
   private runHudPresenter?: RunHudPresenter;
   private skipButton?: GameObjects.Container;
   private inputLocked = false;
+  private requestIndex = 0;
 
   public constructor() {
     super(SceneKeys.Reward);
@@ -61,7 +62,11 @@ export class RewardScene extends Scene {
     }
 
     this.inputLocked = true;
-    const result = this.sandbox.claimRewardOption(optionId);
+    const result = this.sandbox.claimRewardOption(
+      optionId,
+      this.sandbox.getRevision(),
+      this.nextRequestId("reward-claim")
+    );
     if (!result.ok) {
       this.inputLocked = false;
       this.renderCurrentState();
@@ -77,7 +82,10 @@ export class RewardScene extends Scene {
     }
 
     this.inputLocked = true;
-    const result = this.sandbox.skipReward();
+    const result = this.sandbox.skipReward(
+      this.sandbox.getRevision(),
+      this.nextRequestId("reward-skip")
+    );
     if (!result.ok) {
       this.inputLocked = false;
       this.renderCurrentState();
@@ -112,5 +120,10 @@ export class RewardScene extends Scene {
       this.skipButton?.setInteractive();
     }
     this.eventLog?.setMessages(reward?.eventMessages ?? run.eventMessages);
+  }
+
+  private nextRequestId(prefix: string): string {
+    this.requestIndex += 1;
+    return `${prefix}-${this.requestIndex}`;
   }
 }

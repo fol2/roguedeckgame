@@ -4,6 +4,7 @@ import {
   combatantId,
   createCombat,
   createRng,
+  buildCardActionContract,
   endPlayerTurn,
   monsterId,
   petInstanceId,
@@ -46,6 +47,59 @@ describe("Warm Bond pet modifier", () => {
       petInstanceId: petInstanceId("ember_fox_001")
     });
     expect(result.events).toContainEqual({ type: "EnergySpent", amount: 0, remaining: 3 });
+  });
+
+  it("exposes the same discounted cost through the shared card action contract", () => {
+    const state = { ...createWarmBondState(), energy: 0 };
+    const contract = buildCardActionContract(
+      state,
+      { cardInstanceId: cardInstanceId("fox_bite:1") },
+      starterRegistry
+    );
+    const result = playFoxBite(state, "warm-bond-contract");
+
+    expect(contract).toMatchObject({
+      baseCost: 1,
+      effectiveCost: 0,
+      playable: true,
+      actorPetInstanceIds: [petInstanceId("ember_fox_001")],
+      commandPetSlotIndex: 0
+    });
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual({ type: "EnergySpent", amount: 0, remaining: 0 });
+  });
+
+  it("keeps the shared card action contract aligned after the discount is consumed", () => {
+    const first = playFoxBite(createWarmBondState(), "warm-bond-contract-consumed-1");
+    if (!first.ok) {
+      throw new Error("First command should pass.");
+    }
+
+    const state = {
+      ...first.state,
+      energy: 0,
+      hand: [cardInstanceId("fox_guard:1")]
+    };
+    const contract = buildCardActionContract(
+      state,
+      { cardInstanceId: cardInstanceId("fox_guard:1") },
+      starterRegistry
+    );
+    const result = playCard(
+      state,
+      { type: "playCard", cardInstanceId: cardInstanceId("fox_guard:1") },
+      starterRegistry,
+      createRng("warm-bond-contract-consumed-2")
+    );
+
+    expect(contract).toMatchObject({
+      baseCost: 1,
+      effectiveCost: 1,
+      playable: false,
+      unplayableReason: "Not enough energy."
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["insufficient_energy"]);
   });
 
   it("does not reduce cost below 0 or consume on zero-cost Fox Fetch", () => {
