@@ -1,21 +1,32 @@
 import {
   buildContentWorkbenchViewModel,
+  type ContentWorkbenchCollectionId,
+  type ContentWorkbenchDiagnostics,
+  type ContentWorkbenchViewModel
+} from "../game-core/workbench";
+import {
   analyzeAgentTraces,
   buildBalanceDashboardViewModel,
   checkSimulationHealth,
-  currentRuntimeMetadata,
-  runFuzzSimulation,
-  starterRegistry,
   type BalanceDashboardViewModel,
   type BalanceDashboardEntry,
   type BalanceDashboardEncounterEntry,
   type BalanceDashboardDamageEntry,
-  type ContentWorkbenchCollectionId,
-  type ContentWorkbenchDiagnostics,
-  type ContentWorkbenchViewModel
-} from "../game-core";
+  runFuzzSimulation
+} from "../game-core/testing";
+import { starterRegistry } from "../game-core/data/registry";
+import { currentRuntimeMetadata } from "../game-core/data/runtime-metadata";
 
 type WorkbenchTab = "json" | "diagnostics" | "reports";
+
+type BalanceDashboardState =
+  | { readonly status: "idle" }
+  | { readonly status: "ready"; readonly dashboard: BalanceDashboardViewModel }
+  | { readonly status: "error"; readonly message: string };
+
+export type RenderContentWorkbenchOptions = {
+  readonly createBalanceDashboard?: () => BalanceDashboardViewModel;
+};
 
 type WorkbenchItem = {
   readonly id: string;
@@ -396,16 +407,33 @@ const renderBalanceDashboard = (dashboard: BalanceDashboardViewModel): HTMLEleme
   return section;
 };
 
+const renderBalanceDashboardState = (state: BalanceDashboardState): HTMLElement => {
+  if (state.status === "ready") {
+    return renderBalanceDashboard(state.dashboard);
+  }
+
+  const section = element("section", "content-workbench__report-band content-workbench__balance-dashboard");
+  section.dataset.testid = "workbench-balance-dashboard";
+  section.append(
+    element("h3", undefined, "Balance dashboard"),
+    element("p", "content-workbench__empty", state.status === "error"
+      ? `Balance dashboard unavailable: ${state.message}`
+      : "Balance dashboard has not been loaded.")
+  );
+
+  return section;
+};
+
 const renderReportsPanel = (
   viewModel: ContentWorkbenchViewModel,
-  balanceDashboard: BalanceDashboardViewModel
+  balanceDashboardState: BalanceDashboardState
 ): HTMLElement => {
   const content = viewModel.reports.content;
   const level = viewModel.reports.levelAuthoring;
   const panel = element("div", "content-workbench__tab-panel");
 
   panel.append(
-    renderBalanceDashboard(balanceDashboard),
+    renderBalanceDashboardState(balanceDashboardState),
     appendChildren(element("div", "content-workbench__metrics"), [
       metric("Cards", content.counts.cards),
       metric("Monsters", content.counts.monsters),
@@ -442,9 +470,17 @@ const renderJsonPanel = (selectedItem: WorkbenchItem | undefined): HTMLElement =
   return panel;
 };
 
-export const renderContentWorkbench = (mount: HTMLElement): void => {
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+export const renderContentWorkbench = (
+  mount: HTMLElement,
+  options: RenderContentWorkbenchOptions = {}
+): void => {
   const viewModel = createContentWorkbenchModel();
-  const balanceDashboard = createWorkbenchBalanceDashboard();
+  const createBalanceDashboard = options.createBalanceDashboard ?? createWorkbenchBalanceDashboard;
+  let balanceDashboardState: BalanceDashboardState = { status: "idle" };
+  let restoreSearchSelection: { readonly start: number; readonly end: number } | undefined;
   const collections = createWorkbenchCollections(viewModel);
   const firstCollection = collections[0];
   const state: {
@@ -457,6 +493,26 @@ export const renderContentWorkbench = (mount: HTMLElement): void => {
     query: "",
     selectedItemId: firstCollection.items[0]?.id,
     tab: "json"
+  };
+
+  const getBalanceDashboardState = (): BalanceDashboardState => {
+    if (balanceDashboardState.status !== "idle") {
+      return balanceDashboardState;
+    }
+
+    try {
+      balanceDashboardState = {
+        status: "ready",
+        dashboard: createBalanceDashboard()
+      };
+    } catch (error) {
+      balanceDashboardState = {
+        status: "error",
+        message: errorMessage(error)
+      };
+    }
+
+    return balanceDashboardState;
   };
 
   const render = (): void => {
@@ -524,6 +580,9 @@ export const renderContentWorkbench = (mount: HTMLElement): void => {
     search.dataset.testid = "workbench-search";
     search.addEventListener("input", () => {
       state.query = search.value;
+      const selectionStart = search.selectionStart ?? search.value.length;
+      const selectionEnd = search.selectionEnd ?? selectionStart;
+      restoreSearchSelection = { start: selectionStart, end: selectionEnd };
       render();
     });
 
@@ -596,7 +655,7 @@ export const renderContentWorkbench = (mount: HTMLElement): void => {
       ? renderJsonPanel(selectedItem)
       : state.tab === "diagnostics"
         ? renderDiagnosticsPanel(viewModel)
-        : renderReportsPanel(viewModel, balanceDashboard);
+        : renderReportsPanel(viewModel, getBalanceDashboardState());
 
     detail.append(detailTitle, detailMeta, tabs, panel);
 
@@ -608,6 +667,17 @@ export const renderContentWorkbench = (mount: HTMLElement): void => {
 
     app.append(header, summaryBar, layout);
     mount.replaceChildren(app);
+
+    if (restoreSearchSelection) {
+      const selection = restoreSearchSelection;
+      restoreSearchSelection = undefined;
+      const nextSearch = mount.querySelector<HTMLInputElement>("[data-testid=\"workbench-search\"]");
+      nextSearch?.focus();
+      nextSearch?.setSelectionRange?.(
+        Math.min(selection.start, nextSearch.value.length),
+        Math.min(selection.end, nextSearch.value.length)
+      );
+    }
   };
 
   render();

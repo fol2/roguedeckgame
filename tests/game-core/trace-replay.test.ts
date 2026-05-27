@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  runNodeId
+} from "../../src/game-core";
+import {
   AGENT_TRACE_LEGACY_SCHEMA_VERSION,
   AGENT_TRACE_PREVIOUS_SCHEMA_VERSION,
   AGENT_TRACE_SCHEMA_VERSION,
@@ -13,7 +16,7 @@ import {
   runSmokeSimulation,
   serializeAgentTrace,
   type AgentTrace
-} from "../../src/game-core";
+} from "../../src/game-core/testing";
 
 const completedSmokeTrace = (): AgentTrace => {
   const result = runSmokeSimulation({ seed: "agent-smoke", maxSteps: 500 });

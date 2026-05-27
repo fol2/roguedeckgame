@@ -3,11 +3,11 @@ import { rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { currentRuntimeMetadata } from "../../src/game-core";
 import {
-  currentRuntimeMetadata,
   parseAgentTrace,
   replayAgentTrace
-} from "../../src/game-core";
+} from "../../src/game-core/testing";
 import { createRunSandboxController } from "../../src/game-phaser/controllers/RunSandboxController";
 import {
   buildBrowserDebugEventBatchCopyPayload,
@@ -92,7 +92,7 @@ describe("browser debug trace export", () => {
         shell: false
       });
 
-      expect(result.status).toBe(0);
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
       expect(result.stdout).toContain("Simulation mode: replay");
       expect(result.stdout).toContain("Result: passed");
     } finally {

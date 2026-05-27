@@ -404,7 +404,9 @@ export const startCombatForRunNode = (
     registry,
     petInstances,
     monsterIds: encounter.monsterIds,
-    seed: combatSeed
+    seed: combatSeed,
+    runNodeId: node.id,
+    encounterId: encounter.id
   });
   if (!combatResult.ok) {
     return combatResult;
@@ -456,6 +458,43 @@ export const completeRunCombatNode = (
     );
   }
 
+  if (combat.runNodeId !== node.id) {
+    return rejectRun(
+      run,
+      error(
+        "combat_node_mismatch",
+        `Combat node '${String(combat.runNodeId)}' does not match active run node '${node.id}'.`,
+        "combat.runNodeId"
+      )
+    );
+  }
+
+  const encounter = findEncounter(registry, node.encounterId);
+  if (!encounter) {
+    return rejectRun(
+      run,
+      error("missing_encounter", `Encounter '${String(node.encounterId)}' is not registered.`, "run.map.nodes")
+    );
+  }
+
+  if (encounter.monsterIds.length === 0) {
+    return rejectRun(
+      run,
+      error("missing_encounter_monster_ids", `Encounter '${encounter.id}' has no monster ids.`, "registry.encounters")
+    );
+  }
+
+  if (combat.encounterId !== encounter.id) {
+    return rejectRun(
+      run,
+      error(
+        "combat_encounter_mismatch",
+        `Combat encounter '${String(combat.encounterId)}' does not match active encounter '${encounter.id}'.`,
+        "combat.encounterId"
+      )
+    );
+  }
+
   const finalPlayerHp = combat.phase === "lost" ? 0 : combat.player.hp;
   const combatCompletedEvent: GameEvent = {
     type: "RunCombatCompleted",
@@ -479,21 +518,6 @@ export const completeRunCombatNode = (
     playerHp: combat.player.hp,
     playerMaxHp: combat.player.maxHp
   };
-
-  const encounter = findEncounter(registry, node.encounterId);
-  if (!encounter) {
-    return rejectRun(
-      run,
-      error("missing_encounter", `Encounter '${String(node.encounterId)}' is not registered.`, "run.map.nodes")
-    );
-  }
-
-  if (encounter.monsterIds.length === 0) {
-    return rejectRun(
-      run,
-      error("missing_encounter_monster_ids", `Encounter '${encounter.id}' has no monster ids.`, "registry.encounters")
-    );
-  }
 
   if (node.type === "boss") {
     const advanced = advanceFromActiveNode(runAfterCombat, node);

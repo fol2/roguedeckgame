@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  petMemoryId,
+  petInstanceId,
+  starterRegistry,
+  storyEventId,
+  storyFlagId
+} from "../../src/game-core";
+import {
   createAgentRunDriver,
   createAgentStateHash,
   deterministicSmokePolicy,
-  petInstanceId,
   type AgentRunDriverSnapshot
-} from "../../src/game-core";
+} from "../../src/game-core/testing";
 
 const driveUntil = (
   predicate: (snapshot: AgentRunDriverSnapshot) => boolean,
@@ -72,6 +78,108 @@ describe("agent run driver", () => {
     expect(createAgentStateHash(driver.getSnapshot())).toBe(before);
   });
 
+  it("changes state hash when story or multi-pet progression fields change", () => {
+    const driver = createAgentRunDriver({ seed: "driver-hash-story" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const baseHash = createAgentStateHash(snapshot);
+
+    const variants: readonly AgentRunDriverSnapshot[] = [
+      { ...snapshot, run: { ...snapshot.run, activePetInstanceIds: [petInstanceId("ember_fox_alt")] } },
+      { ...snapshot, run: { ...snapshot.run, runFlags: ["flag-a"], storyFlags: [storyFlagId("story-a")] } },
+      {
+        ...snapshot,
+        petInstances: snapshot.petInstances.map((petInstance, index) =>
+          index === 0
+            ? { ...petInstance, unlockedMemoryIds: [petMemoryId("memory-a")] }
+            : petInstance
+        )
+      },
+      {
+        ...snapshot,
+        petInstances: snapshot.petInstances.map((petInstance, index) =>
+          index === 0
+            ? { ...petInstance, storyFlags: [storyFlagId("pet-story-a")] }
+            : petInstance
+        )
+      },
+      {
+        ...snapshot,
+        petInstances: snapshot.petInstances.map((petInstance, index) =>
+          index === 0
+            ? { ...petInstance, seenStoryEventIds: [storyEventId("seen-a")] }
+            : petInstance
+        )
+      },
+      {
+        ...snapshot,
+        petInstances: snapshot.petInstances.map((petInstance, index) =>
+          index === 0 ? { ...petInstance, bondXp: petInstance.bondXp + 1 } : petInstance
+        )
+      },
+      {
+        ...snapshot,
+        combat: snapshot.combat
+          ? { ...snapshot.combat, activePetInstanceIds: [petInstanceId("ember_fox_alt")] }
+          : snapshot.combat
+      },
+      {
+        ...snapshot,
+        combat: snapshot.combat
+          ? {
+              ...snapshot.combat,
+              runPetStates: snapshot.combat.runPetStates.map((petState, index) =>
+                index === 0 ? { ...petState, fatigue: petState.fatigue + 1 } : petState
+              )
+            }
+          : snapshot.combat
+      }
+    ];
+
+    for (const variant of variants) {
+      expect(createAgentStateHash(variant)).not.toBe(baseHash);
+    }
+  });
+
+  it("keeps story and pet progression out of legacy trace hash schemas", () => {
+    const driver = createAgentRunDriver({ seed: "driver-hash-legacy-story" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const changed: AgentRunDriverSnapshot = {
+      ...snapshot,
+      run: {
+        ...snapshot.run,
+        activePetInstanceIds: [petInstanceId("ember_fox_alt")],
+        runFlags: ["flag-a"],
+        storyFlags: [storyFlagId("story-a")]
+      },
+      petInstances: snapshot.petInstances.map((petInstance, index) =>
+        index === 0
+          ? {
+              ...petInstance,
+              bondXp: petInstance.bondXp + 1,
+              unlockedMemoryIds: [petMemoryId("memory-a")],
+              storyFlags: [storyFlagId("pet-story-a")],
+              seenStoryEventIds: [storyEventId("seen-a")]
+            }
+          : petInstance
+      ),
+      combat: snapshot.combat
+        ? {
+            ...snapshot.combat,
+            activePetInstanceIds: [petInstanceId("ember_fox_alt")],
+            runPetStates: snapshot.combat.runPetStates.map((petState, index) =>
+              index === 0 ? { ...petState, fatigue: petState.fatigue + 1 } : petState
+            )
+          }
+        : snapshot.combat
+    };
+
+    expect(createAgentStateHash(changed, { schemaVersion: 1 })).toBe(createAgentStateHash(snapshot, { schemaVersion: 1 }));
+    expect(createAgentStateHash(changed, { schemaVersion: 2 })).toBe(createAgentStateHash(snapshot, { schemaVersion: 2 }));
+    expect(createAgentStateHash(changed, { schemaVersion: 3 })).not.toBe(createAgentStateHash(snapshot, { schemaVersion: 3 }));
+  });
+
   it("rejects target ids on targetless card actions", () => {
     const driver = createAgentRunDriver({ seed: "driver-extra-target" });
     let targetlessAction = driver.getLegalActions().find((action) => action.type === "playCard" && !action.targetId);
@@ -124,6 +232,75 @@ describe("agent run driver", () => {
     const skipResult = skipDriver.applyAction({ type: "skipReward" }, "legal");
     expect(skipResult.ok).toBe(true);
     expect(skipResult.state.run.status).toBe("map_select");
+  });
+
+  it("evaluates reachable pet side stories after completed run nodes", () => {
+    const driver = createAgentRunDriver({ seed: "driver-side-story" });
+    let storyResult: ReturnType<typeof driver.applyAction> | undefined;
+
+    for (let step = 0; step < 250 && !storyResult; step += 1) {
+      const action = deterministicSmokePolicy(driver.getSnapshot());
+      expect(action).toBeDefined();
+      const result = driver.applyAction(action!, "policy");
+      if (result.events.some((event) => event.type === "PetStoryEventCompleted")) {
+        storyResult = result;
+      }
+    }
+
+    expect(storyResult).toBeDefined();
+    expect(storyResult!.events.map((event) => event.type)).toContain("RunNodeCompleted");
+    expect(storyResult!.events.map((event) => event.type)).toContain("PetStoryEventCompleted");
+    expect(storyResult!.state.petInstances[0]).toMatchObject({
+      unlockedMemoryIds: [petMemoryId("ember_fox_memory_burned_orchard")],
+      storyFlags: [storyFlagId("ember_fox_memory_01_unlocked")],
+      seenStoryEventIds: [storyEventId("ember_fox_side_story")],
+      bondXp: 1
+    });
+  });
+
+  it("does not commit reward advancement when node-completed side-story evaluation fails", () => {
+    const brokenSideStory = {
+      ...starterRegistry.petSideStories[0],
+      memoryIds: [],
+      events: [{
+        ...starterRegistry.petSideStories[0].events[0],
+        outcomes: [{
+          type: "unlockPetMemory" as const,
+          memoryId: petMemoryId("undeclared_memory")
+        }]
+      }]
+    };
+    const driver = driveUntil((snapshot) => snapshot.run.status === "reward", "driver-side-story-atomic");
+    const rewardSnapshot = driver.getSnapshot();
+    const rewardHash = createAgentStateHash(rewardSnapshot);
+    const brokenDriver = createAgentRunDriver({
+      seed: "driver-side-story-atomic",
+      registry: {
+        ...starterRegistry,
+        petSideStories: [brokenSideStory]
+      }
+    });
+
+    for (let step = 0; step < 250 && brokenDriver.getSnapshot().run.status !== "reward"; step += 1) {
+      const action = deterministicSmokePolicy(brokenDriver.getSnapshot(), {
+        ...starterRegistry,
+        petSideStories: [brokenSideStory]
+      });
+      expect(action).toBeDefined();
+      brokenDriver.applyAction(action!, "policy");
+    }
+
+    expect(brokenDriver.getSnapshot().run.status).toBe("reward");
+    const before = createAgentStateHash(brokenDriver.getSnapshot());
+    expect(before).toBe(rewardHash);
+    const claim = brokenDriver.getLegalActions().find((action) => action.type === "claimReward");
+    expect(claim).toBeDefined();
+    const result = brokenDriver.applyAction(claim!, "legal");
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((error) => error.code)).toEqual(["missing_pet_side_story_memory"]);
+    expect(createAgentStateHash(brokenDriver.getSnapshot())).toBe(before);
+    expect(brokenDriver.getSnapshot().run.status).toBe("reward");
   });
 
   it("reset returns to the deterministic initial state and snapshots are JSON-serializable", () => {

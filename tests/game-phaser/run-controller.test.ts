@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   cardInstanceId,
-  replayAgentTrace,
   runNodeId
 } from "../../src/game-core";
+import { replayAgentTrace } from "../../src/game-core/testing";
 import { createRunSandboxController } from "../../src/game-phaser/controllers/RunSandboxController";
 
 const firstAvailableNode = (
@@ -267,8 +267,11 @@ describe("Run sandbox controller", () => {
     expect(claimResult.events.map((event) => event.type)).toEqual(expect.arrayContaining([
       "RewardSelected",
       "RunNodeCompleted",
-      "RunAdvanced"
+      "RunAdvanced",
+      "PetStoryEventCompleted"
     ]));
+    expect(claimResult.state.petInstances[0]?.seenStoryEventIds).toContain("ember_fox_side_story");
+    expect(replayAgentTrace(controller.getAgentTrace()).ok).toBe(true);
   });
 
   it("skips a pending reward back to map selection", () => {

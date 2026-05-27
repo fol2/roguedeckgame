@@ -3,6 +3,8 @@ import type { GameActionError, GameActionResult } from "../model/action";
 import type { GameEvent } from "../model/event";
 import type { PetInstance } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
+import type { RunState } from "../model/run";
+import type { RunNodeType } from "../model/run-map";
 import type {
   PetSideStoryDefinition,
   PetStoryContext,
@@ -41,6 +43,14 @@ export type EvaluatePetSideStoriesInput = {
   readonly registry: GameContentRegistry;
   readonly context: PetStoryContext;
   readonly petInstanceId?: PetInstanceId;
+};
+
+export type ApplyNodeCompletedPetSideStoriesInput = {
+  readonly run: RunState;
+  readonly petInstances: readonly PetInstance[];
+  readonly registry: GameContentRegistry;
+  readonly completedNodeType?: RunNodeType;
+  readonly priorEvents?: readonly GameEvent[];
 };
 
 const error = (code: string, message: string, path?: string): GameActionError => ({
@@ -928,4 +938,42 @@ export const evaluatePetSideStories = (
   }
 
   return { ok: true, state, events, errors: [] };
+};
+
+export const applyNodeCompletedPetSideStories = (
+  input: ApplyNodeCompletedPetSideStoriesInput
+): GameActionResult<PetStoryProgressState> => {
+  const priorEvents = input.priorEvents ?? [];
+  if (!input.completedNodeType) {
+    return {
+      ok: true,
+      state: {
+        run: input.run,
+        petInstances: input.petInstances
+      },
+      events: priorEvents,
+      errors: []
+    };
+  }
+
+  const storyResult = evaluatePetSideStories({
+    run: input.run,
+    petInstances: input.petInstances,
+    registry: input.registry,
+    context: {
+      trigger: "nodeCompleted",
+      run: input.run,
+      completedNodeType: input.completedNodeType
+    }
+  });
+  if (!storyResult.ok) {
+    return storyResult;
+  }
+
+  return {
+    ok: true,
+    state: storyResult.state,
+    events: [...priorEvents, ...storyResult.events],
+    errors: []
+  };
 };

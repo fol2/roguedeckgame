@@ -1,7 +1,10 @@
 import { createRng } from "../systems/rng";
+import type { PetInstanceId, PlayerClassId } from "../ids";
 import type { RunStatus } from "../model/run";
+import type { GameContentRegistry } from "../model/registry";
+import type { PetInstance } from "../model/pet";
 import { createAgentRunDriver } from "./run-driver";
-import type { AgentAction, AgentActionSource, AgentTraceMode } from "./agent-actions";
+import type { AgentAction, AgentActionSource, AgentRunDriverConfig, AgentTraceMode } from "./agent-actions";
 import { checkAgentRunInvariants } from "./invariants";
 import { deterministicSmokePolicy, invalidActionInjector, randomLegalPolicy } from "./policies";
 import { createAgentStateHash } from "./state-hash";
@@ -15,7 +18,7 @@ import {
 } from "./trace";
 import { getLegalAgentActions } from "./action-space";
 import { currentRuntimeMetadata } from "../data/runtime-metadata";
-import type { RuntimeMetadata } from "../model/runtime-metadata";
+import { createRuntimeMetadata, type RuntimeMetadata } from "../model/runtime-metadata";
 
 export type SimulationMode = "smoke" | "fuzz" | "exhaustive-small" | "replay";
 
@@ -28,6 +31,10 @@ export type SimulationConfig = {
   readonly maxStates?: number;
   readonly invalidActionRate?: number;
   readonly trace?: AgentTrace;
+  readonly registry?: GameContentRegistry;
+  readonly playerClassId?: PlayerClassId;
+  readonly activePetInstanceIds?: readonly PetInstanceId[];
+  readonly petInstances?: readonly PetInstance[];
 };
 
 export type SimulationResult = {
@@ -41,6 +48,20 @@ export type SimulationResult = {
 };
 
 const isTerminal = (status: RunStatus): boolean => status === "completed" || status === "lost";
+
+const driverConfigForSeed = (
+  seed: string | number,
+  config: Partial<SimulationConfig>
+): AgentRunDriverConfig => ({
+  seed,
+  registry: config.registry,
+  playerClassId: config.playerClassId,
+  activePetInstanceIds: config.activePetInstanceIds,
+  petInstances: config.petInstances
+});
+
+const runtimeMetadataForConfig = (config: Partial<SimulationConfig>): RuntimeMetadata =>
+  config.registry ? createRuntimeMetadata(config.registry) : currentRuntimeMetadata;
 
 const makeTrace = (
   seed: string | number,
@@ -61,9 +82,10 @@ const runPolicyTrace = (
   seed: string | number,
   mode: Extract<AgentTraceMode, "smoke" | "fuzz" | "cli">,
   maxSteps: number,
-  chooseAction: (step: number, driver: ReturnType<typeof createAgentRunDriver>) => { readonly action?: AgentAction; readonly source: AgentActionSource }
+  chooseAction: (step: number, driver: ReturnType<typeof createAgentRunDriver>) => { readonly action?: AgentAction; readonly source: AgentActionSource },
+  driverConfig: AgentRunDriverConfig = { seed }
 ): AgentTrace => {
-  const driver = createAgentRunDriver({ seed });
+  const driver = createAgentRunDriver(driverConfig);
   const steps: AgentTraceStep[] = [];
 
   for (let step = 0; step < maxSteps; step += 1) {
@@ -102,7 +124,7 @@ const runPolicyTrace = (
       });
     }
 
-    const invariants = checkAgentRunInvariants(nextSnapshot);
+    const invariants = checkAgentRunInvariants(nextSnapshot, driverConfig.registry);
     if (!invariants.ok) {
       return makeTrace(seed, mode, steps, nextSnapshot.run.status, {
         step,
@@ -124,13 +146,17 @@ export const runSmokeSimulation = (
   config: Partial<SimulationConfig> = {}
 ): SimulationResult => {
   const seeds = [config.seed ?? "agent-smoke", "agent-smoke-alt", "agent-smoke-boss"];
-  const traces = seeds.map((seed) => runSmokeTrace(seed, config.maxSteps ?? 500));
+  const traces = seeds.map((seed) => runSmokeTrace(seed, config.maxSteps ?? 500, driverConfigForSeed(seed, config)));
 
-  return normaliseSmokeResult(config.seed ?? "agent-smoke", traces);
+  return normaliseSmokeResult(config.seed ?? "agent-smoke", traces, runtimeMetadataForConfig(config));
 };
 
-const runSmokeTrace = (seed: string | number, maxSteps: number): AgentTrace => {
-  const driver = createAgentRunDriver({ seed });
+const runSmokeTrace = (
+  seed: string | number,
+  maxSteps: number,
+  driverConfig: AgentRunDriverConfig = { seed }
+): AgentTrace => {
+  const driver = createAgentRunDriver(driverConfig);
   const steps: AgentTraceStep[] = [];
 
   for (let step = 0; step < maxSteps; step += 1) {
@@ -138,7 +164,7 @@ const runSmokeTrace = (seed: string | number, maxSteps: number): AgentTrace => {
     if (isTerminal(snapshot.run.status)) {
       return makeTrace(seed, "smoke", steps, snapshot.run.status);
     }
-    const action = deterministicSmokePolicy(snapshot);
+    const action = deterministicSmokePolicy(snapshot, driverConfig.registry);
     if (!action) {
       return makeTrace(seed, "smoke", steps, snapshot.run.status, {
         step,
@@ -157,7 +183,7 @@ const runSmokeTrace = (seed: string | number, maxSteps: number): AgentTrace => {
         message: result.errors[0]?.message ?? "Deterministic smoke policy action was rejected."
       });
     }
-    const invariants = checkAgentRunInvariants(nextSnapshot);
+    const invariants = checkAgentRunInvariants(nextSnapshot, driverConfig.registry);
     if (!invariants.ok) {
       return makeTrace(seed, "smoke", steps, nextSnapshot.run.status, {
         step,
@@ -175,7 +201,11 @@ const runSmokeTrace = (seed: string | number, maxSteps: number): AgentTrace => {
   });
 };
 
-const normaliseSmokeResult = (seed: string | number, traces: readonly AgentTrace[]): SimulationResult => {
+const normaliseSmokeResult = (
+  seed: string | number,
+  traces: readonly AgentTrace[],
+  runtimeMetadata: RuntimeMetadata
+): SimulationResult => {
   const failures = traces.filter((trace) => trace.failure || (trace.finalStatus !== "completed" && trace.finalStatus !== "lost"));
   const hasCompleted = traces.some((trace) => trace.finalStatus === "completed" && !trace.failure);
   const syntheticFailure: AgentTrace[] = hasCompleted
@@ -197,7 +227,7 @@ const normaliseSmokeResult = (seed: string | number, traces: readonly AgentTrace
   const allFailures = [...failures, ...syntheticFailure];
   return {
     ok: allFailures.length === 0,
-    runtimeMetadata: currentRuntimeMetadata,
+    runtimeMetadata,
     mode: "smoke",
     seed,
     runsCompleted: traces.filter((trace) => trace.finalStatus === "completed").length,
@@ -218,14 +248,15 @@ export const runFuzzSimulation = (
   for (let runIndex = 0; runIndex < runs; runIndex += 1) {
     const seed = `${String(seedPrefix)}:${runIndex}`;
     const rng = createRng(`${seed}:policy`);
+    const driverConfig = driverConfigForSeed(seed, config);
     const trace = runPolicyTrace(seed, "fuzz", maxSteps, (_step, driver) => {
       const snapshot = driver.getSnapshot();
       if (rng.nextFloat() < invalidActionRate) {
-        return { action: invalidActionInjector(snapshot, rng), source: "invalid-injected" };
+        return { action: invalidActionInjector(snapshot, rng, driverConfig.registry), source: "invalid-injected" };
       }
-      return { action: randomLegalPolicy(snapshot, rng), source: "fuzz" };
-    });
-    const replay = replayAgentTrace(trace);
+      return { action: randomLegalPolicy(snapshot, rng, driverConfig.registry), source: "fuzz" };
+    }, driverConfig);
+    const replay = replayAgentTrace(trace, driverConfig);
     traces.push(
       replay.ok
         ? trace
@@ -243,7 +274,7 @@ export const runFuzzSimulation = (
   const failures = traces.filter((trace) => trace.failure);
   return {
     ok: failures.length === 0,
-    runtimeMetadata: currentRuntimeMetadata,
+    runtimeMetadata: runtimeMetadataForConfig(config),
     mode: "fuzz",
     seed: seedPrefix,
     runsCompleted: traces.filter((trace) => trace.finalStatus === "completed").length,
@@ -266,7 +297,8 @@ export const runBoundedExhaustiveSimulation = (
 
   while (queue.length > 0 && explored < maxStates) {
     const path = queue.shift() ?? [];
-    const driver = createAgentRunDriver({ seed });
+    const driverConfig = driverConfigForSeed(seed, config);
+    const driver = createAgentRunDriver(driverConfig);
     const steps: AgentTraceStep[] = [];
     let failed = false;
 
@@ -283,7 +315,7 @@ export const runBoundedExhaustiveSimulation = (
         }));
         break;
       }
-      const invariants = checkAgentRunInvariants(driver.getSnapshot());
+      const invariants = checkAgentRunInvariants(driver.getSnapshot(), driverConfig.registry);
       if (!invariants.ok) {
         failed = true;
         failures.push(makeTrace(seed, "exhaustive-small", steps, driver.getSnapshot().run.status, {
@@ -313,7 +345,7 @@ export const runBoundedExhaustiveSimulation = (
       continue;
     }
 
-    const actions = getLegalAgentActions(snapshot).slice(0, 8);
+    const actions = getLegalAgentActions(snapshot, driverConfig.registry).slice(0, 8);
     for (const action of actions) {
       queue.push([...path, action]);
     }
@@ -321,7 +353,7 @@ export const runBoundedExhaustiveSimulation = (
 
   return {
     ok: failures.length === 0,
-    runtimeMetadata: currentRuntimeMetadata,
+    runtimeMetadata: runtimeMetadataForConfig(config),
     mode: "exhaustive-small",
     seed,
     runsCompleted: traces.filter((trace) => trace.finalStatus === "completed").length,
@@ -339,16 +371,16 @@ export const runReplaySimulation = (
       code: "missing_trace",
       message: "Replay mode requires a trace."
     });
-    return { ok: false, runtimeMetadata: currentRuntimeMetadata, mode: "replay", seed: config.seed, runsCompleted: 0, traces: [failure], failures: [failure] };
+    return { ok: false, runtimeMetadata: runtimeMetadataForConfig(config), mode: "replay", seed: config.seed, runsCompleted: 0, traces: [failure], failures: [failure] };
   }
 
-  const replay = replayAgentTrace(config.trace);
+  const replay = replayAgentTrace(config.trace, driverConfigForSeed(config.seed, config));
   const trace = replay.ok
     ? config.trace
     : { ...config.trace, failure: replay.failure ?? { step: 0, code: "replay_failed", message: "Replay failed." } };
   return {
     ok: replay.ok,
-    runtimeMetadata: currentRuntimeMetadata,
+    runtimeMetadata: runtimeMetadataForConfig(config),
     mode: "replay",
     seed: config.seed,
     runsCompleted: replay.finalStatus === "completed" ? 1 : 0,

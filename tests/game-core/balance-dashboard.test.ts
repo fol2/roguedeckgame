@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { currentRuntimeMetadata } from "../../src/game-core";
 import {
   buildBalanceDashboardViewModel,
-  currentRuntimeMetadata,
   type SimulationAggregateReport
-} from "../../src/game-core";
+} from "../../src/game-core/testing";
 
 const report: SimulationAggregateReport = {
   totalRuns: 4,

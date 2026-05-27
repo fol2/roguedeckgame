@@ -178,6 +178,55 @@ describe("pet-command combat cards", () => {
     expect(result.events.filter((event) => event.type === "DamageDealt")).toHaveLength(2);
   });
 
+  it("does not repeat allActive pet attack damage against a defeated target while combat continues", () => {
+    const baseState = createMultiPetCombatState();
+    const state = {
+      ...baseState,
+      monsters: [
+        { ...baseState.monsters[0], hp: 2, maxHp: 22, alive: true },
+        {
+          ...baseState.monsters[0],
+          id: combatantId("monster:training_slime:1"),
+          hp: 22,
+          maxHp: 22,
+          alive: true
+        }
+      ]
+    };
+    const registry = {
+      ...starterRegistry,
+      cards: starterRegistry.cards.map((card) =>
+        card.id === "fox_bite"
+          ? {
+              ...card,
+              effects: [
+                {
+                  type: "petAttack" as const,
+                  petTarget: { type: "allActive" as const },
+                  amount: 3,
+                  target: { type: "target" as const }
+                }
+              ]
+            }
+          : card
+      )
+    };
+    const result = playCard(
+      state,
+      { type: "playCard", cardInstanceId: cardInstanceId("fox_bite:1"), targetId },
+      registry,
+      createRng("all-active-lethal-target")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.phase).toBe("player_turn");
+    expect(result.state.monsters[0].alive).toBe(false);
+    expect(result.state.monsters[1].alive).toBe(true);
+    expect(result.events.filter((event) => event.type === "PetCommanded")).toHaveLength(2);
+    expect(result.events.filter((event) => event.type === "DamageDealt")).toHaveLength(1);
+    expect(result.events.filter((event) => event.type === "CombatEnded")).toHaveLength(0);
+  });
+
   it("covers allActive, specific, randomActive, and withTag pet target variants", () => {
     const state = createMultiPetCombatState();
 

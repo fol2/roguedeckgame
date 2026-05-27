@@ -6,9 +6,9 @@ import {
   SAVE_SCHEMA_VERSION,
   starterRegistry,
   TRACE_SCHEMA_VERSION,
-  createRuntimeMetadata,
-  AGENT_TRACE_SCHEMA_VERSION
+  createRuntimeMetadata
 } from "../../src/game-core";
+import { AGENT_TRACE_SCHEMA_VERSION } from "../../src/game-core/testing";
 
 describe("runtime metadata", () => {
   it("uses package, content, trace, save, and registry identity from shared runtime state", () => {

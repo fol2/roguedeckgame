@@ -53,6 +53,55 @@ describe("run combat flow", () => {
     expect(nextCombat.state.player.maxHp).toBe(nextRun.playerMaxHp);
   });
 
+  it("rejects completing the active node with a stale won combat from an earlier node", () => {
+    const firstSelected = selectRunNode(createStartedRunFixture(), runNodeId("act1_forest_0_combat_a")).state;
+    const firstStarted = startCombatForRunNode({
+      run: firstSelected,
+      registry: starterRegistry,
+      petInstances: [createEmberFoxInstanceFixture()],
+      seed: "stale-combat-first"
+    });
+    expect(firstStarted.ok).toBe(true);
+
+    const staleWonCombat = {
+      ...firstStarted.state,
+      phase: "won" as const,
+      monsters: firstStarted.state.monsters.map((monster) => ({ ...monster, hp: 0, alive: false })),
+      monsterIntents: [],
+      plannedMonsterAbilities: []
+    };
+    const firstCompleted = completeRunCombatNode({
+      run: firstSelected,
+      combat: staleWonCombat,
+      registry: starterRegistry,
+      petInstances: [createEmberFoxInstanceFixture()],
+      rewardSeed: "stale-combat-reward"
+    });
+    expect(firstCompleted.ok).toBe(true);
+    const rewardSkipped = skipRunPendingReward({
+      run: firstCompleted.state,
+      petInstances: [createEmberFoxInstanceFixture()]
+    });
+    expect(rewardSkipped.ok).toBe(true);
+
+    const nextCombatNode = rewardSkipped.state.run.map!.nodes.find((node) =>
+      node.status === "available" && node.type === "combat"
+    )!;
+    const nextSelected = selectRunNode(rewardSkipped.state.run, nextCombatNode.id);
+    const staleCompletion = completeRunCombatNode({
+      run: nextSelected.state,
+      combat: staleWonCombat,
+      registry: starterRegistry,
+      petInstances: [createEmberFoxInstanceFixture()],
+      rewardSeed: "stale-combat-wrong-node"
+    });
+
+    expect(staleCompletion.ok).toBe(false);
+    expect(staleCompletion.state).toBe(nextSelected.state);
+    expect(staleCompletion.errors.map((error) => error.code)).toEqual(["combat_node_mismatch"]);
+    expect(nextSelected.state.map!.nodes.find((node) => node.id === nextCombatNode.id)?.status).toBe("active");
+  });
+
   it("heals persistent run HP on rest nodes without exceeding max HP", () => {
     const baseRun = createStartedRunFixture({ playerHp: 55, playerMaxHp: 70 });
     const restNode = baseRun.map!.nodes.find((node) => node.type === "rest")!;
@@ -99,6 +148,8 @@ describe("run combat flow", () => {
       "CombatStarted",
       "DeckShuffled"
     ]);
+    expect(result.state.runNodeId).toBe(node.id);
+    expect(result.state.encounterId).toBe(encounter.id);
     expect(result.state.monsters.map((monster) => monster.definitionId)).toEqual(encounter.monsterIds);
   });
 
@@ -109,7 +160,11 @@ describe("run combat flow", () => {
     ).state;
     const result = completeRunCombatNode({
       run,
-      combat: createLostCombatFixture({ id: run.id }),
+      combat: createLostCombatFixture({
+        id: run.id,
+        runNodeId: run.map!.currentNodeId,
+        encounterId: run.map!.nodes.find((node) => node.id === run.map!.currentNodeId)!.encounterId
+      }),
       registry: starterRegistry,
       petInstances: [createEmberFoxInstanceFixture()]
     });
@@ -126,6 +181,8 @@ describe("run combat flow", () => {
     ).state;
     const inconsistentLostCombat = createLostCombatFixture({
       id: run.id,
+      runNodeId: run.map!.currentNodeId,
+      encounterId: run.map!.nodes.find((node) => node.id === run.map!.currentNodeId)!.encounterId,
       player: { ...createLostCombatFixture({ id: run.id }).player, hp: 12, alive: false }
     });
     const result = completeRunCombatNode({
@@ -151,7 +208,11 @@ describe("run combat flow", () => {
     ).state;
     const result = completeRunCombatNode({
       run,
-      combat: createWonCombatFixture({ id: run.id }),
+      combat: createWonCombatFixture({
+        id: run.id,
+        runNodeId: run.map!.currentNodeId,
+        encounterId: run.map!.nodes.find((node) => node.id === run.map!.currentNodeId)!.encounterId
+      }),
       registry: starterRegistry,
       petInstances: [createEmberFoxInstanceFixture()],
       rewardSeed: "won-reward"
@@ -183,7 +244,11 @@ describe("run combat flow", () => {
     };
     const result = completeRunCombatNode({
       run,
-      combat: createWonCombatFixture({ id: run.id }),
+      combat: createWonCombatFixture({
+        id: run.id,
+        runNodeId: bossNode.id,
+        encounterId: bossNode.encounterId
+      }),
       registry: starterRegistry,
       petInstances: [createEmberFoxInstanceFixture()]
     });
@@ -217,7 +282,11 @@ describe("run combat flow", () => {
     };
     const result = completeRunCombatNode({
       run,
-      combat: createWonCombatFixture({ id: run.id }),
+      combat: createWonCombatFixture({
+        id: run.id,
+        runNodeId: bossNode.id,
+        encounterId: bossNode.encounterId
+      }),
       registry: starterRegistry,
       petInstances: [createEmberFoxInstanceFixture()]
     });
@@ -243,7 +312,11 @@ describe("run combat flow", () => {
     };
     const result = completeRunCombatNode({
       run,
-      combat: createWonCombatFixture({ id: run.id }),
+      combat: createWonCombatFixture({
+        id: run.id,
+        runNodeId: bossNode.id,
+        encounterId: bossNode.encounterId
+      }),
       registry: {
         ...starterRegistry,
         encounters: starterRegistry.encounters.map((encounter) =>

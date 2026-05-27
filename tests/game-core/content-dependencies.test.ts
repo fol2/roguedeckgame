@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildContentDependencyReport,
   cardId,
-  formatContentDependencyIssue,
   monsterId,
   monsterIntentId,
+  rewardPoolId,
   starterRegistry,
   storyEventId,
   storyFlagId,
   statusId
 } from "../../src/game-core";
+import {
+  buildContentDependencyReport,
+  formatContentDependencyIssue
+} from "../../src/game-core/testing";
 import type { GameContentRegistry, PetSideStoryDefinition } from "../../src/game-core";
 
 const cloneRegistry = (overrides: Partial<GameContentRegistry> = {}): GameContentRegistry => ({
@@ -114,6 +117,67 @@ describe("content dependency report", () => {
         id: "missing_monster"
       })
     }));
+  });
+
+  it("reports encounter authoring reward pool and monster group dependencies", () => {
+    const result = buildContentDependencyReport(cloneRegistry({
+      encounters: [
+        {
+          ...starterRegistry.encounters[0],
+          authoring: {
+            ...starterRegistry.encounters[0].authoring!,
+            rewardPoolId: rewardPoolId("missing_pool"),
+            monsterGroups: [
+              {
+                ...starterRegistry.encounters[0].authoring!.monsterGroups[0],
+                monsterIds: [monsterId("missing_group_monster")]
+              }
+            ]
+          }
+        },
+        ...starterRegistry.encounters.slice(1)
+      ]
+    }));
+
+    expect(result.coverage.missingReferenceCount).toBe(2);
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        severity: "error",
+        code: "missing_dependency",
+        path: "encounters[0].authoring.rewardPoolId",
+        target: expect.objectContaining({
+          collection: "rewardPools",
+          id: "missing_pool"
+        })
+      }),
+      expect.objectContaining({
+        severity: "error",
+        code: "missing_dependency",
+        path: "encounters[0].authoring.monsterGroups[0].monsterIds[0]",
+        target: expect.objectContaining({
+          collection: "monsters",
+          id: "missing_group_monster"
+        })
+      })
+    ]));
+  });
+
+  it("keeps dependency reporting tolerant of malformed encounter authoring containers", () => {
+    const malformedAuthoring = {
+      ...starterRegistry.encounters[0].authoring!,
+      monsterGroups: undefined
+    } as unknown as typeof starterRegistry.encounters[0]["authoring"];
+    const result = buildContentDependencyReport(cloneRegistry({
+      encounters: [
+        {
+          ...starterRegistry.encounters[0],
+          authoring: malformedAuthoring
+        },
+        ...starterRegistry.encounters.slice(1)
+      ]
+    }));
+
+    expect(result.issues.filter((issue) => issue.severity === "error")).toEqual([]);
   });
 
   it("surfaces unused cards and statuses as warnings", () => {

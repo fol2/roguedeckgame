@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { formatCountSummary, formatRateSummary } from "../../src/game-cli/report-format";
+import { currentRuntimeMetadata } from "../../src/game-core";
 import {
   buildBalanceDashboardViewModel,
-  currentRuntimeMetadata,
   type SimulationAggregateReport
-} from "../../src/game-core";
+} from "../../src/game-core/testing";
 
 describe("CLI report formatting", () => {
   it("formats reward pick rates as percentages instead of raw counts", () => {

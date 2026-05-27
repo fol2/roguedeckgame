@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runSmokeSimulation } from "../../src/game-core";
+import { runSmokeSimulation } from "../../src/game-core/testing";
 
 describe("agent playthrough smoke", () => {
   it("completes at least one deterministic seed without forced combat outcome mutation", () => {

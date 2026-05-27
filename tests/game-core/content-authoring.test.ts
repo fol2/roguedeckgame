@@ -2,15 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   attackCard,
   blockEffect,
-  buildContentReport,
   cardId,
   damageEffect,
   drawEffect,
+  petModifierId,
   petCommandCard,
   petDefinitionId,
   petReactEffect,
   starterRegistry
 } from "../../src/game-core";
+import { buildContentReport } from "../../src/game-core/testing";
 
 describe("content authoring helpers", () => {
   it("creates plain card definitions with explicit effects", () => {
@@ -117,5 +118,28 @@ describe("content authoring helpers", () => {
     expect(report.dependencyMissingReferenceCount).toBe(0);
     expect(report.unusedCardIds).toEqual([]);
     expect(report.unusedStatusIds).toEqual([]);
+  });
+
+  it("includes standalone pet modifiers in content report rule and effect coverage", () => {
+    const report = buildContentReport({
+      ...starterRegistry,
+      petUpgrades: [],
+      petModifiers: [{
+        id: petModifierId("standalone_report_modifier"),
+        name: "Standalone Report Modifier",
+        description: "A modifier only attached through the standalone registry collection.",
+        tags: ["test"],
+        rules: [{
+          type: "triggerOnEnemyDefeatedWithStatus",
+          requiredStatusId: starterRegistry.statuses![0].id,
+          effects: [{ type: "gainEnergy", amount: 1 }]
+        }]
+      }]
+    });
+
+    expect(report.petModifierRuleTypes).toContain("triggerOnEnemyDefeatedWithStatus");
+    expect(report.effectTypes).toContain("gainEnergy");
+    expect(report.counts.petUpgrades).toBe(0);
+    expect(report.counts.petModifiers).toBe(1);
   });
 });

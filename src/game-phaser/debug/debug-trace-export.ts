@@ -1,15 +1,17 @@
 import {
   currentRuntimeMetadata,
-  BROWSER_DEBUG_TRACE_SCHEMA_VERSION,
-  parseAgentTrace,
-  serializeAgentTrace,
-  type AgentTrace,
   type CardInstanceId,
   type GameEvent,
   type RuntimeMetadata,
   type RunNodeId,
   type RunStatus
 } from "../../game-core";
+import {
+  BROWSER_DEBUG_TRACE_SCHEMA_VERSION,
+  parseAgentTrace,
+  serializeAgentTrace,
+  type AgentTrace
+} from "../../game-core/debug";
 import type { CombatPlaybackObservation } from "../animation/combat-playback-policy";
 import type { RunSandboxState } from "../controllers/RunSandboxController";
 import type { CombatParityDiagnostic } from "./combat-parity";

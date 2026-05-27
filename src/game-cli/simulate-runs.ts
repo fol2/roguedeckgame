@@ -132,6 +132,7 @@ const main = () => {
   const maxSteps = options.strictBalance && options.mode === "fuzz"
     ? options.maxSteps ?? act1NormalBalance.targets.normalMaxSteps
     : options.maxSteps;
+  const replayTrace = options.trace ? parseAgentTrace(readFileSync(options.trace, "utf8")) : undefined;
   const result =
     options.mode === "smoke"
       ? runSmokeSimulation({ mode: "smoke", seed: options.seed, maxSteps })
@@ -152,8 +153,8 @@ const main = () => {
             })
           : runReplaySimulation({
               mode: "replay",
-              seed: options.seed,
-              trace: options.trace ? parseAgentTrace(readFileSync(options.trace, "utf8")) : undefined
+              seed: replayTrace && options.seed === "sim" ? replayTrace.seed : options.seed,
+              trace: replayTrace
             });
 
   if (options.traceOutput) {
@@ -179,6 +180,7 @@ const main = () => {
     warnIfNoLosses: options.mode === "fuzz" && (runs ?? 20) >= 20,
     warnIfNoRewards: options.mode !== "replay",
     warnIfNoPetUpgrades: options.mode !== "replay",
+    warnIfNoStoryEvents: options.mode !== "replay",
     warnIfNoPlayerDamage: options.mode !== "replay",
     warnIfNoMonsterDamage: options.mode !== "replay",
     minCompletionRateError: balanceTarget?.min,
@@ -193,4 +195,9 @@ const main = () => {
   process.exitCode = result.ok && !hasStrictError ? 0 : 1;
 };
 
-main();
+try {
+  main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+}

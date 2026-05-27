@@ -389,4 +389,43 @@ describe("model shape", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it("keeps game-core independent from Phaser, app, and testing barrels", () => {
+    const modules = import.meta.glob("../../src/game-core/**/*.ts", {
+      eager: true,
+      query: "?raw",
+      import: "default"
+    });
+    const dependencyOffenders = Object.entries(modules).filter(([path, contents]) => {
+      if (typeof contents !== "string") {
+        return true;
+      }
+
+      if (path.endsWith("/game-core/testing/index.ts") || path.includes("/game-core/workbench/")) {
+        return false;
+      }
+
+      return /from\s+["'][^"']*(game-phaser|\/app|phaser)["']|import\s+["'][^"']*(game-phaser|\/app|phaser)["']/.test(contents);
+    });
+
+    expect(dependencyOffenders).toEqual([]);
+
+    const publicBarrel = modules["../../src/game-core/index.ts"];
+    expect(publicBarrel).not.toContain("./testing/");
+    expect(publicBarrel).not.toContain("./systems/content-workbench");
+  });
+
+  it("keeps Phaser runtime imports off the broad testing barrel", () => {
+    const modules = import.meta.glob("../../src/game-phaser/**/*.ts", {
+      eager: true,
+      query: "?raw",
+      import: "default"
+    });
+    const offenders = Object.entries(modules).filter(([, contents]) =>
+      typeof contents !== "string" ||
+      /from\s+["'][^"']*game-core\/testing["']/.test(contents)
+    );
+
+    expect(offenders).toEqual([]);
+  });
 });

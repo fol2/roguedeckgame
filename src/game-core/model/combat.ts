@@ -8,6 +8,8 @@ import type {
   PetInstanceId,
   PlayerClassId,
   RunId,
+  RunNodeId,
+  EncounterId,
 } from "../ids";
 import type { PetInstance, RunPetState } from "./pet";
 import type { GameEvent } from "./event";
@@ -48,6 +50,8 @@ export type PlannedMonsterAbility = {
 
 export type CombatState = {
   readonly id: RunId;
+  readonly runNodeId?: RunNodeId;
+  readonly encounterId?: EncounterId;
   readonly seed: string | number;
   readonly turnNumber: number;
   readonly phase: CombatPhase;

@@ -99,6 +99,14 @@ describe("CLI runtime metadata", () => {
     expect(result.stdout).toContain(`Save schema: ${currentRuntimeMetadata.saveSchemaVersion}`);
   });
 
+  it("prints concise simulation parse errors without bundled stack traces", () => {
+    const result = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--mode"]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe("Missing value for --mode.");
+    expect(result.stderr).not.toContain("at ");
+  });
+
   it("keeps transient and built CLI provenance aligned", () => {
     const build = runNpm(["run", "build:cli", "--silent"]);
     expect(build.status).toBe(0);

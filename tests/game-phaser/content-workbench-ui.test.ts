@@ -14,6 +14,7 @@ import { isContentWorkbenchRoute } from "../../src/app/content-workbench-route";
 
 const root = process.cwd();
 const readProjectFile = (path: string): Promise<string> => readFile(join(root, path), "utf8");
+let fakeActiveElement: FakeElement | undefined;
 
 class FakeElement {
   public className = "";
@@ -21,6 +22,8 @@ class FakeElement {
   public type = "";
   public value = "";
   public placeholder = "";
+  public selectionStart = 0;
+  public selectionEnd = 0;
   public readonly children: FakeElement[] = [];
   private readonly listeners = new Map<string, (() => void)[]>();
   private ownText = "";
@@ -61,6 +64,35 @@ class FakeElement {
     this.dispatch("click");
   }
 
+  public focus(): void {
+    fakeActiveElement = this;
+  }
+
+  public setSelectionRange(start: number, end: number): void {
+    this.selectionStart = start;
+    this.selectionEnd = end;
+  }
+
+  public querySelector(selector: string): FakeElement | null {
+    const testId = selector.match(/^\[data-testid="(.+)"\]$/)?.[1];
+    const matches = (element: FakeElement): boolean =>
+      testId !== undefined && element.dataset.testid === testId;
+
+    if (matches(this)) {
+      return this;
+    }
+
+    for (const child of this.children) {
+      const result = child.querySelector(selector);
+
+      if (result) {
+        return result;
+      }
+    }
+
+    return null;
+  }
+
   public setAttribute(): void {
     // Attribute values are not needed by the current render-level assertions.
   }
@@ -68,8 +100,12 @@ class FakeElement {
 
 const installFakeDocument = (): (() => void) => {
   const previousDocument = globalThis.document;
+  fakeActiveElement = undefined;
   const fakeDocument = {
-    createElement: (tagName: string) => new FakeElement(tagName)
+    createElement: (tagName: string) => new FakeElement(tagName),
+    get activeElement(): FakeElement | undefined {
+      return fakeActiveElement;
+    }
   };
 
   Object.defineProperty(globalThis, "document", {
@@ -217,8 +253,14 @@ describe("content workbench UI", () => {
       expect(mount.textContent).toContain("Forest Warden");
 
       const search = findByTestId(mount, "workbench-search");
+      search.focus();
       search.value = "warden";
+      search.setSelectionRange(search.value.length, search.value.length);
       search.dispatch("input");
+      const activeElement = (globalThis.document as unknown as { readonly activeElement?: FakeElement }).activeElement;
+      const restoredSearch = findByTestId(mount, "workbench-search");
+      expect(activeElement).toBe(restoredSearch);
+      expect(restoredSearch.selectionStart).toBe(restoredSearch.value.length);
       expect(mount.textContent).toContain("1 / 4");
       expect(mount.textContent).toContain("forest_warden");
       expect(mount.textContent).not.toContain("Training Slime");
@@ -249,6 +291,60 @@ describe("content workbench UI", () => {
     }
   });
 
+  it("preserves search caret position while re-rendering filtered results", () => {
+    const restoreDocument = installFakeDocument();
+    const mount = new FakeElement("div");
+
+    try {
+      renderContentWorkbench(mount as unknown as HTMLElement);
+      findByTestId(mount, "workbench-collection-monsters").click();
+
+      const search = findByTestId(mount, "workbench-search");
+      search.focus();
+      search.value = "waden";
+      search.setSelectionRange(2, 2);
+      search.dispatch("input");
+
+      const restoredSearch = findByTestId(mount, "workbench-search");
+      const activeElement = (globalThis.document as unknown as { readonly activeElement?: FakeElement }).activeElement;
+      expect(activeElement).toBe(restoredSearch);
+      expect(restoredSearch.value).toBe("waden");
+      expect(restoredSearch.selectionStart).toBe(2);
+      expect(restoredSearch.selectionEnd).toBe(2);
+    } finally {
+      restoreDocument();
+    }
+  });
+
+  it("loads balance reports lazily and contains dashboard failures", () => {
+    const restoreDocument = installFakeDocument();
+    const mount = new FakeElement("div");
+    let dashboardCalls = 0;
+
+    try {
+      renderContentWorkbench(mount as unknown as HTMLElement, {
+        createBalanceDashboard: () => {
+          dashboardCalls += 1;
+          throw new Error("sim aggregate unavailable");
+        }
+      });
+
+      expect(dashboardCalls).toBe(0);
+      expect(mount.textContent).toContain("Content Workbench");
+
+      findByTestId(mount, "workbench-tab-reports").click();
+      expect(dashboardCalls).toBe(1);
+      expect(findByTestId(mount, "workbench-balance-dashboard").textContent).toContain("Balance dashboard");
+      expect(findByTestId(mount, "workbench-balance-dashboard").textContent).toContain("sim aggregate unavailable");
+
+      findByTestId(mount, "workbench-tab-json").click();
+      findByTestId(mount, "workbench-tab-reports").click();
+      expect(dashboardCalls).toBe(1);
+    } finally {
+      restoreDocument();
+    }
+  });
+
   it("keeps the workbench UI out of Phaser and gameplay resolver code", async () => {
     const source = await readProjectFile("src/app/content-workbench.ts");
     const resolverIdentifiers = [
@@ -265,7 +361,9 @@ describe("content workbench UI", () => {
       "completeRunNonCombatNode"
     ];
 
-    expect(source).toMatch(/from\s+["']\.\.\/game-core["']/);
+    expect(source).toMatch(/from\s+["']\.\.\/game-core\/workbench["']/);
+    expect(source).toMatch(/from\s+["']\.\.\/game-core\/testing["']/);
+    expect(source).not.toMatch(/from\s+["']\.\.\/game-core["']/);
     expect(source).not.toMatch(/from\s+["']phaser["']/);
     expect(source).not.toContain("game-phaser");
     expect(source).not.toMatch(/contentEditable|createElement\(["']textarea["']\)|\bSave\b|\bDelete\b|\bApply\b/);

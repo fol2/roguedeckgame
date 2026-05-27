@@ -2,10 +2,12 @@ import {
   cardInstanceId,
   cardId,
   combatantId,
+  encounterId,
   monsterAbilityId,
   monsterId,
   monsterIntentId,
   petInstanceId,
+  runNodeId,
   statusId
 } from "../ids";
 import { starterRegistry } from "../data/registry";
@@ -48,6 +50,8 @@ export const createCombatFixture = (
     petInstances: [createEmberFoxInstanceFixture()],
     monsterIds: [monsterId("training_slime")],
     seed: "combat-fixture",
+    runNodeId: runNodeId("act1_forest_0_combat_a"),
+    encounterId: encounterId("training_slime_encounter"),
     openingHandSize: 5,
     ...overrides
   });
@@ -61,6 +65,8 @@ export const createCombatFixture = (
 
 export const createHandTunedCombatFixture = (): CombatState => ({
   id: createRunFixture().id,
+  runNodeId: runNodeId("act1_forest_0_combat_a"),
+  encounterId: encounterId("training_slime_encounter"),
   seed: "hand-tuned-fixture",
   turnNumber: 1,
   phase: "player_turn",

@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   cardId,
-  createAgentRunDriver,
-  checkAgentRunInvariants,
   monsterAbilityId,
-  monsterIntentId
+  monsterIntentId,
+  runNodeId,
+  starterRegistry,
+  upgradeId
 } from "../../src/game-core";
+import {
+  createAgentRunDriver,
+  checkAgentRunInvariants
+} from "../../src/game-core/testing";
 
 describe("agent simulation invariants", () => {
   it("passes a clean driver snapshot", () => {
@@ -16,7 +21,7 @@ describe("agent simulation invariants", () => {
 
   it("fails duplicate card instances across piles", () => {
     const driver = createAgentRunDriver({ seed: "invariant-duplicate-card" });
-    driver.applyAction(driver.getLegalActions()[0], "legal");
+    driver.applyAction({ type: "selectMapNode", nodeId: runNodeId("act1_forest_0_combat_a") }, "legal");
     const snapshot = driver.getSnapshot();
     const duplicated = {
       ...snapshot,
@@ -142,6 +147,44 @@ describe("agent simulation invariants", () => {
     expect(checkAgentRunInvariants(broken).issues.map((issue) => issue.code)).toContain("planned_monster_ability_id_mismatch");
   });
 
+  it("validates planned monster abilities against the supplied registry", () => {
+    const customAbilityId = monsterAbilityId("training_slime_custom_attack");
+    const registry = {
+      ...starterRegistry,
+      monsterAbilities: [
+        ...(starterRegistry.monsterAbilities ?? []),
+        {
+          id: customAbilityId,
+          name: "Custom Slime Tackle",
+          intentType: "attack" as const,
+          description: "Attack for 1.",
+          tags: ["attack", "custom"],
+          effects: [{ type: "damage" as const, amount: 1, target: { type: "target" as const } }]
+        }
+      ],
+      monsters: starterRegistry.monsters.map((monster) => ({
+        ...monster,
+        abilityIds: [...(monster.abilityIds ?? []), customAbilityId],
+        intentPool: [
+          {
+            id: monster.intentPool[0].id,
+            type: "attack" as const,
+            description: "Attack for 1.",
+            abilityId: customAbilityId,
+            effects: [{ type: "damage" as const, amount: 1, target: { type: "target" as const } }]
+          }
+        ]
+      }))
+    };
+    const driver = createAgentRunDriver({ seed: "invariant-custom-registry", registry });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+
+    expect(snapshot.combat?.plannedMonsterAbilities?.[0]).toMatchObject({ abilityId: customAbilityId });
+    expect(checkAgentRunInvariants(snapshot, registry).issues.map((issue) => issue.code)).not.toContain("planned_monster_ability_id_mismatch");
+    expect(checkAgentRunInvariants(snapshot).issues.map((issue) => issue.code)).toContain("planned_monster_ability_id_mismatch");
+  });
+
   it("fails reward options that reference unregistered cards", () => {
     const driver = createAgentRunDriver({ seed: "invariant-reward-card" });
     const snapshot = driver.getSnapshot();
@@ -162,6 +205,50 @@ describe("agent simulation invariants", () => {
     };
 
     expect(checkAgentRunInvariants(broken).issues.map((issue) => issue.code)).toContain("reward_card_missing");
+  });
+
+  it("validates reward options against the supplied registry", () => {
+    const customCardId = cardId("custom_reward_card");
+    const customUpgradeId = upgradeId("custom_pet_upgrade");
+    const registry = {
+      ...starterRegistry,
+      cards: [{ ...starterRegistry.cards[0], id: customCardId }, ...starterRegistry.cards],
+      petUpgrades: [{ ...starterRegistry.petUpgrades[0], id: customUpgradeId }, ...starterRegistry.petUpgrades]
+    };
+    const driver = createAgentRunDriver({ seed: "invariant-custom-reward" });
+    const snapshot = driver.getSnapshot();
+    const withCustomRewards = {
+      ...snapshot,
+      run: {
+        ...snapshot.run,
+        status: "reward" as const,
+        pendingRewardOffer: {
+          id: "offer" as never,
+          source: "combat" as const,
+          combatId: snapshot.run.id,
+          seed: "custom",
+          status: "open" as const,
+          options: [
+            { id: "card-option" as never, type: "card" as const, cardId: customCardId },
+            {
+              id: "upgrade-option" as never,
+              type: "petUpgrade" as const,
+              petInstanceId: snapshot.petInstances[0].id,
+              petDefinitionId: snapshot.petInstances[0].definitionId,
+              upgradeId: customUpgradeId
+            }
+          ]
+        }
+      }
+    };
+
+    const customIssues = checkAgentRunInvariants(withCustomRewards, registry).issues.map((issue) => issue.code);
+    expect(customIssues).not.toContain("reward_card_missing");
+    expect(customIssues).not.toContain("reward_pet_upgrade_missing");
+
+    const defaultIssues = checkAgentRunInvariants(withCustomRewards).issues.map((issue) => issue.code);
+    expect(defaultIssues).toContain("reward_card_missing");
+    expect(defaultIssues).toContain("reward_pet_upgrade_missing");
   });
 
   it("accepts legacy combat snapshots without planned ability storage", () => {
