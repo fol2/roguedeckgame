@@ -4,6 +4,7 @@ import {
   combatantId,
   createCombat,
   createRng,
+  discardPlannedMonsterCard,
   monsterAbilityId,
   monsterId,
   monsterIntentId,
@@ -18,12 +19,32 @@ describe("monster intents", () => {
 
     expect(state.monsterIntents).toHaveLength(2);
     expect(state.plannedMonsterAbilities).toHaveLength(2);
+    expect(state.monsterCardStates).toHaveLength(2);
     expect(state.monsterIntents.map((intent) => intent.monsterCombatantId)).toEqual(
       state.monsters.map((monster) => monster.id)
     );
     expect((state.plannedMonsterAbilities ?? []).map((planned) => planned.monsterCombatantId)).toEqual(
       state.monsters.map((monster) => monster.id)
     );
+  });
+
+  it("initialises enemy card-game zones from authored deck copies", () => {
+    const state = createCombatFixture({ monsterIds: [monsterId("training_slime")] });
+    const cardState = state.monsterCardStates?.[0];
+    const allEnemyCards = [
+      ...(cardState?.drawPile ?? []),
+      ...(cardState?.hand ?? []),
+      ...(cardState?.planned ?? []),
+      ...(cardState?.discardPile ?? []),
+      ...(cardState?.exhaustPile ?? [])
+    ];
+
+    expect(cardState).toMatchObject({
+      monsterCombatantId: combatantId("monster:training_slime:0"),
+      planned: [state.plannedMonsterAbilities?.[0]?.abilityId]
+    });
+    expect(allEnemyCards.filter((abilityId) => abilityId === monsterAbilityId("training_slime_attack"))).toHaveLength(2);
+    expect(allEnemyCards.filter((abilityId) => abilityId === monsterAbilityId("training_slime_block"))).toHaveLength(1);
   });
 
   it("selects intents deterministically for the same seed", () => {
@@ -49,6 +70,52 @@ describe("monster intents", () => {
     );
 
     expect(selectedIntentIds.size).toBeGreaterThan(1);
+  });
+
+  it("plans from the enemy card-game hand rather than uniformly from the intent pool", () => {
+    const state = {
+      ...createEnemyTurnFixture(),
+      monsterIntents: [],
+      plannedMonsterAbilities: [],
+      monsterCardStates: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        drawPile: [monsterAbilityId("training_slime_block")],
+        hand: [],
+        planned: [],
+        discardPile: [],
+        exhaustPile: []
+      }]
+    };
+    const result = chooseMonsterIntents(state, starterRegistry, createRng("enemy-card-hand"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.plannedMonsterAbilities?.[0]).toMatchObject({
+      abilityId: monsterAbilityId("training_slime_block")
+    });
+    expect(result.state.monsterCardStates?.[0]).toMatchObject({
+      drawPile: [],
+      hand: [],
+      planned: [monsterAbilityId("training_slime_block")]
+    });
+  });
+
+  it("moves played enemy planned cards to the monster discard pile", () => {
+    const state = {
+      ...createEnemyTurnFixture(),
+      monsterCardStates: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        drawPile: [],
+        hand: [],
+        planned: [monsterAbilityId("training_slime_attack")],
+        discardPile: [monsterAbilityId("training_slime_block")],
+        exhaustPile: []
+      }]
+    };
+
+    expect(discardPlannedMonsterCard(state, combatantId("monster:training_slime:0")).monsterCardStates?.[0]).toMatchObject({
+      planned: [],
+      discardPile: [monsterAbilityId("training_slime_block"), monsterAbilityId("training_slime_attack")]
+    });
   });
 
   it("does not select intents for defeated monsters", () => {
