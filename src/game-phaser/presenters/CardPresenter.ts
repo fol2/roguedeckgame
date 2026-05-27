@@ -214,8 +214,7 @@ export class CardPresenter {
 
   public async playCardMoved(event: Extract<GameEvent, { readonly type: "CardMoved" }>, finalCards: readonly CombatCardViewModel[]): Promise<boolean> {
     if (event.from === "hand" && event.to !== "hand") {
-      await this.moveHandCardToPile(event.cardInstanceId, event.to);
-      return true;
+      return this.moveHandCardToPile(event.cardInstanceId, event.to);
     }
 
     if (event.to === "hand" && event.from !== "hand") {
@@ -512,10 +511,10 @@ export class CardPresenter {
     this.layoutHand(true);
   }
 
-  private async moveHandCardToPile(cardInstanceId: CardInstanceId, pile: CardPile): Promise<void> {
+  private async moveHandCardToPile(cardInstanceId: CardInstanceId, pile: CardPile): Promise<boolean> {
     const visual = this.visuals.get(cardInstanceId);
     if (!visual) {
-      return;
+      return false;
     }
 
     visual.moving = true;
@@ -528,6 +527,7 @@ export class CardPresenter {
     await this.tweenTo(visual.container, getPilePoint(pile), CARD_MOVE_DURATION_MS);
     visual.container.destroy();
     this.visuals.delete(cardInstanceId);
+    return true;
   }
 
   private async movePileCardToHand(

@@ -42,7 +42,7 @@ export const combatPlaybackPolicies = {
   CombatStarted: { policy: "logOnly", visualRoute: "log" },
   CombatantDefeated: { policy: "animated", visualRoute: "fx" },
   DamageDealt: { policy: "animated", visualRoute: "fx" },
-  DeckShuffled: { policy: "logOnly", visualRoute: "log" },
+  DeckShuffled: { policy: "animated", visualRoute: "fx" },
   EnergyGained: { policy: "logOnly", visualRoute: "log" },
   EnergySpent: { policy: "animated", visualRoute: "fx" },
   MonsterAbilityPlanned: { policy: "animated", visualRoute: "fx" },

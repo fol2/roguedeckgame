@@ -27,6 +27,31 @@ describe("drawCards", () => {
     expect(result.events.map((event) => event.type)).toEqual(["DeckShuffled", "CardMoved", "CardDrawn"]);
   });
 
+  it("draws one card at a time and keeps reshuffle events in sequence", () => {
+    const state = {
+      ...createHandTunedCombatFixture(),
+      hand: [],
+      drawPile: [cardInstanceId("strike:1")],
+      discardPile: [cardInstanceId("defend:1"), cardInstanceId("focus:1"), cardInstanceId("fox_bite:1")]
+    };
+    const result = drawCards(state, 4, createRng("draw-four-with-reshuffle"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.hand).toHaveLength(4);
+    expect(result.state.discardPile).toEqual([]);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "CardMoved",
+      "CardDrawn",
+      "DeckShuffled",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn"
+    ]);
+  });
+
   it("does not crash when draw and discard are empty", () => {
     const state = {
       ...createHandTunedCombatFixture(),

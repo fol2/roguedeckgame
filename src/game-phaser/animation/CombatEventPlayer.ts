@@ -18,6 +18,11 @@ type TimerLike = {
   readonly remove: (dispatchCallback?: boolean) => void;
 };
 
+export type CombatPlaybackFallbackObservation = {
+  readonly warningCode: string;
+  readonly errorSummary: string;
+};
+
 export { formatCombatEventMessage } from "./combat-event-messages";
 
 export class CombatEventPlayer {
@@ -27,7 +32,8 @@ export class CombatEventPlayer {
     private readonly scene: Scene,
     private readonly eventLog: EventLogPresenter,
     private readonly fxPresenter?: CombatEventFxPresenter,
-    private readonly onEventPlayed: (event: GameEvent) => void | Promise<void> = () => undefined
+    private readonly onEventPlayed: (event: GameEvent) =>
+      void | CombatPlaybackFallbackObservation | Promise<void | CombatPlaybackFallbackObservation> = () => undefined
   ) {}
 
   public getPlaybackObservations(): readonly CombatPlaybackObservation[] {
@@ -174,7 +180,13 @@ export class CombatEventPlayer {
               return;
             }
           }
-          await this.onEventPlayed(event as GameEvent);
+          const eventFallback = await this.onEventPlayed(event as GameEvent);
+          if (eventFallback) {
+            outcome = "recovered";
+            fallbackUsed = true;
+            warningCode = eventFallback.warningCode;
+            errorSummary = eventFallback.errorSummary;
+          }
           if (settled) {
             return;
           }

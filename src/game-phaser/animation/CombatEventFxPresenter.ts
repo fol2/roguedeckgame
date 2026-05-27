@@ -3,6 +3,7 @@ import type { CardInstanceId, CombatantId, GameEvent, PetInstanceId } from "../.
 import {
   DISCARD_PILE,
   DRAW_PILE,
+  DECK_SOURCE_PILE,
   ENERGY_ORB,
   KEEPER_AVATAR,
   MONSTER_SLOT,
@@ -39,6 +40,11 @@ const ENERGY_POINT: Point = {
 const DRAW_POINT: Point = {
   x: DRAW_PILE.x,
   y: DRAW_PILE.y
+};
+
+const DECK_POINT: Point = {
+  x: DECK_SOURCE_PILE.x,
+  y: DECK_SOURCE_PILE.y
 };
 
 const DISCARD_POINT: Point = {
@@ -92,6 +98,13 @@ export class CombatEventFxPresenter {
         return this.wait(0);
       case "CardMoved":
         return this.wait(0);
+      case "DeckShuffled":
+        return this.playTrace(
+          this.getPilePoint(event.from),
+          this.getPilePoint(event.to),
+          `Shuffle ${event.count}`,
+          0x7dd3fc
+        );
       case "PetCommanded":
         return this.playTrace(
           this.getCardPoint(event.cardInstanceId, event.type),
@@ -205,6 +218,10 @@ export class CombatEventFxPresenter {
   private getPilePoint(pile: string, cardInstanceId?: CardInstanceId): Point {
     if (pile === "draw") {
       return DRAW_POINT;
+    }
+
+    if (pile === "deck") {
+      return DECK_POINT;
     }
 
     if (pile === "discard") {

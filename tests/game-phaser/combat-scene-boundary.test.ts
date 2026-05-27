@@ -176,14 +176,16 @@ describe("Combat scene boundary", () => {
     expect(sceneSource).toMatch(/playCardMovementForEvent\(event\)/);
     expect(sceneSource).toMatch(/planCombatEventAnimation\(event, this\.playbackFinalViewModel\)/);
     expect(sceneSource).toMatch(/cardPresenter\.playCardMoved\(command\.event, command\.finalHand\)/);
+    expect(sceneSource).toMatch(/Card movement planner fallback/);
     expect(cardPresenter).toMatch(/visuals = new Map<CardInstanceId, CardVisual>/);
     expect(cardPresenter).toMatch(/visualHandOrder: CardInstanceId\[\] = \[\]/);
     expect(cardPresenter).toMatch(/playCardMoved/);
     expect(cardPresenter).toMatch(/moveHandCardToPile/);
     expect(cardPresenter).toMatch(/movePileCardToHand/);
     expect(cardPresenter).toMatch(/this\.scene\.tweens\.add/);
-    expect(eventPlayer).toMatch(/onEventPlayed: \(event: GameEvent\) => void \| Promise<void>/);
-    expect(eventPlayer).toMatch(/await this\.onEventPlayed\(event as GameEvent\)/);
+    expect(eventPlayer).toMatch(/onEventPlayed: \(event: GameEvent\) =>\n\s+void \| CombatPlaybackFallbackObservation \| Promise<void \| CombatPlaybackFallbackObservation>/);
+    expect(eventPlayer).toMatch(/const eventFallback = await this\.onEventPlayed\(event as GameEvent\)/);
+    expect(eventPlayer).toMatch(/warningCode = eventFallback\.warningCode/);
   });
 
   it("keeps targeting and keyboard interactions inside the Phaser scene only", async () => {
@@ -291,6 +293,7 @@ describe("Combat scene boundary", () => {
     expect(eventFxPresenter).toMatch(/MonsterIntentSet/);
     expect(eventFxPresenter).toMatch(/StatusApplied/);
     expect(eventFxPresenter).toMatch(/CardDrawn/);
+    expect(eventFxPresenter).toMatch(/DECK_SOURCE_PILE/);
   });
 
   it("keeps captured combat preview evidence at the claimed 1280x720 viewport", async () => {

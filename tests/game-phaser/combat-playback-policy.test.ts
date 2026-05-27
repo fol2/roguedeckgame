@@ -12,6 +12,7 @@ const completePolicyMap: Record<GameEvent["type"], unknown> = combatPlaybackPoli
 describe("combat playback policy", () => {
   it("has a compile-time complete policy map for every GameEvent type", () => {
     expect(completePolicyMap.CardMoved).toEqual({ policy: "stateSyncOnly", visualRoute: "cardMovement" });
+    expect(completePolicyMap.DeckShuffled).toEqual({ policy: "animated", visualRoute: "fx" });
     expect(completePolicyMap.DamageDealt).toEqual({ policy: "animated", visualRoute: "fx" });
     expect(completePolicyMap.RunCreated).toEqual({ policy: "logOnly", visualRoute: "log" });
   });

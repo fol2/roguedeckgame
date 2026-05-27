@@ -4,7 +4,7 @@ import {
   getRunSandboxController
 } from "../controllers/run-sandbox-singleton";
 import type { RunSandboxController } from "../controllers/RunSandboxController";
-import { CombatEventPlayer } from "../animation/CombatEventPlayer";
+import { CombatEventPlayer, type CombatPlaybackFallbackObservation } from "../animation/CombatEventPlayer";
 import { CombatEventFxPresenter } from "../animation/CombatEventFxPresenter";
 import { planCombatEventAnimation } from "../animation/combat-animation-plan";
 import {
@@ -649,15 +649,30 @@ export class CombatScene extends Scene {
     await this.submitAction((requestId) => this.sandbox!.endTurn(viewModel?.revision, requestId));
   }
 
-  private async playCardMovementForEvent(event: GameEvent): Promise<void> {
+  private async playCardMovementForEvent(event: GameEvent): Promise<CombatPlaybackFallbackObservation | undefined> {
     if (!this.cardPresenter) {
-      return;
+      return undefined;
     }
 
     const command = planCombatEventAnimation(event, this.playbackFinalViewModel);
     if (command.type === "cardMovement") {
-      await this.cardPresenter.playCardMoved(command.event, command.finalHand);
+      const moved = await this.cardPresenter.playCardMoved(command.event, command.finalHand);
+      return moved
+        ? undefined
+        : {
+            warningCode: "card_movement_fallback",
+            errorSummary: `Card movement fallback for ${command.event.cardInstanceId} from ${command.event.from} to ${command.event.to}`
+          };
     }
+
+    if (event.type === "CardMoved") {
+      return {
+        warningCode: "card_movement_fallback",
+        errorSummary: `Card movement planner fallback for ${event.cardInstanceId} from ${event.from} to ${event.to}`
+      };
+    }
+
+    return undefined;
   }
 
   private async submitAction(

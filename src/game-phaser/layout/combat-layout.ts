@@ -87,6 +87,14 @@ export const DRAW_PILE = {
   fontSize: "13px"
 } as const;
 
+export const DECK_SOURCE_PILE = {
+  x: DRAW_PILE.x,
+  y: DRAW_PILE.y - 112,
+  width: DRAW_PILE.width,
+  height: DRAW_PILE.height,
+  fontSize: DRAW_PILE.fontSize
+} as const;
+
 export const DISCARD_PILE = {
   x: GAME_WIDTH - GAME_MARGIN - 190,
   y: GAME_HEIGHT - 92,

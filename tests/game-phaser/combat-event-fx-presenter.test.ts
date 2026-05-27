@@ -13,6 +13,9 @@ import {
 } from "../../src/game-core";
 import { CombatEventFxPresenter } from "../../src/game-phaser/animation/CombatEventFxPresenter";
 import {
+  DECK_SOURCE_PILE,
+  DISCARD_PILE,
+  DRAW_PILE,
   ENERGY_ORB,
   KEEPER_AVATAR,
   MONSTER_SLOT,
@@ -447,6 +450,16 @@ describe("CombatEventFxPresenter", () => {
     })).resolves.toMatchObject({
       circles: [expect.objectContaining({ x: monsterPoint.x, y: monsterPoint.y })],
       texts: [expect.objectContaining({ text: "attack", x: monsterPoint.x, y: monsterPoint.y - 20 })]
+    });
+
+    await expect(playSingleEvent({ type: "DeckShuffled", from: "discard", to: "draw", count: 3 })).resolves.toMatchObject({
+      lines: [expect.objectContaining({ x1: DISCARD_PILE.x, y1: DISCARD_PILE.y, x2: DRAW_PILE.x, y2: DRAW_PILE.y })],
+      texts: [expect.objectContaining({ text: "Shuffle 3", x: DRAW_PILE.x, y: DRAW_PILE.y })]
+    });
+
+    await expect(playSingleEvent({ type: "DeckShuffled", from: "deck", to: "draw", count: 6 })).resolves.toMatchObject({
+      lines: [expect.objectContaining({ x1: DECK_SOURCE_PILE.x, y1: DECK_SOURCE_PILE.y, x2: DRAW_PILE.x, y2: DRAW_PILE.y })],
+      texts: [expect.objectContaining({ text: "Shuffle 6", x: DRAW_PILE.x, y: DRAW_PILE.y })]
     });
 
     await expect(playSingleEvent({ type: "CombatantDefeated", combatantId: monsterId })).resolves.toMatchObject({

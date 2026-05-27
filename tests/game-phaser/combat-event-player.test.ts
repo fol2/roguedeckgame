@@ -309,6 +309,38 @@ describe("CombatEventPlayer", () => {
     expect(fxPresenter.play).not.toHaveBeenCalled();
   });
 
+  it("records card movement fallback metadata from the event callback", async () => {
+    const event: GameEvent = {
+      type: "CardMoved",
+      cardInstanceId: cardInstanceId("missing-card"),
+      cardId: cardId("strike"),
+      from: "hand",
+      to: "discard"
+    };
+    const eventLog = { append: vi.fn() };
+    const player = new CombatEventPlayer(
+      createSceneStub() as never,
+      eventLog as never,
+      undefined,
+      vi.fn(() => ({
+        warningCode: "card_movement_fallback",
+        errorSummary: "Card movement fallback for missing-card from hand to discard"
+      }))
+    );
+
+    await player.play([event]);
+
+    expect(player.getPlaybackObservations()).toMatchObject([{
+      eventType: "CardMoved",
+      policy: "stateSyncOnly",
+      visualRoute: "cardMovement",
+      outcome: "recovered",
+      fallbackUsed: true,
+      warningCode: "card_movement_fallback",
+      errorSummary: "Card movement fallback for missing-card from hand to discard"
+    }]);
+  });
+
   it("refreshes the playback timeout for each event instead of timing out a long queue", async () => {
     const events: readonly GameEvent[] = [
       { type: "TurnStarted", turnNumber: 1, actorId: combatantId("player") },

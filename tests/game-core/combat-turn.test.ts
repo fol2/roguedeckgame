@@ -54,6 +54,28 @@ describe("combat turn flow", () => {
     expect(result.state.events.slice(-expectedEvents.length)).toEqual(expectedEvents);
   });
 
+  it("discards remaining hand cards one by one before ending the turn", () => {
+    const baseState = createHandTunedCombatFixture();
+    const state = {
+      ...baseState,
+      hand: [cardInstanceId("strike:1"), cardInstanceId("defend:1")]
+    };
+    const result = endPlayerTurn(state);
+
+    expect(result.ok).toBe(true);
+    expect(result.state.hand).toEqual([]);
+    expect(result.state.discardPile).toEqual([cardInstanceId("strike:1"), cardInstanceId("defend:1")]);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "CardMoved",
+      "CardMoved",
+      "TurnEnded"
+    ]);
+    expect(result.events.slice(0, 2)).toMatchObject([
+      { cardInstanceId: cardInstanceId("strike:1"), from: "hand", to: "discard" },
+      { cardInstanceId: cardInstanceId("defend:1"), from: "hand", to: "discard" }
+    ]);
+  });
+
   it("rejects ending the player turn outside the player turn", () => {
     const state = { ...createHandTunedCombatFixture(), phase: "enemy_turn" as const };
     const result = endPlayerTurn(state);
@@ -120,6 +142,39 @@ describe("combat turn flow", () => {
     expect(result.state.player.block).toBe(0);
     expect(result.state.hand).toEqual([cardInstanceId("strike:1")]);
     expect(result.events.map((event) => event.type)).toEqual(["TurnStarted", "CardMoved", "CardDrawn"]);
+  });
+
+  it("starts a new player turn by drawing cards one by one in event order", () => {
+    const baseState = createHandTunedCombatFixture();
+    const drawPile = [
+      cardInstanceId("strike:1"),
+      cardInstanceId("defend:1"),
+      cardInstanceId("focus:1"),
+      cardInstanceId("fox_bite:1")
+    ];
+    const state = {
+      ...baseState,
+      phase: "enemy_turn" as const,
+      hand: [],
+      drawPile,
+      discardPile: [],
+      player: { ...baseState.player, block: 7 }
+    };
+    const result = startPlayerTurn(state, createRng("draw-four-start-turn"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.hand).toEqual(drawPile);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "TurnStarted",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn",
+      "CardMoved",
+      "CardDrawn"
+    ]);
   });
 
   it("rejects starting a player turn outside enemy_turn", () => {

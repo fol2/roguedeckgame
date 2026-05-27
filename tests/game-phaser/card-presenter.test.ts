@@ -262,6 +262,22 @@ describe("CardPresenter", () => {
     await movement;
   });
 
+  it("returns false when asked to move a missing hand visual", async () => {
+    const { scene } = createSceneStub();
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = createCard("strike:1", "Strike");
+
+    presenter.render([], true);
+
+    await expect(presenter.playCardMoved({
+      type: "CardMoved",
+      cardInstanceId: firstCard.cardInstanceId,
+      cardId: firstCard.cardId,
+      from: "hand",
+      to: "discard"
+    }, [])).resolves.toBe(false);
+  });
+
   it("drags playable cards to a drop point without also selecting them", async () => {
     const { scene, records } = createSceneStub();
     const onSelected = vi.fn();
