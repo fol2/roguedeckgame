@@ -216,6 +216,26 @@ describe("CardPresenter", () => {
     expect(records.containers).toHaveLength(createdContainersAfterFirstRender);
   });
 
+  it("locks existing hand visuals without removing them before playback", async () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = createCard("strike:1", "Strike");
+
+    presenter.render([firstCard], false);
+    const createdContainersAfterRender = records.containers.length;
+    presenter.setLocked(true);
+
+    expect(records.containers).toHaveLength(createdContainersAfterRender);
+    await expect(presenter.playCardMoved({
+      type: "CardMoved",
+      cardInstanceId: firstCard.cardInstanceId,
+      cardId: firstCard.cardId,
+      from: "hand",
+      to: "discard"
+    }, [])).resolves.toBe(true);
+    expect(hasTweenTo(records.tweens, { x: DISCARD_PILE.x, y: DISCARD_PILE.y })).toBe(true);
+  });
+
   it("exposes card parity snapshots for visible hand and transient drag state", () => {
     const { scene, records } = createSceneStub();
     const presenter = new CardPresenter(scene, vi.fn());
