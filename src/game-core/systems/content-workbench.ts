@@ -194,6 +194,14 @@ export type ContentWorkbenchDependencyDiagnostic = {
   readonly summary: string;
 };
 
+export type ContentWorkbenchDependencyReference = {
+  readonly kind: string;
+  readonly source: ContentWorkbenchDependencyEndpoint;
+  readonly target: ContentWorkbenchDependencyEndpoint;
+  readonly resolved: boolean;
+  readonly summary: string;
+};
+
 export type ContentWorkbenchCollectionCounts = {
   readonly [Collection in ContentWorkbenchCollectionId]: number;
 };
@@ -241,6 +249,7 @@ export type ContentWorkbenchDiagnostics = {
   readonly levelAuthoringErrors: readonly ValidationIssue[];
   readonly levelAuthoringWarnings: readonly ValidationIssue[];
   readonly dependencyIssues: readonly ContentWorkbenchDependencyDiagnostic[];
+  readonly dependencyReferences: readonly ContentWorkbenchDependencyReference[];
   readonly dependencyReferenceCount: number;
   readonly dependencyMissingReferenceCount: number;
 };
@@ -474,6 +483,16 @@ const mapDependencyIssue = (issue: ContentDependencyIssue): ContentWorkbenchDepe
   summary: formatContentDependencyIssue(issue)
 });
 
+const mapDependencyReference = (
+  reference: ReturnType<typeof buildContentDependencyReport>["references"][number]
+): ContentWorkbenchDependencyReference => ({
+  kind: reference.kind,
+  source: mapDependencyEndpoint(reference.source),
+  target: mapDependencyEndpoint(reference.target),
+  resolved: reference.resolved,
+  summary: `${reference.kind} ${reference.source.collection}:${reference.source.id} -> ${reference.target.collection}:${reference.target.id}`
+});
+
 const mapCollectionCounts = (
   schema: ReturnType<typeof createContentSchemaFromRegistry>
 ): ContentWorkbenchCollectionCounts =>
@@ -561,6 +580,7 @@ export const buildContentWorkbenchViewModel = (registry: GameContentRegistry): C
       levelAuthoringErrors: levelAuthoringValidation.errors,
       levelAuthoringWarnings: levelAuthoringValidation.warnings,
       dependencyIssues: dependencyReport.issues.map(mapDependencyIssue),
+      dependencyReferences: dependencyReport.references.map(mapDependencyReference),
       dependencyReferenceCount: dependencyReport.coverage.referenceCount,
       dependencyMissingReferenceCount: dependencyReport.coverage.missingReferenceCount
     },

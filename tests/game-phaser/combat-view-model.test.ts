@@ -1,12 +1,21 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { starterRegistry, statusId } from "../../src/game-core";
+import {
+  cardInstanceId,
+  createCombat,
+  monsterId,
+  starterRegistry,
+  statusId,
+  upgradeId
+} from "../../src/game-core";
 import { createCombatSandboxController } from "../../src/game-phaser/controllers/CombatSandboxController";
 import {
   buildCombatViewModel,
   getCardKeywordExplanations
 } from "../../src/game-phaser/view-models/combat-view-model";
+import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
+import { createEmberFoxInstanceFixture, createRunFixture } from "../../src/game-core/testing/fixtures";
 
 const root = process.cwd();
 
@@ -181,6 +190,48 @@ describe("Combat view model", () => {
       targetKind: expect.stringMatching(/enemy/i)
     });
     expect(targetable?.validTargetIds.length).toBeGreaterThan(0);
+  });
+
+  it("uses core card action contracts for pet-command cost and playability", () => {
+    const controller = createCombatSandboxController("view-model-warm-bond-contract");
+    const baseState = controller.getState();
+    const pet = createEmberFoxInstanceFixture({ unlockedUpgradeIds: [upgradeId("warm_bond")] });
+    const combat = createCombat({
+      run: createRunFixture({ activePetInstanceIds: [pet.id] }),
+      registry: starterRegistry,
+      petInstances: [pet],
+      monsterIds: [monsterId("training_slime")],
+      seed: "view-model-warm-bond-contract",
+      openingHandSize: 0
+    });
+    if (!combat.ok) {
+      throw new Error(combat.errors[0]?.message ?? "Could not create combat.");
+    }
+
+    const tunedCombat = createHandTunedCombatFixture();
+    const viewModel = buildCombatViewModel({
+      ...baseState,
+      petInstances: [pet],
+      combat: {
+        ...tunedCombat,
+        activePetInstanceIds: combat.state.activePetInstanceIds,
+        petInstances: combat.state.petInstances,
+        runPetStates: combat.state.runPetStates,
+        energy: 0,
+        hand: [cardInstanceId("fox_bite:1")]
+      }
+    });
+    const foxBite = viewModel.hand[0];
+
+    expect(foxBite).toMatchObject({
+      cardId: "fox_bite",
+      cost: 0,
+      playable: true,
+      commandPetSlotIndex: 0,
+      targetKind: "petAndEnemy",
+      playMode: "selectEnemy"
+    });
+    expect(foxBite?.validTargetIds).toEqual(["monster:training_slime:0"]);
   });
 
   it("keeps multiple active pet slots visible in the combat view model", () => {

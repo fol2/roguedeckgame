@@ -244,6 +244,7 @@ describe("content workbench UI", () => {
       renderContentWorkbench(mount as unknown as HTMLElement);
 
       expect(mount.textContent).toContain("Content Workbench");
+      expect(mount.textContent).toContain("fingerprint");
       expect(mount.textContent).toContain("Cards");
       expect(mount.textContent).toContain("Coordinated Strike");
       expect(mount.textContent).toContain("\"coordinated_strike\"");
@@ -267,8 +268,20 @@ describe("content workbench UI", () => {
 
       findByTestId(mount, "workbench-tab-diagnostics").click();
       expect(mount.textContent).toContain("Registry diagnostics");
+      expect(mount.textContent).toContain("Selected item diagnostics");
+      expect(mount.textContent).toContain("Where used");
+      expect(mount.textContent).toContain("Broken-reference drilldown");
       expect(mount.textContent).toContain("Dependency diagnostics");
       expect(mount.textContent).toContain("No dependency issues.");
+
+      findByTestId(mount, "workbench-collection-cards").click();
+      const cardSearch = findByTestId(mount, "workbench-search");
+      cardSearch.value = "";
+      cardSearch.dispatch("input");
+      findByTestId(mount, "workbench-item-strike").click();
+      findByTestId(mount, "workbench-tab-diagnostics").click();
+      expect(findByTestId(mount, "workbench-selected-diagnostics").textContent).toContain("playerStartingDeck");
+      expect(findByTestId(mount, "workbench-selected-diagnostics").textContent).toContain("Where used");
 
       findByTestId(mount, "workbench-tab-reports").click();
       expect(findByTestId(mount, "workbench-balance-dashboard").textContent).toContain("Balance dashboard");

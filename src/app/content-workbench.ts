@@ -59,6 +59,11 @@ export type WorkbenchDiagnosticSummary = {
   readonly totalIssueCount: number;
 };
 
+type WorkbenchSelectedContext = {
+  readonly collectionId: ContentWorkbenchCollectionId;
+  readonly itemId: string;
+};
+
 const collectionLabels = {
   cards: "Cards",
   statuses: "Statuses",
@@ -301,7 +306,84 @@ const renderDependencyIssues = (diagnostics: ContentWorkbenchDiagnostics): HTMLE
   return section;
 };
 
-const renderDiagnosticsPanel = (viewModel: ContentWorkbenchViewModel): HTMLElement => {
+const endpointMatches = (
+  endpoint: { readonly collection: string; readonly id: string },
+  selected: WorkbenchSelectedContext
+): boolean =>
+  endpoint.collection === selected.collectionId && endpoint.id === selected.itemId;
+
+const renderSelectedItemDiagnostics = (
+  viewModel: ContentWorkbenchViewModel,
+  selected?: WorkbenchSelectedContext
+): HTMLElement => {
+  const section = element("section", "content-workbench__issue-group");
+  section.dataset.testid = "workbench-selected-diagnostics";
+  section.append(element("h3", undefined, "Selected item diagnostics"));
+
+  if (!selected) {
+    section.append(element("p", "content-workbench__empty", "No item selected."));
+    return section;
+  }
+
+  const issues = viewModel.diagnostics.dependencyIssues.filter((issue) =>
+    endpointMatches(issue.source, selected) || (issue.target ? endpointMatches(issue.target, selected) : false)
+  );
+  const outgoingReferences = viewModel.diagnostics.dependencyReferences.filter((reference) =>
+    endpointMatches(reference.source, selected)
+  );
+  const incomingReferences = viewModel.diagnostics.dependencyReferences.filter((reference) =>
+    endpointMatches(reference.target, selected)
+  );
+  const brokenReferences = outgoingReferences.filter((reference) => !reference.resolved);
+
+  const metrics = appendChildren(element("div", "content-workbench__metrics"), [
+    metric("Item issues", issues.length),
+    metric("References out", outgoingReferences.length),
+    metric("Where used", incomingReferences.length),
+    metric("Broken refs", brokenReferences.length)
+  ]);
+  const referenceList = (
+    title: string,
+    references: readonly ContentWorkbenchViewModel["diagnostics"]["dependencyReferences"][number][],
+    emptyText: string
+  ): HTMLElement => {
+    const listSection = element("section", "content-workbench__issue-group");
+    listSection.append(element("h3", undefined, title));
+
+    if (references.length === 0) {
+      listSection.append(element("p", "content-workbench__empty", emptyText));
+      return listSection;
+    }
+
+    const list = element("ul", "content-workbench__issue-list");
+    for (const reference of references) {
+      const item = element("li", reference.resolved ? "content-workbench__issue" : "content-workbench__issue content-workbench__issue--error");
+      item.append(
+        element("strong", undefined, reference.kind),
+        element("span", undefined, `${reference.source.collection}:${reference.source.id} -> ${reference.target.collection}:${reference.target.id}`),
+        element("p", undefined, reference.resolved ? "Resolved reference." : "Broken reference.")
+      );
+      list.append(item);
+    }
+
+    listSection.append(list);
+    return listSection;
+  };
+
+  section.append(
+    metrics,
+    renderIssueList("Item dependency issues", issues),
+    referenceList("References from selected item", outgoingReferences, "No outgoing references."),
+    referenceList("Where used", incomingReferences, "No incoming references."),
+    referenceList("Broken-reference drilldown", brokenReferences, "No broken references.")
+  );
+  return section;
+};
+
+const renderDiagnosticsPanel = (
+  viewModel: ContentWorkbenchViewModel,
+  selected?: WorkbenchSelectedContext
+): HTMLElement => {
   const summary = summariseWorkbenchDiagnostics(viewModel);
   const panel = element("div", "content-workbench__tab-panel");
   const metrics = appendChildren(element("div", "content-workbench__metrics"), [
@@ -315,6 +397,7 @@ const renderDiagnosticsPanel = (viewModel: ContentWorkbenchViewModel): HTMLEleme
 
   panel.append(
     metrics,
+    renderSelectedItemDiagnostics(viewModel, selected),
     renderIssueList("Registry diagnostics", [
       ...viewModel.diagnostics.registryErrors,
       ...viewModel.diagnostics.registryWarnings
@@ -538,7 +621,8 @@ export const renderContentWorkbench = (
         element("span", "content-workbench__badge", "Read-only"),
         element("span", "content-workbench__badge", viewModel.contentVersion ?? "unknown content"),
         element("span", "content-workbench__badge", `${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`),
-        element("span", "content-workbench__badge", `schema ${currentRuntimeMetadata.traceSchemaVersion}`)
+        element("span", "content-workbench__badge", `schema ${currentRuntimeMetadata.traceSchemaVersion}`),
+        element("span", "content-workbench__badge", `fingerprint ${currentRuntimeMetadata.registryFingerprint}`)
       ])
     );
 
@@ -654,7 +738,10 @@ export const renderContentWorkbench = (
     const panel = state.tab === "json"
       ? renderJsonPanel(selectedItem)
       : state.tab === "diagnostics"
-        ? renderDiagnosticsPanel(viewModel)
+        ? renderDiagnosticsPanel(viewModel, selectedItem ? {
+            collectionId: selectedCollection.id,
+            itemId: selectedItem.id
+          } : undefined)
         : renderReportsPanel(viewModel, getBalanceDashboardState());
 
     detail.append(detailTitle, detailMeta, tabs, panel);

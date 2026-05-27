@@ -18,6 +18,7 @@ import type { MonsterDefinition } from "../model/monster";
 import type { PetInstance, RunPetState } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
+import { buildCardActionContract } from "./card-action-contract";
 import { cardNeedsActionTarget, targetNeedsActionTarget } from "./card-actions";
 import { moveCardBetweenPiles } from "./card-piles";
 import { drawCards } from "./draw";
@@ -674,6 +675,18 @@ export const playCard = (
   registry: GameContentRegistry,
   rng: Rng
 ): GameActionResult<CombatState> => {
+  const actionContract = buildCardActionContract(
+    state,
+    { cardInstanceId: action.cardInstanceId, targetId: action.targetId, mode: "submit" },
+    registry
+  );
+  if (!actionContract.playable) {
+    return reject(
+      state,
+      actionContract.actionError ?? error("card_not_playable", actionContract.unplayableReason ?? "Card is not playable.")
+    );
+  }
+
   const playableCard = resolvePlayableCardContext(state, action, registry);
   if (!playableCard.ok) {
     return reject(state, playableCard.error);

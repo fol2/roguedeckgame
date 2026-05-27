@@ -19,6 +19,7 @@ export class MapScene extends Scene {
   private runHudPresenter?: RunHudPresenter;
   private resetButton?: GameObjects.Container;
   private inputLocked = false;
+  private requestIndex = 0;
 
   public constructor() {
     super(SceneKeys.Map);
@@ -62,7 +63,11 @@ export class MapScene extends Scene {
     }
 
     this.inputLocked = true;
-    const result = this.sandbox.selectMapNode(nodeId);
+    const result = this.sandbox.selectMapNode(
+      nodeId,
+      this.sandbox.getRevision(),
+      this.nextRequestId("map-select")
+    );
     if (!result.ok) {
       this.inputLocked = false;
       this.renderCurrentState();
@@ -79,7 +84,10 @@ export class MapScene extends Scene {
     }
 
     if (selectedNode?.type === "event" || selectedNode?.type === "rest") {
-      const completion = this.sandbox.completeNonCombatNode();
+      const completion = this.sandbox.completeNonCombatNode(
+        this.sandbox.getRevision(),
+        this.nextRequestId("map-complete")
+      );
       if (!completion.ok) {
         this.inputLocked = false;
         this.renderCurrentState();
@@ -112,5 +120,10 @@ export class MapScene extends Scene {
     if (run.resetAvailable) {
       this.resetButton?.setInteractive();
     }
+  }
+
+  private nextRequestId(prefix: string): string {
+    this.requestIndex += 1;
+    return `${prefix}-${this.requestIndex}`;
   }
 }
