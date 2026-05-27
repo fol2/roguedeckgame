@@ -147,6 +147,7 @@ export class CardPresenter {
   private readonly onDropped: CardDropHandler;
   private readonly onDragDebugStateChanged: (state: CardDragDebugState) => void;
   private readonly visuals = new Map<CardInstanceId, CardVisual>();
+  private readonly lastKnownCardPoints = new Map<CardInstanceId, Point>();
   private visualHandOrder: CardInstanceId[] = [];
   private locked = false;
   private renderOptions: CardRenderOptions = {};
@@ -206,6 +207,7 @@ export class CardPresenter {
     const renderedCardIds = new Set(this.visualHandOrder);
     for (const [cardInstanceId, visual] of this.visuals) {
       if (!renderedCardIds.has(cardInstanceId) && !visual.moving) {
+        this.rememberCardPoint(cardInstanceId, this.getVisualPoint(visual));
         visual.container.destroy();
         this.visuals.delete(cardInstanceId);
       }
@@ -244,9 +246,18 @@ export class CardPresenter {
     }));
   }
 
+  public getCardPoints(): ReadonlyMap<CardInstanceId, Point> {
+    const points = new Map(this.lastKnownCardPoints);
+    for (const visual of this.visuals.values()) {
+      points.set(visual.cardInstanceId, this.getVisualPoint(visual));
+    }
+
+    return points;
+  }
+
   public async playCardMoved(event: Extract<GameEvent, { readonly type: "CardMoved" }>, finalCards: readonly CombatCardViewModel[]): Promise<boolean> {
     if (event.from === "hand" && event.to !== "hand") {
-      return this.moveHandCardToPile(event.cardInstanceId, event.to);
+      return this.moveHandCardToPile(event, event.to);
     }
 
     if (event.to === "hand" && event.from !== "hand") {
@@ -285,6 +296,7 @@ export class CardPresenter {
     visual.container.setSize(CARD_SIZE.width, CARD_SIZE.height);
     this.container.add(visual.container);
     this.visuals.set(card.cardInstanceId, visual);
+    this.rememberCardPoint(visual.cardInstanceId, position);
 
     return visual;
   }
@@ -564,10 +576,11 @@ export class CardPresenter {
     this.layoutHand(true);
   }
 
-  private async moveHandCardToPile(cardInstanceId: CardInstanceId, pile: CardPile): Promise<boolean> {
+  private async moveHandCardToPile(event: Extract<GameEvent, { readonly type: "CardMoved" }>, pile: CardPile): Promise<boolean> {
+    const cardInstanceId = event.cardInstanceId;
     const visual = this.visuals.get(cardInstanceId);
     if (!visual) {
-      return false;
+      return this.moveRememberedHandCardToPile(event, pile);
     }
 
     visual.moving = true;
@@ -580,6 +593,34 @@ export class CardPresenter {
     await this.tweenTo(visual.container, getPilePoint(pile), CARD_MOVE_DURATION_MS);
     visual.container.destroy();
     this.visuals.delete(cardInstanceId);
+    this.lastKnownCardPoints.delete(cardInstanceId);
+    return true;
+  }
+
+  private async moveRememberedHandCardToPile(
+    event: Extract<GameEvent, { readonly type: "CardMoved" }>,
+    pile: CardPile
+  ): Promise<boolean> {
+    const start = this.lastKnownCardPoints.get(event.cardInstanceId);
+    if (!start) {
+      return false;
+    }
+
+    const placeholder = this.scene.add.container(start.x, start.y);
+    placeholder.setSize(CARD_SIZE.width, CARD_SIZE.height);
+    placeholder.add(this.scene.add.rectangle(0, 0, CARD_SIZE.width, CARD_SIZE.height, 0x2f3540, 0.78)
+      .setStrokeStyle(2, 0x687386));
+    placeholder.add(this.scene.add.text(0, 0, String(event.cardId), {
+      color: "#c4d0df",
+      fontFamily: "Inter, sans-serif",
+      fontSize: CARD_TEXT.fontSize.type
+    }).setOrigin(0.5));
+    placeholder.setDepth(CARD_ANIMATION_DEPTH);
+    this.container.add(placeholder);
+
+    await this.tweenTo(placeholder, getPilePoint(pile), CARD_MOVE_DURATION_MS);
+    placeholder.destroy();
+    this.lastKnownCardPoints.delete(event.cardInstanceId);
     return true;
   }
 
@@ -641,7 +682,19 @@ export class CardPresenter {
       } else {
         visual.container.setPosition(target.x, target.y);
       }
+      this.rememberCardPoint(cardInstanceId, target);
     });
+  }
+
+  private getVisualPoint(visual: CardVisual): Point {
+    return {
+      x: visual.container.x,
+      y: visual.container.y
+    };
+  }
+
+  private rememberCardPoint(cardInstanceId: CardInstanceId, point: Point): void {
+    this.lastKnownCardPoints.set(cardInstanceId, point);
   }
 
   private tweenTo(target: GameObjects.Container, point: Point, duration: number): Promise<void> {

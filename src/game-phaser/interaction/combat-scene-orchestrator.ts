@@ -863,6 +863,14 @@ export class CombatSceneOrchestrator extends Scene {
     this.renderCurrentState(false);
   }
 
+  private syncEventFxCardPoints(): void {
+    if (!this.eventFxPresenter || !this.cardPresenter) {
+      return;
+    }
+
+    this.eventFxPresenter.setCardPoints(this.cardPresenter.getCardPoints());
+  }
+
   private async submitAction(
     action: (requestId: string) => ReturnType<RunSandboxController["endTurn"]>,
     expectedRevision: number | undefined
@@ -918,6 +926,9 @@ export class CombatSceneOrchestrator extends Scene {
       this.playbackFinalViewModel = undefined;
       this.renderCurrentState(false);
     }
+    if (result.ok) {
+      this.syncEventFxCardPoints();
+    }
     this.captureParityDiagnostics("after_action_result");
     this.renderDebugOverlay();
     try {
@@ -958,6 +969,7 @@ export class CombatSceneOrchestrator extends Scene {
     const requestId = this.requestTracker.beginCombatCompletion(expectedRevision);
     const result = this.sandbox.completeCombatIfEnded(expectedRevision, requestId);
     this.playbackFinalViewModel = this.sandbox.getCombatViewModel();
+    this.syncEventFxCardPoints();
     this.renderCurrentState(false);
     try {
       await this.eventPlayer?.play(result.events);
@@ -1093,7 +1105,9 @@ export class CombatSceneOrchestrator extends Scene {
     this.applyInteractionState(reconcileCombatInteractionState(this.getInteractionState(), viewModel));
 
     const combatEnded = viewModel.phase === "won" || viewModel.phase === "lost";
-    this.eventFxPresenter.setViewModel(viewModel);
+    this.eventFxPresenter.setViewModel(viewModel, {
+      retainStaleCardPoints: this.playbackFinalViewModel !== undefined
+    });
     const systemControlsLocked = this.isSceneControlLocked();
     const cardControlsLocked = this.isGameplayInputLocked() || combatEnded;
     const syncCardPresenter = this.playbackFinalViewModel === undefined;
@@ -1146,6 +1160,7 @@ export class CombatSceneOrchestrator extends Scene {
         hoveredCardId: this.hoveredCardId
       });
     }
+    this.syncEventFxCardPoints();
     this.targetingPresenter.render({
       handIndex: activeCardIndex !== undefined && activeCardIndex >= 0 ? activeCardIndex : undefined,
       handTotal: viewModel.hand.length,

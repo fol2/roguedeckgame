@@ -293,6 +293,22 @@ describe("CombatEventFxPresenter", () => {
     expect(playedScene.records.texts.find((text) => text.text === "Played")).toMatchObject(expectedCardPoint);
   });
 
+  it("retains previous card points during playback refreshes", async () => {
+    const expectedCardPoint = getHandCardPosition(0, 1);
+    const { scene, records } = createSceneStub();
+    const presenter = new CombatEventFxPresenter(scene);
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    presenter.setViewModel(createViewModel(["strike:1"]));
+    presenter.setViewModel(createViewModel([], { includeMonster: true }), { retainStaleCardPoints: true });
+
+    await presenter.play({ type: "CardPlayed", cardInstanceId: playedCardInstanceId, cardId: cardId("strike"), sourceId: playerId });
+
+    expect(warning).not.toHaveBeenCalled();
+    expect(records.texts.find((text) => text.text === "Played")).toMatchObject(expectedCardPoint);
+    expect(presenter.consumePlaybackFallback()).toBeUndefined();
+    warning.mockRestore();
+  });
+
   it("leaves card draw and movement events to the card presenter", async () => {
     const movedScene = createSceneStub();
     const movedPresenter = new CombatEventFxPresenter(movedScene.scene);

@@ -74,7 +74,10 @@ export class CombatEventFxPresenter {
     this.container = scene.add.container(0, 0).setDepth(860);
   }
 
-  public setViewModel(viewModel: CombatViewModel): void {
+  public setViewModel(
+    viewModel: CombatViewModel,
+    options: { readonly retainStaleCardPoints?: boolean } = {}
+  ): void {
     this.combatantPoints = new Map([[viewModel.player.id, PLAYER_POINT]]);
     viewModel.monsters.forEach((monster, index) => {
       const position = getMonsterPosition(index, viewModel.monsters.length);
@@ -84,7 +87,21 @@ export class CombatEventFxPresenter {
       });
     });
     this.petPoints = new Map(viewModel.pets.map((pet) => [pet.petInstanceId, getPetSlotPosition(pet.slotIndex)]));
-    this.cardPoints = new Map(viewModel.hand.map((card, index) => [card.cardInstanceId, getHandCardPosition(index, viewModel.hand.length)]));
+    const nextCardPoints = new Map(viewModel.hand.map((card, index) => [card.cardInstanceId, getHandCardPosition(index, viewModel.hand.length)]));
+    if (options.retainStaleCardPoints) {
+      for (const [cardInstanceId, point] of this.cardPoints) {
+        if (!nextCardPoints.has(cardInstanceId)) {
+          nextCardPoints.set(cardInstanceId, point);
+        }
+      }
+    }
+    this.cardPoints = nextCardPoints;
+  }
+
+  public setCardPoints(points: ReadonlyMap<CardInstanceId, Point>): void {
+    for (const [cardInstanceId, point] of points) {
+      this.cardPoints.set(cardInstanceId, point);
+    }
   }
 
   public play(event: GameEvent): Promise<void> {
