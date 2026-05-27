@@ -1,0 +1,3 @@
+2 expected debug warnings, 0 unexpected errors
+[warning] CombatEventFxPresenter used a hand fallback point. {eventType: CardPlayed, cardInstanceId: run:phaser-run-sandbox:card:2:strike}
+[warning] CombatEventFxPresenter used a hand fallback point. {eventType: CardPlayed, cardInstanceId: run:phaser-run-sandbox:card:0:strike}

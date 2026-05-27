@@ -1,0 +1,74 @@
+Phase 8 CLI Bundle - 2026-05-27T12:48:48.7973469+01:00
+
+> npm run game:cli -- --help
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --help
+
+Pet Roguelite CLI
+
+Usage:
+  npm run game:help
+  npm run game:version
+  npm run game:auto
+  npm run game:auto:json
+  node scripts/run-cli-entry.mjs game-cli --seed cli-dev
+  node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json
+
+Runtime provenance:
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:b4084f1f
+Event schema: 2
+Trace schema: 2
+Save schema: 1
+
+
+> npm run game:cli -- --version
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --version
+
+{
+  "type": "version",
+  "runtimeMetadata": {
+    "schemaVersion": 1,
+    "packageName": "roguedeckgame",
+    "packageVersion": "0.0.0",
+    "contentVersion": "starter-act1-forest-v1",
+    "gameEventSchemaVersion": 2,
+    "traceSchemaVersion": 2,
+    "saveSchemaVersion": 1,
+    "registryFingerprint": "fnv1a32:b4084f1f"
+  }
+}
+
+> npm run game:cli -- --seed cli-dev --auto
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --seed cli-dev --auto
+
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:b4084f1f
+Event schema: 2
+Trace schema: 2
+Save schema: 1
+Seed: cli-dev
+Final status: completed
+Steps: 57
+Invariant checks: passed
+Trace: not saved
+
+> npm run game:cli -- --seed cli-dev --json --auto
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json --auto
+
+{"type":"result","ok":true,"runtimeMetadata":{"schemaVersion":1,"packageName":"roguedeckgame","packageVersion":"0.0.0","contentVersion":"starter-act1-forest-v1","gameEventSchemaVersion":2,"traceSchemaVersion":2,"saveSchemaVersion":1,"registryFingerprint":"fnv1a32:b4084f1f"},"seed":"cli-dev","finalStatus":"completed","steps":57,"invariantChecks":58,"trace":"not saved"}
+
+> node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json --auto
+{"type":"result","ok":true,"runtimeMetadata":{"schemaVersion":1,"packageName":"roguedeckgame","packageVersion":"0.0.0","contentVersion":"starter-act1-forest-v1","gameEventSchemaVersion":2,"traceSchemaVersion":2,"saveSchemaVersion":1,"registryFingerprint":"fnv1a32:b4084f1f"},"seed":"cli-dev","finalStatus":"completed","steps":57,"invariantChecks":58,"trace":"not saved"}
+
+> node dist-cli/game-cli.mjs --seed cli-dev --json --auto
+{"type":"result","ok":true,"runtimeMetadata":{"schemaVersion":1,"packageName":"roguedeckgame","packageVersion":"0.0.0","contentVersion":"starter-act1-forest-v1","gameEventSchemaVersion":2,"traceSchemaVersion":2,"saveSchemaVersion":1,"registryFingerprint":"fnv1a32:b4084f1f"},"seed":"cli-dev","finalStatus":"completed","steps":57,"invariantChecks":58,"trace":"not saved"}

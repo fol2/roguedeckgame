@@ -16,6 +16,14 @@ Runtime content is still authored as TypeScript in `src/game-core/data`, but the
 
 `src/game-core/systems/content-workbench.ts` builds the read-only editor foundation. It exposes stable sections for every registry collection, ability previews, validation diagnostics, dependency endpoints, level authoring summaries, and content report metrics. A future visual editor should consume this view model first, then write through schema adapters once editing controls exist.
 
+## Runtime Provenance and Debug Traces
+
+Browser, CLI, simulation, tests, and debug traces share one runtime metadata contract: package version, content version, registry fingerprint, event schema, trace schema, and save schema. New developer tools should read that metadata from the shared game-core surface instead of maintaining their own version strings.
+
+Browser debug traces are development-only reproduction artefacts. They may include extra diagnostics, event batches, final run summaries, selected UI state, and replay conversion instructions, but their replayable action steps must remain compatible with the core trace parser for supported schema versions. Unsupported debug trace versions should fail clearly rather than replaying with partial assumptions.
+
+Future workbench, monster-plan, status, multi-pet, and balance UI work should preserve this path: observe via view models and typed events, export structured diagnostics when needed, then verify through CLI simulation replay. Phaser should render the debug surface and capture presentation observations, but it must not become the source of truth for runtime provenance or gameplay trace semantics.
+
 ## Status Behaviours
 
 Status metadata lives in `GameContentRegistry.statuses`. Runtime-supported statuses also need a supported behaviour descriptor. A metadata-only status may be displayed by view models, but content that applies it in combat should fail registry validation until a deterministic runtime behaviour exists.

@@ -95,3 +95,29 @@ Browser proof:
 - `phase7-browser-debug-trace.json` - browser-exported debug trace JSON with runtime metadata, event batches, final run summary, diagnostics, and replay conversion command.
 - `phase7-cli-provenance-and-replay.txt` - CLI version/provenance output and replay output for the exported browser debug trace.
 - `phase7-console-warnings.txt` - Playwright console collection for the Phase 7 browser path, with zero errors and zero warnings.
+
+## Phase 8 - Full Bundle, Evidence, and Review
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `phase8-test-bundle.txt` records `npm run typecheck`, `npm run build`, `npm run build:cli`, `npm test`, and `npm run smoke:localhost` passing. The full test run covered 88 files and 700 tests.
+- `phase8-cli-bundle.txt` records the final CLI bundle passing: `npm run game:cli -- --help`, `npm run game:cli -- --version`, `npm run game:cli -- --seed cli-dev --auto`, `npm run game:cli -- --seed cli-dev --json --auto`, `node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json --auto`, and `node dist-cli/game-cli.mjs --seed cli-dev --json --auto`.
+- `phase8-simulation-bundle.txt` records `node scripts/run-cli-entry.mjs simulate-runs --mode smoke --analyze`, `node scripts/run-cli-entry.mjs simulate-runs --mode replay --trace tests/game-core/traces/smoke-complete.json`, `npm run sim:balance`, and `npm run sim:exhaustive-small` passing. The balance run covered 200 runs with no failures; exhaustive-small covered 1000 runs with no failures.
+- `phase8-browser-trace-replay.txt` records `node scripts/run-cli-entry.mjs simulate-runs --mode replay --trace docs/evidence/hardening-debug-screen/phase8-browser-debug-trace.json` passing for the exported browser debug trace.
+- `phase8-repository-hygiene.txt` records `git diff --check` passing, current branch/status output, and no `phaser` matches in `src/game-core`.
+
+Browser proof:
+
+- `phase8-browser-combat-overlay.png` - development combat debug overlay showing runtime metadata, trace/save schema versions, input state, event summary, playback observations, and parity status.
+- `phase8-browser-after-click-card.png` - browser path after playing a Strike through mouse card selection and keyboard target confirmation.
+- `phase8-browser-after-drag-drop.png` - browser path after drag/drop playing a second Strike onto the monster target marker.
+- `phase8-browser-after-end-turn-draw-discard.png` - browser path after End Turn, showing ordered discard/draw playback, turn 2, updated piles, and parity status.
+- `phase8-browser-trace-export-feedback.png` - overlay after pressing `F8`, showing the debug trace export feedback.
+- `phase8-browser-debug-trace.json` - exported browser debug trace with runtime metadata, four replayable actions (`selectMapNode`, `playCard`, `playCard`, `endTurn`), four event batches, final run summary, diagnostics, and replay conversion command.
+- `phase8-browser-console-warnings.txt` - Playwright console collection for the Phase 8 browser path. It records two expected debug playback fallback warnings and zero unexpected browser errors.
+
+Reviewer follow-up:
+
+- The final browser path intentionally leaves debug playback fallback warnings visible in the console and exported trace diagnostics. They are expected development diagnostics from the debug layer, not silent runtime failures, and the exported trace replays successfully through the simulation CLI.

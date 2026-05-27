@@ -628,6 +628,17 @@ May show:
 
 Must be hidden in normal player mode.
 
+The combat debug layer also owns the hardening diagnostics used during development:
+
+- shared runtime metadata: package version, content version, registry fingerprint, event schema, trace schema, and save schema;
+- run and combat state: seed, node id, combat phase, turn, revision, energy, hand count, draw pile count, discard pile count, selected card, drag state, active pets, monster plans, and recent events;
+- input state: current lock reason, latest request id, expected revision, duplicate request rejection, and stale revision rejection;
+- event playback inspection: recent event policies, visual routes, fallback use, warning codes, and error summaries;
+- parity status: presenter/view-model checks for hand, piles, card locations, selected or dragged cards, player labels, and monster labels;
+- trace export controls for copying the current event batch and current browser debug trace.
+
+The debug layer is observational only. It must not choose targets, decide card legality, resolve monster actions, repair state, select rewards, or alter simulation results. Expected debug warnings may be surfaced here and mirrored to the console, but normal player-facing mode must remain free of this overlay.
+
 ---
 
 ## 6. Rendering and Interaction Layers

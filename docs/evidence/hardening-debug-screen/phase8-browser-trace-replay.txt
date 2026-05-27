@@ -1,0 +1,13 @@
+Phase 8 Browser Trace Replay - 2026-05-27T13:01:58.8132330+01:00
+> node scripts/run-cli-entry.mjs simulate-runs --mode replay --trace docs/evidence/hardening-debug-screen/phase8-browser-debug-trace.json
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:b4084f1f
+Event schema: 2
+Trace schema: 2
+Save schema: 1
+Simulation mode: replay
+Seed prefix: sim
+Runs: 1
+Failures: 0
+Result: passed

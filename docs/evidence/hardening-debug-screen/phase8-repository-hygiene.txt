@@ -1,0 +1,23 @@
+Phase 8 Repository Hygiene - 2026-05-27T13:02:47.2987794+01:00
+
+> git diff --check
+
+> git status --short --branch
+## feat/hardening-debug-screen
+ M docs/evidence/hardening-debug-screen/README.md
+ M docs/expansion-extension-points.md
+ M docs/ui_ux_interaction.md
+?? docs/evidence/hardening-debug-screen/phase8-browser-after-click-card.png
+?? docs/evidence/hardening-debug-screen/phase8-browser-after-drag-drop.png
+?? docs/evidence/hardening-debug-screen/phase8-browser-after-end-turn-draw-discard.png
+?? docs/evidence/hardening-debug-screen/phase8-browser-combat-overlay.png
+?? docs/evidence/hardening-debug-screen/phase8-browser-console-warnings.txt
+?? docs/evidence/hardening-debug-screen/phase8-browser-debug-trace.json
+?? docs/evidence/hardening-debug-screen/phase8-browser-trace-export-feedback.png
+?? docs/evidence/hardening-debug-screen/phase8-browser-trace-replay.txt
+?? docs/evidence/hardening-debug-screen/phase8-cli-bundle.txt
+?? docs/evidence/hardening-debug-screen/phase8-repository-hygiene.txt
+?? docs/evidence/hardening-debug-screen/phase8-simulation-bundle.txt
+?? docs/evidence/hardening-debug-screen/phase8-test-bundle.txt
+
+> rg -n phaser src/game-core
