@@ -1,0 +1,55 @@
+===== git diff --check =====
+git diff --check passed with no output.
+===== git diff --cached --check =====
+git diff --cached --check passed with no output across staged Phase 9 files.
+===== git diff --cached --name-only =====
+docs/evidence/hardening-debug-screen/README.md
+docs/evidence/hardening-debug-screen/phase9-browser-console-warnings.txt
+docs/evidence/hardening-debug-screen/phase9-cli-simulation-bundle.txt
+docs/evidence/hardening-debug-screen/phase9-repository-hygiene.txt
+docs/evidence/hardening-debug-screen/phase9-test-bundle.txt
+docs/evidence/hardening-debug-screen/phase9-workbench-filter-diagnostics.png
+docs/evidence/hardening-debug-screen/phase9-workbench-mobile-detail.png
+docs/evidence/hardening-debug-screen/phase9-workbench-mobile.png
+docs/evidence/hardening-debug-screen/phase9-workbench-overview.png
+docs/evidence/hardening-debug-screen/phase9-workbench-reports.png
+docs/expansion-extension-points.md
+src/app/content-workbench-route.ts
+src/app/content-workbench.ts
+src/app/main.ts
+src/app/styles.css
+tests/game-phaser/app-entry.test.ts
+tests/game-phaser/content-workbench-ui.test.ts
+===== git ls-files --eol staged text files =====
+i/lf    w/lf    attr/text eol=lf      	docs/evidence/hardening-debug-screen/README.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase9-browser-console-warnings.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase9-cli-simulation-bundle.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase9-repository-hygiene.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase9-test-bundle.txt
+i/lf    w/lf    attr/text eol=lf      	docs/expansion-extension-points.md
+i/lf    w/lf    attr/text eol=lf      	src/app/content-workbench-route.ts
+i/lf    w/lf    attr/text eol=lf      	src/app/content-workbench.ts
+i/lf    w/lf    attr/text eol=lf      	src/app/main.ts
+i/lf    w/lf    attr/text eol=lf      	src/app/styles.css
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/app-entry.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/content-workbench-ui.test.ts
+===== rg phaser in src/game-core =====
+No phaser matches found in src/game-core.
+===== git status --short =====
+M  docs/evidence/hardening-debug-screen/README.md
+A  docs/evidence/hardening-debug-screen/phase9-browser-console-warnings.txt
+A  docs/evidence/hardening-debug-screen/phase9-cli-simulation-bundle.txt
+A  docs/evidence/hardening-debug-screen/phase9-repository-hygiene.txt
+A  docs/evidence/hardening-debug-screen/phase9-test-bundle.txt
+A  docs/evidence/hardening-debug-screen/phase9-workbench-filter-diagnostics.png
+A  docs/evidence/hardening-debug-screen/phase9-workbench-mobile-detail.png
+A  docs/evidence/hardening-debug-screen/phase9-workbench-mobile.png
+A  docs/evidence/hardening-debug-screen/phase9-workbench-overview.png
+A  docs/evidence/hardening-debug-screen/phase9-workbench-reports.png
+M  docs/expansion-extension-points.md
+A  src/app/content-workbench-route.ts
+A  src/app/content-workbench.ts
+M  src/app/main.ts
+M  src/app/styles.css
+M  tests/game-phaser/app-entry.test.ts
+A  tests/game-phaser/content-workbench-ui.test.ts

@@ -32,7 +32,11 @@ describe("Vite app entry", () => {
     const main = await readProjectFile("src/app/main.ts");
 
     expect(main).toContain('import "./styles.css";');
+    expect(main).toContain('import { isContentWorkbenchRoute } from "./content-workbench-route";');
     expect(main).toMatch(/querySelector<HTMLElement>\(["']#game-root["']\)/);
+    expect(main).toMatch(/await import\(["']\.\/create-game["']\)/);
+    expect(main).toMatch(/await import\(["']\.\/content-workbench["']\)/);
+    expect(main).not.toMatch(/import\s+\{\s*createGame\s*\}\s+from\s+["']\.\/create-game["']/);
     expect(main).toContain("Unable to start game");
   });
 

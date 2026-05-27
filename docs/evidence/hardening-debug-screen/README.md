@@ -121,3 +121,27 @@ Browser proof:
 Reviewer follow-up:
 
 - The final browser path intentionally leaves debug playback fallback warnings visible in the console and exported trace diagnostics. They are expected development diagnostics from the debug layer, not silent runtime failures, and the exported trace replays successfully through the simulation CLI.
+
+## Phase 9 - Content Workbench UI MVP
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `phase9-test-bundle.txt` records `npm run typecheck`, `npm run build`, `npm run build:cli`, `npm test`, and `npm run smoke:localhost` passing. The full test run covered 89 files and 706 tests.
+- `phase9-cli-simulation-bundle.txt` records the final CLI and simulation bundle passing: CLI version, source CLI auto JSON run, built CLI auto JSON run, simulation version, simulation smoke analysis, replay of `tests/game-core/traces/smoke-complete.json`, `npm run sim:balance`, and `npm run sim:exhaustive-small`. The balance run covered 200 runs with no failures; exhaustive-small covered 1000 runs with no failures.
+- `phase9-repository-hygiene.txt` records `git diff --check` passing, no `phaser` matches in `src/game-core`, and current branch/status output.
+- `npx vitest run tests/game-core/content-workbench.test.ts tests/game-phaser/content-workbench-ui.test.ts tests/game-phaser/app-entry.test.ts tests/game-phaser/phaser-boundary.test.ts` passed during focused workbench verification, covering 4 files and 21 tests.
+
+Browser proof:
+
+- `phase9-workbench-overview.png` - local read-only content workbench at `?workbench=content`, showing all 14 registry collections, runtime metadata, diagnostics counts, and JSON preview.
+- `phase9-workbench-filter-diagnostics.png` - Monsters collection filtered to `warden`, with structured diagnostics tab open and zero registry, level authoring, dependency, missing-reference, or unused-content issues.
+- `phase9-workbench-reports.png` - reports tab showing content and level authoring metrics sourced from the core workbench view model.
+- `phase9-workbench-mobile.png` - portrait viewport proof for the workbench header, summary metrics, and collection navigation reflow.
+- `phase9-workbench-mobile-detail.png` - portrait full-page proof for the filtered item list, selected item metadata, tabs, diagnostics panel, and dependency diagnostics copy after single-column reflow.
+- `phase9-browser-console-warnings.txt` - Playwright console collection for the Phase 9 browser path, with zero errors and zero warnings.
+
+Reviewer follow-up:
+
+- The app entry now keeps Phaser behind a dynamic import. The content workbench route loads `src/app/content-workbench.ts` separately and consumes `buildContentWorkbenchViewModel(starterRegistry)` without importing Phaser or calling gameplay resolvers.

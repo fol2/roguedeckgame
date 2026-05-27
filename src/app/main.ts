@@ -1,5 +1,5 @@
 import "./styles.css";
-import { createGame } from "./create-game";
+import { isContentWorkbenchRoute } from "./content-workbench-route";
 
 const renderMountError = (): void => {
   const errorElement = document.createElement("main");
@@ -10,8 +10,20 @@ const renderMountError = (): void => {
 
 const mount = document.querySelector<HTMLElement>("#game-root");
 
-if (mount) {
+const boot = async (): Promise<void> => {
+  if (!mount) {
+    renderMountError();
+    return;
+  }
+
+  if (isContentWorkbenchRoute(window.location)) {
+    const { renderContentWorkbench } = await import("./content-workbench");
+    renderContentWorkbench(mount);
+    return;
+  }
+
+  const { createGame } = await import("./create-game");
   createGame(mount);
-} else {
-  renderMountError();
-}
+};
+
+void boot();

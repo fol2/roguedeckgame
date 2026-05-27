@@ -16,6 +16,8 @@ Runtime content is still authored as TypeScript in `src/game-core/data`, but the
 
 `src/game-core/systems/content-workbench.ts` builds the read-only editor foundation. It exposes stable sections for every registry collection, ability previews, validation diagnostics, dependency endpoints, level authoring summaries, and content report metrics. A future visual editor should consume this view model first, then write through schema adapters once editing controls exist.
 
+The local browser surface is available through `?workbench=content`, `/workbench`, `/workbench/content`, or `/content-workbench`. It is intentionally read-only: it lists every registry collection, filters items, shows structured diagnostics and report metrics, and exposes a JSON preview for the selected item. The app route loads this workbench separately from Phaser, and the UI must continue to avoid gameplay resolver calls.
+
 ## Runtime Provenance and Debug Traces
 
 Browser, CLI, simulation, tests, and debug traces share one runtime metadata contract: package version, content version, registry fingerprint, event schema, trace schema, and save schema. New developer tools should read that metadata from the shared game-core surface instead of maintaining their own version strings.
