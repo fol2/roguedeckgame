@@ -8,6 +8,7 @@ import { checkCombatOutcome } from "./outcome";
 import { resolvePetModifierTriggersAfterEvents } from "./pet-modifiers";
 import type { Rng } from "./rng";
 import { findStatusDefinition } from "./status-behaviours";
+import type { StatusTurnTiming } from "../model/status";
 
 type StatusResolutionOptions = {
   readonly registry: GameContentRegistry;
@@ -62,9 +63,10 @@ const updateCombatant = (
   };
 };
 
-export const processStartOfTurnStatuses = (
+const processTurnStatuses = (
   state: CombatState,
   targetId: CombatantId,
+  timing: StatusTurnTiming,
   options?: StatusResolutionOptions
 ): GameActionResult<CombatState> => {
   const target = getCombatant(state, targetId);
@@ -83,7 +85,43 @@ export const processStartOfTurnStatuses = (
   for (const status of target.statuses) {
     const statusDefinition = findStatusDefinition(options?.registry, status.statusId);
     const behaviour = statusDefinition?.behaviour;
-    if (!behaviour || behaviour.type !== "startOfTurnDamage" || behaviour.timing !== "startOfTurn") {
+    if (!behaviour || !("timing" in behaviour) || behaviour.timing !== timing) {
+      continue;
+    }
+
+    if (behaviour.type === "duration") {
+      const durationBefore = status.duration ?? status.stacks;
+      const durationAfter = Math.max(0, durationBefore - behaviour.decrementDurationBy);
+      const durationEvent: GameEvent = {
+        type: "StatusDurationChanged",
+        targetId,
+        statusId: status.statusId,
+        durationBefore,
+        durationAfter
+      };
+      nextState = appendEvents(nextState, [durationEvent]);
+      events.push(durationEvent);
+      nextState = updateCombatant(nextState, targetId, (combatant) => ({
+        ...combatant,
+        statuses: durationAfter > 0
+          ? combatant.statuses.map((combatantStatus) =>
+              combatantStatus.statusId === status.statusId
+                ? { ...combatantStatus, duration: durationAfter }
+                : combatantStatus
+            )
+          : combatant.statuses.filter((combatantStatus) => combatantStatus.statusId !== status.statusId)
+      }));
+
+      if (behaviour.expiresAtZero && durationAfter === 0) {
+        const expiredEvent: GameEvent = { type: "StatusExpired", targetId, statusId: status.statusId };
+        nextState = appendEvents(nextState, [expiredEvent]);
+        events.push(expiredEvent);
+      }
+
+      continue;
+    }
+
+    if (behaviour.type !== "startOfTurnDamage") {
       continue;
     }
 
@@ -151,3 +189,15 @@ export const processStartOfTurnStatuses = (
 
   return { ok: true, state: nextState, events, errors: [] };
 };
+
+export const processStartOfTurnStatuses = (
+  state: CombatState,
+  targetId: CombatantId,
+  options?: StatusResolutionOptions
+): GameActionResult<CombatState> => processTurnStatuses(state, targetId, "startOfTurn", options);
+
+export const processEndOfTurnStatuses = (
+  state: CombatState,
+  targetId: CombatantId,
+  options?: StatusResolutionOptions
+): GameActionResult<CombatState> => processTurnStatuses(state, targetId, "endOfTurn", options);

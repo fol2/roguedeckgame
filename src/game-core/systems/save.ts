@@ -13,6 +13,7 @@ import type { RunState } from "../model/run";
 import { act1NormalBalance } from "../data/balance/act1-normal";
 import { starterRegistry } from "../data/registry";
 import { buildContentIndex } from "./content-index";
+import { migrateSaveSnapshot } from "./save-migrations";
 
 export type CreateSaveSnapshotInput = {
   readonly profileId: string;
@@ -161,6 +162,18 @@ const validateRewardOption = (option: unknown, path: string): GameActionError | 
 
     if (typeof option.upgradeId !== "string") {
       return error("invalid_save_reward_option", "Save pet upgrade option upgradeId must be a string.", `${path}.upgradeId`);
+    }
+
+    return undefined;
+  }
+
+  if (option.type === "deckOperation") {
+    if (option.operation !== "upgrade" && option.operation !== "remove" && option.operation !== "transform") {
+      return error("invalid_save_reward_option", "Save deck operation reward option operation is unsupported.", `${path}.operation`);
+    }
+
+    if ("cardId" in option && option.cardId !== undefined && typeof option.cardId !== "string") {
+      return error("invalid_save_reward_option", "Save deck operation reward option cardId must be a string when present.", `${path}.cardId`);
     }
 
     return undefined;
@@ -419,6 +432,10 @@ const validateRunState = (run: unknown): GameActionError | undefined => {
     return error("invalid_save_active_run", "Save activeRun.deckCardIds must be an array.", "activeRun.deckCardIds");
   }
 
+  if ("upgradedDeckCardIds" in run && run.upgradedDeckCardIds !== undefined && !isStringArray(run.upgradedDeckCardIds)) {
+    return error("invalid_save_active_run", "Save activeRun.upgradedDeckCardIds must be an array when present.", "activeRun.upgradedDeckCardIds");
+  }
+
   if (!isStringArray(run.runFlags)) {
     return error("invalid_save_active_run", "Save activeRun.runFlags must be an array.", "activeRun.runFlags");
   }
@@ -624,11 +641,11 @@ const normaliseRunState = (run: RunState): RunState => {
           type: node.type,
           layer: node.layer,
           status: node.status,
-          encounterId: node.encounterId,
+          ...(node.encounterId === undefined ? {} : { encounterId: node.encounterId }),
           nextNodeIds: [...node.nextNodeIds],
           previousNodeIds: [...node.previousNodeIds]
         })),
-        currentNodeId: run.map.currentNodeId
+        ...(run.map.currentNodeId === undefined ? {} : { currentNodeId: run.map.currentNodeId })
       }
     : undefined;
   const pendingRewardOffer = run.pendingRewardOffer
@@ -638,21 +655,32 @@ const normaliseRunState = (run: RunState): RunState => {
         combatId: run.pendingRewardOffer.combatId,
         seed: run.pendingRewardOffer.seed,
         status: run.pendingRewardOffer.status,
-        options: run.pendingRewardOffer.options.map((option) =>
-          option.type === "card"
-            ? {
-                id: option.id,
-                type: option.type,
-                cardId: option.cardId
-              }
-            : {
-                id: option.id,
-                type: option.type,
-                petInstanceId: option.petInstanceId,
-                petDefinitionId: option.petDefinitionId,
-                upgradeId: option.upgradeId
-              }
-        ),
+        options: run.pendingRewardOffer.options.map((option) => {
+          if (option.type === "card") {
+            return {
+              id: option.id,
+              type: option.type,
+              cardId: option.cardId
+            };
+          }
+
+          if (option.type === "deckOperation") {
+            return {
+              id: option.id,
+              type: option.type,
+              operation: option.operation,
+              cardId: option.cardId
+            };
+          }
+
+          return {
+            id: option.id,
+            type: option.type,
+            petInstanceId: option.petInstanceId,
+            petDefinitionId: option.petDefinitionId,
+            upgradeId: option.upgradeId
+          };
+        }),
         selectedOptionId: run.pendingRewardOffer.selectedOptionId
       }
     : undefined;
@@ -665,9 +693,10 @@ const normaliseRunState = (run: RunState): RunState => {
     status: run.status,
     playerHp: run.playerHp,
     playerMaxHp: run.playerMaxHp,
-    map,
-    pendingRewardOffer,
+    ...(map === undefined ? {} : { map }),
+    ...(pendingRewardOffer === undefined ? {} : { pendingRewardOffer }),
     deckCardIds: [...run.deckCardIds],
+    ...(run.upgradedDeckCardIds === undefined ? {} : { upgradedDeckCardIds: [...run.upgradedDeckCardIds] }),
     runFlags: [...run.runFlags],
     storyFlags: [...run.storyFlags]
   };
@@ -676,7 +705,12 @@ const normaliseRunState = (run: RunState): RunState => {
 export const validateSaveSnapshot = (
   snapshot: unknown
 ): GameActionResult<SaveSnapshot> => {
-  const state = isRecord(snapshot) ? normaliseLegacySaveSnapshot(snapshot) as SaveSnapshot : invalidSnapshot();
+  const migration = migrateSaveSnapshot(snapshot);
+  const state = migration.ok && isRecord(migration.state) ? migration.state as SaveSnapshot : invalidSnapshot();
+
+  if (!migration.ok) {
+    return reject(state, migration.errors[0]);
+  }
 
   if (!isRecord(snapshot)) {
     return reject(state, error("invalid_save_snapshot", "Save snapshot must be an object.", "snapshot"));
@@ -686,14 +720,14 @@ export const validateSaveSnapshot = (
     return reject(state, error("invalid_save_snapshot", "Save snapshot must contain only JSON-serializable data.", "snapshot"));
   }
 
-  if (snapshot.schemaVersion !== SAVE_SCHEMA_VERSION) {
+  if (state.schemaVersion !== SAVE_SCHEMA_VERSION) {
     return reject(
       state,
-      error("unsupported_save_schema_version", `Save schema version '${String(snapshot.schemaVersion)}' is not supported.`, "schemaVersion")
+      error("unsupported_save_schema_version", `Save schema version '${String(state.schemaVersion)}' is not supported.`, "schemaVersion")
     );
   }
 
-  const snapshotForValidation = normaliseLegacySaveSnapshot(snapshot);
+  const snapshotForValidation = state;
   if (!isRecord(snapshotForValidation)) {
     return reject(state, error("invalid_save_snapshot", "Save snapshot must be an object.", "snapshot"));
   }
@@ -806,7 +840,7 @@ export const validateSaveSnapshot = (
   return {
     ok: true,
     state: canonicalSnapshot,
-    events: [],
+    events: migration.events,
     errors: []
   };
 };
@@ -1057,7 +1091,7 @@ export const restoreSaveSnapshot = (
       petInstances: validation.state.petInstances,
       globalStoryFlags: validation.state.globalStoryFlags
     },
-    events: [],
+    events: validation.events,
     errors: []
   };
 };
@@ -1160,6 +1194,8 @@ export const loadFromSlot = async (
     ok: true,
     state: contentValidation.state,
     events: [
+      ...parsed.events,
+      ...(registry ? contentValidation.events : []),
       {
         type: "SaveSlotLoaded",
         slotId,

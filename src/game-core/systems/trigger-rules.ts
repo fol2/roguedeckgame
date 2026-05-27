@@ -4,7 +4,7 @@ import type { GameEvent } from "../model/event";
 import type { PetModifierRule, TriggerOnEnemyDefeatedWithStatusRule } from "../model/pet";
 
 export type TriggerWindowOutcome = "ongoing" | "won" | "lost";
-export type TriggerCascadePolicy = "none";
+export type TriggerCascadePolicy = "none" | "bounded";
 
 export type TriggerWindow = {
   readonly stateBeforeEffects: CombatState;
@@ -26,6 +26,7 @@ export const createTriggerWindow = (input: {
   readonly stateBeforeEffects: CombatState;
   readonly stateAfterEffects: CombatState;
   readonly effectEvents: readonly GameEvent[];
+  readonly cascadePolicy?: TriggerCascadePolicy;
 }): TriggerWindow => ({
   stateBeforeEffects: input.stateBeforeEffects,
   stateAfterEffects: input.stateAfterEffects,
@@ -34,7 +35,7 @@ export const createTriggerWindow = (input: {
   outcome: input.stateAfterEffects.phase === "won" || input.stateAfterEffects.phase === "lost"
     ? input.stateAfterEffects.phase
     : "ongoing",
-  cascadePolicy: "none"
+  cascadePolicy: input.cascadePolicy ?? "none"
 });
 
 const normaliseTriggerWindow = (frame: PetModifierTriggerFrame): TriggerWindow => ({

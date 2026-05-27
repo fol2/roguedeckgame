@@ -1,6 +1,7 @@
 import type { EffectDefinition } from "../model/effect";
 import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
+import { knownPlayerClassModifierRuleTypeValues } from "../systems/class-modifiers";
 import { getRuntimeSupportedStatusIds, supportedStatusBehaviourTypes } from "../systems/status-behaviours";
 
 export type ContentReport = {
@@ -23,6 +24,9 @@ export type ContentReport = {
   readonly statusBehaviourTypes: readonly string[];
   readonly petModifierRuleTypes: readonly string[];
   readonly playerClassModifierIds: readonly string[];
+  readonly playerClassModifierRuleTypes: readonly string[];
+  readonly deckOperationRewardTypes: readonly string[];
+  readonly scheduledMonsterIds: readonly string[];
   readonly encounterTypes: readonly string[];
   readonly runMapNodeTypes: readonly string[];
 };
@@ -45,6 +49,10 @@ const collectEffectTypes = (registry: GameContentRegistry): readonly string[] =>
         rule.effects.forEach(collect);
       }
     });
+  (registry.playerClassModifiers ?? [])
+    .flatMap((modifier) => modifier.rules ?? [])
+    .flatMap((rule) => rule.effects)
+    .forEach(collect);
 
   return sorted(effectTypes);
 };
@@ -78,6 +86,18 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
       .map((rule) => rule.type)
   )),
   playerClassModifierIds: sorted(new Set((registry.playerClassModifiers ?? []).map((modifier) => modifier.id))),
+  playerClassModifierRuleTypes: sorted(new Set([
+    ...knownPlayerClassModifierRuleTypeValues,
+    ...(registry.playerClassModifiers ?? [])
+      .flatMap((modifier) => modifier.rules ?? [])
+      .map((rule) => rule.type)
+  ])),
+  deckOperationRewardTypes: ["remove", "transform", "upgrade"],
+  scheduledMonsterIds: sorted(new Set(
+    registry.monsters
+      .filter((monster) => monster.intentSchedule !== undefined && monster.intentSchedule.length > 0)
+      .map((monster) => monster.id)
+  )),
   encounterTypes: sorted(new Set(registry.encounters.map((encounter) => encounter.type))),
   runMapNodeTypes: sorted(new Set(
     registry.runMapTemplates.flatMap((template) => template.nodes.map((node) => node.type))

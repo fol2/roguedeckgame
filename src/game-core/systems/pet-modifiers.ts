@@ -22,7 +22,7 @@ import {
   matchesPetModifierCardSelector
 } from "./pet-modifier-selectors";
 import type { Rng } from "./rng";
-import { createTriggerWindow, petModifierTriggerMatches } from "./trigger-rules";
+import { createTriggerWindow, petModifierTriggerMatches, type TriggerWindow } from "./trigger-rules";
 
 export { resolvePetCommandOwnerIds } from "./pet-targets";
 
@@ -70,6 +70,7 @@ type TriggerInput = {
   readonly effectEvents: readonly GameEvent[];
   readonly registry: GameContentRegistry;
   readonly rng: Rng;
+  readonly triggerWindow?: TriggerWindow;
 };
 
 const knownPetModifierRuleTypes = [
@@ -636,7 +637,7 @@ export const applyPetCommandEffectModifiers = (
 export const resolvePetModifierTriggersAfterEvents = (
   input: TriggerInput
 ): GameActionResult<CombatState> => {
-  const triggerWindow = createTriggerWindow({
+  const triggerWindow = input.triggerWindow ?? createTriggerWindow({
     stateBeforeEffects: input.stateBeforeEffects,
     stateAfterEffects: input.stateAfterEffects,
     effectEvents: input.effectEvents

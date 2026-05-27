@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cardId,
   evolutionNodeId,
+  monsterId,
   petModifierId,
   petDefinitionId,
   playerClassModifierId,
@@ -95,6 +96,31 @@ describe("starterRegistry", () => {
       "missing_player_class_modifier",
       "invalid_player_class_resource"
     ]));
+  });
+
+  it("reports malformed monster intent schedule conditions", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        monsters: starterRegistry.monsters.map((monster) =>
+          monster.id === monsterId("training_slime")
+            ? {
+                ...monster,
+                intentSchedule: [
+                  {
+                    intentId: monster.intentPool[0].id,
+                    conditions: [{ type: "hpAtOrBelowRatio", ratio: 2 }]
+                  }
+                ]
+              }
+            : monster
+        )
+      })
+    );
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      code: "invalid_monster_intent_schedule",
+      path: "monsters[0].intentSchedule[0].conditions[0].ratio"
+    }));
   });
 
   it("includes Ember Fox base and reward command cards", () => {

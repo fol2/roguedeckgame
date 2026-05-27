@@ -1,7 +1,11 @@
 import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition, type StatusBehaviourDefinition, type StatusDefinition } from "../model/status";
 
-export const supportedStatusBehaviourTypes = ["startOfTurnDamage"] as const satisfies readonly StatusBehaviourDefinition["type"][];
+export const supportedStatusBehaviourTypes = [
+  "startOfTurnDamage",
+  "duration",
+  "statusImmunity"
+] as const satisfies readonly StatusBehaviourDefinition["type"][];
 
 export const defaultStatusDefinitions = [burnStatusDefinition] as const;
 
@@ -17,14 +21,39 @@ export const validateStatusBehaviourDefinition = (
   }
 
   const candidate = behaviour as Partial<StatusBehaviourDefinition>;
-  return candidate.type === "startOfTurnDamage" &&
-    candidate.timing === "startOfTurn" &&
-    candidate.damageAmount === "stacks" &&
-    typeof candidate.ignoreBlock === "boolean" &&
-    typeof candidate.decrementStacksBy === "number" &&
-    Number.isInteger(candidate.decrementStacksBy) &&
-    candidate.decrementStacksBy > 0 &&
-    typeof candidate.expiresAtZero === "boolean";
+  if (candidate.type === "startOfTurnDamage") {
+    return candidate.timing === "startOfTurn" &&
+      candidate.damageAmount === "stacks" &&
+      typeof candidate.ignoreBlock === "boolean" &&
+      typeof candidate.decrementStacksBy === "number" &&
+      Number.isInteger(candidate.decrementStacksBy) &&
+      candidate.decrementStacksBy > 0 &&
+      typeof candidate.expiresAtZero === "boolean";
+  }
+
+  if (candidate.type === "duration") {
+    return (candidate.timing === "startOfTurn" || candidate.timing === "endOfTurn") &&
+      typeof candidate.decrementDurationBy === "number" &&
+      Number.isInteger(candidate.decrementDurationBy) &&
+      candidate.decrementDurationBy > 0 &&
+      typeof candidate.expiresAtZero === "boolean";
+  }
+
+  if (candidate.type === "statusImmunity") {
+    const blocksStatusIds = "blocksStatusIds" in candidate ? candidate.blocksStatusIds : undefined;
+    const blocksTagsAny = "blocksTagsAny" in candidate ? candidate.blocksTagsAny : undefined;
+    return (blocksStatusIds === undefined || (
+      Array.isArray(blocksStatusIds) &&
+      blocksStatusIds.every((statusId) => typeof statusId === "string" && statusId.length > 0)
+    )) &&
+      (blocksTagsAny === undefined || (
+        Array.isArray(blocksTagsAny) &&
+        blocksTagsAny.every((tag) => typeof tag === "string" && tag.length > 0)
+      )) &&
+      (blocksStatusIds !== undefined || blocksTagsAny !== undefined);
+  }
+
+  return false;
 };
 
 export const hasSupportedRuntimeStatusBehaviour = (status: StatusDefinition): boolean =>

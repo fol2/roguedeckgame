@@ -2,7 +2,7 @@ import type { CombatantId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { ActiveMonsterIntent, CombatState } from "../model/combat";
 import type { GameEvent } from "../model/event";
-import type { MonsterDefinition, MonsterIntentDefinition } from "../model/monster";
+import type { MonsterDefinition, MonsterIntentDefinition, MonsterIntentScheduleCondition } from "../model/monster";
 import type { GameContentRegistry } from "../model/registry";
 import type { Rng } from "./rng";
 
@@ -69,10 +69,49 @@ export const findMonsterIntent = (
   );
 };
 
+const scheduleConditionMatches = (
+  condition: MonsterIntentScheduleCondition,
+  monster: CombatState["monsters"][number],
+  state: CombatState
+): boolean => {
+  if (condition.type === "hpAtOrBelowRatio") {
+    return monster.maxHp > 0 && monster.hp / monster.maxHp <= condition.ratio;
+  }
+
+  if (condition.type === "turnNumberModulo") {
+    return condition.modulo > 0 && state.turnNumber % condition.modulo === condition.equals;
+  }
+
+  return false;
+};
+
+const chooseScheduledIntent = (
+  monsterDefinition: MonsterDefinition,
+  monster: CombatState["monsters"][number],
+  state: CombatState,
+  scheduledTurnNumber: number
+): MonsterIntentDefinition | undefined => {
+  const schedule = monsterDefinition.intentSchedule;
+  if (!schedule || schedule.length === 0) {
+    return undefined;
+  }
+
+  const conditionalStep = schedule.find((step) =>
+    step.conditions !== undefined &&
+    step.conditions.length > 0 &&
+    step.conditions.every((condition) => scheduleConditionMatches(condition, monster, state))
+  );
+  const scheduleIndex = Math.max(0, scheduledTurnNumber - 1) % schedule.length;
+  const scheduledStep = conditionalStep ?? schedule[scheduleIndex];
+
+  return monsterDefinition.intentPool.find((intent) => intent.id === scheduledStep?.intentId);
+};
+
 export const chooseMonsterIntents = (
   state: CombatState,
   registry: GameContentRegistry,
-  rng: Rng
+  rng: Rng,
+  options?: { readonly scheduledTurnNumber?: number }
 ): GameActionResult<CombatState> => {
   const candidates: IntentSelectionCandidate[] = [];
   const activeIntents: ActiveMonsterIntent[] = [];
@@ -112,8 +151,13 @@ export const chooseMonsterIntents = (
     });
   }
 
-  for (const { monster, intentPool } of candidates) {
-    const intent = rng.choice(intentPool);
+  for (const { monster, monsterDefinition, intentPool } of candidates) {
+    const intent = chooseScheduledIntent(
+      monsterDefinition,
+      monster,
+      state,
+      options?.scheduledTurnNumber ?? state.turnNumber
+    ) ?? rng.choice(intentPool);
     activeIntents.push({ monsterCombatantId: monster.id, intentId: intent.id });
     events.push({
       type: "MonsterIntentSet",

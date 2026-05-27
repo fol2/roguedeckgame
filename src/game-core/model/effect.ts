@@ -1,9 +1,11 @@
 import type {
+  CardId,
   CombatantId,
   PetInstanceId,
   StatusId,
   StoryFlagId
 } from "../ids";
+import type { CardPile } from "./event";
 
 export type CombatantTarget =
   | { readonly type: "self" }
@@ -35,11 +37,46 @@ export type DrawEffect = {
   readonly amount: number;
 };
 
+export type DiscardEffect = {
+  readonly type: "discard";
+  readonly amount: number;
+};
+
+export type ExhaustEffect = {
+  readonly type: "exhaust";
+  readonly amount: number;
+};
+
+export type RetainEffect = {
+  readonly type: "retain";
+  readonly amount: number;
+};
+
+export type CreateCardEffect = {
+  readonly type: "createCard";
+  readonly cardId: CardId;
+  readonly to: CardPile;
+};
+
+export type GainEnergyEffect = {
+  readonly type: "gainEnergy";
+  readonly amount: number;
+};
+
 export type ApplyStatusEffect = {
   readonly type: "applyStatus";
   readonly statusId: StatusId;
   readonly stacks: number;
+  readonly duration?: number;
   readonly target: CombatantTarget;
+};
+
+export type CleanseStatusEffect = {
+  readonly type: "cleanseStatus";
+  readonly target: CombatantTarget;
+  readonly statusId?: StatusId;
+  readonly tagsAny?: readonly string[];
+  readonly stacks?: number;
 };
 
 export type PetAttackEffect = {
@@ -71,7 +108,13 @@ export type EffectDefinition =
   | DamageEffect
   | BlockEffect
   | DrawEffect
+  | DiscardEffect
+  | ExhaustEffect
+  | RetainEffect
+  | CreateCardEffect
+  | GainEnergyEffect
   | ApplyStatusEffect
+  | CleanseStatusEffect
   | PetAttackEffect
   | PetBlockEffect
   | PetReactEffect
@@ -81,7 +124,13 @@ export const knownEffectTypes = [
   "damage",
   "block",
   "draw",
+  "discard",
+  "exhaust",
+  "retain",
+  "createCard",
+  "gainEnergy",
   "applyStatus",
+  "cleanseStatus",
   "petAttack",
   "petBlock",
   "petReact",

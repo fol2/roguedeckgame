@@ -3,9 +3,12 @@ import { statusId, type StatusId } from "../ids";
 export type CombatStatusState = {
   readonly statusId: StatusId;
   readonly stacks: number;
+  readonly duration?: number;
 };
 
-export type StatusBehaviourDefinition = {
+export type StatusTurnTiming = "startOfTurn" | "endOfTurn";
+
+export type StartOfTurnDamageStatusBehaviourDefinition = {
   readonly type: "startOfTurnDamage";
   readonly timing: "startOfTurn";
   readonly damageAmount: "stacks";
@@ -13,6 +16,24 @@ export type StatusBehaviourDefinition = {
   readonly decrementStacksBy: number;
   readonly expiresAtZero: boolean;
 };
+
+export type DurationStatusBehaviourDefinition = {
+  readonly type: "duration";
+  readonly timing: StatusTurnTiming;
+  readonly decrementDurationBy: number;
+  readonly expiresAtZero: boolean;
+};
+
+export type StatusImmunityBehaviourDefinition = {
+  readonly type: "statusImmunity";
+  readonly blocksStatusIds?: readonly StatusId[];
+  readonly blocksTagsAny?: readonly string[];
+};
+
+export type StatusBehaviourDefinition =
+  | StartOfTurnDamageStatusBehaviourDefinition
+  | DurationStatusBehaviourDefinition
+  | StatusImmunityBehaviourDefinition;
 
 export type StatusDefinition = {
   readonly id: StatusId;

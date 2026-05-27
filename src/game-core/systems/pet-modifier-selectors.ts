@@ -1,5 +1,6 @@
 import type { CardDefinition, CardType } from "../model/card";
 import type {
+  CardSelector,
   ModifyPetCommandCostRule,
   ModifyPetCommandEffectAmountRule
 } from "../model/pet";
@@ -11,12 +12,10 @@ export const knownPetModifierSelectorCardTypes = [
   "pet-command"
 ] as const satisfies readonly CardType[];
 
-export const matchesPetModifierCardSelector = (
+export const matchesCardSelector = (
   card: CardDefinition,
-  rule: ModifyPetCommandCostRule | ModifyPetCommandEffectAmountRule
+  selector: CardSelector
 ): boolean => {
-  const selector = rule.selector;
-
   if (selector.cardType !== undefined && card.type !== selector.cardType) {
     return false;
   }
@@ -38,3 +37,8 @@ export const matchesPetModifierCardSelector = (
 
   return true;
 };
+
+export const matchesPetModifierCardSelector = (
+  card: CardDefinition,
+  rule: ModifyPetCommandCostRule | ModifyPetCommandEffectAmountRule
+): boolean => matchesCardSelector(card, rule.selector);

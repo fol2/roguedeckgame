@@ -59,6 +59,7 @@ export type CombatState = {
   readonly hand: readonly CardInstanceId[];
   readonly discardPile: readonly CardInstanceId[];
   readonly exhaustPile: readonly CardInstanceId[];
+  readonly retainedCardInstanceIds?: readonly CardInstanceId[];
   readonly energy: number;
   readonly maxEnergy: number;
   readonly events: readonly GameEvent[];

@@ -1,4 +1,4 @@
-import type { CardId, CardInstanceId, CombatantId, MonsterIntentId } from "../ids";
+import { cardInstanceId, type CardId, type CardInstanceId, type CombatantId, type MonsterIntentId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatantTarget, EffectDefinition } from "../model/effect";
 import type { CombatantState, CombatState } from "../model/combat";
@@ -6,10 +6,12 @@ import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
 import type { CombatStatusState } from "../model/status";
 import { drawCards } from "./draw";
+import { moveCardBetweenPiles } from "./card-piles";
 import { getEffectDescriptor, type EffectResolverKey } from "./effect-descriptors";
 import { checkCombatOutcome } from "./outcome";
 import { resolvePetTargets } from "./pet-targets";
 import type { Rng } from "./rng";
+import { findStatusDefinition } from "./status-behaviours";
 
 type EffectContext = {
   readonly sourceId: CombatantId;
@@ -64,6 +66,36 @@ const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatS
   ...state,
   events: [...state.events, ...events]
 });
+
+const getPile = (state: CombatState, pile: "draw" | "hand" | "discard" | "exhaust"): readonly CardInstanceId[] => {
+  if (pile === "draw") {
+    return state.drawPile;
+  }
+  if (pile === "hand") {
+    return state.hand;
+  }
+  if (pile === "discard") {
+    return state.discardPile;
+  }
+  return state.exhaustPile;
+};
+
+const setPile = (
+  state: CombatState,
+  pile: "draw" | "hand" | "discard" | "exhaust",
+  cards: readonly CardInstanceId[]
+): CombatState => {
+  if (pile === "draw") {
+    return { ...state, drawPile: cards };
+  }
+  if (pile === "hand") {
+    return { ...state, hand: cards };
+  }
+  if (pile === "discard") {
+    return { ...state, discardPile: cards };
+  }
+  return { ...state, exhaustPile: cards };
+};
 
 const resolveCombatantTargets = (
   state: CombatState,
@@ -175,23 +207,107 @@ const applyStatus = (
   state: CombatState,
   targetId: CombatantId,
   statusId: CombatStatusState["statusId"],
-  stacks: number
+  stacks: number,
+  duration: number | undefined,
+  registry: GameContentRegistry
 ): { readonly state: CombatState; readonly events: readonly GameEvent[] } => {
   const target = getCombatant(state, targetId);
   if (!target) {
     return { state, events: [] };
   }
 
+  const incomingDefinition = findStatusDefinition(registry, statusId);
+  const blockingStatus = target.statuses.find((status) => {
+    const statusDefinition = findStatusDefinition(registry, status.statusId);
+    const behaviour = statusDefinition?.behaviour;
+    if (behaviour?.type !== "statusImmunity") {
+      return false;
+    }
+
+    return (behaviour.blocksStatusIds?.includes(statusId) ?? false) ||
+      (incomingDefinition?.tags.some((tag) => behaviour.blocksTagsAny?.includes(tag) ?? false) ?? false);
+  });
+  if (blockingStatus) {
+    const event: GameEvent = {
+      type: "StatusApplicationBlocked",
+      targetId,
+      statusId,
+      blockedByStatusId: blockingStatus.statusId
+    };
+    return { state: appendEvents(state, [event]), events: [event] };
+  }
+
   const existing = target.statuses.find((status) => status.statusId === statusId);
   const statuses = existing
     ? target.statuses.map((status) =>
-        status.statusId === statusId ? { ...status, stacks: status.stacks + stacks } : status
+        status.statusId === statusId
+          ? {
+              ...status,
+              stacks: status.stacks + stacks,
+              duration: duration === undefined
+                ? status.duration
+                : Math.max(status.duration ?? 0, duration)
+            }
+          : status
       )
-    : [...target.statuses, { statusId, stacks }];
+    : [...target.statuses, { statusId, stacks, ...(duration === undefined ? {} : { duration }) }];
   const event: GameEvent = { type: "StatusApplied", targetId, statusId, stacks };
   const nextState = updateCombatant(state, targetId, (combatant) => ({ ...combatant, statuses }));
 
   return { state: appendEvents(nextState, [event]), events: [event] };
+};
+
+const cleanseStatus = (
+  state: CombatState,
+  targetId: CombatantId,
+  effect: Extract<EffectDefinition, { readonly type: "cleanseStatus" }>,
+  registry: GameContentRegistry
+): { readonly state: CombatState; readonly events: readonly GameEvent[] } => {
+  const target = getCombatant(state, targetId);
+  if (!target) {
+    return { state, events: [] };
+  }
+
+  const matches = (status: CombatStatusState): boolean => {
+    if (effect.statusId && status.statusId !== effect.statusId) {
+      return false;
+    }
+
+    if (!effect.tagsAny || effect.tagsAny.length === 0) {
+      return true;
+    }
+
+    const definition = findStatusDefinition(registry, status.statusId);
+    return definition?.tags.some((tag) => effect.tagsAny?.includes(tag) ?? false) ?? false;
+  };
+
+  const events: GameEvent[] = [];
+  const nextStatuses = target.statuses.flatMap((status) => {
+    if (!matches(status)) {
+      return [status];
+    }
+
+    const stacksRemoved = effect.stacks === undefined
+      ? status.stacks
+      : Math.min(status.stacks, effect.stacks);
+    const remainingStacks = Math.max(0, status.stacks - stacksRemoved);
+    events.push({
+      type: "StatusCleansed",
+      targetId,
+      statusId: status.statusId,
+      stacksRemoved,
+      remainingStacks
+    });
+
+    return remainingStacks > 0 ? [{ ...status, stacks: remainingStacks }] : [];
+  });
+
+  if (events.length === 0) {
+    return { state, events: [] };
+  }
+
+  const nextState = updateCombatant(state, targetId, (combatant) => ({ ...combatant, statuses: nextStatuses }));
+  return { state: appendEvents(nextState, events), events };
 };
 
 type EffectHandlerInput<T extends EffectDefinition> = {
@@ -210,6 +326,100 @@ type EffectHandler = <T extends EffectDefinition>(
 const resolveDrawEffect = (
   input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "draw" }>>
 ): GameActionResult<CombatState> => drawCards(input.state, input.effect.amount, input.rng);
+
+const resolvePileMoveEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "discard" | "exhaust" }>>
+): GameActionResult<CombatState> => {
+  let nextState = input.state;
+  const events: GameEvent[] = [];
+  const destination = input.effect.type === "discard" ? "discard" : "exhaust";
+  const cardsToMove = nextState.hand.slice(0, input.effect.amount);
+
+  for (const cardToMove of cardsToMove) {
+    const moveResult = moveCardBetweenPiles(nextState, {
+      cardInstanceId: cardToMove,
+      from: "hand",
+      to: destination
+    });
+    if (!moveResult.ok) {
+      return reject(input.originalState, moveResult.error);
+    }
+
+    nextState = moveResult.state;
+    events.push(moveResult.event);
+  }
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
+const resolveRetainEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "retain" }>>
+): GameActionResult<CombatState> => {
+  const existingRetained = new Set(input.state.retainedCardInstanceIds ?? []);
+  const retained = input.state.hand
+    .filter((cardInstanceIdValue) => !existingRetained.has(cardInstanceIdValue))
+    .slice(0, input.effect.amount);
+  const events = retained.map<GameEvent>((retainedCardInstanceId) => {
+    const cardInstance = input.state.cardInstances.find((candidate) => candidate.id === retainedCardInstanceId);
+    return {
+      type: "CardRetained",
+      cardInstanceId: retainedCardInstanceId,
+      cardId: cardInstance?.cardId ?? input.context.cardId
+    } as GameEvent;
+  });
+  const nextState = appendEvents(
+    {
+      ...input.state,
+      retainedCardInstanceIds: [...existingRetained, ...retained]
+    },
+    events
+  );
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
+const resolveCreateCardEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "createCard" }>>
+): GameActionResult<CombatState> => {
+  const card = input.registry.cards.find((candidate) => candidate.id === input.effect.cardId);
+  if (!card) {
+    return reject(input.originalState, error("missing_card_definition", `Card '${input.effect.cardId}' is not registered.`, "cardId"));
+  }
+
+  const createdInstanceId = cardInstanceId(`${input.state.id}:created:${input.state.cardInstances.length}:${input.effect.cardId}`);
+  const event: GameEvent = {
+    type: "CardCreated",
+    cardInstanceId: createdInstanceId,
+    cardId: input.effect.cardId,
+    to: input.effect.to
+  };
+  const nextStateWithCard = {
+    ...input.state,
+    cardInstances: [
+      ...input.state.cardInstances,
+      { id: createdInstanceId, cardId: input.effect.cardId, ownerId: input.state.player.id }
+    ]
+  };
+  const nextState = appendEvents(
+    setPile(nextStateWithCard, input.effect.to, [...getPile(nextStateWithCard, input.effect.to), createdInstanceId]),
+    [event]
+  );
+
+  return { ok: true, state: nextState, events: [event], errors: [] };
+};
+
+const resolveGainEnergyEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "gainEnergy" }>>
+): GameActionResult<CombatState> => {
+  const total = input.state.energy + input.effect.amount;
+  const event: GameEvent = { type: "EnergyGained", amount: input.effect.amount, total };
+  return {
+    ok: true,
+    state: appendEvents({ ...input.state, energy: total }, [event]),
+    events: [event],
+    errors: []
+  };
+};
 
 const resolveStoryFlagEffect = (
   input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "setStoryFlag" }>>
@@ -348,7 +558,14 @@ const resolveApplyStatusEffect = (
   const events: GameEvent[] = [];
 
   for (const target of targets) {
-    const statusResult = applyStatus(nextState, target.id, input.effect.statusId, input.effect.stacks);
+    const statusResult = applyStatus(
+      nextState,
+      target.id,
+      input.effect.statusId,
+      input.effect.stacks,
+      input.effect.duration,
+      input.registry
+    );
     nextState = statusResult.state;
     events.push(...statusResult.events);
   }
@@ -356,13 +573,43 @@ const resolveApplyStatusEffect = (
   return { ok: true, state: nextState, events, errors: [] };
 };
 
+const resolveCleanseStatusEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "cleanseStatus" }>>
+): GameActionResult<CombatState> => {
+  const targets = resolveCombatantTargets(
+    input.state,
+    input.context.sourceId,
+    input.effect.target,
+    input.context.targetId ?? input.context.defaultTargetId
+  );
+  if (isActionError(targets)) {
+    return reject(input.originalState, targets);
+  }
+
+  let nextState = input.state;
+  const events: GameEvent[] = [];
+
+  for (const target of targets) {
+    const cleanseResult = cleanseStatus(nextState, target.id, input.effect, input.registry);
+    nextState = cleanseResult.state;
+    events.push(...cleanseResult.events);
+  }
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
 const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
   draw: resolveDrawEffect as EffectHandler,
+  pileMove: resolvePileMoveEffect as EffectHandler,
+  retain: resolveRetainEffect as EffectHandler,
+  createCard: resolveCreateCardEffect as EffectHandler,
+  gainEnergy: resolveGainEnergyEffect as EffectHandler,
   storyFlag: resolveStoryFlagEffect as EffectHandler,
   petReact: resolvePetReactEffect as EffectHandler,
   damageLike: resolveDamageLikeEffect as EffectHandler,
   blockLike: resolveBlockLikeEffect as EffectHandler,
-  applyStatus: resolveApplyStatusEffect as EffectHandler
+  applyStatus: resolveApplyStatusEffect as EffectHandler,
+  cleanseStatus: resolveCleanseStatusEffect as EffectHandler
 };
 
 export const resolveEffects = (

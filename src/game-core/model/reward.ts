@@ -24,7 +24,14 @@ export type PetUpgradeRewardOption = {
   readonly upgradeId: UpgradeId;
 };
 
-export type RewardOption = CardRewardOption | PetUpgradeRewardOption;
+export type DeckOperationRewardOption = {
+  readonly id: RewardOptionId;
+  readonly type: "deckOperation";
+  readonly operation: "upgrade" | "remove" | "transform";
+  readonly cardId?: CardId;
+};
+
+export type RewardOption = CardRewardOption | PetUpgradeRewardOption | DeckOperationRewardOption;
 
 export type RewardOfferStatus = "open" | "claimed" | "skipped";
 

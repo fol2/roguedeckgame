@@ -318,7 +318,7 @@ export const createRunSandboxController = (
         return staleRevision;
       }
 
-      const endResult = endPlayerTurn(state.combat);
+      const endResult = endPlayerTurn(state.combat, { registry: starterRegistry, rng: actionRng });
       if (!endResult.ok) {
         return toResult(false, replaceState(state, {}, endResult.events), endResult.events, endResult.errors);
       }

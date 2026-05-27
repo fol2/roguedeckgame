@@ -59,6 +59,58 @@ describe("monster intents", () => {
     expect(result.events).toEqual([]);
   });
 
+  it("selects scheduled intents before falling back to random intent pools", () => {
+    const state = { ...createEnemyTurnFixture(), monsterIntents: [], turnNumber: 1 };
+    const registry = {
+      ...starterRegistry,
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              intentSchedule: [
+                { intentId: monster.intentPool[0].id },
+                { intentId: monster.intentPool[1].id }
+              ]
+            }
+          : monster
+      )
+    };
+    const result = chooseMonsterIntents(state, registry, createRng("scheduled"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterIntents[0].intentId).toBe(starterRegistry.monsters[0].intentPool[0].id);
+  });
+
+  it("uses conditional scheduled intents when their condition matches", () => {
+    const baseState = createEnemyTurnFixture();
+    const state = {
+      ...baseState,
+      monsterIntents: [],
+      monsters: [{ ...baseState.monsters[0], hp: 5 }]
+    };
+    const registry = {
+      ...starterRegistry,
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              intentSchedule: [
+                {
+                  intentId: monster.intentPool[1].id,
+                  conditions: [{ type: "hpAtOrBelowRatio" as const, ratio: 0.25 }]
+                },
+                { intentId: monster.intentPool[0].id }
+              ]
+            }
+          : monster
+      )
+    };
+    const result = chooseMonsterIntents(state, registry, createRng("conditional-scheduled"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterIntents[0].intentId).toBe(starterRegistry.monsters[0].intentPool[1].id);
+  });
+
   it("returns ok false when a monster definition is missing", () => {
     const baseState = createEnemyTurnFixture();
     const state = {

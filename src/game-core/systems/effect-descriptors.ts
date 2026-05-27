@@ -4,7 +4,12 @@ export type EffectResolverKey =
   | "damageLike"
   | "blockLike"
   | "draw"
+  | "pileMove"
+  | "createCard"
+  | "retain"
+  | "gainEnergy"
   | "applyStatus"
+  | "cleanseStatus"
   | "petReact"
   | "storyFlag";
 
@@ -58,6 +63,61 @@ export const effectDescriptors = {
     requiresStoryFlagId: false,
     requiresPetReaction: false
   },
+  discard: {
+    type: "discard",
+    resolverKey: "pileMove",
+    combatantTarget: "none",
+    petTarget: "none",
+    amount: "nonNegativeInteger",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  exhaust: {
+    type: "exhaust",
+    resolverKey: "pileMove",
+    combatantTarget: "none",
+    petTarget: "none",
+    amount: "nonNegativeInteger",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  retain: {
+    type: "retain",
+    resolverKey: "retain",
+    combatantTarget: "none",
+    petTarget: "none",
+    amount: "nonNegativeInteger",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  createCard: {
+    type: "createCard",
+    resolverKey: "createCard",
+    combatantTarget: "none",
+    petTarget: "none",
+    amount: "none",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  gainEnergy: {
+    type: "gainEnergy",
+    resolverKey: "gainEnergy",
+    combatantTarget: "none",
+    petTarget: "none",
+    amount: "nonNegativeInteger",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
   applyStatus: {
     type: "applyStatus",
     resolverKey: "applyStatus",
@@ -66,6 +126,17 @@ export const effectDescriptors = {
     amount: "none",
     requiresStatusId: true,
     requiresStacks: true,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  cleanseStatus: {
+    type: "cleanseStatus",
+    resolverKey: "cleanseStatus",
+    combatantTarget: "required",
+    petTarget: "none",
+    amount: "none",
+    requiresStatusId: false,
+    requiresStacks: false,
     requiresStoryFlagId: false,
     requiresPetReaction: false
   },

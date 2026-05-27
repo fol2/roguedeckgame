@@ -1,4 +1,6 @@
-import type { CardId, PlayerClassId, PlayerClassModifierId, RelicId } from "../ids";
+import type { CardId, PlayerClassId, PlayerClassModifierId, RelicId, StatusId } from "../ids";
+import type { EffectDefinition } from "./effect";
+import type { CardSelector, PetModifierLimit } from "./pet";
 
 export type PlayerClassStartingResourceDefinition = {
   readonly id: string;
@@ -10,7 +12,26 @@ export type PlayerClassModifierDefinition = {
   readonly name: string;
   readonly description: string;
   readonly tags: readonly string[];
+  readonly rules?: readonly PlayerClassModifierRule[];
 };
+
+export type TriggerOnCardPlayedRule = {
+  readonly type: "triggerOnCardPlayed";
+  readonly selector?: CardSelector;
+  readonly effects: readonly EffectDefinition[];
+  readonly limit?: PetModifierLimit;
+};
+
+export type TriggerOnStatusAppliedRule = {
+  readonly type: "triggerOnStatusApplied";
+  readonly statusId?: StatusId;
+  readonly effects: readonly EffectDefinition[];
+  readonly limit?: PetModifierLimit;
+};
+
+export type PlayerClassModifierRule =
+  | TriggerOnCardPlayedRule
+  | TriggerOnStatusAppliedRule;
 
 export type PlayerClassDefinition = {
   readonly id: PlayerClassId;

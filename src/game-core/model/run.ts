@@ -33,6 +33,7 @@ export type RunState = {
   readonly playerHp: number;
   readonly playerMaxHp: number;
   readonly deckCardIds: readonly CardId[];
+  readonly upgradedDeckCardIds?: readonly CardId[];
   readonly runFlags: readonly string[];
   readonly storyFlags: readonly StoryFlagId[];
 };
