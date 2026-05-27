@@ -180,6 +180,14 @@ const validateEffectPayload = (
     }
   }
 
+  if (
+    effectDefinition.type === "consumeStatus" &&
+    effectDefinition.stacks !== undefined &&
+    (!Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0)
+  ) {
+    issues.push(issue("error", "invalid_effect_stacks", "Consume status stacks must be a positive integer when present.", `${path}.stacks`));
+  }
+
   if (effectDefinition.type === "createCard") {
     if (typeof effectDefinition.cardId !== "string" || effectDefinition.cardId.length === 0) {
       issues.push(issue("error", "invalid_effect_card", "Create card effect cardId must be a non-empty string.", `${path}.cardId`));

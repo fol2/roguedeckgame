@@ -50,6 +50,8 @@ export const formatRunEventMessage = (event: GameEvent): string => {
       return `${event.targetId} gained ${event.amount} block`;
     case "StatusApplied":
       return `${event.targetId} gained ${event.stacks} ${event.statusId}`;
+    case "StatusConsumed":
+      return `${event.targetId} consumed ${event.stacksConsumed} ${event.statusId}`;
     case "StatusTicked":
       return `${event.statusId} ticked on ${event.targetId}`;
     case "PetModifierActivated":

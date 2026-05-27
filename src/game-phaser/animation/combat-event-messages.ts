@@ -52,6 +52,14 @@ export const formatCombatEventMessage = (event: EventLike): string => {
       return `Run ended: ${event.outcome}.`;
     case "StatusApplied":
       return `${event.targetId} gained ${event.stacks} ${event.statusId}.`;
+    case "StatusApplicationBlocked":
+      return `${event.targetId} blocked ${event.statusId} with ${event.blockedByStatusId}.`;
+    case "StatusCleansed":
+      return `${event.targetId} cleansed ${event.stacksRemoved} ${event.statusId} (${event.remainingStacks} left).`;
+    case "StatusConsumed":
+      return `${event.targetId} consumed ${event.stacksConsumed} ${event.statusId} (${event.remainingStacks} left).`;
+    case "StatusDurationChanged":
+      return `${event.statusId} duration changed on ${event.targetId} (${event.durationBefore} -> ${event.durationAfter}).`;
     case "StatusExpired":
       return `${event.statusId} expired on ${event.targetId}.`;
     case "StatusTicked":

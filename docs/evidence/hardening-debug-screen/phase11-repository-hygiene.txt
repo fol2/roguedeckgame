@@ -1,0 +1,103 @@
+Phase 11 repository hygiene
+Date: 2026-05-27
+
+$ git diff --check
+(no output)
+Exit code: 0
+
+$ git diff --cached --check
+(no output)
+Exit code: 0
+
+$ rg -n phaser src/game-core
+No matches.
+Exit code: 0
+
+$ git diff --cached --name-only
+docs/evidence/hardening-debug-screen/README.md
+docs/evidence/hardening-debug-screen/phase11-browser-console-warnings.txt
+docs/evidence/hardening-debug-screen/phase11-cli-simulation-bundle.txt
+docs/evidence/hardening-debug-screen/phase11-repository-hygiene.txt
+docs/evidence/hardening-debug-screen/phase11-status-workbench-descriptor.png
+docs/evidence/hardening-debug-screen/phase11-test-bundle.txt
+src/app/main.ts
+src/game-cli/simulate-runs.ts
+src/game-core/index.ts
+src/game-core/model/effect.ts
+src/game-core/model/event.ts
+src/game-core/model/status.ts
+src/game-core/systems/content-workbench.ts
+src/game-core/systems/effect-descriptors.ts
+src/game-core/systems/effect-validation.ts
+src/game-core/systems/effects.ts
+src/game-core/systems/status-behaviours.ts
+src/game-core/systems/status-descriptors.ts
+src/game-core/systems/validation.ts
+src/game-core/testing/analysis.ts
+src/game-core/testing/content-dependencies.ts
+src/game-core/testing/state-hash.ts
+src/game-core/testing/trace.ts
+src/game-phaser/animation/CombatEventFxPresenter.ts
+src/game-phaser/animation/combat-event-messages.ts
+src/game-phaser/animation/combat-playback-policy.ts
+src/game-phaser/animation/run-event-messages.ts
+src/game-phaser/view-models/combat-view-model.ts
+tests/game-core/combat-status.test.ts
+tests/game-core/content-dependencies.test.ts
+tests/game-core/content-workbench.test.ts
+tests/game-core/simulation-analysis.test.ts
+tests/game-core/trace-replay.test.ts
+tests/game-phaser/app-entry.test.ts
+tests/game-phaser/combat-view-model.test.ts
+Exit code: 0
+
+$ git ls-files --eol selected text files
+i/lf    w/lf    attr/text eol=lf      	docs/evidence/hardening-debug-screen/README.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase11-browser-console-warnings.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase11-cli-simulation-bundle.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase11-repository-hygiene.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase11-test-bundle.txt
+i/lf    w/lf    attr/text eol=lf      	src/game-core/model/event.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-core/testing/state-hash.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-core/testing/trace.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-core/trace-replay.test.ts
+Exit code: 0
+
+$ git status --short --branch
+## feat/hardening-debug-screen
+M  docs/evidence/hardening-debug-screen/README.md
+A  docs/evidence/hardening-debug-screen/phase11-browser-console-warnings.txt
+A  docs/evidence/hardening-debug-screen/phase11-cli-simulation-bundle.txt
+A  docs/evidence/hardening-debug-screen/phase11-repository-hygiene.txt
+A  docs/evidence/hardening-debug-screen/phase11-status-workbench-descriptor.png
+A  docs/evidence/hardening-debug-screen/phase11-test-bundle.txt
+M  src/app/main.ts
+M  src/game-cli/simulate-runs.ts
+M  src/game-core/index.ts
+M  src/game-core/model/effect.ts
+M  src/game-core/model/event.ts
+M  src/game-core/model/status.ts
+M  src/game-core/systems/content-workbench.ts
+M  src/game-core/systems/effect-descriptors.ts
+M  src/game-core/systems/effect-validation.ts
+M  src/game-core/systems/effects.ts
+M  src/game-core/systems/status-behaviours.ts
+A  src/game-core/systems/status-descriptors.ts
+M  src/game-core/systems/validation.ts
+M  src/game-core/testing/analysis.ts
+M  src/game-core/testing/content-dependencies.ts
+M  src/game-core/testing/state-hash.ts
+M  src/game-core/testing/trace.ts
+M  src/game-phaser/animation/CombatEventFxPresenter.ts
+M  src/game-phaser/animation/combat-event-messages.ts
+M  src/game-phaser/animation/combat-playback-policy.ts
+M  src/game-phaser/animation/run-event-messages.ts
+M  src/game-phaser/view-models/combat-view-model.ts
+M  tests/game-core/combat-status.test.ts
+M  tests/game-core/content-dependencies.test.ts
+M  tests/game-core/content-workbench.test.ts
+M  tests/game-core/simulation-analysis.test.ts
+M  tests/game-core/trace-replay.test.ts
+M  tests/game-phaser/app-entry.test.ts
+M  tests/game-phaser/combat-view-model.test.ts
+Exit code: 0

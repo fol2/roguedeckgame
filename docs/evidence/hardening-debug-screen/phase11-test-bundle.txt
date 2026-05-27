@@ -1,0 +1,95 @@
+Phase 11 test bundle
+Date: 2026-05-27
+
+$ npx vitest run tests/game-core/combat-status.test.ts tests/game-core/simulation-analysis.test.ts tests/game-core/content-schema.test.ts tests/game-core/content-dependencies.test.ts tests/game-core/content-workbench.test.ts tests/game-core/ability-descriptors.test.ts tests/game-core/model-shape.test.ts tests/game-core/trace-replay.test.ts tests/game-core/runtime-metadata.test.ts tests/game-phaser/app-entry.test.ts tests/game-phaser/content-workbench-ui.test.ts tests/game-phaser/combat-view-model.test.ts tests/game-phaser/combat-event-player.test.ts tests/game-phaser/combat-event-fx-presenter.test.ts tests/game-phaser/combat-scene-boundary.test.ts
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+
+ Test Files  15 passed (15)
+      Tests  140 passed (140)
+   Start at  15:03:00
+   Duration  2.43s (transform 7.73s, setup 0ms, import 17.12s, tests 1.35s, environment 1ms)
+
+Exit code: 0
+
+$ npm run typecheck
+
+> roguedeckgame@0.0.0 typecheck
+> tsc --noEmit
+
+Exit code: 0
+
+$ npm run build
+
+> roguedeckgame@0.0.0 build
+> vite build
+
+vite v8.0.14 building client environment for production...
+[2K
+transforming...✓ 138 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                0.46 kB │ gzip:   0.30 kB
+dist/assets/index-D74aj7gs.css                 5.73 kB │ gzip:   1.46 kB
+dist/assets/index-QwCV7pIT.js                  2.85 kB │ gzip:   1.32 kB
+dist/assets/content-workbench-CuGPRRFi.js      8.54 kB │ gzip:   2.67 kB
+dist/assets/create-game-fBtOxOm3.js          112.47 kB │ gzip:  29.93 kB
+dist/assets/game-core-CKTGpWx6.js            172.75 kB │ gzip:  38.39 kB
+dist/assets/phaser-U3MaEuds.js             1,352.44 kB │ gzip: 351.55 kB
+
+✓ built in 439ms
+Exit code: 0
+
+$ npm run build:cli
+
+> roguedeckgame@0.0.0 build:cli
+> vite build --config vite.cli.config.ts
+
+vite v8.0.14 building ssr environment for production...
+[2K
+transforming...✓ 88 modules transformed.
+rendering chunks...
+computing gzip size...
+dist-cli/game-cli.mjs                 5.46 kB │ gzip:  1.57 kB
+dist-cli/simulate-runs.mjs            9.97 kB │ gzip:  2.83 kB
+dist-cli/assets/format-BlD5lGqZ.js  269.95 kB │ gzip: 51.24 kB
+
+✓ built in 50ms
+Exit code: 0
+
+$ npm test
+
+> roguedeckgame@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+
+ Test Files  89 passed (89)
+      Tests  716 passed (716)
+   Start at  15:03:07
+   Duration  6.82s (transform 17.53s, setup 0ms, import 49.19s, tests 12.90s, environment 17ms)
+
+Exit code: 0
+
+$ npm run smoke:localhost
+
+> roguedeckgame@0.0.0 smoke:localhost
+> vitest run tests/game-core/localhost-smoke.test.js --reporter=verbose
+
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+stdout | tests/game-core/localhost-smoke.test.js > localhost smoke > serves registry validation evidence over localhost
+localhost smoke URL: http://127.0.0.1:64593/health
+
+ ✓ tests/game-core/localhost-smoke.test.js > localhost smoke > serves registry validation evidence over localhost 34ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  15:03:15
+   Duration  1.33s (transform 421ms, setup 0ms, import 1.16s, tests 34ms, environment 0ms)
+
+Exit code: 0

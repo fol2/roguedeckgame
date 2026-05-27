@@ -238,21 +238,76 @@ const applyStatus = (
   }
 
   const existing = target.statuses.find((status) => status.statusId === statusId);
+  const stacking = incomingDefinition?.stacking;
+  const resolveNextStacks = (currentStacks: number): number => {
+    const added = currentStacks + stacks;
+    return stacking?.maxStacks === undefined ? added : Math.min(stacking.maxStacks, added);
+  };
+  const resolveNextDuration = (currentDuration: number | undefined): number | undefined => {
+    if (duration === undefined) {
+      return currentDuration;
+    }
+
+    if (stacking?.durationPolicy === "replace") {
+      return duration;
+    }
+
+    if (stacking?.durationPolicy === "keep") {
+      return currentDuration ?? duration;
+    }
+
+    return Math.max(currentDuration ?? 0, duration);
+  };
+  const stacksBefore = existing?.stacks ?? 0;
+  const stacksAfter = resolveNextStacks(stacksBefore);
+  const appliedStacks = Math.max(0, stacksAfter - stacksBefore);
   const statuses = existing
     ? target.statuses.map((status) =>
         status.statusId === statusId
           ? {
               ...status,
-              stacks: status.stacks + stacks,
-              duration: duration === undefined
-                ? status.duration
-                : Math.max(status.duration ?? 0, duration)
+              stacks: stacksAfter,
+              duration: resolveNextDuration(status.duration)
             }
           : status
       )
-    : [...target.statuses, { statusId, stacks, ...(duration === undefined ? {} : { duration }) }];
-  const event: GameEvent = { type: "StatusApplied", targetId, statusId, stacks };
+    : [...target.statuses, { statusId, stacks: stacksAfter, ...(duration === undefined ? {} : { duration }) }];
+  const event: GameEvent = { type: "StatusApplied", targetId, statusId, stacks: appliedStacks };
   const nextState = updateCombatant(state, targetId, (combatant) => ({ ...combatant, statuses }));
+
+  return { state: appendEvents(nextState, [event]), events: [event] };
+};
+
+const removeStatusStacks = (
+  state: CombatState,
+  targetId: CombatantId,
+  statusId: CombatStatusState["statusId"],
+  stacks: number | undefined,
+  eventType: "StatusCleansed" | "StatusConsumed"
+): { readonly state: CombatState; readonly events: readonly GameEvent[] } => {
+  const target = getCombatant(state, targetId);
+  if (!target) {
+    return { state, events: [] };
+  }
+
+  const status = target.statuses.find((candidate) => candidate.statusId === statusId);
+  if (!status) {
+    return { state, events: [] };
+  }
+
+  const stacksRemoved = stacks === undefined ? status.stacks : Math.min(status.stacks, stacks);
+  const remainingStacks = Math.max(0, status.stacks - stacksRemoved);
+  const event: GameEvent = eventType === "StatusCleansed"
+    ? { type: "StatusCleansed", targetId, statusId, stacksRemoved, remainingStacks }
+    : { type: "StatusConsumed", targetId, statusId, stacksConsumed: stacksRemoved, remainingStacks };
+  const nextState = updateCombatant(state, targetId, (combatant) => ({
+    ...combatant,
+    statuses: remainingStacks > 0
+      ? combatant.statuses.map((candidate) =>
+          candidate.statusId === statusId ? { ...candidate, stacks: remainingStacks } : candidate
+        )
+      : combatant.statuses.filter((candidate) => candidate.statusId !== statusId)
+  }));
 
   return { state: appendEvents(nextState, [event]), events: [event] };
 };
@@ -282,32 +337,27 @@ const cleanseStatus = (
   };
 
   const events: GameEvent[] = [];
-  const nextStatuses = target.statuses.flatMap((status) => {
+  let nextState = state;
+
+  for (const status of target.statuses) {
     if (!matches(status)) {
-      return [status];
+      continue;
     }
 
-    const stacksRemoved = effect.stacks === undefined
-      ? status.stacks
-      : Math.min(status.stacks, effect.stacks);
-    const remainingStacks = Math.max(0, status.stacks - stacksRemoved);
-    events.push({
-      type: "StatusCleansed",
-      targetId,
-      statusId: status.statusId,
-      stacksRemoved,
-      remainingStacks
-    });
-
-    return remainingStacks > 0 ? [{ ...status, stacks: remainingStacks }] : [];
-  });
-
-  if (events.length === 0) {
-    return { state, events: [] };
+    const result = removeStatusStacks(nextState, targetId, status.statusId, effect.stacks, "StatusCleansed");
+    nextState = result.state;
+    events.push(...result.events);
   }
 
-  const nextState = updateCombatant(state, targetId, (combatant) => ({ ...combatant, statuses: nextStatuses }));
-  return { state: appendEvents(nextState, events), events };
+  return { state: nextState, events };
+};
+
+const consumeStatus = (
+  state: CombatState,
+  targetId: CombatantId,
+  effect: Extract<EffectDefinition, { readonly type: "consumeStatus" }>
+): { readonly state: CombatState; readonly events: readonly GameEvent[] } => {
+  return removeStatusStacks(state, targetId, effect.statusId, effect.stacks, "StatusConsumed");
 };
 
 type EffectHandlerInput<T extends EffectDefinition> = {
@@ -598,6 +648,31 @@ const resolveCleanseStatusEffect = (
   return { ok: true, state: nextState, events, errors: [] };
 };
 
+const resolveConsumeStatusEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "consumeStatus" }>>
+): GameActionResult<CombatState> => {
+  const targets = resolveCombatantTargets(
+    input.state,
+    input.context.sourceId,
+    input.effect.target,
+    input.context.targetId ?? input.context.defaultTargetId
+  );
+  if (isActionError(targets)) {
+    return reject(input.originalState, targets);
+  }
+
+  let nextState = input.state;
+  const events: GameEvent[] = [];
+
+  for (const target of targets) {
+    const consumeResult = consumeStatus(nextState, target.id, input.effect);
+    nextState = consumeResult.state;
+    events.push(...consumeResult.events);
+  }
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
 const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
   draw: resolveDrawEffect as EffectHandler,
   pileMove: resolvePileMoveEffect as EffectHandler,
@@ -609,7 +684,8 @@ const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
   damageLike: resolveDamageLikeEffect as EffectHandler,
   blockLike: resolveBlockLikeEffect as EffectHandler,
   applyStatus: resolveApplyStatusEffect as EffectHandler,
-  cleanseStatus: resolveCleanseStatusEffect as EffectHandler
+  cleanseStatus: resolveCleanseStatusEffect as EffectHandler,
+  consumeStatus: resolveConsumeStatusEffect as EffectHandler
 };
 
 export const resolveEffects = (

@@ -85,6 +85,7 @@ export const combatPlaybackPolicies = {
   StatusApplied: { policy: "animated", visualRoute: "fx" },
   StatusApplicationBlocked: { policy: "animated", visualRoute: "fx" },
   StatusCleansed: { policy: "animated", visualRoute: "fx" },
+  StatusConsumed: { policy: "animated", visualRoute: "fx" },
   StatusDurationChanged: { policy: "animated", visualRoute: "fx" },
   StatusExpired: { policy: "animated", visualRoute: "fx" },
   StatusTicked: { policy: "animated", visualRoute: "fx" },

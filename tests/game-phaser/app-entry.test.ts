@@ -36,6 +36,7 @@ describe("Vite app entry", () => {
     expect(main).toMatch(/querySelector<HTMLElement>\(["']#game-root["']\)/);
     expect(main).toMatch(/await import\(["']\.\/create-game["']\)/);
     expect(main).toMatch(/await import\(["']\.\/content-workbench["']\)/);
+    expect(main).toMatch(/import\.meta\.env\.DEV/);
     expect(main).toMatch(/await import\(["']\.\/development-combat-preview["']\)/);
     expect(main).not.toMatch(/import\s+\{\s*createGame\s*\}\s+from\s+["']\.\/create-game["']/);
     expect(main).toContain("Unable to start game");

@@ -10,7 +10,8 @@ import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/stor
 import { buildContentIndex } from "./content-index";
 import {
   getRuntimeSupportedStatusIds,
-  validateStatusBehaviourDefinition
+  validateStatusBehaviourDefinition,
+  validateStatusStackingDefinition
 } from "./status-behaviours";
 import { knownPetModifierRuleTypeValues } from "./pet-modifiers";
 import { knownPlayerClassModifierRuleTypeValues } from "./class-modifiers";
@@ -1716,6 +1717,14 @@ export const validateRegistry = (
 
     if (typeof statusValue.description !== "string" || statusValue.description.length === 0) {
       issues.push(issue("error", "invalid_status", "Status description must be a non-empty string.", `statuses[${statusIndex}].description`));
+    }
+
+    if (
+      "stacking" in statusValue &&
+      statusValue.stacking !== undefined &&
+      !validateStatusStackingDefinition(statusValue.stacking)
+    ) {
+      issues.push(issue("error", "invalid_status_stacking", "Status stacking is not supported.", `statuses[${statusIndex}].stacking`));
     }
 
     if (

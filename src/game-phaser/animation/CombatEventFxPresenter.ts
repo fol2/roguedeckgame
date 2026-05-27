@@ -131,6 +131,8 @@ export class CombatEventFxPresenter {
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} blocked`, 0xaab4c5);
       case "StatusCleansed":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} cleansed`, 0x7dd3fc);
+      case "StatusConsumed":
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} consumed`, 0xffd166);
       case "StatusTicked":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} tick`, 0xff9aad);
       case "StatusDurationChanged":

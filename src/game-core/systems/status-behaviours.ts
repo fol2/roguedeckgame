@@ -1,5 +1,5 @@
 import type { GameContentRegistry } from "../model/registry";
-import { burnStatusDefinition, type StatusBehaviourDefinition, type StatusDefinition } from "../model/status";
+import { burnStatusDefinition, type StatusBehaviourDefinition, type StatusDefinition, type StatusStackingDefinition } from "../model/status";
 
 export const supportedStatusBehaviourTypes = [
   "startOfTurnDamage",
@@ -54,6 +54,27 @@ export const validateStatusBehaviourDefinition = (
   }
 
   return false;
+};
+
+export const validateStatusStackingDefinition = (
+  stacking: unknown
+): boolean => {
+  if (typeof stacking !== "object" || stacking === null || Array.isArray(stacking)) {
+    return false;
+  }
+
+  const candidate = stacking as Partial<StatusStackingDefinition>;
+  return candidate.type === "additive" &&
+    (
+      candidate.maxStacks === undefined ||
+      (Number.isInteger(candidate.maxStacks) && candidate.maxStacks > 0)
+    ) &&
+    (
+      candidate.durationPolicy === undefined ||
+      candidate.durationPolicy === "keep" ||
+      candidate.durationPolicy === "max" ||
+      candidate.durationPolicy === "replace"
+    );
 };
 
 export const hasSupportedRuntimeStatusBehaviour = (status: StatusDefinition): boolean =>

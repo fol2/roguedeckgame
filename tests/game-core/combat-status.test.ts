@@ -3,6 +3,7 @@ import {
   burnStatusDefinition,
   combatantId,
   createRng,
+  getStatusDescriptor,
   processEndOfTurnStatuses,
   processStartOfTurnStatuses,
   resolveEffects,
@@ -230,5 +231,86 @@ describe("combat statuses", () => {
       stacksRemoved: 2,
       remainingStacks: 1
     });
+  });
+
+  it("applies authored stacking caps and duration policy deterministically", () => {
+    const focusStatus = {
+      id: statusId("focus"),
+      name: "Focus",
+      tags: ["buff"],
+      description: "A capped preparation buff.",
+      stacking: {
+        type: "additive" as const,
+        maxStacks: 3,
+        durationPolicy: "keep" as const
+      },
+      behaviour: {
+        type: "duration" as const,
+        timing: "endOfTurn" as const,
+        decrementDurationBy: 1,
+        expiresAtZero: true
+      }
+    };
+    const baseState = createEnemyTurnFixture();
+    const state = {
+      ...baseState,
+      player: {
+        ...baseState.player,
+        statuses: [{ statusId: statusId("focus"), stacks: 2, duration: 2 }]
+      }
+    };
+    const result = resolveEffects(
+      state,
+      [{ type: "applyStatus", statusId: statusId("focus"), stacks: 5, duration: 1, target: { type: "self" } }],
+      { sourceId: state.player.id },
+      createStatusRegistry([burnStatusDefinition, focusStatus]),
+      createRng("status-stacking")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.player.statuses).toEqual([{ statusId: statusId("focus"), stacks: 3, duration: 2 }]);
+    expect(result.events.map((event) => event.type)).toEqual(["StatusApplied"]);
+    expect(result.events[0]).toMatchObject({
+      type: "StatusApplied",
+      stacks: 1
+    });
+  });
+
+  it("consumes status stacks with a distinct event before later effects", () => {
+    const state = createBurningMonsterFixture(3);
+    const result = resolveEffects(
+      state,
+      [
+        { type: "consumeStatus", statusId: statusId("burn"), stacks: 2, target: { type: "allEnemies" } },
+        { type: "damage", amount: 4, target: { type: "allEnemies" } }
+      ],
+      { sourceId: state.player.id },
+      createStatusRegistry([burnStatusDefinition]),
+      createRng("consume-status")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsters[0].statuses).toEqual([{ statusId: statusId("burn"), stacks: 1 }]);
+    expect(result.events.map((event) => event.type)).toEqual(["StatusConsumed", "DamageDealt"]);
+    expect(result.events[0]).toEqual({
+      type: "StatusConsumed",
+      targetId: state.monsters[0].id,
+      statusId: statusId("burn"),
+      stacksConsumed: 2,
+      remainingStacks: 1
+    });
+  });
+
+  it("describes status stacking, timing, expiry, cleanse, and consume lifecycle copy", () => {
+    const descriptor = getStatusDescriptor({ statusId: statusId("burn"), stacks: 2 }, burnStatusDefinition);
+
+    expect(descriptor.summaryLines).toEqual(expect.arrayContaining([
+      "Burn 2",
+      "Stacks add together with no stack cap; duration keeps the longest value.",
+      "At startOfTurn, deals damage equal to stacks ignoring Block, then removes 1 stack.",
+      "Ticking emits StatusTicked before damage events.",
+      "Expiry emits StatusExpired when stacks or duration reach zero.",
+      "Cleanse emits StatusCleansed; consume emits StatusConsumed."
+    ]));
   });
 });

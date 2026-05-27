@@ -47,6 +47,7 @@ export * from "./systems/save";
 export * from "./systems/save-migrations";
 export * from "./systems/story";
 export * from "./systems/status-behaviours";
+export * from "./systems/status-descriptors";
 export * from "./systems/statuses";
 export * from "./systems/trigger-queue";
 export * from "./systems/trigger-rules";

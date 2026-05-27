@@ -1,5 +1,6 @@
 import type { AbilityDescriptor } from "./ability-descriptors";
 import { getCardAbilityDescriptor, getMonsterAbilityDescriptor } from "./ability-descriptors";
+import { getStatusDescriptor } from "./status-descriptors";
 import { createContentSchemaFromRegistry } from "./content-schema";
 import { validateLevelAuthoringRegistry, validateRegistry, type ValidationIssue } from "./validation";
 import type { CardDefinition } from "../model/card";
@@ -78,6 +79,7 @@ export type ContentWorkbenchStatusItem = {
   readonly tags: readonly string[];
   readonly behaviourType?: string;
   readonly runtimeSupported: boolean;
+  readonly descriptorLines: readonly string[];
 };
 
 export type ContentWorkbenchPlayerItem = {
@@ -352,7 +354,8 @@ const mapStatus = (
   name: status.name,
   tags: status.tags,
   behaviourType: status.behaviour?.type,
-  runtimeSupported: runtimeSupportedStatusIds.has(status.id)
+  runtimeSupported: runtimeSupportedStatusIds.has(status.id),
+  descriptorLines: getStatusDescriptor({ statusId: status.id, stacks: 1 }, status).summaryLines
 });
 
 const mapPlayer = (player: PlayerClassDefinition): ContentWorkbenchPlayerItem => ({

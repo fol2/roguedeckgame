@@ -1,0 +1,238 @@
+Phase 11 CLI and simulation bundle
+Date: 2026-05-27
+
+$ npm run game:cli -- --help
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --help
+
+Pet Roguelite CLI
+
+Usage:
+  npm run game:help
+  npm run game:version
+  npm run game:auto
+  npm run game:auto:json
+  node scripts/run-cli-entry.mjs game-cli --seed cli-dev
+  node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json
+
+Runtime provenance:
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:21685149
+Event schema: 3
+Trace schema: 3
+Save schema: 1
+
+Exit code: 0
+
+$ npm run game:cli -- --version
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --version
+
+{
+  "type": "version",
+  "runtimeMetadata": {
+    "schemaVersion": 1,
+    "packageName": "roguedeckgame",
+    "packageVersion": "0.0.0",
+    "contentVersion": "starter-act1-forest-v1",
+    "gameEventSchemaVersion": 3,
+    "traceSchemaVersion": 3,
+    "saveSchemaVersion": 1,
+    "registryFingerprint": "fnv1a32:21685149"
+  }
+}
+Exit code: 0
+
+$ npm run game:cli -- --seed cli-dev --auto
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --seed cli-dev --auto
+
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:21685149
+Event schema: 3
+Trace schema: 3
+Save schema: 1
+Seed: cli-dev
+Final status: completed
+Steps: 57
+Invariant checks: passed
+Trace: not saved
+Exit code: 0
+
+$ npm run game:cli -- --seed cli-dev --json --auto
+
+> roguedeckgame@0.0.0 game:cli
+> node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json --auto
+
+{"type":"result","ok":true,"runtimeMetadata":{"schemaVersion":1,"packageName":"roguedeckgame","packageVersion":"0.0.0","contentVersion":"starter-act1-forest-v1","gameEventSchemaVersion":3,"traceSchemaVersion":3,"saveSchemaVersion":1,"registryFingerprint":"fnv1a32:21685149"},"seed":"cli-dev","finalStatus":"completed","steps":57,"invariantChecks":58,"trace":"not saved"}
+Exit code: 0
+
+$ node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json --auto
+{"type":"result","ok":true,"runtimeMetadata":{"schemaVersion":1,"packageName":"roguedeckgame","packageVersion":"0.0.0","contentVersion":"starter-act1-forest-v1","gameEventSchemaVersion":3,"traceSchemaVersion":3,"saveSchemaVersion":1,"registryFingerprint":"fnv1a32:21685149"},"seed":"cli-dev","finalStatus":"completed","steps":57,"invariantChecks":58,"trace":"not saved"}
+Exit code: 0
+
+$ node dist-cli/game-cli.mjs --seed cli-dev --json --auto
+{"type":"result","ok":true,"runtimeMetadata":{"schemaVersion":1,"packageName":"roguedeckgame","packageVersion":"0.0.0","contentVersion":"starter-act1-forest-v1","gameEventSchemaVersion":3,"traceSchemaVersion":3,"saveSchemaVersion":1,"registryFingerprint":"fnv1a32:21685149"},"seed":"cli-dev","finalStatus":"completed","steps":57,"invariantChecks":58,"trace":"not saved"}
+Exit code: 0
+
+$ node scripts/run-cli-entry.mjs simulate-runs --version
+{
+  "type": "version",
+  "runtimeMetadata": {
+    "schemaVersion": 1,
+    "packageName": "roguedeckgame",
+    "packageVersion": "0.0.0",
+    "contentVersion": "starter-act1-forest-v1",
+    "gameEventSchemaVersion": 3,
+    "traceSchemaVersion": 3,
+    "saveSchemaVersion": 1,
+    "registryFingerprint": "fnv1a32:21685149"
+  }
+}
+Exit code: 0
+
+$ node scripts/run-cli-entry.mjs simulate-runs --mode smoke --analyze
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:21685149
+Event schema: 3
+Trace schema: 3
+Save schema: 1
+Simulation mode: smoke
+Seed prefix: sim
+Runs: 3
+Failures: 0
+Result: passed
+Analysis:
+  Terminal: completed=3, lost=0, failed=0, other=0
+  Rates: completion=100.0%, loss=0.0%, failure=0.0%
+  Steps: avg=66.0, min=50, max=74
+  Actions: accepted=198, rejected=0, invalidRejected=0, invalidAccepted=0
+  Combat: started=12, won=12, lost=0
+  Rewards: offered=9, selected=9, skipped=0, cards=0, petUpgrades=9
+  Damage: toPlayer=54, toMonsters=456, blocked=93, playerBlock=110
+  HP: finalAvg=55.0, completedAvg=55.0, completedRange=50-60
+  Top card plays: strike=57, fox_bite=21, fox_fetch=19, focus=17, fox_guard=15, defend=7
+  Monster ability plans: training_slime_block=7, ash_mite_burn=6, training_slime_attack=6, charred_stag_antler_strike=5, forest_warden_root_slam=4, forest_warden_cinder_bark=3
+  Monster ability plays: training_slime_block=5, training_slime_attack=4, charred_stag_antler_strike=3, forest_warden_old_flame=3, ash_mite_burn=2, forest_warden_cinder_bark=2
+  Status applications: burn=24
+  Statuses to player: burn=8
+  Statuses to monsters: burn=16
+  Status blocked: none
+  Status cleansed: none
+  Status consumed: none
+  Status expired: burn=6
+  Status ticks: burn=23
+  Top card rewards: none
+  Pet upgrades: ash_instinct=3, burning_fang=3, warm_bond=3
+  Reward offers: card=9, petUpgrade=9
+  Reward types: petUpgrade=9
+  Reward pick rates: petUpgrade=100.0%, card=0.0%
+  Encounters started: forest_boss_placeholder=3, forest_elite_placeholder=3, ash_mite_encounter=2, forest_duo_encounter=2, training_slime_encounter=2
+  Encounters won: forest_boss_placeholder=3, forest_elite_placeholder=3, ash_mite_encounter=2, forest_duo_encounter=2, training_slime_encounter=2
+  Encounters lost: none
+  Run paths: act1_forest_0_combat_a > act1_forest_1_combat_a > act1_forest_2_rest_a > act1_forest_3_elite_a > act1_forest_4_boss_a=3
+  Player damage by encounter: forest_boss_placeholder=28, forest_elite_placeholder=17, ash_mite_encounter=5, forest_duo_encounter=3, training_slime_encounter=1
+  Monster damage by encounter: forest_boss_placeholder=151, forest_elite_placeholder=107, forest_duo_encounter=100, training_slime_encounter=50, ash_mite_encounter=48
+  Actions: playCard:targeted=78, playCard:targetless=58, endTurn=23, selectMapNode=15, completeCombatIfEnded=12, claimReward=9
+  Level authoring: completion=100.0%, averageBudget=3.8, budgetedEncounters=5
+  Encounter budgets: boss=8, combat=6, elite=5
+  Content dependencies: references=96, missing=0, warnings=0
+  Unused cards: none
+  Unused statuses: none
+  Health: no issues
+Exit code: 0
+
+$ node scripts/run-cli-entry.mjs simulate-runs --mode replay --trace tests/game-core/traces/smoke-complete.json
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:21685149
+Event schema: 3
+Trace schema: 3
+Save schema: 1
+Simulation mode: replay
+Seed prefix: sim
+Runs: 1
+Failures: 0
+Result: passed
+Exit code: 0
+
+$ npm run sim:balance
+
+> roguedeckgame@0.0.0 sim:balance
+> node scripts/run-cli-entry.mjs simulate-runs --mode fuzz --analyze --strict-health --strict-balance --seed balance-normal --invalid-action-rate 0
+
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:21685149
+Event schema: 3
+Trace schema: 3
+Save schema: 1
+Simulation mode: fuzz
+Seed prefix: balance-normal
+Runs: 200
+Failures: 0
+Result: passed
+Analysis:
+  Terminal: completed=93, lost=107, failed=0, other=0
+  Rates: completion=46.5%, loss=53.5%, failure=0.0%
+  Steps: avg=91.1, min=54, max=141
+  Actions: accepted=18216, rejected=0, invalidRejected=0, invalidAccepted=0
+  Combat: started=693, won=586, lost=107
+  Rewards: offered=493, selected=399, skipped=94, cards=307, petUpgrades=92
+  Damage: toPlayer=14148, toMonsters=23182, blocked=16672, playerBlock=17484
+  HP: finalAvg=9.3, completedAvg=20.0, completedRange=1-50
+  Balance target: completion 45.0% - 60.0%
+  Top card plays: strike=3394, defend=2176, fox_fetch=1270, focus=1246, fox_bite=1137, fox_guard=1106
+  Monster ability plans: charred_stag_guarded_snort=594, forest_warden_cinder_bark=581, training_slime_block=564, training_slime_attack=563, forest_warden_old_flame=556, charred_stag_ember_hooves=551
+  Monster ability plays: forest_warden_cinder_bark=552, forest_warden_old_flame=524, charred_stag_guarded_snort=514, forest_warden_root_slam=497, charred_stag_ember_hooves=492, charred_stag_antler_strike=474
+  Status applications: burn=3295
+  Statuses to player: burn=1803
+  Statuses to monsters: burn=1492
+  Status blocked: none
+  Status cleansed: none
+  Status consumed: none
+  Status expired: burn=1739
+  Status ticks: burn=4256
+  Top card rewards: kindle=58, coordinated_strike=53, quick_guard=52, ember_spark=49, study_command=48, fox_flare=47
+  Pet upgrades: ash_instinct=35, burning_fang=29, warm_bond=28
+  Reward offers: card=493, petUpgrade=493
+  Reward types: card=307, petUpgrade=92
+  Reward pick rates: card=62.3%, petUpgrade=18.7%
+  Encounters started: forest_elite_placeholder=200, forest_boss_placeholder=196, training_slime_encounter=158, ash_mite_encounter=92, forest_duo_encounter=47
+  Encounters won: forest_elite_placeholder=196, training_slime_encounter=158, forest_boss_placeholder=93, ash_mite_encounter=92, forest_duo_encounter=47
+  Encounters lost: forest_boss_placeholder=103, forest_elite_placeholder=4
+  Run paths: act1_forest_0_combat_a > act1_forest_1_combat_a > act1_forest_2_rest_a > act1_forest_3_elite_a > act1_forest_4_boss_a=54, act1_forest_0_combat_b > act1_forest_1_event_a > act1_forest_2_rest_a > act1_forest_3_elite_a > act1_forest_4_boss_a=51, act1_forest_0_combat_a > act1_forest_1_event_a > act1_forest_2_rest_a > act1_forest_3_elite_a > act1_forest_4_boss_a=50, act1_forest_0_combat_b > act1_forest_1_combat_a > act1_forest_2_rest_a > act1_forest_3_elite_a > act1_forest_4_boss_a=41, act1_forest_0_combat_b > act1_forest_1_combat_a > act1_forest_2_rest_a > act1_forest_3_elite_a=2, act1_forest_0_combat_a > act1_forest_1_event_a > act1_forest_2_rest_a > act1_forest_3_elite_a=1
+  Player damage by encounter: forest_boss_placeholder=7109, forest_elite_placeholder=5044, training_slime_encounter=910, forest_duo_encounter=777, ash_mite_encounter=308
+  Monster damage by encounter: forest_boss_placeholder=7482, forest_elite_placeholder=7312, training_slime_encounter=4015, forest_duo_encounter=2274, ash_mite_encounter=2099
+  Actions: playCard:targetless=6338, playCard:targeted=4975, endTurn=4418, selectMapNode=996, completeCombatIfEnded=693, claimReward=399
+  Level authoring: completion=46.5%, averageBudget=3.8, budgetedEncounters=5
+  Encounter budgets: boss=8, combat=6, elite=5
+  Content dependencies: references=96, missing=0, warnings=0
+  Unused cards: none
+  Unused statuses: none
+  Health: no issues
+Exit code: 0
+
+$ npm run sim:exhaustive-small
+
+> roguedeckgame@0.0.0 sim:exhaustive-small
+> node scripts/run-cli-entry.mjs simulate-runs --mode exhaustive-small
+
+Package: roguedeckgame@0.0.0
+Content version: starter-act1-forest-v1
+Registry fingerprint: fnv1a32:21685149
+Event schema: 3
+Trace schema: 3
+Save schema: 1
+Simulation mode: exhaustive-small
+Seed prefix: sim
+Runs: 1000
+Failures: 0
+Result: passed
+Exit code: 0

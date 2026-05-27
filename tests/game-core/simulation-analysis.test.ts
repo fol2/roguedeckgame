@@ -82,6 +82,11 @@ describe("simulation analysis", () => {
           },
           { type: "StatusApplied", targetId: combatantId("player"), statusId: statusId("burn"), stacks: 1 },
           { type: "StatusApplied", targetId: combatantId("monster:ash_mite:0"), statusId: statusId("burn"), stacks: 1 },
+          { type: "StatusApplicationBlocked", targetId: combatantId("player"), statusId: statusId("burn"), blockedByStatusId: statusId("ember_ward") },
+          { type: "StatusTicked", targetId: combatantId("player"), statusId: statusId("burn"), stacksBefore: 1, stacksAfter: 0, amount: 1 },
+          { type: "StatusCleansed", targetId: combatantId("monster:ash_mite:0"), statusId: statusId("burn"), stacksRemoved: 1, remainingStacks: 0 },
+          { type: "StatusConsumed", targetId: combatantId("player"), statusId: statusId("burn"), stacksConsumed: 1, remainingStacks: 0 },
+          { type: "StatusExpired", targetId: combatantId("player"), statusId: statusId("burn") },
           { type: "DamageDealt", sourceId: combatantId("player"), targetId: combatantId("monster:ash_mite:0"), amount: 7, blocked: 0 },
           { type: "DamageDealt", sourceId: combatantId("monster:ash_mite:0"), targetId: combatantId("player"), amount: 2, blocked: 1 },
           { type: "RunNodeSelected", nodeId: runNodeId("node_1") },
@@ -118,6 +123,11 @@ describe("simulation analysis", () => {
     expect(report.balance?.statusesAppliedByStatusId).toEqual({ burn: 2 });
     expect(report.balance?.statusesAppliedToPlayerByStatusId).toEqual({ burn: 1 });
     expect(report.balance?.statusesAppliedToMonstersByStatusId).toEqual({ burn: 1 });
+    expect(report.balance?.statusesBlockedByStatusId).toEqual({ burn: 1 });
+    expect(report.balance?.statusesCleansedByStatusId).toEqual({ burn: 1 });
+    expect(report.balance?.statusesConsumedByStatusId).toEqual({ burn: 1 });
+    expect(report.balance?.statusesExpiredByStatusId).toEqual({ burn: 1 });
+    expect(report.balance?.statusTicksByStatusId).toEqual({ burn: 1 });
     expect(report.balance?.encountersStartedById).toEqual({ encounter_1: 1 });
     expect(report.balance?.encountersWonById).toEqual({ encounter_1: 1 });
     expect(report.balance?.runPathsByNodeIds).toEqual({ "node_1 > node_2": 1 });

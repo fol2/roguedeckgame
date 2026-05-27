@@ -236,7 +236,7 @@ const collectEffectReferences = (
 ): void => {
   effects.forEach((effect, effectIndex) => {
     const effectPath = `${path}.effects[${effectIndex}]`;
-    if (effect.type === "applyStatus") {
+    if (effect.type === "applyStatus" || effect.type === "consumeStatus") {
       addReference(collector, "effectStatus", refSource, "statuses", effect.statusId, `${effectPath}.statusId`);
     }
 

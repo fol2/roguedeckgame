@@ -23,6 +23,7 @@ import {
 } from "../../game-core";
 import {
   getCardActionProfile,
+  getStatusDescriptor,
   type CardPlayMode,
   type CardTargetKind
 } from "../../game-core";
@@ -278,10 +279,8 @@ const getUnplayableReason = (
 const statusLabel = (statusId: StatusId, stacks: number, definition?: StatusDefinition): string =>
   `${definition?.name ?? statusId}${stacks > 0 ? ` ${stacks}` : ""}`;
 
-const statusTooltip = (statusId: StatusId, stacks: number, definition?: StatusDefinition): string => [
-  statusLabel(statusId, stacks, definition),
-  definition?.description ?? "Timing and duration are not defined yet.",
-  `Current stacks: ${stacks}`
+const statusTooltip = (status: { readonly statusId: StatusId; readonly stacks: number; readonly duration?: number }, definition?: StatusDefinition): string => [
+  ...getStatusDescriptor(status, definition).summaryLines
 ].join("\n");
 
 const keywordCopyByTag: Readonly<Record<string, CombatKeywordExplanationViewModel>> = {
@@ -384,7 +383,7 @@ const buildCombatantStatusViewModels = (
       statusId: status.statusId,
       stacks: status.stacks,
       label: statusLabel(status.statusId, status.stacks, definition),
-      tooltip: statusTooltip(status.statusId, status.stacks, definition)
+      tooltip: statusTooltip(status, definition)
     };
   });
 
@@ -537,6 +536,8 @@ const describeMonsterEffect = (effect: EffectDefinition): string => {
       return `Apply ${effect.stacks} ${effect.statusId} to ${getCombatantTargetLabel(effect.target)}.`;
     case "cleanseStatus":
       return `Cleanse status from ${getCombatantTargetLabel(effect.target)}.`;
+    case "consumeStatus":
+      return `Consume ${effect.stacks ?? "all"} ${effect.statusId} from ${getCombatantTargetLabel(effect.target)}.`;
     case "draw":
       return `Draw ${effect.amount}.`;
     case "discard":

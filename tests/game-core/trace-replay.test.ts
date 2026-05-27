@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   AGENT_TRACE_LEGACY_SCHEMA_VERSION,
+  AGENT_TRACE_PREVIOUS_SCHEMA_VERSION,
+  AGENT_TRACE_SCHEMA_VERSION,
   parseAgentTrace,
   projectAgentTraceEventsForSchema,
   createAgentRunDriver,
@@ -112,6 +114,21 @@ describe("agent trace replay", () => {
     const trace = parseAgentTrace('{"schemaVersion":2,"seed":0,"mode":"regression","steps":[]}');
 
     expect(trace.seed).toBe(0);
+  });
+
+  it("projects new status lifecycle events out of previous v2 traces", () => {
+    const events = [
+      {
+        type: "StatusConsumed" as const,
+        targetId: "monster:ember-wisp:0" as never,
+        statusId: "burn" as never,
+        stacksConsumed: 1,
+        remainingStacks: 0
+      }
+    ];
+
+    expect(projectAgentTraceEventsForSchema(events, AGENT_TRACE_PREVIOUS_SCHEMA_VERSION)).toEqual([]);
+    expect(projectAgentTraceEventsForSchema(events, AGENT_TRACE_SCHEMA_VERSION)).toEqual(events);
   });
 
   it("replays legacy v1 traces with projected events and hashes", () => {

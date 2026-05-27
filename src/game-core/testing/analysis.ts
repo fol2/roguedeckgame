@@ -11,6 +11,11 @@ export type SimulationBalanceMetrics = {
   readonly statusesAppliedByStatusId: CountMap;
   readonly statusesAppliedToPlayerByStatusId: CountMap;
   readonly statusesAppliedToMonstersByStatusId: CountMap;
+  readonly statusesBlockedByStatusId: CountMap;
+  readonly statusesCleansedByStatusId: CountMap;
+  readonly statusesConsumedByStatusId: CountMap;
+  readonly statusesExpiredByStatusId: CountMap;
+  readonly statusTicksByStatusId: CountMap;
   readonly encountersStartedById: CountMap;
   readonly encountersWonById: CountMap;
   readonly encountersLostById: CountMap;
@@ -173,6 +178,11 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
   const statusesAppliedByStatusId = emptyCountMap();
   const statusesAppliedToPlayerByStatusId = emptyCountMap();
   const statusesAppliedToMonstersByStatusId = emptyCountMap();
+  const statusesBlockedByStatusId = emptyCountMap();
+  const statusesCleansedByStatusId = emptyCountMap();
+  const statusesConsumedByStatusId = emptyCountMap();
+  const statusesExpiredByStatusId = emptyCountMap();
+  const statusTicksByStatusId = emptyCountMap();
   const encountersStartedById = emptyCountMap();
   const encountersWonById = emptyCountMap();
   const encountersLostById = emptyCountMap();
@@ -298,6 +308,16 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
         } else if (isMonsterCombatant(event.targetId)) {
           increment(statusesAppliedToMonstersByStatusId, event.statusId);
         }
+      } else if (event.type === "StatusApplicationBlocked") {
+        increment(statusesBlockedByStatusId, event.statusId);
+      } else if (event.type === "StatusCleansed") {
+        increment(statusesCleansedByStatusId, event.statusId);
+      } else if (event.type === "StatusConsumed") {
+        increment(statusesConsumedByStatusId, event.statusId);
+      } else if (event.type === "StatusExpired") {
+        increment(statusesExpiredByStatusId, event.statusId);
+      } else if (event.type === "StatusTicked") {
+        increment(statusTicksByStatusId, event.statusId);
       } else if (event.type === "DamageDealt") {
         totalDamageBlocked += event.blocked;
         if (isPlayerCombatant(event.targetId)) {
@@ -361,6 +381,11 @@ export const analyzeAgentTrace = (trace: AgentTrace): AgentTraceMetrics => {
       statusesAppliedByStatusId,
       statusesAppliedToPlayerByStatusId,
       statusesAppliedToMonstersByStatusId,
+      statusesBlockedByStatusId,
+      statusesCleansedByStatusId,
+      statusesConsumedByStatusId,
+      statusesExpiredByStatusId,
+      statusTicksByStatusId,
       encountersStartedById,
       encountersWonById,
       encountersLostById,
@@ -384,6 +409,11 @@ export const analyzeAgentTraces = (traces: readonly AgentTrace[]): SimulationAgg
   const statusesAppliedByStatusId = emptyCountMap();
   const statusesAppliedToPlayerByStatusId = emptyCountMap();
   const statusesAppliedToMonstersByStatusId = emptyCountMap();
+  const statusesBlockedByStatusId = emptyCountMap();
+  const statusesCleansedByStatusId = emptyCountMap();
+  const statusesConsumedByStatusId = emptyCountMap();
+  const statusesExpiredByStatusId = emptyCountMap();
+  const statusTicksByStatusId = emptyCountMap();
   const encountersStartedById = emptyCountMap();
   const encountersWonById = emptyCountMap();
   const encountersLostById = emptyCountMap();
@@ -405,6 +435,11 @@ export const analyzeAgentTraces = (traces: readonly AgentTrace[]): SimulationAgg
     mergeCounts(statusesAppliedByStatusId, metric.balance?.statusesAppliedByStatusId ?? {});
     mergeCounts(statusesAppliedToPlayerByStatusId, metric.balance?.statusesAppliedToPlayerByStatusId ?? {});
     mergeCounts(statusesAppliedToMonstersByStatusId, metric.balance?.statusesAppliedToMonstersByStatusId ?? {});
+    mergeCounts(statusesBlockedByStatusId, metric.balance?.statusesBlockedByStatusId ?? {});
+    mergeCounts(statusesCleansedByStatusId, metric.balance?.statusesCleansedByStatusId ?? {});
+    mergeCounts(statusesConsumedByStatusId, metric.balance?.statusesConsumedByStatusId ?? {});
+    mergeCounts(statusesExpiredByStatusId, metric.balance?.statusesExpiredByStatusId ?? {});
+    mergeCounts(statusTicksByStatusId, metric.balance?.statusTicksByStatusId ?? {});
     mergeCounts(encountersStartedById, metric.balance?.encountersStartedById ?? {});
     mergeCounts(encountersWonById, metric.balance?.encountersWonById ?? {});
     mergeCounts(encountersLostById, metric.balance?.encountersLostById ?? {});
@@ -478,6 +513,11 @@ export const analyzeAgentTraces = (traces: readonly AgentTrace[]): SimulationAgg
       statusesAppliedByStatusId,
       statusesAppliedToPlayerByStatusId,
       statusesAppliedToMonstersByStatusId,
+      statusesBlockedByStatusId,
+      statusesCleansedByStatusId,
+      statusesConsumedByStatusId,
+      statusesExpiredByStatusId,
+      statusTicksByStatusId,
       encountersStartedById,
       encountersWonById,
       encountersLostById,

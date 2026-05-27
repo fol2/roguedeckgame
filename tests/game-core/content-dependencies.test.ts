@@ -63,6 +63,36 @@ describe("content dependency report", () => {
     }));
   });
 
+  it("reports consume status dependencies with path-specific diagnostics", () => {
+    const result = buildContentDependencyReport(cloneRegistry({
+      cards: [
+        {
+          ...starterRegistry.cards[0],
+          effects: [
+            {
+              type: "consumeStatus",
+              statusId: statusId("missing_status"),
+              stacks: 1,
+              target: { type: "self" }
+            }
+          ]
+        },
+        ...starterRegistry.cards.slice(1)
+      ]
+    }));
+
+    expect(result.coverage.missingReferenceCount).toBe(1);
+    expect(result.issues).toContainEqual(expect.objectContaining({
+      severity: "error",
+      code: "missing_dependency",
+      path: "cards[0].effects[0].statusId",
+      target: expect.objectContaining({
+        collection: "statuses",
+        id: "missing_status"
+      })
+    }));
+  });
+
   it("reports encounter monster dependencies with path-specific diagnostics", () => {
     const result = buildContentDependencyReport(cloneRegistry({
       encounters: [

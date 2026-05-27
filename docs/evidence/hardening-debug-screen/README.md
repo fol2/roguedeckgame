@@ -164,3 +164,22 @@ Browser proof:
 Reviewer follow-up:
 
 - Monster planned action display is sourced from planned ability metadata first and registry fallback metadata second. Phaser presenters render the read-only view model and do not choose monster abilities or mutate combat resolution. The development-only combat preview is routed by the app bootstrap and prepares state through an explicit controller-level preview harness before Phaser starts; `BootScene` only routes to combat when that state already exists.
+
+## Phase 11 - Buff, Debuff, and Status Engine Round
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `phase11-test-bundle.txt` records focused status-engine verification, `npm run typecheck`, `npm run build`, `npm run build:cli`, `npm test`, and `npm run smoke:localhost` passing. The focused run covered 15 files and 140 tests; the full test run covered 89 files and 716 tests.
+- `phase11-cli-simulation-bundle.txt` records the final CLI and simulation bundle passing: `npm run game:cli -- --help`, `npm run game:cli -- --version`, `npm run game:cli -- --seed cli-dev --auto`, `npm run game:cli -- --seed cli-dev --json --auto`, direct source and built CLI JSON auto runs, simulation version, simulation smoke analysis, replay of `tests/game-core/traces/smoke-complete.json`, `npm run sim:balance`, and `npm run sim:exhaustive-small`. The balance run covered 200 runs with no failures; exhaustive-small covered 1000 runs with no failures.
+- `phase11-repository-hygiene.txt` records `git diff --check` passing, no `phaser` matches in `src/game-core`, staged Phase 11 file scope, and current branch/status output.
+
+Browser proof:
+
+- `phase11-status-workbench-descriptor.png` - local content workbench status collection proof at `?workbench=content&phase11=status-engine`, showing descriptor-backed Burn lifecycle copy for stacking, tick timing, expiry, cleanse, and consume events.
+- `phase11-browser-console-warnings.txt` - Playwright console collection for the Phase 11 browser path, with zero errors and zero warnings.
+
+Reviewer follow-up:
+
+- Status rules remain in `src/game-core`. The phase adds data-driven stacking metadata, a typed `consumeStatus` effect with `StatusConsumed`, descriptor-backed status preview/debug copy, event/trace schema version 3 provenance with v2 replay projection, and simulation-visible status lifecycle counters without card-name-specific logic.

@@ -79,7 +79,11 @@ describe("content workbench view model", () => {
     expect(first.sections.statuses).toEqual([expect.objectContaining({
       id: "burn",
       behaviourType: "startOfTurnDamage",
-      runtimeSupported: true
+      runtimeSupported: true,
+      descriptorLines: expect.arrayContaining([
+        "Burn 1",
+        "Cleanse emits StatusCleansed; consume emits StatusConsumed."
+      ])
     })]);
     expect(first.sections.runMapTemplates).toEqual([expect.objectContaining({
       id: "act1_forest",

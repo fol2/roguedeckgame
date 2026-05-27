@@ -1,6 +1,7 @@
 import type { GameActionError } from "../model/action";
 import {
   GAME_EVENT_LEGACY_SCHEMA_VERSION,
+  GAME_EVENT_PREVIOUS_SCHEMA_VERSION,
   projectGameEventsForSchema,
   type GameEvent,
   type GameEventSchemaVersion
@@ -14,6 +15,7 @@ import { createAgentStateHash } from "./state-hash";
 
 export const AGENT_TRACE_SCHEMA_VERSION = TRACE_SCHEMA_VERSION;
 export const AGENT_TRACE_LEGACY_SCHEMA_VERSION = GAME_EVENT_LEGACY_SCHEMA_VERSION;
+export const AGENT_TRACE_PREVIOUS_SCHEMA_VERSION = GAME_EVENT_PREVIOUS_SCHEMA_VERSION;
 export const BROWSER_DEBUG_TRACE_SCHEMA_VERSION = 1;
 
 export type AgentTraceSchemaVersion = GameEventSchemaVersion;
@@ -59,7 +61,9 @@ export type ReplayResult = {
 export const serializeAgentTrace = (trace: AgentTrace): string => `${JSON.stringify(trace, null, 2)}\n`;
 
 const isSupportedTraceSchemaVersion = (schemaVersion: unknown): schemaVersion is AgentTraceSchemaVersion =>
-  schemaVersion === AGENT_TRACE_LEGACY_SCHEMA_VERSION || schemaVersion === AGENT_TRACE_SCHEMA_VERSION;
+  schemaVersion === AGENT_TRACE_LEGACY_SCHEMA_VERSION ||
+  schemaVersion === AGENT_TRACE_PREVIOUS_SCHEMA_VERSION ||
+  schemaVersion === AGENT_TRACE_SCHEMA_VERSION;
 
 export const parseAgentTrace = (text: string): AgentTrace => {
   const parsed = JSON.parse(text) as Partial<AgentTrace> & BrowserDebugTraceEnvelope;

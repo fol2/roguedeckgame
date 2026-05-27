@@ -10,6 +10,7 @@ export type EffectResolverKey =
   | "gainEnergy"
   | "applyStatus"
   | "cleanseStatus"
+  | "consumeStatus"
   | "petReact"
   | "storyFlag";
 
@@ -186,6 +187,17 @@ export const effectDescriptors = {
     petTarget: "none",
     amount: "none",
     requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  consumeStatus: {
+    type: "consumeStatus",
+    resolverKey: "consumeStatus",
+    combatantTarget: "required",
+    petTarget: "none",
+    amount: "none",
+    requiresStatusId: true,
     requiresStacks: false,
     requiresStoryFlagId: false,
     requiresPetReaction: false

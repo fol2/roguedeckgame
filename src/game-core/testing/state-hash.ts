@@ -1,6 +1,6 @@
 import type { AgentRunDriverSnapshot } from "./agent-actions";
 
-export type AgentStateHashSchemaVersion = 1 | 2;
+export type AgentStateHashSchemaVersion = 1 | 2 | 3;
 
 export type AgentStateHashOptions = {
   readonly schemaVersion?: AgentStateHashSchemaVersion;

@@ -27,10 +27,12 @@ import type { RewardOption } from "./reward";
 export type CardPile = "draw" | "hand" | "discard" | "exhaust";
 
 export const GAME_EVENT_LEGACY_SCHEMA_VERSION = 1;
-export const GAME_EVENT_SCHEMA_VERSION = 2;
+export const GAME_EVENT_PREVIOUS_SCHEMA_VERSION = 2;
+export const GAME_EVENT_SCHEMA_VERSION = 3;
 
 export type GameEventSchemaVersion =
   | typeof GAME_EVENT_LEGACY_SCHEMA_VERSION
+  | typeof GAME_EVENT_PREVIOUS_SCHEMA_VERSION
   | typeof GAME_EVENT_SCHEMA_VERSION;
 
 export type GameEvent =
@@ -155,6 +157,13 @@ export type GameEvent =
       readonly remainingStacks: number;
     }
   | {
+      readonly type: "StatusConsumed";
+      readonly targetId: CombatantId;
+      readonly statusId: StatusId;
+      readonly stacksConsumed: number;
+      readonly remainingStacks: number;
+    }
+  | {
       readonly type: "StatusTicked";
       readonly targetId: CombatantId;
       readonly statusId: StatusId;
@@ -248,7 +257,13 @@ export const projectGameEventsForSchema = (
     return events;
   }
 
-  return events.filter((event) =>
+  const withoutStatusConsumed = events.filter((event) => event.type !== "StatusConsumed");
+
+  if (schemaVersion >= GAME_EVENT_PREVIOUS_SCHEMA_VERSION) {
+    return withoutStatusConsumed;
+  }
+
+  return withoutStatusConsumed.filter((event) =>
     event.type !== "MonsterAbilityPlanned" &&
     event.type !== "MonsterAbilityPlayed"
   );

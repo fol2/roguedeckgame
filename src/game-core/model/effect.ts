@@ -79,6 +79,13 @@ export type CleanseStatusEffect = {
   readonly stacks?: number;
 };
 
+export type ConsumeStatusEffect = {
+  readonly type: "consumeStatus";
+  readonly target: CombatantTarget;
+  readonly statusId: StatusId;
+  readonly stacks?: number;
+};
+
 export type PetAttackEffect = {
   readonly type: "petAttack";
   readonly petTarget: PetTarget;
@@ -115,6 +122,7 @@ export type EffectDefinition =
   | GainEnergyEffect
   | ApplyStatusEffect
   | CleanseStatusEffect
+  | ConsumeStatusEffect
   | PetAttackEffect
   | PetBlockEffect
   | PetReactEffect
@@ -131,6 +139,7 @@ export const knownEffectTypes = [
   "gainEnergy",
   "applyStatus",
   "cleanseStatus",
+  "consumeStatus",
   "petAttack",
   "petBlock",
   "petReact",

@@ -80,6 +80,11 @@ const printAnalysis = (
   countSummary("  Status applications", balance?.statusesAppliedByStatusId ?? {});
   countSummary("  Statuses to player", balance?.statusesAppliedToPlayerByStatusId ?? {});
   countSummary("  Statuses to monsters", balance?.statusesAppliedToMonstersByStatusId ?? {});
+  countSummary("  Status blocked", balance?.statusesBlockedByStatusId ?? {});
+  countSummary("  Status cleansed", balance?.statusesCleansedByStatusId ?? {});
+  countSummary("  Status consumed", balance?.statusesConsumedByStatusId ?? {});
+  countSummary("  Status expired", balance?.statusesExpiredByStatusId ?? {});
+  countSummary("  Status ticks", balance?.statusTicksByStatusId ?? {});
   countSummary("  Top card rewards", report.cardRewardsByCardId);
   countSummary("  Pet upgrades", report.petUpgradesByUpgradeId);
   countSummary("  Reward offers", balance?.rewardOffersByType ?? {});

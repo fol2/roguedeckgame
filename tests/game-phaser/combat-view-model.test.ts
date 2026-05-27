@@ -158,7 +158,7 @@ describe("Combat view model", () => {
     expect(viewModel.monsters[0]?.statuses[1]).toMatchObject({
       statusId: unknownStatusId,
       label: "mystery_status 1",
-      tooltip: expect.stringContaining("Timing and duration are not defined yet.")
+      tooltip: expect.stringContaining("No runtime behaviour is configured.")
     });
   });
 

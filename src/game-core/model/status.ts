@@ -6,6 +6,12 @@ export type CombatStatusState = {
   readonly duration?: number;
 };
 
+export type StatusStackingDefinition = {
+  readonly type: "additive";
+  readonly maxStacks?: number;
+  readonly durationPolicy?: "keep" | "max" | "replace";
+};
+
 export type StatusTurnTiming = "startOfTurn" | "endOfTurn";
 
 export type StartOfTurnDamageStatusBehaviourDefinition = {
@@ -40,6 +46,7 @@ export type StatusDefinition = {
   readonly name: string;
   readonly tags: readonly string[];
   readonly description: string;
+  readonly stacking?: StatusStackingDefinition;
   readonly behaviour?: StatusBehaviourDefinition;
 };
 
@@ -48,6 +55,10 @@ export const burnStatusDefinition: StatusDefinition = {
   name: "Burn",
   tags: ["damage", "fire"],
   description: "At the start of this unit's turn, take damage equal to Burn ignoring Block, then reduce Burn by 1. Expires at 0.",
+  stacking: {
+    type: "additive",
+    durationPolicy: "max"
+  },
   behaviour: {
     type: "startOfTurnDamage",
     timing: "startOfTurn",
