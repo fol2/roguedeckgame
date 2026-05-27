@@ -18,7 +18,16 @@ describe("Combat debug view model", () => {
       inputLocked: true,
       inputLockReason: "playback",
       pendingRequestId: "request-1"
-    });
+    }, [{
+      eventType: "DamageDealt",
+      policy: "animated",
+      visualRoute: "fx",
+      startedAt: 10,
+      endedAt: 20,
+      durationMs: 10,
+      outcome: "completed",
+      fallbackUsed: false
+    }]);
 
     expect(viewModel.runtimeMetadata).toEqual(currentRuntimeMetadata);
     expect(viewModel.run.status).toBe("combat");
@@ -39,6 +48,12 @@ describe("Combat debug view model", () => {
     expect(viewModel.hand.length).toBeGreaterThan(0);
     expect(viewModel.monsters.length).toBeGreaterThan(0);
     expect(viewModel.plannedMonsterAbilities.length).toBeGreaterThan(0);
+    expect(viewModel.playbackObservations).toMatchObject([{
+      eventType: "DamageDealt",
+      policy: "animated",
+      visualRoute: "fx",
+      outcome: "completed"
+    }]);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
     expect(JSON.stringify(controller.getState())).toBe(before);
   });

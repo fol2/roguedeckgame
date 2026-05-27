@@ -6,6 +6,7 @@ import {
   type RuntimeMetadata
 } from "../../game-core";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
+import type { CombatPlaybackObservation } from "../animation/combat-playback-policy";
 import type { RunSandboxState } from "../controllers/RunSandboxController";
 import type { CombatViewModel } from "./combat-view-model";
 
@@ -76,6 +77,7 @@ export type CombatDebugViewModel = {
     readonly type: string;
     readonly message: string;
   }[];
+  readonly playbackObservations: readonly CombatPlaybackObservation[];
   readonly uiWarnings: readonly string[];
 };
 
@@ -94,7 +96,8 @@ export const buildCombatDebugViewModel = (
   state: RunSandboxState,
   combatViewModel: CombatViewModel | undefined,
   input: DebugInputSnapshot = emptyInput,
-  runtimeMetadata: RuntimeMetadata = currentRuntimeMetadata
+  runtimeMetadata: RuntimeMetadata = currentRuntimeMetadata,
+  playbackObservations: readonly CombatPlaybackObservation[] = []
 ): CombatDebugViewModel => {
   const currentNode = state.run.map?.nodes.find((node) => node.id === state.run.map?.currentNodeId);
 
@@ -155,6 +158,7 @@ export const buildCombatDebugViewModel = (
       abilityId: planned.abilityId
     })) ?? [],
     latestEvents: latestEvents(state.lastEvents),
+    playbackObservations,
     uiWarnings: combatViewModel?.uiWarnings ?? []
   };
 };

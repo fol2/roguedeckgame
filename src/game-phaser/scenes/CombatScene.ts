@@ -339,7 +339,9 @@ export class CombatScene extends Scene {
   private renderDebugOverlay(): void {
     const debugOverlayVisible = this.isDebugOverlayAvailable() && this.debugOverlayEnabled;
     this.debugOverlayPresenter?.render(
-      debugOverlayVisible ? this.sandbox?.getCombatDebugViewModel(this.getDebugInputSnapshot()) : undefined,
+      debugOverlayVisible
+        ? this.sandbox?.getCombatDebugViewModel(this.getDebugInputSnapshot(), this.eventPlayer?.getPlaybackObservations() ?? [])
+        : undefined,
       debugOverlayVisible
     );
   }

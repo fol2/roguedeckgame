@@ -57,10 +57,45 @@ export class CombatDebugOverlayPresenter {
       : line;
   }
 
+  private formatTimestamp(timestamp: number | undefined): string {
+    return timestamp === undefined ? "open" : String(timestamp % 100000);
+  }
+
+  private formatPlaybackOutcome(outcome: string): string {
+    if (outcome === "completed") {
+      return "ok";
+    }
+
+    if (outcome === "skippedUnknown") {
+      return "unknown";
+    }
+
+    return outcome;
+  }
+
   private formatLines(viewModel: CombatDebugViewModel): readonly string[] {
     const selected = viewModel.input.selectedCardId ?? "none";
     const pending = viewModel.input.pendingRequestId ?? "none";
     const events = viewModel.latestEvents.map((event) => event.type).slice(-4).join(", ") || "none";
+    const playbackObservations = viewModel.playbackObservations.slice(-3);
+    const highlightedPlayback =
+      [...viewModel.playbackObservations].reverse().find((observation) => observation.fallbackUsed || observation.warningCode || observation.errorSummary) ??
+      playbackObservations[playbackObservations.length - 1];
+    const playback = highlightedPlayback
+      ? `${highlightedPlayback.eventType} ${highlightedPlayback.policy}/${highlightedPlayback.visualRoute} ${highlightedPlayback.outcome}`
+      : "none";
+    const playbackRecent = playbackObservations
+      .map((observation) => `${observation.eventType} ${this.formatPlaybackOutcome(observation.outcome)}${observation.fallbackUsed ? "!" : ""}`)
+      .join(", ") || "none";
+    const playbackTiming = highlightedPlayback
+      ? `start=${this.formatTimestamp(highlightedPlayback.startedAt)} end=${this.formatTimestamp(highlightedPlayback.endedAt)} dur=${highlightedPlayback.durationMs ?? "open"}`
+      : "none";
+    const playbackFallback = highlightedPlayback
+      ? `fallback=${highlightedPlayback.fallbackUsed ? "yes" : "no"} warn=${highlightedPlayback.warningCode ?? "none"}`
+      : "none";
+    const playbackError = highlightedPlayback
+      ? highlightedPlayback.errorSummary ?? "none"
+      : "none";
     const warnings = viewModel.uiWarnings.join(" | ") || "none";
 
     return [
@@ -84,6 +119,11 @@ export class CombatDebugOverlayPresenter {
       `Monsters: ${viewModel.monsters.map((monster) => `${monster.name} ${monster.hp}/${monster.maxHp}`).join(", ") || "none"}`,
       `Plans: ${viewModel.plannedMonsterAbilities.map((planned) => planned.abilityId).join(", ") || "none"}`,
       `Events: ${events}`,
+      `Playback: ${playback}`,
+      `Playback recent: ${playbackRecent}`,
+      `Playback time: ${playbackTiming}`,
+      `Playback fallback: ${playbackFallback}`,
+      `Playback error: ${playbackError}`,
       `Warnings: ${warnings}`
     ];
   }

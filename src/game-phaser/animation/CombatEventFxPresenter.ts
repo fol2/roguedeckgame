@@ -21,6 +21,11 @@ type Point = {
   readonly y: number;
 };
 
+export type CombatFxFallbackObservation = {
+  readonly warningCode: string;
+  readonly errorSummary: string;
+};
+
 const PLAYER_POINT: Point = {
   x: KEEPER_AVATAR.x,
   y: KEEPER_AVATAR.y - 26
@@ -56,6 +61,7 @@ export class CombatEventFxPresenter {
   private combatantPoints = new Map<CombatantId, Point>();
   private petPoints = new Map<PetInstanceId, Point>();
   private cardPoints = new Map<CardInstanceId, Point>();
+  private pendingFallback?: CombatFxFallbackObservation;
 
   public constructor(private readonly scene: Scene) {
     this.container = scene.add.container(0, 0).setDepth(860);
@@ -75,6 +81,8 @@ export class CombatEventFxPresenter {
   }
 
   public play(event: GameEvent): Promise<void> {
+    this.pendingFallback = undefined;
+
     switch (event.type) {
       case "CardPlayed":
         return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", 0xffd166);
@@ -87,12 +95,14 @@ export class CombatEventFxPresenter {
       case "PetCommanded":
         return this.playTrace(
           this.getCardPoint(event.cardInstanceId, event.type),
-          this.petPoints.get(event.petInstanceId) ?? PLAYER_POINT,
+          this.getPetPoint(event.petInstanceId, event.type),
           "Command",
           0xffb35b
         );
       case "PetReacted":
-        return this.playPulse(this.petPoints.get(event.petInstanceId) ?? PLAYER_POINT, event.reaction, 0xffd166);
+        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.reaction, 0xffd166);
+      case "PetModifierActivated":
+        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.modifierId, 0xffd166);
       case "DamageDealt":
         return this.playImpact(
           this.getCombatantPoint(event.sourceId),
@@ -104,8 +114,14 @@ export class CombatEventFxPresenter {
         return this.playPulse(this.getCombatantPoint(event.targetId), `+${event.amount} block`, 0x7dd3fc);
       case "StatusApplied":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} +${event.stacks}`, 0xffd166);
+      case "StatusApplicationBlocked":
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} blocked`, 0xaab4c5);
+      case "StatusCleansed":
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} cleansed`, 0x7dd3fc);
       case "StatusTicked":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} tick`, 0xff9aad);
+      case "StatusDurationChanged":
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} duration`, 0xffd166);
       case "StatusExpired":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} expired`, 0xaab4c5);
       case "MonsterAbilityPlanned":
@@ -122,13 +138,34 @@ export class CombatEventFxPresenter {
         return this.playPopup(PLAYER_HUD_POINT, event.outcome === "won" ? "Victory" : "Defeat", 0xffd166);
       case "ActionRejected":
         return this.playPopup(PLAYER_HUD_POINT, "Rejected", 0xff758f);
+      case "PlayerClassModifierActivated":
+        return this.playPulse(PLAYER_HUD_POINT, event.modifierId, 0x7dd3fc);
+      case "TriggerQueueLimitReached":
+        return this.playPopup(PLAYER_HUD_POINT, "Trigger limit", 0xff758f);
       default:
         return this.wait(FX_DURATION_MS);
     }
   }
 
+  public consumePlaybackFallback(): CombatFxFallbackObservation | undefined {
+    const fallback = this.pendingFallback;
+    this.pendingFallback = undefined;
+
+    return fallback;
+  }
+
   private getCombatantPoint(combatantId: CombatantId): Point {
-    return this.combatantPoints.get(combatantId) ?? PLAYER_POINT;
+    const point = this.combatantPoints.get(combatantId);
+    if (point) {
+      return point;
+    }
+
+    console.warn("CombatEventFxPresenter used a combatant fallback point.", { combatantId });
+    this.pendingFallback = {
+      warningCode: "missing_combatant_point",
+      errorSummary: `Used player fallback for ${combatantId}`
+    };
+    return PLAYER_POINT;
   }
 
   private getCardPoint(cardInstanceId: CardInstanceId, eventType: GameEvent["type"]): Point {
@@ -141,7 +178,28 @@ export class CombatEventFxPresenter {
       eventType,
       cardInstanceId
     });
+    this.pendingFallback = {
+      warningCode: "missing_card_point",
+      errorSummary: `${eventType} used hand fallback for ${cardInstanceId}`
+    };
     return HAND_POINT;
+  }
+
+  private getPetPoint(petInstanceId: PetInstanceId, eventType: GameEvent["type"]): Point {
+    const point = this.petPoints.get(petInstanceId);
+    if (point) {
+      return point;
+    }
+
+    console.warn("CombatEventFxPresenter used a pet fallback point.", {
+      eventType,
+      petInstanceId
+    });
+    this.pendingFallback = {
+      warningCode: "missing_pet_point",
+      errorSummary: `${eventType} used player fallback for ${petInstanceId}`
+    };
+    return PLAYER_POINT;
   }
 
   private getPilePoint(pile: string, cardInstanceId?: CardInstanceId): Point {

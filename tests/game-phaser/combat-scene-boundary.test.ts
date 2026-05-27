@@ -249,13 +249,13 @@ describe("Combat scene boundary", () => {
 
     expect(sceneSource).toMatch(/CombatOverlayPresenter/);
     expect(sceneSource).toMatch(/CombatDebugOverlayPresenter/);
-    expect(sceneSource).toMatch(/getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\)\)/);
+    expect(sceneSource).toMatch(/getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\), this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\]\)/);
     expect(sceneSource).toMatch(/combatDebug/);
     expect(sceneSource).toMatch(/isDebugOverlayAvailable/);
     expect(sceneSource).toMatch(/import\.meta\.env\.DEV/);
     expect(sceneSource).toMatch(/this\.isDebugOverlayAvailable\(\) && \(event\.key === "`" \|\| event\.key === "F2"\)/);
     expect(sceneSource).toMatch(/const debugOverlayVisible = this\.isDebugOverlayAvailable\(\) && this\.debugOverlayEnabled/);
-    expect(sceneSource).toMatch(/debugOverlayVisible \? this\.sandbox\?\.getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\)\) : undefined/);
+    expect(sceneSource).toMatch(/debugOverlayVisible\s+\? this\.sandbox\?\.getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\), this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\]\)\s+: undefined/);
     expect(sceneSource).toMatch(/debugDragState: DebugInputSnapshot\["dragState"\] = "idle"/);
     expect(sceneSource).toMatch(/handleCardDragDebugState\(state: CardDragDebugState\)/);
     expect(sceneSource).toMatch(/this\.renderDebugOverlay\(\)/);
@@ -274,7 +274,9 @@ describe("Combat scene boundary", () => {
     expect(overlayPresenter).toMatch(/onResumePause/);
     expect(overlayPresenter).toMatch(/No details available yet/);
     expect(eventPlayer).toMatch(/PLAYBACK_TIMEOUT_MS/);
-    expect(eventPlayer).toMatch(/KNOWN_COMBAT_EVENT_TYPES/);
+    expect(eventPlayer).toMatch(/getCombatPlaybackPolicy/);
+    expect(eventPlayer).toMatch(/getPlaybackObservations/);
+    expect(eventPlayer).toMatch(/recordObservation/);
     expect(eventPlayer).toMatch(/fxPresenter\?\.play/);
     expect(eventPlayer).toMatch(/skipped unknown event visual/);
     expect(eventPlayer).toMatch(/finalized after playback timeout/);

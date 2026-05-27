@@ -44,6 +44,7 @@ import {
   type CombatDebugViewModel,
   type DebugInputSnapshot
 } from "../view-models/debug-view-model";
+import type { CombatPlaybackObservation } from "../animation/combat-playback-policy";
 
 export type RunSandboxState = {
   readonly run: RunState;
@@ -56,7 +57,10 @@ export type RunSandboxController = {
   readonly getState: () => RunSandboxState;
   readonly getRunViewModel: () => RunViewModel;
   readonly getCombatViewModel: () => CombatViewModel | undefined;
-  readonly getCombatDebugViewModel: (input?: DebugInputSnapshot) => CombatDebugViewModel;
+  readonly getCombatDebugViewModel: (
+    input?: DebugInputSnapshot,
+    playbackObservations?: readonly CombatPlaybackObservation[]
+  ) => CombatDebugViewModel;
   readonly getRewardViewModel: () => RewardViewModel | undefined;
   readonly selectMapNode: (nodeId: RunNodeId) => GameActionResult<RunSandboxState>;
   readonly playHandCard: (
@@ -242,14 +246,14 @@ export const createRunSandboxController = (
           lastEvents: state.lastEvents
         }, content, revision)
       : undefined,
-    getCombatDebugViewModel: (input) => buildCombatDebugViewModel(state, state.combat
+    getCombatDebugViewModel: (input, playbackObservations) => buildCombatDebugViewModel(state, state.combat
       ? buildCombatViewModel({
           run: state.run,
           petInstances: state.petInstances,
           combat: state.combat,
           lastEvents: state.lastEvents
         }, content, revision)
-      : undefined, input),
+      : undefined, input, undefined, playbackObservations),
     getRewardViewModel: () => state.run.pendingRewardOffer
       ? buildRewardViewModel(state.run.pendingRewardOffer, state.lastEvents, content, state.petInstances)
       : undefined,

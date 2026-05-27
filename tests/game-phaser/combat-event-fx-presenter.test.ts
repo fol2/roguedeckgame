@@ -143,7 +143,13 @@ const createSceneStub = () => {
   return { scene: scene as never, records };
 };
 
-const createViewModel = (handIds: readonly string[] = ["strike:1", "fox_bite:1"]): CombatViewModel => ({
+const createViewModel = (
+  handIds: readonly string[] = ["strike:1", "fox_bite:1"],
+  options: {
+    readonly includePet?: boolean;
+    readonly includeMonster?: boolean;
+  } = {}
+): CombatViewModel => ({
   revision: 1,
   phase: "player_turn",
   encounterLabel: "Training",
@@ -151,8 +157,8 @@ const createViewModel = (handIds: readonly string[] = ["strike:1", "fox_bite:1"]
   energy: 3,
   maxEnergy: 3,
   player: { id: playerId },
-  pets: [{ petInstanceId: emberFoxId, slotIndex: 0 }],
-  monsters: [{ id: monsterId }],
+  pets: options.includePet === false ? [] : [{ petInstanceId: emberFoxId, slotIndex: 0 }],
+  monsters: options.includeMonster === false ? [] : [{ id: monsterId }],
   monsterIntents: [],
   hand: handIds.map((id) => ({ cardInstanceId: cardInstanceId(id) })),
   drawPile: { label: "Draw", count: 0, tooltip: { title: "", body: "" }, detail: { title: "", lines: [] } },
@@ -296,6 +302,43 @@ describe("CombatEventFxPresenter", () => {
     });
     expect(records.texts.find((text) => text.text === "Played")).toMatchObject(handFallbackPoint);
     expect(records.texts.find((text) => text.text === "Played")).not.toMatchObject(playerHudPoint);
+    expect(presenter.consumePlaybackFallback()).toEqual({
+      warningCode: "missing_card_point",
+      errorSummary: `CardPlayed used hand fallback for ${playedCardInstanceId}`
+    });
+    expect(presenter.consumePlaybackFallback()).toBeUndefined();
+    warning.mockRestore();
+  });
+
+  it("records missing pet and combatant point fallbacks for playback diagnostics", async () => {
+    const petScene = createSceneStub();
+    const petPresenter = new CombatEventFxPresenter(petScene.scene);
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    petPresenter.setViewModel(createViewModel([], { includePet: false }));
+
+    await petPresenter.play({ type: "PetReacted", petInstanceId: emberFoxId, reaction: "guard" });
+
+    expect(petPresenter.consumePlaybackFallback()).toEqual({
+      warningCode: "missing_pet_point",
+      errorSummary: `PetReacted used player fallback for ${emberFoxId}`
+    });
+
+    const combatantScene = createSceneStub();
+    const combatantPresenter = new CombatEventFxPresenter(combatantScene.scene);
+    combatantPresenter.setViewModel(createViewModel());
+
+    await combatantPresenter.play({
+      type: "DamageDealt",
+      sourceId: playerId,
+      targetId: combatantId("monster:missing"),
+      amount: 6,
+      blocked: 0
+    });
+
+    expect(combatantPresenter.consumePlaybackFallback()).toEqual({
+      warningCode: "missing_combatant_point",
+      errorSummary: "Used player fallback for monster:missing"
+    });
     warning.mockRestore();
   });
 

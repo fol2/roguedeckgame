@@ -132,6 +132,13 @@ describe("CombatEventPlayer", () => {
 
     expect(eventLog.append).toHaveBeenCalledWith(expect.stringContaining("fox_bite"));
     expect(fxPresenter.play).toHaveBeenCalledWith(event);
+    expect(player.getPlaybackObservations()).toMatchObject([{
+      eventType: "PetCommanded",
+      policy: "animated",
+      visualRoute: "fx",
+      outcome: "completed",
+      fallbackUsed: false
+    }]);
   });
 
   it("waits for visible FX before finalizing event playback", async () => {
@@ -181,7 +188,85 @@ describe("CombatEventPlayer", () => {
 
     expect(eventLog.append).toHaveBeenCalledWith(expect.stringContaining("burn"));
     expect(warning).toHaveBeenCalledWith("CombatEventPlayer recovered from FX playback failure.", expect.any(Error));
+    expect(player.getPlaybackObservations()).toMatchObject([{
+      eventType: "StatusApplied",
+      outcome: "recovered",
+      fallbackUsed: true,
+      warningCode: "fx_failure",
+      errorSummary: "fx failed"
+    }]);
     warning.mockRestore();
+  });
+
+  it("continues playback when visible FX throws synchronously", async () => {
+    const events: readonly GameEvent[] = [
+      {
+        type: "StatusApplied",
+        targetId: combatantId("monster:ash_mite:0"),
+        statusId: statusId("burn"),
+        stacks: 2
+      },
+      { type: "TurnStarted", turnNumber: 2, actorId: combatantId("player") }
+    ];
+    const eventLog = { append: vi.fn() };
+    const fxPresenter = {
+      play: vi.fn((event: GameEvent) => {
+        if (event.type === "StatusApplied") {
+          throw new Error("sync fx failed");
+        }
+
+        return Promise.resolve();
+      })
+    };
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const player = new CombatEventPlayer(createSceneStub() as never, eventLog as never, fxPresenter as never);
+
+    await player.play(events);
+
+    expect(eventLog.append).toHaveBeenCalledTimes(2);
+    expect(player.getPlaybackObservations()).toMatchObject([
+      {
+        eventType: "StatusApplied",
+        outcome: "recovered",
+        fallbackUsed: true,
+        warningCode: "fx_failure",
+        errorSummary: "sync fx failed"
+      },
+      {
+        eventType: "TurnStarted",
+        outcome: "completed",
+        fallbackUsed: false
+      }
+    ]);
+    warning.mockRestore();
+  });
+
+  it("records resolved FX fallback metadata in playback observations", async () => {
+    const event: GameEvent = {
+      type: "CardPlayed",
+      cardInstanceId: cardInstanceId("missing-card"),
+      cardId: cardId("strike"),
+      sourceId: combatantId("player")
+    };
+    const eventLog = { append: vi.fn() };
+    const fxPresenter = {
+      play: vi.fn().mockResolvedValue(undefined),
+      consumePlaybackFallback: vi.fn(() => ({
+        warningCode: "missing_card_point",
+        errorSummary: "CardPlayed used hand fallback for missing-card"
+      }))
+    };
+    const player = new CombatEventPlayer(createSceneStub() as never, eventLog as never, fxPresenter as never);
+
+    await player.play([event]);
+
+    expect(player.getPlaybackObservations()).toMatchObject([{
+      eventType: "CardPlayed",
+      outcome: "recovered",
+      fallbackUsed: true,
+      warningCode: "missing_card_point",
+      errorSummary: "CardPlayed used hand fallback for missing-card"
+    }]);
   });
 
   it("notifies after each visible event has played", async () => {
@@ -218,11 +303,10 @@ describe("CombatEventPlayer", () => {
     expect(afterEvent).toHaveBeenNthCalledWith(1, events[0]);
     expect(afterEvent).toHaveBeenNthCalledWith(2, events[1]);
     expect(playedOrder).toEqual([
-      "fx:CardMoved",
       "after:CardMoved",
-      "fx:CardDrawn",
       "after:CardDrawn"
     ]);
+    expect(fxPresenter.play).not.toHaveBeenCalled();
   });
 
   it("refreshes the playback timeout for each event instead of timing out a long queue", async () => {
@@ -267,6 +351,11 @@ describe("CombatEventPlayer", () => {
     expect(eventLog.append).toHaveBeenCalledTimes(events.length);
     expect(delayedCalls.filter((entry) => entry.delay === 5000)).toHaveLength(events.length);
     expect(delayedCalls.filter((entry) => entry.delay === 70)).toHaveLength(events.length - 1);
+    expect(player.getPlaybackObservations().map((observation) => observation.eventType)).toEqual([
+      "TurnStarted",
+      "CardMoved",
+      "CardMoved"
+    ]);
   });
 
   it("skips unknown event visuals and still finalizes playback", async () => {
@@ -280,6 +369,87 @@ describe("CombatEventPlayer", () => {
     expect(eventLog.append).toHaveBeenCalledWith("Event: FutureEvent");
     expect(fxPresenter.play).not.toHaveBeenCalled();
     expect(warning).toHaveBeenCalledWith("CombatEventPlayer skipped unknown event visual: FutureEvent");
+    expect(player.getPlaybackObservations()).toMatchObject([{
+      eventType: "FutureEvent",
+      policy: "unknown",
+      visualRoute: "none",
+      outcome: "skippedUnknown",
+      fallbackUsed: true,
+      warningCode: "unknown_event"
+    }]);
+    warning.mockRestore();
+  });
+
+  it("records a timeout observation when event playback does not settle", async () => {
+    const event: GameEvent = { type: "TurnStarted", turnNumber: 1, actorId: combatantId("player") };
+    const eventLog = { append: vi.fn() };
+    const delayedCalls: Array<{ readonly delay: number; readonly callback: () => void }> = [];
+    const scene = {
+      time: {
+        delayedCall: (delay: number, callback: () => void) => {
+          delayedCalls.push({ delay, callback });
+
+          return {
+            remove: () => undefined
+          };
+        }
+      }
+    };
+    const fxPresenter = { play: vi.fn().mockResolvedValue(undefined) };
+    const afterEvent = vi.fn(() => new Promise<void>(() => undefined));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const player = new CombatEventPlayer(scene as never, eventLog as never, fxPresenter as never, afterEvent);
+    const playback = player.play([event]);
+
+    await Promise.resolve();
+    delayedCalls.find((entry) => entry.delay === 5000)?.callback();
+    await playback;
+
+    expect(warning).toHaveBeenCalledWith("CombatEventPlayer finalized after playback timeout.");
+    expect(player.getPlaybackObservations()).toMatchObject([{
+      eventType: "TurnStarted",
+      outcome: "timeout",
+      fallbackUsed: true,
+      warningCode: "playback_timeout"
+    }]);
+    warning.mockRestore();
+  });
+
+  it("keeps timeout diagnostics when a late callback resolves after playback unlocked", async () => {
+    const event: GameEvent = { type: "TurnStarted", turnNumber: 1, actorId: combatantId("player") };
+    const eventLog = { append: vi.fn() };
+    const delayedCalls: Array<{ readonly delay: number; readonly callback: () => void }> = [];
+    const scene = {
+      time: {
+        delayedCall: (delay: number, callback: () => void) => {
+          delayedCalls.push({ delay, callback });
+
+          return {
+            remove: () => undefined
+          };
+        }
+      }
+    };
+    let resolveAfterEvent: (() => void) | undefined;
+    const afterEvent = vi.fn(() => new Promise<void>((resolve) => {
+      resolveAfterEvent = resolve;
+    }));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const player = new CombatEventPlayer(scene as never, eventLog as never, undefined, afterEvent);
+    const playback = player.play([event]);
+
+    await Promise.resolve();
+    delayedCalls.find((entry) => entry.delay === 5000)?.callback();
+    await playback;
+    resolveAfterEvent?.();
+    await Promise.resolve();
+
+    expect(player.getPlaybackObservations()).toHaveLength(1);
+    expect(player.getPlaybackObservations()).toMatchObject([{
+      eventType: "TurnStarted",
+      outcome: "timeout",
+      warningCode: "playback_timeout"
+    }]);
     warning.mockRestore();
   });
 });
