@@ -233,6 +233,14 @@ export const createRunSandboxController = (
   let traceSteps: AgentTrace["steps"] = [];
   const content = createContentContext(registry);
 
+  const clearPreviousCombatSceneRequestIds = (): void => {
+    for (const requestId of seenGameplayRequestIds) {
+      if (requestId.startsWith("combat-ui-") || requestId.startsWith("combat-complete-")) {
+        seenGameplayRequestIds.delete(requestId);
+      }
+    }
+  };
+
   const commit = (next: RunSandboxState): RunSandboxState => {
     state = next;
     revision += 1;
@@ -344,6 +352,9 @@ export const createRunSandboxController = (
         petInstances: state.petInstances,
         seed: `${String(seed)}:${nodeId}:combat`
       });
+      if (combatResult.ok) {
+        clearPreviousCombatSceneRequestIds();
+      }
       const events = [...selectedRun.events, ...combatResult.events];
       const next = replaceState(
         state,

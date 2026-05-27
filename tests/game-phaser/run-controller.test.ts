@@ -268,6 +268,42 @@ describe("Run sandbox controller", () => {
     });
   });
 
+  it("allows combat UI request ids to restart for a later combat node", () => {
+    const controller = createRunSandboxController("run-controller-combat-request-reuse");
+
+    startFirstCombat(controller);
+    const firstCombatView = controller.getCombatViewModel()!;
+    const firstCard = firstCombatView.hand.find((candidate) => candidate.playable);
+
+    expect(firstCard).toBeDefined();
+    expect(controller.playHandCard(
+      firstCard!.cardInstanceId,
+      firstCard!.requiresManualTarget ? firstCard!.validTargetIds[0] : undefined,
+      firstCombatView.revision,
+      "combat-ui-1"
+    ).ok).toBe(true);
+
+    finishCombat(controller);
+    expect(controller.getCombatViewModel()?.phase).toBe("won");
+    expect(controller.completeCombatIfEnded(controller.getRevision(), "combat-complete-1").ok).toBe(true);
+    expect(controller.skipReward(undefined, "reward-skip-after-first-combat").ok).toBe(true);
+
+    startFirstCombat(controller);
+    const secondCombatView = controller.getCombatViewModel()!;
+    const secondCard = secondCombatView.hand.find((candidate) => candidate.playable);
+
+    expect(secondCard).toBeDefined();
+    const secondPlay = controller.playHandCard(
+      secondCard!.cardInstanceId,
+      secondCard!.requiresManualTarget ? secondCard!.validTargetIds[0] : undefined,
+      secondCombatView.revision,
+      "combat-ui-1"
+    );
+
+    expect(secondPlay.ok).toBe(true);
+    expect(secondPlay.events[0]?.type).not.toBe("ActionRejected");
+  });
+
   it("rejects missing gameplay request ids before applying combat actions", () => {
     const controller = createRunSandboxController("run-controller-missing-request");
 
