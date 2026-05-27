@@ -66,7 +66,7 @@ const collectEffectTypes = (registry: GameContentRegistry): readonly string[] =>
     });
   (registry.playerClassModifiers ?? [])
     .flatMap((modifier) => modifier.rules ?? [])
-    .flatMap((rule) => rule.effects)
+    .flatMap((rule) => "effects" in rule ? rule.effects : [])
     .forEach(collect);
 
   return sorted(effectTypes);

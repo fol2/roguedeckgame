@@ -29,29 +29,42 @@ describe("content index", () => {
     expect(index.cardsById.get(cardId("strike"))?.name).toBe("Strike");
     expect(index.statusesById.get(statusId("burn"))?.name).toBe("Burn");
     expect(index.petsById.get(petDefinitionId("ember_fox"))?.name).toBe("Ember Fox");
-    expect(index.playersById.get(playerClassId("novice_tamer"))?.name).toBe("Novice Tamer");
-    expect(index.playerClassModifiersById.size).toBe(0);
-    expect(index.monstersById.get(monsterId("training_slime"))?.name).toBe("Training Slime");
-    expect(index.encountersById.get(encounterId("forest_duo_encounter"))?.name).toBe("Forest Duo");
-    expect(index.runMapTemplatesById.get(runTemplateId("act1_forest"))?.name).toBe("Act 1 - Forest");
+    expect(index.playersById.get(playerClassId("novice_tamer"))?.name).toBe("Ashbound Keeper");
+    expect(index.playerClassModifiersById.get(playerClassModifierId("field_sense"))?.name).toBe("Field Sense");
+    expect(index.monstersById.get(monsterId("training_slime"))?.name).toBe("Ash Slime");
+    expect(index.encountersById.get(encounterId("forest_duo_encounter"))?.name).toBe("Ashwood Duo");
+    expect(index.runMapTemplatesById.get(runTemplateId("act1_forest"))?.name).toBe("Ashwood Trail");
     expect(index.rewardPoolsById.get(rewardPoolId("normal"))?.name).toBe("Normal Encounter Rewards");
     expect(index.petUpgradesById.get(upgradeId("warm_bond"))?.name).toBe("Warm Bond");
     expect(index.storyEventsById.get(storyEventId("ember_fox_side_story"))?.title).toBe("Burned Orchard");
     expect(index.petSideStoriesById.get(storyEventId("ember_fox_side_story"))).toBeDefined();
 
     expect(starterRegistry.cards.map((card) => card.id)).toEqual([
+      cardId("keepers_tap"),
+      cardId("field_brace"),
+      cardId("read_the_ash"),
       cardId("strike"),
       cardId("defend"),
       cardId("focus"),
       cardId("fox_bite"),
+      cardId("tailguard"),
+      cardId("kindle_mark"),
+      cardId("fetch_signal"),
       cardId("fox_guard"),
       cardId("fox_fetch"),
       cardId("ember_spark"),
       cardId("quick_guard"),
-      cardId("study_command"),
+      cardId("trail_notes"),
+      cardId("field_signal"),
+      cardId("measured_step"),
       cardId("kindle"),
+      cardId("cinder_sweep"),
       cardId("coordinated_strike"),
-      cardId("fox_flare")
+      cardId("fox_flare"),
+      cardId("sootstep"),
+      cardId("return_signal"),
+      cardId("ash_rewrite"),
+      cardId("study_command")
     ]);
   });
 
@@ -68,8 +81,8 @@ describe("content index", () => {
 
     const index = buildContentIndex(registry);
 
-    expect(index.duplicateIds).toContainEqual({ collection: "cards", id: "strike" });
-    expect(index.cardsById.get(cardId("strike"))?.name).toBe("Duplicate Strike");
+    expect(index.duplicateIds).toContainEqual({ collection: "cards", id: "keepers_tap" });
+    expect(index.cardsById.get(cardId("keepers_tap"))?.name).toBe("Duplicate Strike");
   });
 
   it("reports duplicate status ids", () => {
@@ -129,7 +142,7 @@ describe("content index", () => {
 
     expect(context.registry).toBe(starterRegistry);
     expect(context.index).toBe(index);
-    expect(context.index.cardsById.get(cardId("strike"))).toBe(starterRegistry.cards[0]);
+    expect(context.index.cardsById.get(cardId("keepers_tap"))).toBe(starterRegistry.cards[0]);
   });
 
   it("returns undefined for missing ids", () => {

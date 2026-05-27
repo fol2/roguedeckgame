@@ -12,10 +12,11 @@ import type { AgentAction, AgentActionSource, AgentTraceMode } from "./agent-act
 
 export const AGENT_TRACE_SCHEMA_VERSION = TRACE_SCHEMA_VERSION;
 export const AGENT_TRACE_LEGACY_SCHEMA_VERSION = GAME_EVENT_LEGACY_SCHEMA_VERSION;
+export const AGENT_TRACE_V2_SCHEMA_VERSION = 2;
 export const AGENT_TRACE_PREVIOUS_SCHEMA_VERSION = GAME_EVENT_PREVIOUS_SCHEMA_VERSION;
 export const BROWSER_DEBUG_TRACE_SCHEMA_VERSION = 1;
 
-export type AgentTraceSchemaVersion = GameEventSchemaVersion;
+export type AgentTraceSchemaVersion = GameEventSchemaVersion | typeof AGENT_TRACE_V2_SCHEMA_VERSION;
 
 export type AgentTrace = {
   readonly schemaVersion: AgentTraceSchemaVersion;
@@ -59,6 +60,7 @@ export const serializeAgentTrace = (trace: AgentTrace): string => `${JSON.string
 
 const isSupportedTraceSchemaVersion = (schemaVersion: unknown): schemaVersion is AgentTraceSchemaVersion =>
   schemaVersion === AGENT_TRACE_LEGACY_SCHEMA_VERSION ||
+  schemaVersion === AGENT_TRACE_V2_SCHEMA_VERSION ||
   schemaVersion === AGENT_TRACE_PREVIOUS_SCHEMA_VERSION ||
   schemaVersion === AGENT_TRACE_SCHEMA_VERSION;
 
@@ -87,7 +89,13 @@ export const parseAgentTrace = (text: string): AgentTrace => {
 export const projectAgentTraceEventsForSchema = (
   events: readonly GameEvent[],
   schemaVersion: AgentTraceSchemaVersion
-): readonly GameEvent[] => projectGameEventsForSchema(events, schemaVersion);
+): readonly GameEvent[] =>
+  projectGameEventsForSchema(
+    events,
+    schemaVersion === AGENT_TRACE_V2_SCHEMA_VERSION
+      ? AGENT_TRACE_LEGACY_SCHEMA_VERSION
+      : schemaVersion
+  );
 
 export const createTraceStep = (
   step: number,

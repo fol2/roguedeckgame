@@ -21,14 +21,15 @@ import type {
   StoryFlagId,
   UpgradeId
 } from "../ids";
+import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "./combat";
 import type { MonsterIntentType } from "./monster";
 import type { RewardOption } from "./reward";
 
 export type CardPile = "draw" | "hand" | "discard" | "exhaust";
 
 export const GAME_EVENT_LEGACY_SCHEMA_VERSION = 1;
-export const GAME_EVENT_PREVIOUS_SCHEMA_VERSION = 2;
-export const GAME_EVENT_SCHEMA_VERSION = 3;
+export const GAME_EVENT_PREVIOUS_SCHEMA_VERSION = 3;
+export const GAME_EVENT_SCHEMA_VERSION = 4;
 
 export type GameEventSchemaVersion =
   | typeof GAME_EVENT_LEGACY_SCHEMA_VERSION
@@ -90,6 +91,13 @@ export type GameEvent =
       readonly intentId: MonsterIntentId;
       readonly intentType: MonsterIntentType;
       readonly description: string;
+    }
+  | {
+      readonly type: "EnemyIntentVisibilityChanged";
+      readonly monsterId: CombatantId;
+      readonly level: IntentVisibilityLevel;
+      readonly source: IntentVisibilitySource;
+      readonly expires: IntentVisibilityExpiry;
     }
   | {
       readonly type: "MonsterAbilityPlayed";
@@ -257,13 +265,16 @@ export const projectGameEventsForSchema = (
     return events;
   }
 
-  const withoutStatusConsumed = events.filter((event) => event.type !== "StatusConsumed");
+  const withoutV4Events = events.filter((event) =>
+    event.type !== "StatusConsumed" &&
+    event.type !== "EnemyIntentVisibilityChanged"
+  );
 
   if (schemaVersion >= GAME_EVENT_PREVIOUS_SCHEMA_VERSION) {
-    return withoutStatusConsumed;
+    return withoutV4Events;
   }
 
-  return withoutStatusConsumed.filter((event) =>
+  return withoutV4Events.filter((event) =>
     event.type !== "MonsterAbilityPlanned" &&
     event.type !== "MonsterAbilityPlayed"
   );

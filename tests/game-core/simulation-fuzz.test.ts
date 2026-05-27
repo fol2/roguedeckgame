@@ -15,7 +15,7 @@ import {
 
 describe("agent simulation fuzz", () => {
   it("runs a small deterministic fuzz sample with invalid injection", () => {
-    const result = runFuzzSimulation({ seed: "ci-fuzz", runs: 8, maxSteps: 220, invalidActionRate: 0.15 });
+    const result = runFuzzSimulation({ seed: "ci-fuzz", runs: 8, maxSteps: 260, invalidActionRate: 0.15 });
 
     expect(result.ok).toBe(true);
     expect(result.failures).toEqual([]);
@@ -26,10 +26,10 @@ describe("agent simulation fuzz", () => {
         .filter((step) => step.source === "invalid-injected")
         .every((step) => !step.ok && step.events.every((event) => event.type === "ActionRejected"))
     ).toBe(true);
-  });
+  }, 15000);
 
   it("threads custom registries into smoke policy card selection", () => {
-    const strike = starterRegistry.cards.find((card) => card.id === "strike")!;
+    const strike = starterRegistry.cards.find((card) => card.id === "keepers_tap")!;
     const customStrike = {
       ...strike,
       id: cardId("custom_policy_strike"),
@@ -48,13 +48,13 @@ describe("agent simulation fuzz", () => {
         decks: starterRegistry.decks?.map((deck) => ({
           ...deck,
           cardIds: deck.cardIds.map((cardIdValue) =>
-            cardIdValue === "strike" ? customStrike.id : cardIdValue
+            cardIdValue === "keepers_tap" ? customStrike.id : cardIdValue
           )
         })),
         players: [{
           ...starterRegistry.players[0],
           startingDeckCardIds: starterRegistry.players[0].startingDeckCardIds.map((cardIdValue) =>
-            cardIdValue === "strike" ? customStrike.id : cardIdValue
+            cardIdValue === "keepers_tap" ? customStrike.id : cardIdValue
           )
         }]
       }

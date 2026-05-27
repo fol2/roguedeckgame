@@ -91,7 +91,7 @@ describe("Combat event messages", () => {
     };
     const ended: GameEvent = { type: "CombatEnded", outcome: "won" };
 
-    expect(formatCombatEventMessage(planned)).toContain("Attack the Keeper");
+    expect(formatCombatEventMessage(planned)).toBe("monster:training_slime:0 planned a monster card.");
     expect(formatCombatEventMessage(played)).toContain("training_slime_attack");
     expect(formatCombatEventMessage(intent)).toContain("training_slime_attack");
     expect(formatCombatEventMessage(ended)).toBe("Combat won.");
@@ -163,7 +163,7 @@ describe("CombatEventPlayer", () => {
     });
 
     await Promise.resolve();
-    expect(eventLog.append).toHaveBeenCalledWith(expect.stringContaining("Attack the Keeper"));
+    expect(eventLog.append).toHaveBeenCalledWith("monster:training_slime:0 set an intent.");
     expect(finalized).toBe(false);
 
     resolveFx?.();

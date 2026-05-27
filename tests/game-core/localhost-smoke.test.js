@@ -248,7 +248,7 @@ describe("localhost smoke", () => {
     expect(response.ok).toBe(true);
     expect(payload).toMatchObject({
       ok: true,
-      cards: 12,
+      cards: 25,
       pets: ["ember_fox"],
       players: ["novice_tamer"],
       reward: {
@@ -284,7 +284,7 @@ describe("localhost smoke", () => {
         combatOk: true,
         activeModifierIds: ["burning_fang_modifier"],
         playOk: true,
-        monsterHp: 15,
+        monsterHp: 16,
         burnStacks: 3
       },
       errors: []

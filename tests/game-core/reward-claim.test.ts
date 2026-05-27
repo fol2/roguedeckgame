@@ -229,6 +229,67 @@ describe("claimReward", () => {
     expect(result.errors.map((rewardError) => rewardError.code)).toEqual(["ineligible_reward_card"]);
   });
 
+  it("rejects a card reward that has reached its duplicate limit", () => {
+    const rewardOffer = createCardRewardOfferFixture();
+    const result = claimReward({
+      rewardOffer,
+      selectedOptionId: rewardOffer.options[0].id,
+      run: createRewardRunFixture({
+        deckCardIds: [cardId("ember_spark"), cardId("ember_spark"), cardId("ember_spark")]
+      }),
+      petInstances: createRewardPetInstancesFixture(),
+      registry: starterRegistry
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((rewardError) => rewardError.code)).toEqual(["reward_card_duplicate_limit"]);
+  });
+
+  it("records the pity flag when claiming a bearer card reward", () => {
+    const rewardOffer = createCardRewardOfferFixture({
+      options: [
+        {
+          type: "card",
+          id: rewardOptionId("reward_fixture:bearer:cinder_scribe_encounter:card:ash_rewrite"),
+          cardId: cardId("ash_rewrite")
+        }
+      ]
+    });
+    const result = claimReward({
+      rewardOffer,
+      selectedOptionId: rewardOffer.options[0].id,
+      run: createRewardRunFixture(),
+      petInstances: createRewardPetInstancesFixture(),
+      registry: starterRegistry
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.run.deckCardIds).toContain(cardId("ash_rewrite"));
+    expect(result.state.run.runFlags).toContain("ash_rewrite_first");
+  });
+
+  it("rejects forged bearer card option ids that do not match the authored drop source", () => {
+    const rewardOffer = createCardRewardOfferFixture({
+      options: [
+        {
+          type: "card",
+          id: rewardOptionId("reward_fixture:bearer:wrong_source:card:ash_rewrite"),
+          cardId: cardId("ash_rewrite")
+        }
+      ]
+    });
+    const result = claimReward({
+      rewardOffer,
+      selectedOptionId: rewardOffer.options[0].id,
+      run: createRewardRunFixture(),
+      petInstances: createRewardPetInstancesFixture(),
+      registry: starterRegistry
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((rewardError) => rewardError.code)).toEqual(["ineligible_reward_card"]);
+  });
+
   it("rejects a missing pet instance", () => {
     const rewardOffer = createPetUpgradeRewardOfferFixture();
     const result = claimReward({

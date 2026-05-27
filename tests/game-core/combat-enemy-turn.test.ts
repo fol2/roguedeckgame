@@ -113,12 +113,12 @@ describe("enemy turn resolution", () => {
     const result = resolveEnemyTurn(state, starterRegistry, createRng("slime-block"));
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].block).toBe(4);
+    expect(result.state.monsters[0].block).toBe(5);
     expect(result.events).toContainEqual({
       type: "BlockGained",
       targetId: combatantId("monster:training_slime:0"),
-      amount: 4,
-      total: 4
+      amount: 5,
+      total: 5
     });
   });
 

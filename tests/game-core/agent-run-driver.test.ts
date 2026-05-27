@@ -180,6 +180,32 @@ describe("agent run driver", () => {
     expect(createAgentStateHash(changed, { schemaVersion: 3 })).not.toBe(createAgentStateHash(snapshot, { schemaVersion: 3 }));
   });
 
+  it("includes intent visibility overrides only in v4 trace hashes", () => {
+    const driver = createAgentRunDriver({ seed: "driver-hash-intent-visibility" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const monster = snapshot.combat?.monsters[0];
+    expect(monster).toBeDefined();
+
+    const changed: AgentRunDriverSnapshot = {
+      ...snapshot,
+      combat: snapshot.combat
+        ? {
+            ...snapshot.combat,
+            intentVisibilityOverrides: [{
+              monsterCombatantId: monster!.id,
+              level: "rough",
+              source: "debug",
+              expires: "never"
+            }]
+          }
+        : snapshot.combat
+    };
+
+    expect(createAgentStateHash(changed, { schemaVersion: 3 })).toBe(createAgentStateHash(snapshot, { schemaVersion: 3 }));
+    expect(createAgentStateHash(changed, { schemaVersion: 4 })).not.toBe(createAgentStateHash(snapshot, { schemaVersion: 4 }));
+  });
+
   it("rejects target ids on targetless card actions", () => {
     const driver = createAgentRunDriver({ seed: "driver-extra-target" });
     let targetlessAction = driver.getLegalActions().find((action) => action.type === "playCard" && !action.targetId);

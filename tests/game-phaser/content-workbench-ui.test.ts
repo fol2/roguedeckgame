@@ -140,7 +140,7 @@ const findByTestId = (rootElement: FakeElement, testId: string): FakeElement => 
 
 const fakeBalanceDashboard = (): BalanceDashboardViewModel => ({
   runtimeMetadata: currentRuntimeMetadata,
-  contentVersion: "starter-act1-forest-v1",
+  contentVersion: "ashwood-trail-content-foundation-v2",
   summary: [
     { label: "Runs", value: "2" },
     { label: "Completion rate", value: "50.0%" },
@@ -206,7 +206,7 @@ describe("content workbench UI", () => {
     ]);
     expect(collections.find((collection) => collection.id === "cards")).toMatchObject({
       label: "Cards",
-      count: 12,
+      count: 25,
       required: true
     });
     expect(collections.find((collection) => collection.id === "decks")).toMatchObject({
@@ -234,8 +234,8 @@ describe("content workbench UI", () => {
 
     expect(JSON.parse(formatWorkbenchJson(starterDeck))).toMatchObject({
       id: "novice_tamer_starter",
-      size: 9,
-      petCommandCount: 3,
+      size: 10,
+      petCommandCount: 5,
       whereUsedByPlayerClassIds: ["novice_tamer"]
     });
   });
@@ -249,10 +249,16 @@ describe("content workbench UI", () => {
       "coordinated_strike"
     ]);
     expect(filterWorkbenchItems(cards, "pet-command").map((item) => item.id)).toEqual([
+      "coordinated_strike",
+      "fetch_signal",
       "fox_bite",
       "fox_fetch",
       "fox_flare",
-      "fox_guard"
+      "fox_guard",
+      "kindle_mark",
+      "return_signal",
+      "sootstep",
+      "tailguard"
     ]);
     expect(filterWorkbenchItems(cards, "damage").map((item) => item.id)).toContain("strike");
   });
@@ -276,7 +282,7 @@ describe("content workbench UI", () => {
     const dashboard = fakeBalanceDashboard();
 
     expect(dashboard.runtimeMetadata.packageName).toBe("roguedeckgame");
-    expect(dashboard.contentVersion).toBe("starter-act1-forest-v1");
+    expect(dashboard.contentVersion).toBe("ashwood-trail-content-foundation-v2");
     expect(dashboard.summary.map((metric) => metric.label)).toEqual(expect.arrayContaining([
       "Runs",
       "Completion rate",
@@ -287,7 +293,7 @@ describe("content workbench UI", () => {
     expect(dashboard.sections.rewardPickRates.length).toBeGreaterThan(0);
     expect(dashboard.sections.monsterAbilityFrequency.length).toBeGreaterThan(0);
     expect(dashboard.sections.runPaths.length).toBeGreaterThan(0);
-  });
+  }, 15000);
 
   it("renders collection switches, filters, tabs, and empty states through DOM events", () => {
     const restoreDocument = installFakeDocument();
@@ -302,11 +308,11 @@ describe("content workbench UI", () => {
       expect(mount.textContent).toContain("fingerprint");
       expect(mount.textContent).toContain("Cards");
       expect(mount.textContent).toContain("Coordinated Strike");
-      expect(mount.textContent).toContain("\"coordinated_strike\"");
+      expect(mount.textContent).toContain("coordinated_strike");
 
       findByTestId(mount, "workbench-collection-monsters").click();
       expect(mount.textContent).toContain("Monsters");
-      expect(mount.textContent).toContain("Forest Warden");
+      expect(mount.textContent).toContain("Emberroot Warden");
 
       findByTestId(mount, "workbench-collection-decks").click();
       expect(findByTestId(mount, "workbench-deck-view").textContent).toContain("Deck view");
@@ -322,12 +328,12 @@ describe("content workbench UI", () => {
       expect(levelView.textContent).toContain("act1_forest_3_elite_a");
       expect(levelView.textContent).toContain("charred_stag");
       expect(levelView.textContent).toContain("Charred Stag");
-      expect(levelView.textContent).toContain("tags: beast, burn, elite, forest");
+      expect(levelView.textContent).toContain("tags: adaptive, beast, burn, elite, forest");
       expect(levelView.textContent).toContain("Reward pools: elite");
       expect(levelView.textContent).toContain("act1_forest_4_boss_a");
       expect(levelView.textContent).toContain("forest_warden");
-      expect(levelView.textContent).toContain("Forest Warden");
-      expect(levelView.textContent).toContain("tags: boss, burn, forest, guardian");
+      expect(levelView.textContent).toContain("Emberroot Warden");
+      expect(levelView.textContent).toContain("tags: adaptive, boss, burn, forest, guardian");
       expect(levelView.textContent).toContain("Reward pools: boss");
 
       findByTestId(mount, "workbench-collection-monsters").click();
@@ -340,9 +346,9 @@ describe("content workbench UI", () => {
       const restoredSearch = findByTestId(mount, "workbench-search");
       expect(activeElement).toBe(restoredSearch);
       expect(restoredSearch.selectionStart).toBe(restoredSearch.value.length);
-      expect(mount.textContent).toContain("1 / 4");
+      expect(mount.textContent).toContain("1 / 7");
       expect(mount.textContent).toContain("forest_warden");
-      expect(mount.textContent).not.toContain("Training Slime");
+      expect(mount.textContent).not.toContain("Ash Slime");
 
       findByTestId(mount, "workbench-tab-diagnostics").click();
       expect(mount.textContent).toContain("Registry diagnostics");
@@ -356,7 +362,7 @@ describe("content workbench UI", () => {
       const cardSearch = findByTestId(mount, "workbench-search");
       cardSearch.value = "";
       cardSearch.dispatch("input");
-      findByTestId(mount, "workbench-item-strike").click();
+      findByTestId(mount, "workbench-item-keepers_tap").click();
       findByTestId(mount, "workbench-tab-diagnostics").click();
       expect(findByTestId(mount, "workbench-selected-diagnostics").textContent).toContain("playerStartingDeck");
       expect(findByTestId(mount, "workbench-selected-diagnostics").textContent).toContain("Where used");

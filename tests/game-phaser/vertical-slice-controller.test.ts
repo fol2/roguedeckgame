@@ -149,7 +149,7 @@ describe("vertical slice controller flow", () => {
     selectNode(controller, "boss");
     expect(controller.getCombatViewModel()).toMatchObject({
       runNodeType: "boss",
-      encounterLabel: "Forest Warden"
+      encounterLabel: "Emberroot Warden"
     });
     const completed = winCurrentCombat(controller);
 

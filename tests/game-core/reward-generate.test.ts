@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardId,
+  encounterId,
   generateCombatRewardOffer,
   petDefinitionId,
   petInstanceId,
@@ -150,6 +151,67 @@ describe("generateCombatRewardOffer", () => {
     expect(offeredCardIds).not.toContain(cardId("fox_bite"));
   });
 
+  it("filters card rewards by the encounter reward pool metadata", () => {
+    const normal = generateCombatRewardOffer({
+      combat: createWonCombatFixture({ encounterId: encounterId("training_slime_encounter") }),
+      run: createRewardRunFixture(),
+      registry: starterRegistry,
+      petInstances: createRewardPetInstancesFixture(),
+      seed: "normal-pool",
+      cardOptionCount: 99,
+      petUpgradeOptionCount: 0
+    });
+    const elite = generateCombatRewardOffer({
+      combat: createWonCombatFixture({ encounterId: encounterId("forest_elite_placeholder") }),
+      run: createRewardRunFixture(),
+      registry: starterRegistry,
+      petInstances: createRewardPetInstancesFixture(),
+      seed: "elite-pool",
+      cardOptionCount: 99,
+      petUpgradeOptionCount: 0
+    });
+    const boss = generateCombatRewardOffer({
+      combat: createWonCombatFixture({ encounterId: encounterId("forest_boss_placeholder") }),
+      run: createRewardRunFixture(),
+      registry: starterRegistry,
+      petInstances: createRewardPetInstancesFixture(),
+      seed: "boss-pool",
+      cardOptionCount: 99,
+      petUpgradeOptionCount: 0
+    });
+
+    expect(normal.state.options).not.toContainEqual(
+      expect.objectContaining({ type: "card", cardId: cardId("cinder_sweep") })
+    );
+    expect(elite.state.options).toContainEqual(
+      expect.objectContaining({ type: "card", cardId: cardId("cinder_sweep") })
+    );
+    expect(boss.state.options).toContainEqual(
+      expect.objectContaining({ type: "card", cardId: cardId("cinder_sweep") })
+    );
+    expect(boss.state.options).not.toContainEqual(
+      expect.objectContaining({ type: "card", cardId: cardId("ember_spark") })
+    );
+  });
+
+  it("excludes cards that have reached their run deck duplicate limit", () => {
+    const result = generateCombatRewardOffer({
+      combat: createWonCombatFixture(),
+      run: createRewardRunFixture({
+        deckCardIds: [cardId("ember_spark"), cardId("ember_spark"), cardId("ember_spark")]
+      }),
+      registry: starterRegistry,
+      petInstances: createRewardPetInstancesFixture(),
+      seed: "duplicate-policy",
+      cardOptionCount: 99,
+      petUpgradeOptionCount: 0
+    });
+
+    expect(result.state.options).not.toContainEqual(
+      expect.objectContaining({ type: "card", cardId: cardId("ember_spark") })
+    );
+  });
+
   it("includes Ember Fox pet-command rewards when Ember Fox is active", () => {
     const result = generateCombatRewardOffer({
       combat: createWonCombatFixture(),
@@ -216,6 +278,51 @@ describe("generateCombatRewardOffer", () => {
         })
       ])
     );
+  });
+
+  it("offers a Cinder Scribe bearer card first time and fallback cards on repeat failed drops", () => {
+    const registry = {
+      ...starterRegistry,
+      encounters: starterRegistry.encounters.map((encounter) =>
+        encounter.id === encounterId("cinder_scribe_encounter") && encounter.rewardBearer
+          ? {
+              ...encounter,
+              rewardBearer: {
+                ...encounter.rewardBearer,
+                dropRule: { ...encounter.rewardBearer.dropRule, chancePercent: 0 }
+              }
+            }
+          : encounter
+      )
+    };
+    const combat = createWonCombatFixture({ encounterId: encounterId("cinder_scribe_encounter") });
+    const first = generateCombatRewardOffer({
+      combat,
+      run: createRewardRunFixture(),
+      registry,
+      petInstances: createRewardPetInstancesFixture(),
+      seed: "cinder-scribe-first",
+      cardOptionCount: 0,
+      petUpgradeOptionCount: 0
+    });
+    const repeat = generateCombatRewardOffer({
+      combat,
+      run: createRewardRunFixture({ runFlags: ["ash_rewrite_first"] }),
+      registry,
+      petInstances: createRewardPetInstancesFixture(),
+      seed: "cinder-scribe-repeat",
+      cardOptionCount: 0,
+      petUpgradeOptionCount: 0
+    });
+
+    expect(first.state.options).toContainEqual(
+      expect.objectContaining({ type: "card", cardId: cardId("ash_rewrite") })
+    );
+    expect(repeat.state.options).not.toContainEqual(
+      expect.objectContaining({ type: "card", cardId: cardId("ash_rewrite") })
+    );
+    expect(repeat.state.options).toHaveLength(1);
+    expect(repeat.state.options[0]?.id).toContain(":bearer:cinder_scribe_encounter:fallback:");
   });
 
   it("excludes already unlocked pet upgrades", () => {

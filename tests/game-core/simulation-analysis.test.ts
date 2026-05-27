@@ -140,7 +140,7 @@ describe("simulation analysis", () => {
   });
 
   it("tracks invalid-action rejection coverage in fuzz traces", () => {
-    const result = runFuzzSimulation({ seed: "analysis-fuzz", runs: 6, maxSteps: 160, invalidActionRate: 0.3 });
+    const result = runFuzzSimulation({ seed: "analysis-fuzz", runs: 6, maxSteps: 400, invalidActionRate: 0.3 });
     const report = analyzeAgentTraces(result.traces);
     const health = checkSimulationHealth(report, {
       requireCompletedRun: false,

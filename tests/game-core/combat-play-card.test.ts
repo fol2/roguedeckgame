@@ -68,6 +68,76 @@ describe("playCard", () => {
     ]);
   });
 
+  it("improves intent visibility from the passive Field Sense baseline", () => {
+    const readTheAsh = cardInstanceId("read_the_ash:1");
+    const fixture = createHandTunedCombatFixture();
+    const result = playCard(
+      {
+        ...fixture,
+        cardInstances: [
+          ...fixture.cardInstances,
+          { id: readTheAsh, cardId: cardId("read_the_ash"), ownerId: combatantId("player") }
+        ],
+        hand: [readTheAsh],
+        drawPile: []
+      },
+      { type: "playCard", cardInstanceId: readTheAsh, targetId },
+      starterRegistry,
+      createRng("read-the-ash")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.intentVisibilityOverrides).toContainEqual(
+      expect.objectContaining({
+        monsterCombatantId: targetId,
+        level: "rough"
+      })
+    );
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: targetId,
+        level: "rough"
+      })
+    );
+  });
+
+  it("does not downgrade a stronger persistent intent visibility override", () => {
+    const fieldSignal = cardInstanceId("field_signal:1");
+    const fixture = createHandTunedCombatFixture();
+    const result = playCard(
+      {
+        ...fixture,
+        intentVisibilityOverrides: [{
+          monsterCombatantId: targetId,
+          level: "exact",
+          source: "debug",
+          expires: "never"
+        }],
+        cardInstances: [
+          ...fixture.cardInstances,
+          { id: fieldSignal, cardId: cardId("field_signal"), ownerId: combatantId("player") }
+        ],
+        hand: [fieldSignal],
+        drawPile: []
+      },
+      { type: "playCard", cardInstanceId: fieldSignal, targetId },
+      starterRegistry,
+      createRng("field-signal-no-downgrade")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.intentVisibilityOverrides).toEqual([{
+      monsterCombatantId: targetId,
+      level: "exact",
+      source: "debug",
+      expires: "never"
+    }]);
+    expect(result.events).not.toContainEqual(
+      expect.objectContaining({ type: "EnemyIntentVisibilityChanged" })
+    );
+  });
+
   it("rejects target ids on targetless cards", () => {
     const state = createHandTunedCombatFixture();
     const before = JSON.parse(JSON.stringify(state));

@@ -22,7 +22,7 @@ describe("vertical slice content", () => {
       tags: expect.arrayContaining(["forest", "elite", "beast", "burn"])
     });
     expect(forestWarden).toMatchObject({
-      name: "Forest Warden",
+      name: "Emberroot Warden",
       tags: expect.arrayContaining(["forest", "boss", "guardian", "burn"])
     });
   });
@@ -38,7 +38,7 @@ describe("vertical slice content", () => {
     });
     expect(boss).toMatchObject({
       type: "boss",
-      name: "Forest Warden",
+      name: "Emberroot Warden",
       monsterIds: [monsterId("forest_warden")]
     });
   });

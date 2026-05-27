@@ -32,7 +32,7 @@ describe("pet modifier multi-pet ownership", () => {
     ]), "multi-leading-first");
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(15);
+    expect(result.state.monsters[0].hp).toBe(16);
   });
 
   it("does not apply a second pet's modifier to a leading command", () => {
@@ -42,7 +42,7 @@ describe("pet modifier multi-pet ownership", () => {
     ]), "multi-leading-second");
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(17);
+    expect(result.state.monsters[0].hp).toBe(18);
     expect(result.events.filter((event) => event.type === "PetModifierActivated")).toEqual([]);
   });
 
@@ -56,7 +56,7 @@ describe("pet modifier multi-pet ownership", () => {
     expect(result.events.find((event) => event.type === "PetCommanded")).toMatchObject({
       petInstanceId: petInstanceId("ember_fox_002")
     });
-    expect(result.state.monsters[0].hp).toBe(15);
+    expect(result.state.monsters[0].hp).toBe(16);
   });
 
   it("allows an all-active command to receive modifiers from multiple active pets", () => {
@@ -221,7 +221,7 @@ describe("pet modifier multi-pet ownership", () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(16);
+    expect(result.state.monsters[0].hp).toBe(17);
   });
 
   it("rejects missing temporary modifier definitions", () => {

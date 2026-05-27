@@ -42,6 +42,31 @@ export type ActiveMonsterIntent = {
   readonly intentId: MonsterIntentId;
 };
 
+export type IntentVisibilityLevel = "none" | "unknown" | "category" | "rough" | "exact" | "scoped";
+
+export type IntentVisibilitySource =
+  | "classPassive"
+  | "card"
+  | "petUpgrade"
+  | "enemyObscure"
+  | "encounter"
+  | "debug";
+
+export type IntentVisibilityExpiry =
+  | "currentPlan"
+  | "endOfPlayerTurn"
+  | "afterEnemyAction"
+  | "combat"
+  | "never";
+
+export type CombatIntentVisibilityState = {
+  readonly monsterCombatantId: CombatantId;
+  readonly level: IntentVisibilityLevel;
+  readonly source: IntentVisibilitySource;
+  readonly expires: IntentVisibilityExpiry;
+  readonly sourceCardInstanceId?: CardInstanceId;
+};
+
 export type PlannedMonsterAbility = {
   readonly monsterCombatantId: CombatantId;
   readonly intentId: MonsterIntentId;
@@ -66,6 +91,7 @@ export type CombatState = {
   readonly runPetStates: readonly RunPetState[];
   readonly monsterIntents: readonly ActiveMonsterIntent[];
   readonly plannedMonsterAbilities?: readonly PlannedMonsterAbility[];
+  readonly intentVisibilityOverrides?: readonly CombatIntentVisibilityState[];
   readonly cardInstances: readonly CombatCardInstance[];
   readonly drawPile: readonly CardInstanceId[];
   readonly hand: readonly CardInstanceId[];

@@ -5,6 +5,7 @@ import { decks as deckDefinitions } from "./decks/novice-tamer-starter";
 import { forestEncounters } from "./encounters/forest-encounters";
 import { forestMonsterAbilities, forestMonsters } from "./monsters/forest-monsters";
 import { pets as petDefinitions } from "./pets/ember-fox";
+import { ashboundKeeperClassModifiers } from "./players/ashbound-keeper-modifiers";
 import { players as playerDefinitions } from "./players/novice-tamer";
 import { runMapTemplates as forestRunMapTemplates } from "./run-maps/act1-forest";
 import { rewardPools as rewardPoolDefinitions } from "./rewards/reward-pools";
@@ -14,7 +15,7 @@ import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
 
 export const starterRegistry: GameContentRegistry = {
-  contentVersion: "starter-act1-forest-v1",
+  contentVersion: "ashwood-trail-content-foundation-v2",
   cards: [...starterCards, ...emberFoxCards, ...rewardCards],
   decks: deckDefinitions,
   statuses: [burnStatusDefinition],
@@ -27,7 +28,7 @@ export const starterRegistry: GameContentRegistry = {
   rewardPools: rewardPoolDefinitions,
   petUpgrades: emberFoxUpgrades,
   petModifiers: emberFoxUpgrades.flatMap((upgrade) => upgrade.modifiers),
-  playerClassModifiers: [],
+  playerClassModifiers: ashboundKeeperClassModifiers,
   storyEvents: emberFoxStoryEvents,
   petSideStories: emberFoxPetSideStories
 };

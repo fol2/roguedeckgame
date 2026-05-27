@@ -1,7 +1,17 @@
 import type { MonsterAbilityId, MonsterId, MonsterIntentId } from "../ids";
+import type { IntentVisibilityLevel } from "./combat";
 import type { EffectDefinition } from "./effect";
 
-export type MonsterIntentType = "attack" | "block" | "debuff" | "special";
+export type MonsterIntentType = "attack" | "block" | "debuff" | "buff" | "special" | "charge" | "unknown";
+
+export type EnemyCardTier = "basic" | "advanced" | "elite" | "boss" | "rareBearer" | "special";
+export type EnemyPlanMode = "locked" | "adaptive" | "charging" | "scriptedPhase";
+
+export type MonsterAbilityTelegraphDefinition = {
+  readonly defaultVisibility?: IntentVisibilityLevel;
+  readonly amountLabelMode?: "hidden" | "rough" | "exact";
+  readonly targetHint?: "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
+};
 
 export type MonsterAbilityDefinition = {
   readonly id: MonsterAbilityId;
@@ -10,6 +20,9 @@ export type MonsterAbilityDefinition = {
   readonly description: string;
   readonly tags: readonly string[];
   readonly effects: readonly EffectDefinition[];
+  readonly tier?: EnemyCardTier;
+  readonly planMode?: EnemyPlanMode;
+  readonly telegraph?: MonsterAbilityTelegraphDefinition;
 };
 
 export type MonsterIntentDefinition = {
@@ -29,6 +42,20 @@ export type MonsterIntentScheduleStep = {
   readonly conditions?: readonly MonsterIntentScheduleCondition[];
 };
 
+export type EnemyCardDeckEntryDefinition = {
+  readonly abilityId: MonsterAbilityId;
+  readonly copies: number;
+};
+
+export type MonsterCardGameDefinition = {
+  readonly deck: readonly EnemyCardDeckEntryDefinition[];
+  readonly handSize: number;
+  readonly planSlots: number;
+  readonly defaultPlanMode: EnemyPlanMode;
+  readonly defaultIntentVisibility: IntentVisibilityLevel;
+  readonly adaptiveRuleIds?: readonly string[];
+};
+
 export type MonsterDefinition = {
   readonly id: MonsterId;
   readonly name: string;
@@ -37,4 +64,5 @@ export type MonsterDefinition = {
   readonly abilityIds?: readonly MonsterAbilityId[];
   readonly intentPool: readonly MonsterIntentDefinition[];
   readonly intentSchedule?: readonly MonsterIntentScheduleStep[];
+  readonly cardGame?: MonsterCardGameDefinition;
 };

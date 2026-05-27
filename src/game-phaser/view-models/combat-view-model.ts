@@ -12,6 +12,7 @@ import {
   type GameEvent,
   type EncounterId,
   type MonsterAbilityId,
+  type IntentVisibilityLevel,
   type MonsterId,
   type MonsterIntentId,
   type PetInstance,
@@ -19,7 +20,8 @@ import {
   type RunState,
   type RunNodeType,
   type StatusDefinition,
-  type StatusId
+  type StatusId,
+  resolveEffectiveIntentVisibilityLevel
 } from "../../game-core";
 import {
   buildCardActionContract,
@@ -29,7 +31,7 @@ import {
 } from "../../game-core";
 import type { CardType } from "../../game-core/model/card";
 import type { EffectDefinition } from "../../game-core/model/effect";
-import type { MonsterAbilityDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
+import type { MonsterAbilityDefinition, MonsterDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
 import { buildCombatPileViewModel } from "./combat-pile-view-model";
 
@@ -117,6 +119,7 @@ export type MonsterIntentViewModel = {
   readonly description: string;
   readonly targetHint: "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
   readonly amount?: number;
+  readonly visibilityLevel: IntentVisibilityLevel;
   readonly tooltip: CombatTooltipCopyViewModel;
   readonly detail: CombatDetailCopyViewModel;
   readonly plannedAction: MonsterPlannedActionViewModel;
@@ -124,7 +127,7 @@ export type MonsterIntentViewModel = {
 
 export type MonsterPlannedActionViewModel = {
   readonly source: "plannedAbility" | "fallbackMetadata" | "unknown";
-  readonly revealPolicy: "revealed";
+  readonly revealPolicy: IntentVisibilityLevel;
   readonly title: string;
   readonly subtitle: string;
   readonly abilityId?: MonsterAbilityId;
@@ -234,7 +237,13 @@ const keywordCopyByTag: Readonly<Record<string, CombatKeywordExplanationViewMode
   setup: { keyword: "Setup", explanation: "Builds advantage for a later action or turn." },
   combo: { keyword: "Combo", explanation: "Rewards being combined with another card, tag, or status." },
   finisher: { keyword: "Finisher", explanation: "Has extra value when ending a fight or defeating a target." },
-  mark: { keyword: "Mark", explanation: "Flags a target for a later effect." }
+  mark: { keyword: "Mark", explanation: "Flags a target for a later effect." },
+  keeper: { keyword: "Keeper", explanation: "Belongs to the Ashbound Keeper class kit." },
+  scout: { keyword: "Scout", explanation: "Improves information or helps read enemy plans." },
+  reveal: { keyword: "Reveal", explanation: "Improves Intent visibility for hidden or partial enemy plans." },
+  signal: { keyword: "Signal", explanation: "Represents field signs, hand cues, or tactical communication." },
+  scope: { keyword: "Scope", explanation: "Advanced read of elite or boss plan information." },
+  legacy: { keyword: "Legacy", explanation: "Kept for old traces, fixtures, or migration compatibility." }
 };
 
 const keywordCopyByCardType: Readonly<Partial<Record<CardType, CombatKeywordExplanationViewModel>>> = {
@@ -493,6 +502,8 @@ const describeMonsterEffect = (effect: EffectDefinition): string => {
       return `Pet block ${effect.amount} to ${getCombatantTargetLabel(effect.target)}.`;
     case "petReact":
       return `Pet reaction: ${effect.reaction}.`;
+    case "improveIntentVisibility":
+      return `Improve Intent visibility by ${effect.amount}.`;
     case "setStoryFlag":
       return `Set story flag ${effect.flagId}.`;
   }
@@ -503,12 +514,13 @@ const buildPlannedActionViewModel = (
   intentDefinition: MonsterIntentDefinition | undefined,
   resolvedAbility: ResolvedMonsterAbilityDisplay | undefined,
   targetHint: MonsterIntentViewModel["targetHint"],
-  amount: number | undefined
+  amount: number | undefined,
+  visibilityLevel: IntentVisibilityLevel
 ): MonsterPlannedActionViewModel => {
   if (resolvedAbility) {
     return {
       source: resolvedAbility.source,
-      revealPolicy: "revealed",
+      revealPolicy: visibilityLevel,
       title: resolvedAbility.ability.name,
       subtitle: `${resolvedAbility.ability.intentType} planned card`,
       abilityId: resolvedAbility.ability.id,
@@ -521,7 +533,7 @@ const buildPlannedActionViewModel = (
 
   return {
     source: intentDefinition ? "fallbackMetadata" : "unknown",
-    revealPolicy: "revealed",
+    revealPolicy: visibilityLevel,
     title: intentDefinition?.description ?? "Unknown planned action",
     subtitle: `${intentDefinition?.type ?? "intent"} planned card`,
     intentId: intent.intentId,
@@ -532,6 +544,127 @@ const buildPlannedActionViewModel = (
       `Target: ${targetHint}`,
       amount !== undefined ? `Amount: ${amount}` : "Amount: not shown"
     ]
+  };
+};
+
+const resolveIntentVisibilityLevel = (
+  state: CombatState,
+  content: ContentContext,
+  monster: CombatantState | undefined,
+  monsterDefinition: MonsterDefinition | undefined,
+  ability: MonsterAbilityDefinition | undefined
+): IntentVisibilityLevel => {
+  return monster
+    ? resolveEffectiveIntentVisibilityLevel({
+        state,
+        registry: content.registry,
+        monsterCombatantId: monster.id,
+        monsterDefinition,
+        ability
+      })
+    : "unknown";
+};
+
+type VisibleIntentCopy = {
+  readonly abilityId?: MonsterAbilityId;
+  readonly type: MonsterIntentViewModel["type"];
+  readonly label: string;
+  readonly description: string;
+  readonly targetHint: MonsterIntentViewModel["targetHint"];
+  readonly amount?: number;
+  readonly plannedAction: MonsterPlannedActionViewModel;
+};
+
+const buildVisibleIntentCopy = (input: {
+  readonly intent: { readonly intentId: MonsterIntentId };
+  readonly intentDefinition: MonsterIntentDefinition | undefined;
+  readonly resolvedAbility: ResolvedMonsterAbilityDisplay | undefined;
+  readonly targetHint: MonsterIntentViewModel["targetHint"];
+  readonly amount: number | undefined;
+  readonly visibilityLevel: IntentVisibilityLevel;
+}): VisibleIntentCopy => {
+  const { intent, intentDefinition, resolvedAbility, visibilityLevel } = input;
+  const ability = resolvedAbility?.ability;
+  const intentType = ability?.intentType ?? intentDefinition?.type ?? "intent";
+  const source = resolvedAbility?.source ?? (intentDefinition ? "fallbackMetadata" : "unknown");
+
+  if (visibilityLevel === "exact" || visibilityLevel === "scoped") {
+    return {
+      abilityId: ability?.id,
+      type: intentType,
+      label: ability?.intentType ?? intentDefinition?.type ?? "intent",
+      description: (ability ?? intentDefinition)?.description ?? "Preparing an action.",
+      targetHint: input.targetHint,
+      amount: input.amount,
+      plannedAction: buildPlannedActionViewModel(
+        intent,
+        intentDefinition,
+        resolvedAbility,
+        input.targetHint,
+        input.amount,
+        visibilityLevel
+      )
+    };
+  }
+
+  if (visibilityLevel === "rough") {
+    const roughTarget = ability?.telegraph?.targetHint ?? input.targetHint;
+    return {
+      abilityId: undefined,
+      type: intentType,
+      label: `${intentType} intent`,
+      description: `Rough ${intentType} intent.`,
+      targetHint: roughTarget,
+      amount: undefined,
+      plannedAction: {
+        source,
+        revealPolicy: visibilityLevel,
+        title: `${intentType} intent`,
+        subtitle: "Rough planned card",
+        intentId: intent.intentId,
+        intentType,
+        tags: [],
+        effectLines: ["Specific card text is hidden."]
+      }
+    };
+  }
+
+  if (visibilityLevel === "category") {
+    return {
+      abilityId: undefined,
+      type: intentType,
+      label: `${intentType} intent`,
+      description: `Enemy is preparing a ${intentType} action.`,
+      targetHint: "unknown",
+      plannedAction: {
+        source,
+        revealPolicy: visibilityLevel,
+        title: `${intentType} intent`,
+        subtitle: "Category planned card",
+        intentId: intent.intentId,
+        intentType,
+        tags: [],
+        effectLines: ["Card name, amount, target, and effects are hidden."]
+      }
+    };
+  }
+
+  return {
+    abilityId: undefined,
+    type: "unknown",
+    label: "?",
+    description: "Intent hidden.",
+    targetHint: "unknown",
+    plannedAction: {
+      source: "unknown",
+      revealPolicy: visibilityLevel,
+      title: "?",
+      subtitle: "Hidden planned card",
+      intentId: intent.intentId,
+      intentType: "unknown",
+      tags: [],
+      effectLines: ["Intent hidden."]
+    }
   };
 };
 
@@ -641,41 +774,49 @@ export const buildCombatViewModel = (
         getFallbackMonsterAbility(intentDefinition, content);
       const ability = resolvedAbility?.ability;
       const displaySource = ability ?? intentDefinition;
-      const label = ability?.intentType ?? intentDefinition?.type ?? "intent";
-      const description = displaySource?.description ?? "Preparing an action.";
       const targetHint = getIntentTargetHint(displaySource);
       const amount = getIntentAmount(displaySource);
-      const plannedAction = buildPlannedActionViewModel(intent, intentDefinition, resolvedAbility, targetHint, amount);
+      const visibilityLevel = resolveIntentVisibilityLevel(state.combat, content, monster, monsterDefinition, ability);
+      const visibleIntent = buildVisibleIntentCopy({
+        intent,
+        intentDefinition,
+        resolvedAbility,
+        targetHint,
+        amount,
+        visibilityLevel
+      });
 
       return {
         monsterId: intent.monsterCombatantId,
         intentId: intent.intentId,
-        abilityId: ability?.id,
-        type: ability?.intentType ?? intentDefinition?.type ?? "intent",
-        label,
-        description,
-        targetHint,
-        amount,
+        abilityId: visibleIntent.abilityId,
+        visibilityLevel,
+        type: visibleIntent.type,
+        label: visibleIntent.label,
+        description: visibleIntent.description,
+        targetHint: visibleIntent.targetHint,
+        amount: visibleIntent.amount,
         tooltip: {
-          title: label,
-          body: description
+          title: visibleIntent.label,
+          body: visibleIntent.description
         },
         detail: {
-          title: plannedAction.title,
-          subtitle: `${monster?.name ?? "Enemy"} · ${plannedAction.subtitle}`,
+          title: visibleIntent.plannedAction.title,
+          subtitle: `${monster?.name ?? "Enemy"} · ${visibleIntent.plannedAction.subtitle}`,
           lines: [
-            description,
-            `Reveal policy: ${plannedAction.revealPolicy}`,
-            `Metadata source: ${plannedAction.source}`,
-            `Tags: ${plannedAction.tags.join(", ") || "none"}`,
-            `Target: ${targetHint}`,
-            amount !== undefined ? `Amount: ${amount}` : "Amount: not shown",
+            visibleIntent.description,
+            `Visibility: ${visibilityLevel}`,
+            `Reveal policy: ${visibleIntent.plannedAction.revealPolicy}`,
+            `Metadata source: ${visibleIntent.plannedAction.source}`,
+            `Tags: ${visibleIntent.plannedAction.tags.join(", ") || "none"}`,
+            `Target: ${visibleIntent.targetHint}`,
+            visibleIntent.amount !== undefined ? `Amount: ${visibleIntent.amount}` : "Amount: not shown",
             "Effects:",
-            ...(plannedAction.effectLines.length > 0 ? plannedAction.effectLines : ["No effects shown."])
+            ...(visibleIntent.plannedAction.effectLines.length > 0 ? visibleIntent.plannedAction.effectLines : ["No effects shown."])
           ],
           footer: "Monster planned card detail."
         },
-        plannedAction
+        plannedAction: visibleIntent.plannedAction
       };
     }),
     hand: state.combat.hand.map((cardInstanceId) => {

@@ -12,6 +12,7 @@ export type EffectResolverKey =
   | "cleanseStatus"
   | "consumeStatus"
   | "petReact"
+  | "intentVisibility"
   | "storyFlag";
 
 export type EffectCombatantTargetRequirement = "none" | "required";
@@ -234,6 +235,17 @@ export const effectDescriptors = {
     requiresStacks: false,
     requiresStoryFlagId: false,
     requiresPetReaction: true
+  },
+  improveIntentVisibility: {
+    type: "improveIntentVisibility",
+    resolverKey: "intentVisibility",
+    combatantTarget: "required",
+    petTarget: "none",
+    amount: "nonNegativeInteger",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
   },
   setStoryFlag: {
     type: "setStoryFlag",

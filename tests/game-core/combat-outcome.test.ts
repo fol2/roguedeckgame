@@ -42,7 +42,7 @@ describe("combat outcomes", () => {
     const baseState = createHandTunedCombatFixture();
     const state = {
       ...baseState,
-      monsters: [{ ...baseState.monsters[0], hp: 5 }]
+      monsters: [{ ...baseState.monsters[0], hp: 4 }]
     };
     const result = playCard(
       state,

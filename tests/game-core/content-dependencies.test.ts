@@ -254,7 +254,7 @@ describe("content dependency report", () => {
       expect.objectContaining({
         severity: "warning",
         code: "unused_content",
-        path: "cards[12]"
+        path: "cards[25]"
       }),
       expect.objectContaining({
         severity: "warning",

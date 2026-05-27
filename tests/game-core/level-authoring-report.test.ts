@@ -21,35 +21,39 @@ describe("level authoring report", () => {
     expect(first).toEqual(second);
     expect(first.encounters.map((encounter) => encounter.id)).toEqual([
       "ash_mite_encounter",
+      "cinder_scribe_encounter",
+      "crow_mite_encounter",
       "forest_boss_placeholder",
       "forest_duo_encounter",
       "forest_elite_placeholder",
+      "root_husk_encounter",
+      "soot_crow_encounter",
       "training_slime_encounter"
     ]);
     expect(first.encounterBudgetsByType).toEqual({
       boss: 8,
-      combat: 6,
-      elite: 5
+      combat: 16,
+      elite: 10
     });
     expect(first.encounters[0]).toMatchObject({
       id: "ash_mite_encounter",
-      name: "Ash Mite",
+      name: "Cinder Mite",
       rewardPoolId: "normal",
       monsterIds: ["ash_mite"],
       monsters: [expect.objectContaining({
         id: "ash_mite",
-        name: "Ash Mite",
+        name: "Cinder Mite",
         roles: ["attack", "burn"]
       })],
       monsterGroups: [{
-        id: "ash_mite_group",
+        id: "cinder_mite_group",
         maxCount: 1,
         minCount: 1,
         monsterIds: ["ash_mite"],
         roles: ["attack", "burn"]
       }]
     });
-    expect(first.encounters[2]).toMatchObject({
+    expect(first.encounters[4]).toMatchObject({
       id: "forest_duo_encounter",
       monsters: [
         expect.objectContaining({ id: "ash_mite", roles: ["attack", "burn"] }),
@@ -59,9 +63,9 @@ describe("level authoring report", () => {
     expect(first.runMapTemplates[0]).toMatchObject({
       id: "act1_forest",
       actId: "act1_forest",
-      nodeCount: 7,
-      combatNodeCount: 5,
-      budgetedNodeCount: 5
+      nodeCount: 11,
+      combatNodeCount: 8,
+      budgetedNodeCount: 8
     });
     expect(first.runMapTemplates[0].nodes).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -72,9 +76,9 @@ describe("level authoring report", () => {
         meaning: "Starts one of the listed combat encounters.",
         encounters: expect.arrayContaining([
           expect.objectContaining({
-            name: "Ash Mite",
+            name: "Cinder Mite",
             rewardPoolId: "normal",
-            monsters: [expect.objectContaining({ name: "Ash Mite" })]
+            monsters: [expect.objectContaining({ name: "Cinder Mite" })]
           })
         ])
       }),
@@ -91,9 +95,9 @@ describe("level authoring report", () => {
         id: "act1_forest_4_boss_a",
         type: "boss",
         encounters: [expect.objectContaining({
-          name: "Forest Warden",
+          name: "Emberroot Warden",
           rewardPoolId: "boss",
-          monsters: [expect.objectContaining({ id: "forest_warden", name: "Forest Warden" })]
+          monsters: [expect.objectContaining({ id: "forest_warden", name: "Emberroot Warden" })]
         })]
       })
     ]));
@@ -330,7 +334,7 @@ describe("level authoring report", () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       code: "encounter_monster_group_mismatch",
-      path: "encounters[5].authoring.monsterGroups"
+      path: "encounters[9].authoring.monsterGroups"
     }));
   });
 
@@ -476,12 +480,12 @@ describe("level authoring report", () => {
   it("surfaces encounter budget context beside simulation completion rate", () => {
     expect(buildLevelSimulationAuthoringSummary(starterRegistry, { completionRate: 0.75 })).toMatchObject({
       completionRate: 0.75,
-      averageEncounterBudget: 3.8,
-      budgetedEncounterCount: 5,
+      averageEncounterBudget: 3.7777777777777777,
+      budgetedEncounterCount: 9,
       encounterBudgetsByType: {
         boss: 8,
-        combat: 6,
-        elite: 5
+        combat: 16,
+        elite: 10
       }
     });
   });

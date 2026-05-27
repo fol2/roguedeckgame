@@ -66,7 +66,7 @@ describe("pet modifier reward integration", () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(15);
+    expect(result.state.monsters[0].hp).toBe(16);
     expect(result.state.monsters[0].statuses).toEqual([{ statusId: "burn", stacks: 3 }]);
   });
 

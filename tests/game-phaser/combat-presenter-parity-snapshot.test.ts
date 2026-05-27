@@ -93,6 +93,7 @@ const createCombatViewModel = (): CombatViewModel => ({
     type: "attack",
     label: "attack",
     description: "Attack the Keeper.",
+    visibilityLevel: "exact",
     targetHint: "keeper",
     amount: 6,
     tooltip: { title: "Clumsy Strike", body: "Attack the Keeper." },
@@ -104,7 +105,7 @@ const createCombatViewModel = (): CombatViewModel => ({
     },
     plannedAction: {
       source: "plannedAbility",
-      revealPolicy: "revealed",
+      revealPolicy: "exact",
       title: "Clumsy Strike",
       subtitle: "attack planned card",
       abilityId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["abilityId"],

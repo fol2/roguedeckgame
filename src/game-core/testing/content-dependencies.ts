@@ -598,6 +598,10 @@ const unusedIssue = (
 });
 
 const isRewardReachableCard = (card: CardDefinition, registry: GameContentRegistry): boolean => {
+  if (card.source === "legacy") {
+    return true;
+  }
+
   if (card.rarity === "starter" || card.rarity === "special") {
     return false;
   }

@@ -1,4 +1,5 @@
 import type { CardId, DeckId, PlayerClassId, PlayerClassModifierId, RelicId, StatusId } from "../ids";
+import type { IntentVisibilityLevel } from "./combat";
 import type { EffectDefinition } from "./effect";
 import type { CardSelector, PetModifierLimit } from "./pet";
 
@@ -29,9 +30,16 @@ export type TriggerOnStatusAppliedRule = {
   readonly limit?: PetModifierLimit;
 };
 
+export type IntentVisibilityPassiveRule = {
+  readonly type: "intentVisibilityPassive";
+  readonly level: IntentVisibilityLevel;
+  readonly appliesTo: "normalEnemies" | "allEnemies";
+};
+
 export type PlayerClassModifierRule =
   | TriggerOnCardPlayedRule
-  | TriggerOnStatusAppliedRule;
+  | TriggerOnStatusAppliedRule
+  | IntentVisibilityPassiveRule;
 
 export type PlayerClassDefinition = {
   readonly id: PlayerClassId;

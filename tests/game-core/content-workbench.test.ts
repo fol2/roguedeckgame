@@ -12,13 +12,13 @@ describe("content workbench view model", () => {
     const second = buildContentWorkbenchViewModel(starterRegistry);
 
     expect(first).toEqual(second);
-    expect(first.contentVersion).toBe("starter-act1-forest-v1");
+    expect(first.contentVersion).toBe("ashwood-trail-content-foundation-v2");
     expect(first.schema.collectionCount).toBe(15);
     expect(Object.keys(first.sections).sort()).toEqual(
       first.schema.collections.map((collection) => collection.id).sort()
     );
     expect(first.schema.collections.find((collection) => collection.id === "cards")).toMatchObject({
-      count: 12,
+      count: 25,
       required: true
     });
     expect(first.schema.collections.find((collection) => collection.id === "decks")).toMatchObject({
@@ -38,7 +38,7 @@ describe("content workbench view model", () => {
       required: false
     });
     expect(first.schema.collections.find((collection) => collection.id === "playerClassModifiers")).toMatchObject({
-      count: 0,
+      count: 1,
       required: false
     });
     expect(first.schema.collections.find((collection) => collection.id === "storyEvents")).toMatchObject({
@@ -50,18 +50,31 @@ describe("content workbench view model", () => {
       required: true
     });
     expect(first.sections.cards.map((card) => card.id)).toEqual([
+      "ash_rewrite",
+      "cinder_sweep",
       "coordinated_strike",
       "defend",
       "ember_spark",
+      "fetch_signal",
+      "field_brace",
+      "field_signal",
       "focus",
       "fox_bite",
       "fox_fetch",
       "fox_flare",
       "fox_guard",
+      "keepers_tap",
       "kindle",
+      "kindle_mark",
+      "measured_step",
       "quick_guard",
+      "read_the_ash",
+      "return_signal",
+      "sootstep",
       "strike",
-      "study_command"
+      "study_command",
+      "tailguard",
+      "trail_notes"
     ]);
     expect(first.sections.cards.find((card) => card.id === "strike")?.preview).toMatchObject({
       source: "card",
@@ -75,15 +88,15 @@ describe("content workbench view model", () => {
     expect(first.sections.decks).toEqual([expect.objectContaining({
       id: "novice_tamer_starter",
       ownerPlayerClassId: "novice_tamer",
-      size: 9,
-      petCommandCount: 3,
+      size: 10,
+      petCommandCount: 5,
       cardTypes: {
-        attack: 3,
+        attack: 2,
         skill: 3,
-        "pet-command": 3
+        "pet-command": 5
       },
       rarityMix: {
-        starter: 9
+        starter: 10
       },
       whereUsedByPlayerClassIds: ["novice_tamer"]
     })]);
@@ -106,9 +119,9 @@ describe("content workbench view model", () => {
     })]);
     expect(first.sections.runMapTemplates).toEqual([expect.objectContaining({
       id: "act1_forest",
-      nodeCount: 7,
-      combatNodeCount: 5,
-      budgetedNodeCount: 5,
+      nodeCount: 11,
+      combatNodeCount: 8,
+      budgetedNodeCount: 8,
       nodes: expect.arrayContaining([
         expect.objectContaining({
           id: "act1_forest_3_elite_a",
@@ -124,7 +137,7 @@ describe("content workbench view model", () => {
           id: "act1_forest_4_boss_a",
           type: "boss",
           encounters: [expect.objectContaining({
-            name: "Forest Warden",
+            name: "Emberroot Warden",
             monsterIds: ["forest_warden"],
             rewardPoolId: "boss",
             budget: 8
@@ -147,7 +160,10 @@ describe("content workbench view model", () => {
       "burning_fang_modifier",
       "warm_bond_modifier"
     ]);
-    expect(first.sections.playerClassModifiers).toEqual([]);
+    expect(first.sections.playerClassModifiers).toEqual([expect.objectContaining({
+      id: "field_sense",
+      name: "Field Sense"
+    })]);
     expect(first.sections.storyEvents).toEqual([expect.objectContaining({
       id: "ember_fox_side_story",
       outcomeTypes: ["addBondXp", "setStoryFlag", "unlockPetMemory", "unlockPetUpgrade"]
@@ -160,21 +176,21 @@ describe("content workbench view model", () => {
     expect(first.diagnostics.registryErrors).toEqual([]);
     expect(first.diagnostics.levelAuthoringErrors).toEqual([]);
     expect(first.diagnostics.dependencyReferenceCount).toBeGreaterThan(0);
-    expect(first.reports.content.counts.monsterAbilities).toBe(10);
+    expect(first.reports.content.counts.monsterAbilities).toBe(24);
     expect(first.reports.content.counts.decks).toBe(1);
     expect(first.reports.content.counts.petModifiers).toBe(3);
     expect(first.reports.content.dependencyReferenceCount).toBe(first.diagnostics.dependencyReferenceCount);
     expect(first.reports.content.dependencyMissingReferenceCount).toBe(0);
     expect(first.reports.levelAuthoring.encounterBudgetsByType).toEqual({
       boss: 8,
-      combat: 6,
-      elite: 5
+      combat: 16,
+      elite: 10
     });
     expect(first.reports.levelAuthoring).toMatchObject({
-      encounterCount: 5,
+      encounterCount: 9,
       runMapTemplateCount: 1,
-      budgetedRunNodeCount: 5,
-      combatRunNodeCount: 5
+      budgetedRunNodeCount: 8,
+      combatRunNodeCount: 8
     });
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
   });

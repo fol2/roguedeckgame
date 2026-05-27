@@ -21,7 +21,7 @@ describe("Combat sandbox controller", () => {
   it("builds a complete view model for the sandbox", () => {
     const viewModel = createCombatSandboxController("controller-view").getViewModel();
 
-    expect(viewModel.player.name).toBe("Novice Tamer");
+    expect(viewModel.player.name).toBe("Ashbound Keeper");
     expect(viewModel.pets[0]?.name).toBe("Ember Fox");
     expect(viewModel.monsters.length).toBeGreaterThan(0);
     expect(viewModel.hand.length).toBeGreaterThan(0);
@@ -32,10 +32,10 @@ describe("Combat sandbox controller", () => {
   it("plays Strike or Fox Bite through the controller and returns ordered events", () => {
     const controller = createCombatSandboxController("controller-card");
     const candidate = controller.getViewModel().hand.find((card) =>
-      card.cardId === "strike" || card.cardId === "fox_bite"
+      card.cardId === "keepers_tap" || card.cardId === "fox_bite"
     );
 
-    expect(candidate, "expected Strike or Fox Bite in opening hand").toBeDefined();
+    expect(candidate, "expected Keeper's Tap or Fox Bite in opening hand").toBeDefined();
     const before = controller.getState().combat;
     const firstAliveMonsterId = before.monsters.find((monster) => monster.alive)?.id;
     const result = controller.playHandCard(candidate!.cardInstanceId, undefined, undefined, "controller-card-play");
@@ -54,7 +54,7 @@ describe("Combat sandbox controller", () => {
   it("plays enemy-targeted cards against an explicit selected enemy", () => {
     const controller = createCombatSandboxController("controller-explicit-target");
     const viewModel = controller.getViewModel();
-    const targetable = viewModel.hand.find((card) => card.requiresManualTarget);
+    const targetable = viewModel.hand.find((card) => card.requiresManualTarget && card.tags.includes("attack"));
 
     expect(targetable, "expected an enemy-targeted card in opening hand").toBeDefined();
     const targetId = targetable!.validTargetIds[0];
@@ -72,10 +72,9 @@ describe("Combat sandbox controller", () => {
   it("plays an untargeted card without assigning a default target", () => {
     const controller = createCombatSandboxController("controller-untargeted");
     const untargeted = controller.getViewModel().hand.find((card) =>
-      card.cardId === "focus" ||
-      card.cardId === "fox_fetch" ||
-      card.cardId === "defend" ||
-      card.cardId === "fox_guard"
+      card.cardId === "fetch_signal" ||
+      card.cardId === "field_brace" ||
+      card.cardId === "tailguard"
     );
 
     expect(untargeted, "expected an untargeted card in opening hand").toBeDefined();

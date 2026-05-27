@@ -45,6 +45,7 @@ export const combatPlaybackPolicies = {
   DeckShuffled: { policy: "animated", visualRoute: "fx" },
   EnergyGained: { policy: "logOnly", visualRoute: "log" },
   EnergySpent: { policy: "animated", visualRoute: "fx" },
+  EnemyIntentVisibilityChanged: { policy: "animated", visualRoute: "fx" },
   MonsterAbilityPlanned: { policy: "animated", visualRoute: "fx" },
   MonsterAbilityPlayed: { policy: "animated", visualRoute: "fx" },
   MonsterIntentResolved: { policy: "animated", visualRoute: "fx" },

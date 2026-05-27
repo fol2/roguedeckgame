@@ -71,6 +71,15 @@ describe("browser debug trace export", () => {
   it("exports traces accepted by the simulation replay CLI", () => {
     const controller = createRunSandboxController("debug-trace-cli-replay");
     startCombat(controller);
+    const before = controller.getCombatViewModel()!;
+    const playable = before.hand.find((card) => card.playable);
+    expect(playable).toBeDefined();
+    controller.playHandCard(
+      playable!.cardInstanceId,
+      playable!.requiresManualTarget ? playable!.validTargetIds[0] : undefined,
+      before.revision,
+      "debug-trace-cli-card"
+    );
     const tracePath = join(tmpdir(), "roguedeckgame-debug-trace-cli-replay.json");
 
     writeFileSync(tracePath, serializeBrowserDebugTrace(buildBrowserDebugTrace({

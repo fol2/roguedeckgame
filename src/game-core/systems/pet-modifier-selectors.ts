@@ -9,7 +9,9 @@ export const knownPetModifierSelectorCardTypes = [
   "attack",
   "skill",
   "power",
-  "pet-command"
+  "pet-command",
+  "pet-support",
+  "other"
 ] as const satisfies readonly CardType[];
 
 export const matchesCardSelector = (

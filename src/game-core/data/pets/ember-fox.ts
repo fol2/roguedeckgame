@@ -6,7 +6,7 @@ export const emberFox: PetDefinition = {
   name: "Ember Fox",
   species: "Fox",
   tags: ["pet", "fox", "fire", "burn", "command"],
-  baseCommandCardIds: [cardId("fox_bite"), cardId("fox_guard"), cardId("fox_fetch")],
+  baseCommandCardIds: [cardId("fox_bite"), cardId("tailguard"), cardId("kindle_mark"), cardId("fetch_signal")],
   sideStoryId: storyEventId("ember_fox_side_story"),
   evolutionTree: [
     {

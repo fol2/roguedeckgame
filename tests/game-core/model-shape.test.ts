@@ -16,6 +16,7 @@ import {
   monsterAbilityId,
   monsterIntentId,
   GAME_EVENT_LEGACY_SCHEMA_VERSION,
+  GAME_EVENT_PREVIOUS_SCHEMA_VERSION,
   projectGameActionResultForSchema,
   projectGameEventsForSchema,
   type GameEvent,
@@ -287,6 +288,27 @@ describe("model shape", () => {
     ]);
   });
 
+  it("projects v4 intent visibility events away from schema 3 consumers", () => {
+    const events: readonly GameEvent[] = [
+      {
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: combatantId("monster:training_slime:0"),
+        level: "rough",
+        source: "card",
+        expires: "currentPlan"
+      },
+      {
+        type: "MonsterIntentResolved",
+        monsterId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }
+    ];
+
+    expect(projectGameEventsForSchema(events, GAME_EVENT_PREVIOUS_SCHEMA_VERSION).map((event) => event.type)).toEqual([
+      "MonsterIntentResolved"
+    ]);
+  });
+
   it("projects action result events and state events for legacy consumers", () => {
     const result = projectGameActionResultForSchema({
       ok: true,
@@ -341,6 +363,27 @@ describe("model shape", () => {
     expect(result.events.map((event) => event.type)).toEqual(["MonsterIntentResolved"]);
     expect(result.state.events.map((event) => event.type)).toEqual(["MonsterIntentResolved"]);
     expect(result.state.lastEvents.map((event) => event.type)).toEqual(["MonsterIntentSet"]);
+  });
+
+  it("does not project v4 intent visibility events to v3 consumers", () => {
+    const events: readonly GameEvent[] = [
+      {
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: combatantId("monster:training_slime:0"),
+        level: "rough",
+        source: "card",
+        expires: "currentPlan"
+      },
+      {
+        type: "MonsterIntentResolved",
+        monsterId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }
+    ];
+
+    expect(projectGameEventsForSchema(events, GAME_EVENT_PREVIOUS_SCHEMA_VERSION).map((event) => event.type)).toEqual([
+      "MonsterIntentResolved"
+    ]);
   });
 
   it("projects legacy action result state lastEvents without requiring state events", () => {

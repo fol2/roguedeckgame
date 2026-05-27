@@ -147,6 +147,8 @@ export class CombatEventFxPresenter {
         return this.playImpact(this.getCombatantPoint(event.monsterId), PLAYER_POINT, "Attack", 0xff758f);
       case "MonsterIntentSet":
         return this.playPulse(this.getCombatantPoint(event.monsterId), event.intentType, 0xff9aad);
+      case "EnemyIntentVisibilityChanged":
+        return this.playPulse(this.getCombatantPoint(event.monsterId), event.level, 0x7dd3fc);
       case "CombatantDefeated":
         return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", 0xffd166);
       case "CombatEnded":

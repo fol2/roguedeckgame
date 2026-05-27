@@ -317,6 +317,18 @@ const validatePlayerClassModifierRule = (
     issues.push(issue("error", "unknown_player_class_modifier_status", `Player class modifier references unknown status '${rule.statusId}'.`, `${path}.statusId`));
   }
 
+  if (rule.type === "intentVisibilityPassive") {
+    if (!["none", "unknown", "category", "rough", "exact", "scoped"].includes(String(rule.level))) {
+      issues.push(issue("error", "invalid_player_class_modifier_rule", "Player class modifier intent visibility level is unknown.", `${path}.level`));
+    }
+
+    if (rule.appliesTo !== "normalEnemies" && rule.appliesTo !== "allEnemies") {
+      issues.push(issue("error", "invalid_player_class_modifier_rule", "Player class modifier intent visibility target is unknown.", `${path}.appliesTo`));
+    }
+
+    return issues;
+  }
+
   if (!Array.isArray(rule.effects)) {
     issues.push(issue("error", "invalid_player_class_modifier_rule", "Player class modifier rule effects must be an array.", `${path}.effects`));
     return issues;
@@ -428,7 +440,7 @@ const storyTriggers = new Set<StoryTrigger>([
 const isRunMapNodeCandidate = (value: unknown): value is RunMapNodeCandidate =>
   isRecord(value);
 
-const knownDifficultyBands = new Set(["tutorial", "easy", "normal", "hard", "elite", "boss"]);
+const knownDifficultyBands = new Set(["tutorial", "easy", "normal", "hard", "elite", "boss", "rare"]);
 const knownRewardPoolOptionTypes = new Set(["card", "petUpgrade", "deckOperation"]);
 
 type EncounterAuthoringValidationOptions = {
@@ -1891,7 +1903,7 @@ export const validateRegistry = (
       issues.push(issue("error", "invalid_monster_ability_description", `Monster ability '${String(abilityValue.id)}' description must be a non-empty string.`, `monsterAbilities[${abilityIndex}].description`));
     }
 
-    if (abilityValue.intentType !== "attack" && abilityValue.intentType !== "block" && abilityValue.intentType !== "debuff" && abilityValue.intentType !== "special") {
+    if (!["attack", "block", "debuff", "buff", "special", "charge", "unknown"].includes(String(abilityValue.intentType))) {
       issues.push(issue("error", "invalid_monster_ability_intent_type", `Monster ability '${String(abilityValue.id)}' has unknown intent type '${String(abilityValue.intentType)}'.`, `monsterAbilities[${abilityIndex}].intentType`));
     }
 

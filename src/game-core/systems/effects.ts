@@ -1,13 +1,14 @@
 import { cardInstanceId, type CardId, type CardInstanceId, type CombatantId, type MonsterIntentId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatantTarget, EffectDefinition } from "../model/effect";
-import type { CombatantState, CombatState } from "../model/combat";
+import type { CombatantState, CombatState, IntentVisibilityLevel } from "../model/combat";
 import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
 import type { CombatStatusState } from "../model/status";
 import { drawCards } from "./draw";
 import { moveCardBetweenPiles } from "./card-piles";
 import { getEffectDescriptor, type EffectResolverKey } from "./effect-descriptors";
+import { resolveEffectiveIntentVisibilityLevel } from "./intent-visibility";
 import { checkCombatOutcome } from "./outcome";
 import { resolvePetTargets } from "./pet-targets";
 import type { Rng } from "./rng";
@@ -675,6 +676,114 @@ const resolveConsumeStatusEffect = (
   return { ok: true, state: nextState, events, errors: [] };
 };
 
+const intentVisibilityLevels = ["none", "unknown", "category", "rough", "exact", "scoped"] as const satisfies readonly IntentVisibilityLevel[];
+
+const getIntentVisibilityRank = (level: IntentVisibilityLevel): number =>
+  intentVisibilityLevels.indexOf(level);
+
+const improveIntentVisibilityLevel = (
+  current: IntentVisibilityLevel,
+  amount: number,
+  maxLevel: IntentVisibilityLevel | undefined
+): IntentVisibilityLevel => {
+  const maxRank = maxLevel === undefined
+    ? intentVisibilityLevels.length - 1
+    : getIntentVisibilityRank(maxLevel);
+  const currentRank = getIntentVisibilityRank(current);
+  const nextRank = currentRank > maxRank
+    ? currentRank
+    : Math.min(Math.max(0, currentRank + amount), maxRank);
+
+  return intentVisibilityLevels[nextRank] ?? current;
+};
+
+const resolveIntentVisibilityEffect = (
+  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "improveIntentVisibility" }>>
+): GameActionResult<CombatState> => {
+  const targets = resolveCombatantTargets(
+    input.state,
+    input.context.sourceId,
+    input.effect.target,
+    input.context.targetId ?? input.context.defaultTargetId
+  );
+  if (isActionError(targets)) {
+    return reject(input.originalState, targets);
+  }
+
+  let overrides = [...(input.state.intentVisibilityOverrides ?? [])];
+  const events: GameEvent[] = [];
+  const source = input.effect.source ?? "card";
+  const expires = input.effect.expires ?? "currentPlan";
+
+  for (const target of targets) {
+    if (target.type !== "monster" || !target.alive) {
+      continue;
+    }
+
+    const monsterDefinition = target.definitionId
+      ? input.registry.monsters.find((monster) => monster.id === target.definitionId)
+      : undefined;
+    const intent = input.state.monsterIntents.find((candidate) => candidate.monsterCombatantId === target.id);
+    const plannedAbility = intent
+      ? input.state.plannedMonsterAbilities?.find((planned) =>
+          planned.monsterCombatantId === target.id &&
+          planned.intentId === intent.intentId
+        )
+      : undefined;
+    const intentDefinition = intent
+      ? monsterDefinition?.intentPool.find((candidate) => candidate.id === intent.intentId)
+      : undefined;
+    const abilityId = plannedAbility?.abilityId ?? intentDefinition?.abilityId;
+    const ability = abilityId
+      ? input.registry.monsterAbilities?.find((candidate) => candidate.id === abilityId)
+      : undefined;
+    const currentLevel = resolveEffectiveIntentVisibilityLevel({
+      state: { ...input.state, intentVisibilityOverrides: overrides },
+      registry: input.registry,
+      monsterCombatantId: target.id,
+      monsterDefinition,
+      ability
+    });
+    const nextLevel = improveIntentVisibilityLevel(currentLevel, input.effect.amount, input.effect.maxLevel);
+    const existing = overrides.find((override) => override.monsterCombatantId === target.id);
+
+    if (existing && getIntentVisibilityRank(existing.level) >= getIntentVisibilityRank(nextLevel)) {
+      continue;
+    }
+
+    if (!existing && getIntentVisibilityRank(nextLevel) <= getIntentVisibilityRank(currentLevel)) {
+      continue;
+    }
+
+    const nextOverride = {
+      monsterCombatantId: target.id,
+      level: nextLevel,
+      source,
+      expires,
+      ...(input.context.cardInstanceId ? { sourceCardInstanceId: input.context.cardInstanceId } : {})
+    };
+
+    overrides = [
+      ...overrides.filter((override) => override.monsterCombatantId !== target.id),
+      nextOverride
+    ];
+    events.push({
+      type: "EnemyIntentVisibilityChanged",
+      monsterId: target.id,
+      level: nextLevel,
+      source,
+      expires
+    });
+  }
+
+  return {
+    ok: true,
+    state: appendEvents({ ...input.state, intentVisibilityOverrides: overrides }, events),
+    events,
+    errors: []
+  };
+};
+
 const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
   draw: resolveDrawEffect as EffectHandler,
   pileMove: resolvePileMoveEffect as EffectHandler,
@@ -687,7 +796,8 @@ const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
   blockLike: resolveBlockLikeEffect as EffectHandler,
   applyStatus: resolveApplyStatusEffect as EffectHandler,
   cleanseStatus: resolveCleanseStatusEffect as EffectHandler,
-  consumeStatus: resolveConsumeStatusEffect as EffectHandler
+  consumeStatus: resolveConsumeStatusEffect as EffectHandler,
+  intentVisibility: resolveIntentVisibilityEffect as EffectHandler
 };
 
 export const resolveEffects = (

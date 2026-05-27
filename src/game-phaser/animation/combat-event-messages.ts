@@ -28,14 +28,16 @@ export const formatCombatEventMessage = (event: EventLike): string => {
       return `Shuffled ${event.count} card(s) into ${event.to}.`;
     case "EnergySpent":
       return `Spent ${event.amount} energy (${event.remaining} remaining).`;
+    case "EnemyIntentVisibilityChanged":
+      return `${event.monsterId} intent visibility is now ${event.level}.`;
     case "MonsterAbilityPlanned":
-      return `${event.monsterId} planned ${event.abilityId}: ${event.description}`;
+      return `${event.monsterId} planned a monster card.`;
     case "MonsterAbilityPlayed":
       return `${event.monsterId} played ${event.abilityId}.`;
     case "MonsterIntentResolved":
       return `${event.monsterId} resolved ${event.intentId}.`;
     case "MonsterIntentSet":
-      return `${event.monsterId} intends: ${event.description}`;
+      return `${event.monsterId} set an intent.`;
     case "PetCommanded":
       return `${event.petInstanceId} was commanded by ${event.cardId}.`;
     case "PetModifierActivated":

@@ -5,6 +5,7 @@ import type {
   StatusId,
   StoryFlagId
 } from "../ids";
+import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "./combat";
 import type { CardPile } from "./event";
 
 export type CombatantTarget =
@@ -106,6 +107,15 @@ export type PetReactEffect = {
   readonly reaction: string;
 };
 
+export type ImproveIntentVisibilityEffect = {
+  readonly type: "improveIntentVisibility";
+  readonly target: CombatantTarget;
+  readonly amount: number;
+  readonly maxLevel?: IntentVisibilityLevel;
+  readonly source?: IntentVisibilitySource;
+  readonly expires?: IntentVisibilityExpiry;
+};
+
 export type SetStoryFlagEffect = {
   readonly type: "setStoryFlag";
   readonly flagId: StoryFlagId;
@@ -126,6 +136,7 @@ export type EffectDefinition =
   | PetAttackEffect
   | PetBlockEffect
   | PetReactEffect
+  | ImproveIntentVisibilityEffect
   | SetStoryFlagEffect;
 
 export const knownEffectTypes = [
@@ -143,5 +154,6 @@ export const knownEffectTypes = [
   "petAttack",
   "petBlock",
   "petReact",
+  "improveIntentVisibility",
   "setStoryFlag"
 ] as const satisfies readonly EffectDefinition["type"][];

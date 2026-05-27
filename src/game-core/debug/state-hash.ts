@@ -1,6 +1,6 @@
 import type { AgentRunDriverSnapshot } from "./agent-actions";
 
-export type AgentStateHashSchemaVersion = 1 | 2 | 3;
+export type AgentStateHashSchemaVersion = 1 | 2 | 3 | 4;
 
 export type AgentStateHashOptions = {
   readonly schemaVersion?: AgentStateHashSchemaVersion;
@@ -34,6 +34,7 @@ export const createAgentStateHash = (
   const schemaVersion = options.schemaVersion ?? 3;
   const includePlannedAbilities = schemaVersion >= 2;
   const includeStoryAndPetProgression = schemaVersion >= 3;
+  const includeIntentVisibility = schemaVersion >= 4;
   const value = {
     run: {
       status: snapshot.run.status,
@@ -101,6 +102,7 @@ export const createAgentStateHash = (
           })),
           energy: combat.energy,
           maxEnergy: combat.maxEnergy,
+          intentVisibilityOverrides: includeIntentVisibility ? combat.intentVisibilityOverrides : undefined,
           hand: combat.hand.map((id) => cardIdentity(snapshot, id)),
           drawPile: combat.drawPile.map((id) => cardIdentity(snapshot, id)),
           discardPile: combat.discardPile.map((id) => cardIdentity(snapshot, id)),

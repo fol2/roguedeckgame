@@ -40,32 +40,34 @@ describe("starterRegistry", () => {
     expect(emberFox).toBeDefined();
     expect(emberFox?.baseCommandCardIds).toEqual([
       cardId("fox_bite"),
-      cardId("fox_guard"),
-      cardId("fox_fetch")
+      cardId("tailguard"),
+      cardId("kindle_mark"),
+      cardId("fetch_signal")
     ]);
 
     const cardIds = new Set(starterRegistry.cards.map((card) => card.id));
     expect(emberFox?.baseCommandCardIds.every((id) => cardIds.has(id))).toBe(true);
   });
 
-  it("includes Novice Tamer with one active pet via data", () => {
+  it("includes Ashbound Keeper with one active pet via data", () => {
     const noviceTamer = starterRegistry.players.find((player) => player.id === playerClassId("novice_tamer"));
 
     expect(noviceTamer).toBeDefined();
-    expect(noviceTamer?.name).toBe("Novice Tamer");
+    expect(noviceTamer?.name).toBe("Ashbound Keeper");
     expect(noviceTamer?.startingDeckId).toBe(deckId("novice_tamer_starter"));
+    expect(noviceTamer?.classModifierIds).toContain(playerClassModifierId("field_sense"));
     expect(noviceTamer?.maxActivePets).toBe(1);
     expect(noviceTamer?.petSlotCount).toBe(1);
   });
 
-  it("includes a first-class Novice Tamer starter deck", () => {
+  it("includes a first-class Ashbound Keeper starter deck", () => {
     const starterDeck = starterRegistry.decks?.find((deck) => deck.id === deckId("novice_tamer_starter"));
 
     expect(starterDeck).toBeDefined();
     expect(starterDeck).toMatchObject({
       ownerPlayerClassId: playerClassId("novice_tamer"),
       cardIds: starterRegistry.players[0].startingDeckCardIds,
-      tags: expect.arrayContaining(["starter", "pet-command"])
+      tags: expect.arrayContaining(["starter", "ashbound-keeper", "pet-command"])
     });
   });
 
@@ -236,9 +238,15 @@ describe("starterRegistry", () => {
 
     expect(commandCards).toEqual([
       cardId("fox_bite"),
+      cardId("tailguard"),
+      cardId("kindle_mark"),
+      cardId("fetch_signal"),
       cardId("fox_guard"),
       cardId("fox_fetch"),
-      cardId("fox_flare")
+      cardId("coordinated_strike"),
+      cardId("fox_flare"),
+      cardId("sootstep"),
+      cardId("return_signal")
     ]);
   });
 

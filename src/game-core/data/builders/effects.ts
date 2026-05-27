@@ -1,10 +1,12 @@
 import type { CombatantTarget, PetTarget } from "../../model/effect";
+import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "../../model/combat";
 import type { StatusId, StoryFlagId } from "../../ids";
 import type {
   ApplyStatusEffect,
   BlockEffect,
   DamageEffect,
   DrawEffect,
+  ImproveIntentVisibilityEffect,
   PetAttackEffect,
   PetBlockEffect,
   PetReactEffect,
@@ -37,6 +39,21 @@ export const applyStatusEffect = (
   statusId,
   stacks,
   target
+});
+
+export const improveIntentVisibilityEffect = (
+  target: CombatantTarget,
+  amount: number,
+  options: {
+    readonly maxLevel?: IntentVisibilityLevel;
+    readonly source?: IntentVisibilitySource;
+    readonly expires?: IntentVisibilityExpiry;
+  } = {}
+): ImproveIntentVisibilityEffect => ({
+  type: "improveIntentVisibility",
+  target,
+  amount,
+  ...options
 });
 
 export const petAttackEffect = (

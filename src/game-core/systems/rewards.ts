@@ -1,7 +1,8 @@
-import { rewardOfferId, rewardOptionId } from "../ids";
+import { rewardOfferId, rewardOptionId, type RewardPoolId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { CardDefinition } from "../model/card";
 import type { CombatState } from "../model/combat";
+import type { EncounterDefinition } from "../model/encounter";
 import type { GameEvent } from "../model/event";
 import type { PetInstance } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
@@ -115,13 +116,31 @@ const findMissingActivePetInstanceIds = (
 const isEligibleCard = (
   card: CardDefinition,
   run: RunState,
-  petInstances: readonly PetInstance[]
+  petInstances: readonly PetInstance[],
+  rewardPoolId?: RewardPoolId
 ): boolean => {
   if (card.rarity === "starter" || card.rarity === "special") {
     return false;
   }
 
   if (card.tags.includes("unrewardable")) {
+    return false;
+  }
+
+  if (
+    card.source === "encounterReward" ||
+    card.source === "eventOnly" ||
+    card.source === "temporary" ||
+    card.source === "legacy"
+  ) {
+    return false;
+  }
+
+  if (rewardPoolId !== undefined && !(card.rewardPools ?? []).includes(rewardPoolId)) {
+    return false;
+  }
+
+  if (!isWithinDuplicatePolicy(card, run)) {
     return false;
   }
 
@@ -132,6 +151,45 @@ const isEligibleCard = (
   const activeDefinitions = new Set(activePetInstances(run, petInstances).map((petInstance) => petInstance.definitionId));
   return activeDefinitions.has(card.requiresPetDefinitionId);
 };
+
+const isWithinDuplicatePolicy = (
+  card: CardDefinition,
+  run: RunState
+): boolean => {
+  const copies = run.deckCardIds.filter((cardId) => cardId === card.id).length;
+
+  if (card.duplicatePolicy?.duplicateAllowed === false) {
+    return copies < 1;
+  }
+
+  const maxCopies = card.duplicatePolicy?.maxCopiesInRunDeck;
+  return maxCopies === undefined || copies < maxCopies;
+};
+
+const getEncounter = (
+  registry: GameContentRegistry,
+  combat: CombatState
+): EncounterDefinition | undefined =>
+  combat.encounterId
+    ? registry.encounters.find((candidate) => candidate.id === combat.encounterId)
+    : undefined;
+
+const getEncounterRewardPoolId = (
+  registry: GameContentRegistry,
+  combat: CombatState
+): RewardPoolId | undefined =>
+  getEncounter(registry, combat)?.authoring?.rewardPoolId;
+
+const isRewardBearerCardOption = (
+  option: CardRewardOption,
+  card: CardDefinition
+): boolean =>
+  card.source === "encounterReward" &&
+  (card.dropSources ?? []).some((dropSource) =>
+    dropSource.kind === "cardBearer" &&
+    dropSource.sourceId !== undefined &&
+    option.id.includes(`:bearer:${dropSource.sourceId}:card:${card.id}`)
+  );
 
 const uniqueOptions = <TOption extends RewardOption>(
   options: readonly TOption[]
@@ -151,21 +209,171 @@ const uniqueOptions = <TOption extends RewardOption>(
   return result;
 };
 
+const uniqueOptionsByPayload = (
+  options: readonly RewardOption[]
+): readonly RewardOption[] => {
+  const seen = new Set<string>();
+  const result: RewardOption[] = [];
+
+  for (const option of options) {
+    const payload = option.type === "card"
+      ? `${option.type}:${option.cardId}`
+      : option.type === "petUpgrade"
+        ? `${option.type}:${option.petInstanceId}:${option.upgradeId}`
+        : `${option.type}:${option.operation}:${option.cardId ?? "none"}`;
+
+    if (seen.has(payload)) {
+      continue;
+    }
+
+    seen.add(payload);
+    result.push(option);
+  }
+
+  return result;
+};
+
 const buildCardOptions = (
   registry: GameContentRegistry,
+  combat: CombatState,
   run: RunState,
   petInstances: readonly PetInstance[],
-  offerId: RewardOfferState["id"]
+  offerId: RewardOfferState["id"],
+  rewardPoolId = getEncounterRewardPoolId(registry, combat)
 ): readonly CardRewardOption[] =>
   uniqueOptions(
     registry.cards
-      .filter((card) => isEligibleCard(card, run, petInstances))
+      .filter((card) => isEligibleCard(card, run, petInstances, rewardPoolId))
       .map((card) => ({
         id: rewardOptionId(`${offerId}:card:${card.id}`),
         type: "card" as const,
         cardId: card.id
       }))
   );
+
+const shouldOfferRewardBearerDrop = (
+  run: RunState,
+  heldCardId: CardDefinition["id"],
+  chancePercent: number,
+  guaranteedFirstTime: boolean | undefined,
+  pityKey: string | undefined,
+  rng: ReturnType<typeof createRng>
+): boolean => {
+  const seenGuaranteedDrop = pityKey !== undefined
+    ? run.runFlags.includes(pityKey)
+    : run.deckCardIds.includes(heldCardId);
+
+  if (guaranteedFirstTime && !seenGuaranteedDrop) {
+    return true;
+  }
+
+  return rng.nextFloat() * 100 < chancePercent;
+};
+
+const buildFallbackRewardBearerCardOptions = (
+  registry: GameContentRegistry,
+  combat: CombatState,
+  run: RunState,
+  petInstances: readonly PetInstance[],
+  offerId: RewardOfferState["id"],
+  fallbackRewardPoolId: RewardPoolId | undefined,
+  rng: ReturnType<typeof createRng>
+): readonly CardRewardOption[] => {
+  if (!fallbackRewardPoolId) {
+    return [];
+  }
+
+  return rng
+    .shuffle(buildCardOptions(registry, combat, run, petInstances, offerId, fallbackRewardPoolId))
+    .slice(0, 1)
+    .map((option) => ({
+      ...option,
+      id: rewardOptionId(`${offerId}:bearer:${combat.encounterId ?? "encounter"}:fallback:card:${option.cardId}`)
+    }));
+};
+
+const buildRewardBearerCardOptions = (
+  registry: GameContentRegistry,
+  combat: CombatState,
+  run: RunState,
+  petInstances: readonly PetInstance[],
+  offerId: RewardOfferState["id"],
+  rng: ReturnType<typeof createRng>
+): readonly CardRewardOption[] => {
+  const encounter = getEncounter(registry, combat);
+  const bearer = encounter?.rewardBearer;
+
+  if (!bearer || bearer.bearerKind !== "cardBearer") {
+    return [];
+  }
+
+  const heldReward = bearer.heldReward;
+  if (heldReward.type !== "playerCard") {
+    return [];
+  }
+
+  const card = registry.cards.find((candidate) => candidate.id === heldReward.cardId);
+  if (!card) {
+    return [];
+  }
+
+  const fallbackOptions = () => buildFallbackRewardBearerCardOptions(
+    registry,
+    combat,
+    run,
+    petInstances,
+    offerId,
+    bearer.dropRule.fallbackRewardPoolId,
+    rng
+  );
+
+  if (!isWithinDuplicatePolicy(card, run)) {
+    return fallbackOptions();
+  }
+
+  if (
+    !shouldOfferRewardBearerDrop(
+      run,
+      card.id,
+      bearer.dropRule.chancePercent,
+      bearer.dropRule.guaranteedFirstTime,
+      bearer.dropRule.pityKey,
+      rng
+    )
+  ) {
+    return fallbackOptions();
+  }
+
+  return [
+    {
+      id: rewardOptionId(`${offerId}:bearer:${encounter?.id ?? "encounter"}:card:${card.id}`),
+      type: "card" as const,
+      cardId: card.id
+    }
+  ];
+};
+
+const getClaimedRewardBearerPityKey = (
+  option: CardRewardOption,
+  card: CardDefinition,
+  registry: GameContentRegistry
+): string | undefined => {
+  for (const dropSource of card.dropSources ?? []) {
+    if (
+      dropSource.kind !== "cardBearer" ||
+      !dropSource.sourceId ||
+      !option.id.includes(`:bearer:${dropSource.sourceId}:`)
+    ) {
+      continue;
+    }
+
+    const encounter = registry.encounters.find((candidate) => candidate.id === dropSource.sourceId);
+    return encounter?.rewardBearer?.dropRule.pityKey;
+  }
+
+  return undefined;
+};
+
 
 const buildPetUpgradeOptions = (
   registry: GameContentRegistry,
@@ -238,14 +446,17 @@ export const generateCombatRewardOffer = (
     status: "open",
     options: []
   };
+  const rewardBearerCardOptions = buildRewardBearerCardOptions(registry, combat, run, petInstances, offerId, rng);
   const cardOptions = rng
-    .shuffle(buildCardOptions(registry, run, petInstances, offerId))
+    .shuffle(buildCardOptions(registry, combat, run, petInstances, offerId))
     .slice(0, Math.max(0, cardOptionCount));
   const petUpgradeOptions = rng
     .shuffle(buildPetUpgradeOptions(registry, run, petInstances, offerId))
     .slice(0, Math.max(0, petUpgradeOptionCount));
   const deckOperationOptions = buildDeckOperationOptions(run, offerId).slice(0, Math.max(0, deckOperationOptionCount));
-  const options = uniqueOptions([...cardOptions, ...petUpgradeOptions, ...deckOperationOptions]);
+  const options = uniqueOptionsByPayload(
+    uniqueOptions([...rewardBearerCardOptions, ...cardOptions, ...petUpgradeOptions, ...deckOperationOptions])
+  );
   const state: RewardOfferState = { ...baseOffer, options };
   const event: GameEvent = { type: "RewardOffered", rewardOfferId: state.id, options: state.options };
 
@@ -282,7 +493,18 @@ export const claimReward = (
       );
     }
 
-    if (!isEligibleCard(card, run, petInstances)) {
+    if (!isWithinDuplicatePolicy(card, run)) {
+      return rejectClaim(
+        originalState,
+        error(
+          "reward_card_duplicate_limit",
+          `Card '${selectedOption.cardId}' has reached its run deck duplicate limit.`,
+          "run.deckCardIds"
+        )
+      );
+    }
+
+    if (!isEligibleCard(card, run, petInstances) && !isRewardBearerCardOption(selectedOption, card)) {
       return rejectClaim(
         originalState,
         error(
@@ -298,7 +520,16 @@ export const claimReward = (
       status: "claimed",
       selectedOptionId
     };
-    const nextRun: RunState = { ...run, deckCardIds: [...run.deckCardIds, selectedOption.cardId] };
+    const pityKey = isRewardBearerCardOption(selectedOption, card)
+      ? getClaimedRewardBearerPityKey(selectedOption, card, registry)
+      : undefined;
+    const nextRun: RunState = {
+      ...run,
+      deckCardIds: [...run.deckCardIds, selectedOption.cardId],
+      runFlags: pityKey && !run.runFlags.includes(pityKey)
+        ? [...run.runFlags, pityKey]
+        : run.runFlags
+    };
     const state: RewardClaimState = { rewardOffer: claimedOffer, run: nextRun, petInstances };
     const events: readonly GameEvent[] = [
       {

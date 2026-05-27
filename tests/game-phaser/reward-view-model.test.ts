@@ -44,7 +44,7 @@ describe("Reward view model", () => {
     expect(viewModel.options[0]).toMatchObject({
       type: "card",
       title: "Ember Spark",
-      description: "Deal 4 damage and apply 1 burn."
+      description: "Deal 4 damage and apply 1 Burn."
     });
     expect(viewModel.options[1]).toMatchObject({
       type: "petUpgrade",

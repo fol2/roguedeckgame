@@ -3,8 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   cardInstanceId,
+  combatantId,
   createCombat,
+  monsterAbilityId,
   monsterId,
+  monsterIntentId,
   starterRegistry,
   statusId,
   upgradeId
@@ -25,7 +28,7 @@ describe("Combat view model", () => {
     const viewModel = buildCombatViewModel(controller.getState());
 
     expect(viewModel.player).toMatchObject({
-      name: "Novice Tamer",
+      name: "Ashbound Keeper",
       type: "player",
       alive: true
     });
@@ -271,7 +274,6 @@ describe("Combat view model", () => {
     const viewModel = createCombatSandboxController("view-model-intents").getViewModel();
 
     expect(viewModel.monsterIntents[0]?.label).toEqual(expect.any(String));
-    expect(viewModel.monsterIntents[0]?.abilityId).toEqual(expect.any(String));
     expect(viewModel.monsterIntents[0]?.description.length).toBeGreaterThan(0);
     expect(viewModel.monsterIntents[0]?.targetHint).toEqual(expect.any(String));
   });
@@ -283,7 +285,18 @@ describe("Combat view model", () => {
 
     expect(plannedAbility).toBeDefined();
 
-    const viewModel = buildCombatViewModel(state, {
+    const viewModel = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        intentVisibilityOverrides: [{
+          monsterCombatantId: state.combat.monsters[0]!.id,
+          level: "exact",
+          source: "debug",
+          expires: "never"
+        }]
+      }
+    }, {
       ...starterRegistry,
       monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
         ability.id === plannedAbility!.abilityId
@@ -309,7 +322,7 @@ describe("Combat view model", () => {
       amount: 99,
       plannedAction: {
         source: "plannedAbility",
-        revealPolicy: "revealed",
+        revealPolicy: "exact",
         title: expect.any(String),
         abilityId: plannedAbility!.abilityId,
         subtitle: `${viewModel.monsterIntents[0]?.type} planned card`,
@@ -317,7 +330,7 @@ describe("Combat view model", () => {
       }
     });
     expect(viewModel.monsterIntents[0]?.detail.lines).toEqual(expect.arrayContaining([
-      "Reveal policy: revealed",
+      "Reveal policy: exact",
       "Metadata source: plannedAbility",
       "Effects:",
       "Damage 99 to target."
@@ -336,6 +349,12 @@ describe("Combat view model", () => {
       ...state,
       combat: {
         ...state.combat,
+        intentVisibilityOverrides: [{
+          monsterCombatantId: state.combat.monsters[0]!.id,
+          level: "exact",
+          source: "debug",
+          expires: "never"
+        }],
         plannedMonsterAbilities: []
       }
     });
@@ -344,9 +363,205 @@ describe("Combat view model", () => {
       abilityId: plannedAbility!.abilityId,
       plannedAction: {
         source: "fallbackMetadata",
-        revealPolicy: "revealed",
+        revealPolicy: "exact",
         abilityId: plannedAbility!.abilityId
       }
+    });
+  });
+
+  it("redacts hidden monster intent metadata until the intent is revealed", () => {
+    const controller = createCombatSandboxController("view-model-hidden-intent");
+    const state = controller.getState();
+    const monsterCombatantId = combatantId("monster:soot_crow:0");
+    const hiddenCombat = {
+      ...state.combat,
+      monsters: [{
+        ...state.combat.monsters[0]!,
+        id: monsterCombatantId,
+        definitionId: monsterId("soot_crow"),
+        name: "Soot Crow"
+      }],
+      monsterIntents: [{
+        monsterCombatantId,
+        intentId: monsterIntentId("soot_crow_flutter")
+      }],
+      plannedMonsterAbilities: [{
+        monsterCombatantId,
+        intentId: monsterIntentId("soot_crow_flutter"),
+        abilityId: monsterAbilityId("soot_crow_flutter")
+      }]
+    };
+    const hidden = buildCombatViewModel({ ...state, combat: hiddenCombat }).monsterIntents[0]!;
+    const revealed = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...hiddenCombat,
+        intentVisibilityOverrides: [{
+          monsterCombatantId,
+          level: "exact",
+          source: "debug",
+          expires: "never"
+        }]
+      }
+    }).monsterIntents[0]!;
+
+    expect(hidden).toMatchObject({
+      abilityId: undefined,
+      visibilityLevel: "unknown",
+      label: "?",
+      description: "Intent hidden.",
+      targetHint: "unknown",
+      amount: undefined,
+      plannedAction: {
+        title: "?",
+        effectLines: ["Intent hidden."]
+      }
+    });
+    expect(hidden.detail.lines.join("\n")).not.toContain("Ash Flutter");
+    expect(hidden.detail.lines.join("\n")).not.toContain("hide behind ash");
+    expect(revealed).toMatchObject({
+      abilityId: monsterAbilityId("soot_crow_flutter"),
+      visibilityLevel: "exact",
+      label: "special",
+      description: expect.stringContaining("hide behind ash"),
+      plannedAction: {
+        title: "Ash Flutter"
+      }
+    });
+  });
+
+  it("shows rough intent category without exact card amount or card text", () => {
+    const controller = createCombatSandboxController("view-model-rough-intent");
+    const state = controller.getState();
+    const monsterCombatantId = state.combat.monsters[0]!.id;
+    const viewModel = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        intentVisibilityOverrides: [{
+          monsterCombatantId,
+          level: "rough",
+          source: "debug",
+          expires: "never"
+        }]
+      }
+    });
+    const intent = viewModel.monsterIntents[0]!;
+
+    expect(intent.visibilityLevel).toBe("rough");
+    expect(intent.abilityId).toBeUndefined();
+    expect(intent.amount).toBeUndefined();
+    expect(intent.plannedAction.effectLines).toEqual(["Specific card text is hidden."]);
+  });
+
+  it("redacts hidden enemy planned cards until intent visibility is improved", () => {
+    const controller = createCombatSandboxController("view-model-hidden-intent");
+    const state = controller.getState();
+    const scribeId = combatantId("monster:cinder_scribe:0");
+    const hidden = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        monsters: [{
+          ...state.combat.monsters[0]!,
+          id: scribeId,
+          definitionId: monsterId("cinder_scribe"),
+          name: "Cinder Scribe"
+        }],
+        monsterIntents: [{
+          monsterCombatantId: scribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark")
+        }],
+        plannedMonsterAbilities: [{
+          monsterCombatantId: scribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark"),
+          abilityId: monsterAbilityId("cinder_scribe_ink_spark")
+        }]
+      }
+    });
+    const revealed = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        monsters: [{
+          ...state.combat.monsters[0]!,
+          id: scribeId,
+          definitionId: monsterId("cinder_scribe"),
+          name: "Cinder Scribe"
+        }],
+        monsterIntents: [{
+          monsterCombatantId: scribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark")
+        }],
+        plannedMonsterAbilities: [{
+          monsterCombatantId: scribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark"),
+          abilityId: monsterAbilityId("cinder_scribe_ink_spark")
+        }],
+        intentVisibilityOverrides: [{
+          monsterCombatantId: scribeId,
+          level: "exact",
+          source: "debug",
+          expires: "never"
+        }]
+      }
+    });
+
+    expect(hidden.monsterIntents[0]).toMatchObject({
+      abilityId: undefined,
+      label: "?",
+      description: "Intent hidden.",
+      targetHint: "unknown",
+      amount: undefined,
+      plannedAction: {
+        title: "?",
+        effectLines: ["Intent hidden."]
+      }
+    });
+    expect(revealed.monsterIntents[0]).toMatchObject({
+      abilityId: monsterAbilityId("cinder_scribe_ink_spark"),
+      label: "special",
+      description: expect.stringContaining("Deal"),
+      targetHint: "keeper",
+      plannedAction: {
+        title: "Ink Spark",
+        effectLines: expect.arrayContaining([
+          expect.stringContaining("Damage")
+        ])
+      }
+    });
+  });
+
+  it("honours ability-level hidden telegraphs on otherwise readable normal enemies", () => {
+    const controller = createCombatSandboxController("view-model-ability-telegraph");
+    const state = controller.getState();
+    const crowId = combatantId("monster:soot_crow:0");
+    const viewModel = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        monsters: [{
+          ...state.combat.monsters[0]!,
+          id: crowId,
+          definitionId: monsterId("soot_crow"),
+          name: "Soot Crow"
+        }],
+        monsterIntents: [{
+          monsterCombatantId: crowId,
+          intentId: monsterIntentId("soot_crow_flutter")
+        }],
+        plannedMonsterAbilities: [{
+          monsterCombatantId: crowId,
+          intentId: monsterIntentId("soot_crow_flutter"),
+          abilityId: monsterAbilityId("soot_crow_flutter")
+        }]
+      }
+    });
+
+    expect(viewModel.monsterIntents[0]).toMatchObject({
+      visibilityLevel: "unknown",
+      label: "?",
+      plannedAction: { title: "?" }
     });
   });
 

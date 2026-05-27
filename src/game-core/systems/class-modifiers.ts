@@ -52,7 +52,8 @@ const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatS
 
 export const knownPlayerClassModifierRuleTypes = [
   "triggerOnCardPlayed",
-  "triggerOnStatusApplied"
+  "triggerOnStatusApplied",
+  "intentVisibilityPassive"
 ] as const satisfies readonly PlayerClassModifierRule["type"][];
 
 export const knownPlayerClassModifierRuleTypeValues: readonly string[] = knownPlayerClassModifierRuleTypes;
@@ -130,7 +131,7 @@ const activationReason = (
 const isClassModifierUsed = (
   state: CombatState,
   modifier: PlayerClassModifierDefinition,
-  limit: PlayerClassModifierRule["limit"]
+  limit: Extract<PlayerClassModifierRule, { readonly effects: readonly unknown[] }>["limit"]
 ): boolean => {
   if (!limit) {
     return false;
@@ -177,6 +178,10 @@ export const resolvePlayerClassModifierTriggersAfterEvents = (input: {
             `playerClassModifiers.${context.modifier.id}.rules[${ruleIndex}]`
           )
         );
+      }
+
+      if (rule.type === "intentVisibilityPassive") {
+        continue;
       }
 
       if (!classModifierRuleMatches(rule, input.triggerWindow, input.registry)) {

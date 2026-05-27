@@ -62,18 +62,19 @@ describe("content authoring helpers", () => {
 
     expect(report).toMatchObject({
       counts: {
-        cards: 12,
+        cards: 25,
         statuses: 1,
         pets: 1,
-        monsterAbilities: 10,
-        monsters: 4,
-        encounters: 5,
+        monsterAbilities: 24,
+        monsters: 7,
+        encounters: 9,
         runMapTemplates: 1,
         petUpgrades: 3,
-        playerClassModifiers: 0
+        playerClassModifiers: 1
       },
-      cardRarities: ["common", "starter", "uncommon"],
+      cardRarities: ["common", "rare", "starter", "uncommon"],
       cardTags: [
+        "area",
         "attack",
         "block",
         "burn",
@@ -84,15 +85,26 @@ describe("content authoring helpers", () => {
         "fire",
         "fox",
         "guard",
+        "keeper",
+        "legacy",
+        "mark",
         "pet",
-        "setup"
+        "rare",
+        "reveal",
+        "scope",
+        "scout",
+        "setup",
+        "signal"
       ],
       effectTypes: [
         "applyStatus",
         "block",
+        "cleanseStatus",
         "damage",
         "draw",
+        "improveIntentVisibility",
         "petAttack",
+        "petBlock",
         "petReact"
       ],
       statusIds: ["burn"],
@@ -104,8 +116,9 @@ describe("content authoring helpers", () => {
         "modifyPetCommandEffectAmount",
         "triggerOnEnemyDefeatedWithStatus"
       ],
-      playerClassModifierIds: [],
+      playerClassModifierIds: ["field_sense"],
       playerClassModifierRuleTypes: [
+        "intentVisibilityPassive",
         "triggerOnCardPlayed",
         "triggerOnStatusApplied"
       ],

@@ -1,0 +1,5260 @@
+diff --git a/docs/combat_card_game_rules.md b/docs/combat_card_game_rules.md
+new file mode 100644
+index 0000000..19d4e8f
+--- /dev/null
++++ b/docs/combat_card_game_rules.md
+@@ -0,0 +1,1390 @@
++# Combat Card Game Rules v0.2
++
++Status: implementation contract / living design rulebook
++Language: Cantonese / English technical terms
++Scope: combat card-game rules, player/enemy card zones, intent visibility, enemy card holdings, reward-bearing encounter hooks, and rules that all combat content must obey.
++
++
++Related docs:
++
++- `architecture.md` — engine and Phaser boundary rules.
++- `ui_ux_interaction.md` — combat presentation and input contract.
++- `design.md` — visual / emotional direction.
++- `combat_content_foundation.md` — first class, first pet, first map, first enemy decks, starter deck, reward pool, and content-specific card identities.
++
++Document split:
++
++```txt
++combat_card_game_rules.md
++= card-game law: zones, draw/play/discard, enemy holdings, Intent visibility, adaptive enemy fairness, reward-bearer mechanics.
++
++combat_content_foundation.md
++= first playable content contract: Ashbound Keeper, Ember Fox, Ashwood Trail, starter deck, first enemies, elite, rare holder, boss, reward pool.
++```
++
++Content may tune numbers, card names, enemy HP, and reward pools. Content must not violate this document's rules unless this document is updated first.
++
++This document defines the game at the card-game level. It does **not** finalize the starter pack yet. The starter pack should be redesigned after the first enemy card problems and information rules are accepted.
++
++---
++
++## 1. Core Law
++
++**Combat is a two-sided card game.**
++
++玩家同敵人都用卡。分別係：
++
++```txt
++Player cards = visible hand cards.
++Enemy cards = hidden or partially visible holdings, expressed through Intent UI only when revealed.
++```
++
++敵人唔係純 scripted monster。敵人有 deck、hand、planned card、discard、exhaust。只係 UI 上唔會將敵人畫成「卡牌」。敵人仍然係 battlefield sprite / silhouette。敵人 card system 係 core rule；Intent display 係 information layer。
++
++三個核心名詞要分清楚：
++
++```txt
++Enemy Card
++= 敵人真正會打出嘅卡。
++
++Enemy Plan
++= 敵人目前準備、候選、或者 adaptive 嘅下一步行動。
++
++Intent
++= 玩家看見嘅資訊版本。可能係 full reveal、partial reveal、?、或者完全無顯示。
++```
++
++所以：
++
++```txt
++Enemy may have a planned card.
++Player may not know it.
++Intent visibility is a player information effect, not a universal combat rule.
++```
++
++呢條係 v0.2 嘅重要方向：**看見敵人意圖唔係免費規則，而係 class ability、buff、card effect、pet upgrade、reveal/scout/scope 等資訊能力帶嚟嘅優勢。**
++
++---
++
++## 2. Player Combat Zones
++
++Player side 有以下 zones：
++
++```txt
++Run Deck
++Combat Draw Pile
++Hand
++Play Area
++Discard Pile
++Exhaust Pile
++Removed / Trash
++Created / Temporary Cards
++```
++
++定義：
++
++```txt
++Run Deck
++= run 期間永久牌組。Combat start 時用它建立 combat card instances。
++
++Combat Draw Pile
++= 今場 combat 可抽牌堆。用 CardInstanceId，不用 CardId，因為 duplicate cards 係正常。
++
++Hand
++= 玩家目前可打出嘅手牌。
++
++Play Area
++= card resolving 時短暫存在嘅位置。主要俾 event playback / animation 用。
++
++Discard Pile
++= 今場 combat 會再洗返入 draw pile 嘅牌。
++
++Exhaust Pile
++= 今場 combat 移除，不會再抽到。Combat 完結後通常返回 run deck，除非卡本身係 temporary。
++
++Removed / Trash
++= run-level 永久移除。v0.2 不建議 combat 內大量使用 trash，主要喺 camp/event/reward/removal screen 發生。
++
++Created / Temporary Cards
++= combat 內生成嘅卡。預設 combat 完結後消失，除非效果明確寫明加入 run deck。
++```
++
++v0.2 建議數值：
++
++```txt
++Starting deck size: 10
++Minimum run deck size: 8
++Maximum run deck size: 30
++Opening hand: 5
++Draw per player turn: 5
++Hand cap: 10
++Starting energy per turn: 3
++Unspent energy: lost at end of player turn
++```
++
++`minimum run deck size = 8` 係為咗避免玩家 remove 到 deck 過細而令 balance 崩壞。
++`maximum run deck size = 30` 係 Phase 1 設計上限，不是永久世界觀規則。將來如果有大 deck archetype，可以由 class/relic/buff 改寫。
++
++---
++
++## 3. Player Turn Rules
++
++Combat start：
++
++```txt
++1. Build player combat card instances from run deck.
++2. Shuffle player draw pile with seeded RNG.
++3. Build enemy card instances for each enemy.
++4. Shuffle each enemy draw pile with seeded RNG.
++5. Each enemy creates its first plan.
++6. Intent visibility is calculated.
++7. Player draws opening hand.
++8. Player turn begins.
++```
++
++Start of player turn：
++
++```txt
++1. Start-of-turn statuses resolve.
++2. Energy refills to max energy.
++3. Draw until draw count is satisfied or hand cap is reached.
++4. If draw pile is empty and cards still need to be drawn, shuffle discard into draw pile.
++5. Enemy plans/intents are refreshed if timing says so.
++6. Input unlocks.
++```
++
++Playing a card：
++
++```txt
++1. Player selects card.
++2. Core validates card is in hand, playable, affordable, and has valid target.
++3. Energy is spent if required.
++4. Card effects resolve in emitted event order.
++5. Card moves to discard/exhaust/other zone according to its rules.
++6. Combat outcome is checked.
++```
++
++End of player turn：
++
++```txt
++1. End-turn action is submitted.
++2. Input locks immediately.
++3. Non-retained hand cards move to discard.
++4. End-of-turn statuses resolve if applicable.
++5. Enemy turn begins.
++```
++
++Draw reshuffle rule：
++
++```txt
++When drawing and draw pile is empty:
++  if discard pile has cards:
++    shuffle discard into draw pile
++    continue drawing
++  else:
++    stop drawing
++```
++
++Retain rule：
++
++```txt
++Retained cards stay in hand during end turn.
++Retained cards count against hand cap next turn.
++```
++
++Exhaust rule：
++
++```txt
++Exhaust removes the card from this combat only.
++Combat-created cards that exhaust do not return after combat unless explicitly stated.
++```
++
++Trash / Remove rule：
++
++```txt
++Trash means permanent run-deck removal.
++v0.2 prefers trash/removal outside combat.
++If combat effects later trash cards, they must be rare, explicit, and heavily tested.
++```
++
++---
++
++## 4. Enemy Card System
++
++Each enemy has its own card holdings.
++
++```ts
++type EnemyCardHoldingState = {
++  enemyCombatantId: CombatantId;
++  drawPile: EnemyCardInstanceId[];
++  hand: EnemyCardInstanceId[];
++  planned: EnemyPlanState[];
++  discardPile: EnemyCardInstanceId[];
++  exhaustPile: EnemyCardInstanceId[];
++  handSize: number;
++  planSlots: number;
++};
++```
++
++Enemy cards are real combat content, but not rendered as battlefield cards. They are translated into intent/unknown/scoped UI.
++
++Normal enemies：
++
++```txt
++Enemy deck size: 3–6 cards
++Enemy hand size: 1
++Plan slots: 1
++Adaptive behavior: minimal or none
++Visibility: depends on player reveal effects
++```
++
++Elites：
++
++```txt
++Enemy deck size: 5–8 cards
++Enemy hand size: 2
++Plan slots: 1
++Adaptive behavior: allowed
++Visibility: often partial or unknown unless scoped
++```
++
++Bosses：
++
++```txt
++Enemy deck size: 8–12+ cards
++Enemy hand size: 3
++Plan slots: 1, sometimes 2 for special phases
++Adaptive behavior: expected
++Visibility: can be hidden, partial, false-stable, or scoped depending on player abilities
++```
++
++Enemy card flow：
++
++```txt
++1. Enemy draws up to hand size.
++2. Enemy creates plan from hand.
++3. Player may or may not see intent.
++4. Enemy resolves planned card during enemy turn.
++5. Resolved enemy card moves to discard/exhaust.
++6. Enemy refills hand and creates next plan.
++7. Enemy discard reshuffles when draw pile is empty.
++```
++
++Enemy does not need visible energy in v0.2. Their limitation should come from deck composition, cooldown tags, exhaust cards, phase rules, and adaptive constraints.
++
++---
++
++## 5. Intent Visibility System
++
++**Intent display is not automatic.**
++
++Every enemy can have a next card, but player-facing info depends on visibility level.
++
++```ts
++type IntentVisibilityLevel =
++  | "none"
++  | "unknown"
++  | "category"
++  | "rough"
++  | "exact"
++  | "scoped";
++```
++
++Meaning：
++
++```txt
++none
++= UI shows no useful intent. Enemy may have no icon or only idle marker.
++
++unknown
++= UI shows ?.
++
++category
++= UI shows broad type: attack, defend, buff, debuff, special, charge.
++
++rough
++= UI shows category + rough strength, e.g. Attack / Heavy, Debuff / Minor.
++
++exact
++= UI shows exact card name, amount, target hint, and tooltip.
++
++scoped
++= special advanced view. For elite/boss, may show candidate cards, condition branches, or current likely card.
++```
++
++Recommended visual mapping：
++
++```txt
++none      -> no icon or dim unreadable haze
++unknown   -> ?
++category  -> attack/defend/debuff/etc. icon
++rough     -> icon + Low/Med/High or icon intensity
++exact     -> icon + amount + full tooltip
++scoped    -> icon + scope mark + candidate/conditional tooltip
++```
++
++Important: `?` should not feel like missing data. It is a valid designed state.
++
++---
++
++## 6. Reveal, Scout, and Scope
++
++Intent visibility should come from player-side effects.
++
++v0.2 reserves these effect families：
++
++```txt
++Reveal
++= improve visibility of enemy intent.
++
++Scout
++= look at hidden enemy card holdings, usually weaker than full reveal.
++
++Scope
++= advanced reveal for elite/boss adaptive plans.
++
++Obscure
++= enemy effect that hides or degrades intent visibility.
++
++Lock
++= force or freeze an enemy plan, usually non-boss only or heavily restricted.
++```
++
++Example effect definitions：
++
++```ts
++type RevealIntentEffect = {
++  type: "revealIntent";
++  target: "targetEnemy" | "allEnemies";
++  level: IntentVisibilityLevel;
++  duration: "currentPlan" | "untilEndOfTurn" | "nextEnemyTurn" | "combat";
++};
++
++type ScopeIntentEffect = {
++  type: "scopeIntent";
++  target: "targetEnemy" | "allEnemies";
++  depth: "category" | "candidateSet" | "conditionHint" | "exactIfLocked";
++  duration: "currentPlan" | "nextEnemyTurn";
++};
++```
++
++Reveal should not always persist.
++
++```txt
++Even if the player reveals an intent this turn,
++next round may return to ? unless the reveal source is a persistent buff/class passive.
++```
++
++Example effects：
++
++```txt
++One-shot card:
++  Reveal target enemy's current intent.
++
++Buff:
++  At start of each player turn, reveal normal enemy intent categories.
++
++Class passive:
++  Normal enemies show category by default.
++
++Advanced skill:
++  Scope one elite/boss intent candidate set this turn.
++```
++
++---
++
++## 7. Adaptive Elite and Boss Rules
++
++Elite and boss enemies can adapt.
++
++But adaptivity must not become unfair cheating. The enemy still uses cards.
++
++Define enemy plan modes：
++
++```ts
++type EnemyPlanMode =
++  | "locked"
++  | "adaptive"
++  | "charging"
++  | "scriptedPhase";
++```
++
++Meaning：
++
++```txt
++locked
++= enemy has chosen a specific card. If revealed exactly, it should not change unless a game effect changes it.
++
++adaptive
++= enemy has a candidate set and will choose at resolution or after player action based on state.
++
++charging
++= enemy is preparing a later card. Player may see charge marker, ?, or scoped detail.
++
++scriptedPhase
++= boss phase rule inserts or prioritizes certain cards, but still emits card-like events.
++```
++
++Normal enemy should usually use `locked`.
++
++Elite can use `adaptive`.
++
++Boss should frequently use `adaptive`, `charging`, or `scriptedPhase`.
++
++A boss with adaptive plan might look like this internally：
++
++```ts
++type EnemyPlanState = {
++  mode: "adaptive";
++  candidateCardInstanceIds: EnemyCardInstanceId[];
++  currentPreferredCardInstanceId?: EnemyCardInstanceId;
++  adaptiveRuleId: EnemyAdaptiveRuleId;
++  visibility: IntentVisibilityState;
++};
++```
++
++Player-facing examples：
++
++```txt
++No reveal:
++  ?
++
++Reveal category:
++  Special ?
++
++Scope:
++  Candidate set: Heavy Attack OR Guarded Buff.
++  Tooltip: This enemy may change action depending on your Block.
++```
++
++Hard rule：
++
++```txt
++If an enemy changes a visible plan, emit EnemyPlanChanged.
++If the player had exact reveal and the enemy is allowed to change anyway, UI must communicate that the plan was unstable/adaptive.
++```
++
++This avoids the feeling of betrayal. For bosses, `exact` may not always mean “guaranteed locked”; it can mean “exact current preferred action.” A stronger `lock` or `true read` effect can be introduced later, but not in starter content.
++
++---
++
++## 8. Fairness Rules for Hidden Intent
++
++Because intent is not always shown, we need fairness rules.
++
++Hidden intent is allowed, but hidden nonsense is not.
++
++v0.2 fairness contract：
++
++```txt
++1. Unknown intent must still obey enemy deck, cooldown, phase, and tier limits.
++2. Normal enemies should not have huge surprise swings without previous teaching.
++3. Elite/boss adaptive enemies should have readable traits, phase tells, or repeated patterns.
++4. If an action is extremely dangerous, it should be telegraphed somehow: charge, animation, status, boss phase, or scopeable hint.
++5. Player must have access to reveal/scout/scope tools through class, cards, pet upgrades, or buffs.
++6. Hidden intent should create uncertainty, not random punishment.
++```
++
++So `?` is not a license to do anything. It means the player lacks information, not that the enemy ignores rules.
++
++---
++
++## 9. Card Definitions and Rarity
++
++All player cards need rarity.
++
++```ts
++type CardRarity =
++  | "starter"
++  | "common"
++  | "uncommon"
++  | "rare"
++  | "special"
++  | "unique"
++  | "petBound";
++```
++
++Meaning：
++
++```txt
++starter
++= starts in deck, normally not in reward pool.
++
++common
++= basic reward pool, frequent.
++
++uncommon
++= build-shaping, less frequent.
++
++rare
++= powerful, specialized, or archetype-defining.
++
++special
++= event/encounter/map/story source only.
++
++unique
++= one-off card, boss reward, story reward, or cannot duplicate.
++
++petBound
++= tied to a specific pet, pet evolution, pet memory, or pet encounter.
++```
++
++Card definition should include：
++
++```ts
++type PlayerCardDefinition = {
++  id: CardId;
++  name: string;
++  family: "attack" | "skill" | "power" | "petCommand" | "petSupport" | "other";
++  rarity: CardRarity;
++  cost: number;
++  targetType: CardTargetType;
++  tags: string[];
++  effects: EffectDefinition[];
++  rewardPools?: RewardPoolId[];
++  dropSources?: RewardDropSource[];
++};
++```
++
++Pet-command is a card family, not a rarity. So we can have：
++
++```txt
++common pet-command
++uncommon pet-command
++rare pet-command
++petBound pet-command
++```
++
++Enemy cards can have their own rarity/tier, but do not need to map one-to-one to player rarity.
++
++```ts
++type EnemyCardTier =
++  | "basic"
++  | "advanced"
++  | "elite"
++  | "boss"
++  | "rareBearer"
++  | "special";
++```
++
++Enemy card tier is about threat and encounter design, not direct player reward rarity.
++
++---
++
++## 10. Enemy Card Families
++
++Enemy cards should have clear families.
++
++```txt
++Attack
++= damages Keeper/player by default.
++
++Guard
++= gains block, shield, or protection.
++
++Buff
++= improves self/ally.
++
++Debuff
++= applies negative status to player.
++
++Burn / Status
++= applies Burn or other status.
++
++Special
++= unique behavior, usually elite/boss.
++
++Charge
++= prepares stronger future action.
++
++Summon
++= creates or calls ally; Phase 1 probably deferred.
++
++Escape / Steal
++= future special encounter behavior.
++```
++
++Enemy cards should be authored as data using shared effect language where possible.
++
++Good：
++
++```txt
++Enemy card: Slime Tackle
++family: attack
++effects: damage player 6
++```
++
++Bad：
++
++```ts
++if enemy.name === "Slime" then hardcode attack
++```
++
++---
++
++## 11. Player Card Families
++
++Player card families v0.2：
++
++```txt
++Attack
++= Keeper acts directly against enemy.
++
++Skill
++= block, draw, setup, utility.
++
++Power
++= longer-term combat modifier.
++
++Pet-Command
++= card commands active pet. Uses orange command line.
++
++Pet Support
++= targets or modifies pet but may not be a direct command.
++
++Technique / Other
++= future class-specific category if needed.
++```
++
++Hard language rule：
++
++```txt
++Only true pet-command cards should use the command visual grammar.
++Orange command line means card -> pet command relationship.
++```
++
++This keeps card communication clean and consistent.
++
++---
++
++## 12. Rare Card Holder Encounters
++
++Some combat encounters can be **card bearer encounters**.
++
++Meaning：
++
++```txt
++A rare or special card is represented by an enemy, relic-being, corrupted keeper, shrine guardian, wild pet, or card-carrying creature.
++Winning the encounter may offer that card as a reward.
++```
++
++This is not just random reward generation. It makes rare cards feel discovered, hunted, rescued, stolen back, or earned.
++
++Definition shape：
++
++```ts
++type RewardBearerEncounter = {
++  kind: "cardBearer" | "petBearer" | "upgradeBearer";
++  bearerId: string;
++  heldReward: HeldRewardDefinition;
++  revealState: "knownBeforeCombat" | "rumored" | "hiddenUntilWin";
++  dropRule: RewardDropRule;
++};
++
++type HeldRewardDefinition =
++  | { type: "playerCard"; cardId: CardId; rarity: CardRarity }
++  | { type: "petDefinition"; petDefinitionId: PetDefinitionId }
++  | { type: "petCommandCard"; cardId: CardId; petDefinitionId: PetDefinitionId }
++  | { type: "petUpgrade"; upgradeId: PetUpgradeId };
++
++type RewardDropRule = {
++  chancePercent: number;
++  pityKey?: string;
++  guaranteedFirstTime?: boolean;
++  fallbackRewardPoolId?: RewardPoolId;
++};
++```
++
++v0.2 reward-bearing principles：
++
++```txt
++1. Reward chance must use seeded RNG.
++2. Reward result should be reproducible from combat seed/run seed.
++3. The card bearer may use a thematic enemy card in combat, but does not need to literally use the player card.
++4. Rare holder encounters should be memorable and scarce.
++5. If drop is not guaranteed, fallback reward must still be meaningful.
++6. Unique/pet unlocks should usually be guaranteed or story-gated, not low-chance frustration.
++```
++
++Example：
++
++```txt
++Encounter: Cinder Scribe
++Held reward: Rare card "Ash Rewrite"
++Reveal state: rumored before combat
++Drop rule: 45% chance, guaranteed first time if this is tutorial rare-holder
++Combat behavior: enemy uses enemy-card versions of draw/discard/debuff actions
++```
++
++Another example：
++
++```txt
++Encounter: Wild Ember Kit
++Held reward: future pet "Ember Kit"
++Reveal state: known before combat
++Drop rule: guaranteed if rescued / won with condition
++Combat behavior: not necessarily killed; maybe calm, protect, or survive trial
++```
++
++---
++
++## 13. Pet Encounter Rules
++
++Future pets can appear through encounter content.
++
++Not every pet should be bought or randomly selected. Some pets can be discovered.
++
++Pet encounter types：
++
++```txt
++Wild Pet Trial
++= fight, survive, or prove bond to unlock a pet.
++
++Rescue Encounter
++= defeat enemies threatening a pet.
++
++Corrupted Pet Encounter
++= cleanse or defeat corruption to unlock pet later.
++
++Pet Memory Encounter
++= does not unlock pet, but unlocks pet command card, side story, or evolution branch.
++
++Pet Rival Encounter
++= future advanced content; pet tests current companion or class.
++```
++
++Important distinction：
++
++```txt
++Unlocking a pet is not the same as adding a card.
++```
++
++A pet encounter reward can be：
++
++```txt
++new PetInstance
++new PetDefinition unlocked for future runs
++petBound card added to reward pool
++pet memory
++pet upgrade
++evolution branch
++side-story flag
++```
++
++Pet encounters should mostly unlock future options, memories, command sets, or persistent pet access — not just temporary combat summons.
++
++---
++
++## 14. Reward Flow After Combat
++
++At combat end：
++
++```txt
++1. CombatEnded event resolves.
++2. If won, reward generation starts.
++3. Reward generator checks:
++   - normal reward pool
++   - encounter-specific reward bearer
++   - pet upgrade eligibility
++   - pet encounter rewards
++   - story/memory flags
++4. RewardOfferState is created.
++5. Player may claim one or more options depending on node rules.
++6. Claimed reward updates run state / pet instance / card deck.
++7. Skipped reward clears pending reward and advances map state.
++```
++
++Reward option types v0.2：
++
++```txt
++card
++petUpgrade
++petUnlock
++petCommandUnlock
++petMemory
++gold/resource later
++removeCard later
++```
++
++Phase 1 can implement only `card` and `petUpgrade`, but the rules should leave space for future pet reward options.
++
++---
++
++## 15. Enemy Card Visibility and Reward Bearers
++
++A card-bearing enemy does not need to show the held reward immediately.
++
++Reveal modes：
++
++```txt
++knownBeforeCombat
++= map node or encounter preview tells player this enemy holds a rare card/pet.
++
++rumored
++= UI hints that this is a special bearer, but exact reward hidden.
++
++hiddenUntilWin
++= player only discovers special reward after winning.
++```
++
++This gives different emotional rhythms：
++
++```txt
++Known rare holder:
++  "I want that card. I choose this risky fight."
++
++Rumored holder:
++  "This enemy has something unusual."
++
++Hidden reward:
++  "Surprise discovery."
++```
++
++For pet encounters, recommended default is mostly `knownBeforeCombat` or `rumored`, not fully hidden, because new pets are major emotional content.
++
++---
++
++## 16. Combat Information as Class Identity
++
++Since intent visibility is not automatic, classes can have different relationships to information.
++
++Example class identities：
++
++```txt
++Ashbound Keeper
++= balanced class. May start with a passive/buff that reveals normal enemy intent category, but not exact amounts.
++
++Scout-like class later
++= stronger reveal/scope tools, weaker raw damage.
++
++Beast-command class later
++= reads enemy through pet reactions; pet may reveal category when commanded.
++
++Risk class later
++= little or no intent visibility, but stronger payoffs for blind play.
++
++Control class later
++= can scope, delay, or lock enemy plans.
++```
++
++For Phase 1, recommended：
++
++```txt
++Ashbound Keeper starts with Field Sense:
++  Normal enemies show category intent.
++  Elites and bosses show ? unless revealed/scoped.
++```
++
++This makes intent visibility a class passive/buff, not a universal combat law. It also keeps early combat readable enough for new players.
++
++Alternative options：
++
++```txt
++Option A — recommended:
++  Field Sense reveals normal enemy category intent.
++  Elite/boss remain unknown unless revealed/scoped.
++
++Option B — more mysterious:
++  No passive reveal.
++  All enemies show ? unless player uses reveal.
++  Risk: early game may feel too blind.
++
++Option C — tutorial-only reveal:
++  First tutorial fights reveal normal intents.
++  After tutorial, reveal becomes class/card/buff mechanic.
++  Risk: player may feel rule changed.
++```
++
++---
++
++## 17. Enemy Intent UI States
++
++Each enemy slot should support：
++
++```ts
++type IntentViewState =
++  | { state: "none" }
++  | { state: "unknown"; iconKey: "intent_unknown" }
++  | { state: "category"; kind: IntentKind }
++  | { state: "rough"; kind: IntentKind; strength: "low" | "medium" | "high" }
++  | { state: "exact"; cardName: string; kind: IntentKind; amountLabel?: string; targetHint?: IntentTargetHint }
++  | { state: "scoped"; scopedLines: string[]; candidateKinds?: IntentKind[] };
++```
++
++UI examples：
++
++```txt
++?
++Attack
++Attack / Heavy
++Attack 7
++Scoped: Attack OR Buff
++```
++
++Tooltip examples：
++
++```txt
++Unknown
++This enemy's next action is hidden.
++
++Attack
++This enemy is preparing an attack. Exact damage unknown.
++
++Attack 7
++This enemy will attack the Keeper for 7 damage.
++
++Scoped
++This elite may Attack if you have low Block, or Buff if you defend heavily.
++```
++
++Phaser should not calculate intent amount itself. It renders whatever view model supplies. Sometimes the view model intentionally supplies unknown or partial information.
++
++---
++
++## 18. Enemy Plan Timing
++
++If player is meant to respond to enemy cards, enemy plan must exist before player acts. But if enemy is adaptive, the plan may not be fully locked.
++
++v0.2 timing：
++
++```txt
++At start of player turn:
++  Each living enemy has either:
++    locked plan,
++    adaptive candidate set,
++    charging plan,
++    or scripted phase plan.
++
++During player turn:
++  Player actions may change enemy state.
++  Adaptive enemies may update current preferred card.
++  If visible/scoped info changes, emit visibility/change events.
++
++At enemy turn:
++  Each enemy finalizes one card from its plan state.
++  Enemy resolves that card.
++  Enemy card moves to discard/exhaust.
++  Enemy prepares next plan for next player turn.
++```
++
++Enemy resolution order：
++
++```txt
++Normal rule: left-to-right by battlefield slot.
++Boss-specific rule can override later, but must be explicit.
++```
++
++---
++
++## 19. Phase 1 Content Boundaries
++
++For Phase 1, keep it small.
++
++Combat rules can support all above, but actual content should be limited.
++
++Recommended Phase 1 content：
++
++```txt
++Player:
++  1 class: Ashbound Keeper
++  1 starting passive: Field Sense
++
++Pet:
++  1 active pet: Ember Fox
++  future multi-pet-ready state, but maxActivePets = 1
++
++Enemy:
++  2 normal enemies
++  1 elite / mini-boss
++  1 boss-like encounter later
++
++Intent visibility:
++  normal enemies: category shown by Field Sense
++  elite: ? unless revealed
++  boss: ? / phase / charge unless scoped
++
++Rewards:
++  card rewards
++  pet upgrade rewards
++  one rare card bearer encounter later
++```
++
++Do not put every advanced mechanic into first vertical slice.
++
++---
++
++## 20. First Enemy Design Implication
++
++First enemies should teach enemy-card rules.
++
++Example simple normal enemy：
++
++```txt
++Ash Slime
++
++Deck:
++  Tackle x2
++  Harden x1
++
++With Field Sense:
++  player sees Attack or Guard, not exact value unless upgraded.
++```
++
++Example second normal enemy：
++
++```txt
++Cinder Mite
++
++Deck:
++  Bite x2
++  Cinder Dust x1
++  Skitter x1
++
++With Field Sense:
++  player sees Attack / Debuff / Guard category.
++```
++
++Example elite：
++
++```txt
++Charred Stag
++
++Deck:
++  Antler Strike x2
++  Guarded Snort x1
++  Ember Hooves x1
++  Paw the Ash x1
++
++Default:
++  player sees ? or Special ?
++
++With Reveal:
++  player sees category.
++
++With Scope:
++  player sees candidate set or conditional hint.
++```
++
++This makes the first elite immediately different without adding tons of new UI.
++
++---
++
++## 21. Design Rules for Adaptive Enemies
++
++Adaptive enemies should adapt within constraints.
++
++Allowed：
++
++```txt
++Choose between cards in hand.
++Prefer attack if player has low block.
++Prefer buff if player already over-blocked.
++Use special if phase threshold reached.
++React to Burn or pet-command tags if designed.
++```
++
++Not allowed：
++
++```txt
++Create arbitrary perfect counter every turn.
++Ignore deck/hand/cooldown.
++Change a locked exact-revealed card without showing plan instability.
++Punish player for using reveal by becoming unreadable with no explanation.
++```
++
++Bosses can be smarter, but still card-based.
++
++---
++
++## 22. Starter Pack Design Consequence
++
++We should not finalize starter pack before enemy rules are accepted.
++
++Starter deck should be designed as an answer-set to first enemy decks and first information rules.
++
++Starter pack must answer：
++
++```txt
++Enemy Attack card
++= block, guard, race, or kill.
++
++Enemy Guard card
++= burn, setup, scaling, or delayed damage.
++
++Enemy Debuff/status card
++= race, block, reveal, or cleanse later.
++
++Unknown intent
++= reveal, safe block, flexible pet-command, or risk/reward attack.
++
++Elite/Boss adaptive intent
++= scope, prepare, or build resilient turn.
++```
++
++So starter pack is no longer：
++
++```txt
++some damage cards
++some block cards
++some pet cards
++```
++
++It becomes：
++
++```txt
++a beginner information-and-response kit.
++```
++
++This is the higher-level correction.
++
++---
++
++## 23. Effects Needed for v0.2 Engine Expansion
++
++Not all need to be implemented immediately, but the model should reserve space.
++
++Core combat effect/event needs：
++
++```txt
++revealIntent
++scopeIntent
++obscureIntent
++enemyPlanChanged event
++enemyCardResolved event
++rewardBearerResolved
++```
++
++Suggested events：
++
++```txt
++EnemyCardDrawnHidden
++EnemyPlanCreated
++EnemyIntentVisibilityChanged
++EnemyPlanChanged
++EnemyCardRevealed
++EnemyCardResolved
++EnemyCardMoved
++RewardBearerRevealed
++RewardRollResolved
++```
++
++For UI, important view-model states：
++
++```txt
++IntentUnknownShown
++IntentCategoryShown
++IntentScoped
++IntentHidden
++```
++
++Maybe these are not separate gameplay events; they can be view-model state. But for debugging and event playback, `EnemyIntentVisibilityChanged` is useful.
++
++---
++
++## 24. Data Model Draft
++
++Player card：
++
++```ts
++type PlayerCardDefinition = {
++  id: CardId;
++  name: string;
++  family: PlayerCardFamily;
++  rarity: CardRarity;
++  cost: number;
++  targetType: CardTargetType;
++  tags: string[];
++  effects: EffectDefinition[];
++  rewardPools?: RewardPoolId[];
++  dropSources?: RewardDropSource[];
++  petBinding?: {
++    petDefinitionId?: PetDefinitionId;
++    requiredPetTags?: string[];
++  };
++};
++```
++
++Enemy card：
++
++```ts
++type EnemyCardDefinition = {
++  id: EnemyCardId;
++  name: string;
++  family: EnemyCardFamily;
++  tier: EnemyCardTier;
++  tags: string[];
++  effects: EffectDefinition[];
++  telegraph: {
++    defaultVisibility: IntentVisibilityLevel;
++    kind: IntentKind;
++    amountLabelMode?: "hidden" | "rough" | "exact";
++    targetHint?: IntentTargetHint;
++  };
++  ai?: {
++    priority?: number;
++    cooldownTags?: string[];
++    adaptiveRuleIds?: EnemyAdaptiveRuleId[];
++  };
++};
++```
++
++Enemy plan：
++
++```ts
++type EnemyPlanState = {
++  enemyCombatantId: CombatantId;
++  mode: EnemyPlanMode;
++  lockedCardInstanceId?: EnemyCardInstanceId;
++  candidateCardInstanceIds?: EnemyCardInstanceId[];
++  currentPreferredCardInstanceId?: EnemyCardInstanceId;
++  visibility: IntentVisibilityState;
++  canChangeAfterReveal: boolean;
++};
++```
++
++Intent visibility：
++
++```ts
++type IntentVisibilityState = {
++  level: IntentVisibilityLevel;
++  source?: "none" | "classPassive" | "buff" | "card" | "petUpgrade" | "enemyObscure";
++  expires: "currentPlan" | "endOfPlayerTurn" | "afterEnemyAction" | "combat" | "never";
++  scopedCandidateIds?: EnemyCardInstanceId[];
++};
++```
++
++Reward bearer：
++
++```ts
++type EncounterRewardBearer = {
++  bearerKind: "cardBearer" | "petBearer" | "upgradeBearer";
++  heldReward: HeldRewardDefinition;
++  revealState: "knownBeforeCombat" | "rumored" | "hiddenUntilWin";
++  dropRule: RewardDropRule;
++};
++```
++
++---
++
++## 25. Non-Negotiables v0.2
++
++```txt
++Combat is a two-sided card game.
++
++Enemies use cards internally.
++
++Enemy cards are not rendered as battlefield cards.
++
++Intent is player-facing information, not always guaranteed truth.
++
++Intent visibility can be none, unknown, partial, exact, or scoped.
++
++Reveal/scope should be class/card/buff/pet-upgrade mechanics.
++
++Elite and boss enemies may be adaptive, but must remain card-based.
++
++Player and enemy randomness must use seeded RNG.
++
++Player cards and enemy cards can share effect language but should not share the same reward registry type.
++
++Pet-command visual grammar stays strict:
++  orange line = card to pet command relationship.
++
++Reward-bearing encounters can hold cards, pet upgrades, or future pets.
++
++Pet unlock encounters should support future pet system without hardcoding one pet forever.
++
++Starter pack must be designed after enemy card problems are defined.
++```
++
++---
++
++## 26. Open Questions for v0.2 Discussion
++
++These are the next decisions we need to make.
++
++### 26.1 Should Ashbound Keeper start with Field Sense?
++
++Recommendation: yes.
++
++```txt
++Field Sense:
++  Normal enemies show category intent.
++  Elites and bosses remain unknown unless revealed/scoped.
++```
++
++### 26.2 Should the first reveal card exist in starter deck, or appear as early reward?
++
++Recommendation: early reward first. If starter has reveal immediately, player may think reveal is mandatory every fight. Let Field Sense carry tutorial readability.
++
++### 26.3 Should rare card holder drops be chance-based or guaranteed first-time?
++
++Recommendation：
++
++```txt
++Common/uncommon bearer: can be chance-based.
++Rare/special first-time bearer: guaranteed first-time, then chance-based repeats.
++Pet unlock: usually guaranteed by objective, not random chance.
++```
++
++### 26.4 Should elite/boss exact scope ever lock their action?
++
++Recommendation: not yet. v0.2 `Scope` should reveal candidate set or current preferred action. True locking can be a later rare control archetype.
++
++### 26.5 Do we allow no-intent combat at all?
++
++Recommendation: yes for special encounters, but not for all normal fights. If every fight is blind, the deckbuilder becomes too reactive-luck-based.
++
++### 26.6 How much adaptivity can an elite use before it feels unfair?
++
++Needs playtesting. Initial rule should be: elite can adapt between cards already in hand, but cannot create perfect counters.
++
++### 26.7 Should reward-bearing enemies show their held reward before combat?
++
++Recommendation: depends by encounter type.
++
++```txt
++Card bearer: known / rumored / hidden all acceptable.
++Pet bearer: mostly known or rumored.
++Unique story reward: usually known or strongly hinted.
++```
++
++---
++
++## 27. Current Strong Direction
++
++Lock v0.2 around this identity：
++
++```txt
++The player is not just playing cards.
++The player is reading an enemy card game through imperfect information.
++
++Normal enemies are readable through basic class sense.
++Elites and bosses are partially hidden and adaptive.
++Reveal/scope is a real build axis.
++Pet commands are the player’s second body on the field.
++Rare cards and future pets can exist as encounter-held rewards.
++```
++
++This gives the game a stronger hook than “Slay the Spire with pets.”
++
++It becomes：
++
++**a companion deckbuilder about reading hidden enemy cards, commanding pets, and choosing when to spend resources on information versus action.**
++
++---
++
++## 28. Next Discussion Agenda
++
++Recommended next discussion order：
++
++```txt
++1. Accept or modify Field Sense as first class passive.
++2. Define first two normal enemy decks.
++3. Define first elite enemy deck and adaptive rules.
++4. Decide exact intent visibility rules for normal / elite / boss.
++5. Then redesign starter pack as an answer-set.
++6. Then define first reward pool and first rare card bearer encounter.
++```
++
++The starter pack should be designed only after steps 1–4 are clear.
+diff --git a/docs/combat_content_foundation.md b/docs/combat_content_foundation.md
+new file mode 100644
+index 0000000..44ea16f
+--- /dev/null
++++ b/docs/combat_content_foundation.md
+@@ -0,0 +1,1230 @@
++# Combat Content Foundation v0.2
++
++Status: implementation contract / living content rulebook
++Language: English technical contract, with Cantonese design notes where useful
++Scope: first playable class, first pet, starter deck, first map, first enemies, rare-card bearer, boss, reward pool, and content authoring rules built on `combat_card_game_rules.md`.
++
++Related docs:
++
++- `combat_card_game_rules.md` — card-game law: draw/play/discard, enemy holdings, Intent visibility, adaptive enemies, fairness, reward-bearer rules.
++- `architecture.md` — deterministic game-core, Phaser boundary, data-driven content, persistent multi-pet-ready model.
++- `ui_ux_interaction.md` — combat presentation, pet-command orange line, enemy sprite/intents, hand and enemy UI caps.
++- `design.md` — Ember Journal / Ashbound Companions visual and emotional direction.
++
++Document split:
++
++```txt
++combat_card_game_rules.md
++= the rules of the combat card game.
++
++combat_content_foundation.md
++= the first content set that obeys those rules.
++```
++
++This document is not a final balance sheet. It is the contract for what the first playable content is trying to teach and how it should be represented in data.
++
++---
++
++## 1. Core Content Promise
++
++The first playable slice must prove this identity:
++
++```txt
++The player is reading an enemy card game through imperfect information,
++then answering it with Keeper signals and Ember Fox commands.
++```
++
++The first map must not feel like a generic deckbuilder with a pet attached. It should feel like a relationship-and-information card game from the first combat.
++
++Required first-slice pillars:
++
++```txt
++Player: Ashbound Keeper
++Pet: Ember Fox
++First map: Ashwood Trail
++Combat identity: two-sided card game with imperfect Intent visibility
++Player decision axis: action vs information vs pet command
++Enemy identity: every enemy has a small card deck / ability deck
++Reward identity: card rewards, pet upgrades, and at least one rare-card bearer hook
++```
++
++---
++
++## 2. Content Must Obey These Non-Negotiables
++
++Content must obey the architecture and UX contracts.
++
++```txt
++Game-core owns rules.
++Phaser owns presentation.
++Cards, monsters, pets, upgrades, rewards, and encounters are data-first.
++No card-name-specific combat branches.
++No single-pet engine assumption.
++No direct Math.random() for gameplay.
++Enemy cards are not rendered as battlefield cards.
++Intent visibility is information, not an automatic universal truth.
++The orange command line is only for card -> pet command relationship.
++```
++
++Phase 1 UI-supported caps:
++
++```txt
++Hand cards: 0-10
++Enemies: 1-3
++Active pet visual slots: up to 3, but Phase 1 uses one active pet
++Enemy visible statuses: 4 + overflow
++Player visible statuses: 5 + overflow
++Pet visible statuses: 3 + overflow
++Card visible tag icons: 4 + detail panel
++```
++
++If content exceeds these caps, treat it as unsupported content until the UI contract changes.
++
++---
++
++## 3. Card Axes: Source and Rarity
++
++Every card should be understood through two independent axes.
++
++```txt
++Card Source
++= where the card belongs thematically and mechanically.
++
++Card Rarity
++= how often it appears and how duplicate-limited it should be.
++```
++
++Recommended source values:
++
++```txt
++universalPlayer
++= common player card available across compatible classes.
++
++classBound
++= card tied to a player class identity, such as Ashbound Keeper signals.
++
++petBound
++= card tied to a pet identity, such as Ember Fox commands.
++
++petSupport
++= card that modifies or supports pets without necessarily being a direct command.
++
++encounterReward
++= card primarily earned from a special encounter or rare holder.
++
++eventOnly
++= story/event/map reward only.
++
++temporary
++= combat-created card that normally disappears after combat.
++
++legacy
++= compatibility content kept for fixtures, tests, or migration.
++```
++
++Recommended rarity values:
++
++```txt
++starter
++common
++uncommon
++rare
++special
++unique
++```
++
++Important distinction:
++
++```txt
++petBound is not a rarity.
++A card can be petBound + common, petBound + uncommon, petBound + rare, etc.
++```
++
++---
++
++## 4. Duplicate Policy
++
++Duplicate limits should be explicit content policy, not accidental balance.
++
++Recommended player deck duplicate rules:
++
++```txt
++Starter cards:
++  can appear multiple times in the starter deck.
++
++Universal common:
++  max 3 copies in run deck.
++
++Class common:
++  max 3 copies in run deck.
++
++PetBound common:
++  max 2 copies in run deck.
++
++Uncommon:
++  max 2 copies in run deck.
++
++Rare:
++  max 1 copy in run deck unless duplicateAllowed is explicit.
++
++Special / unique:
++  max 1 copy in run deck.
++
++Temporary:
++  not counted against run-deck duplicate limits because they normally disappear after combat.
++
++Legacy:
++  should not define future balance.
++```
++
++Enemy deck duplicates mean frequency, not collectible duplicates.
++
++Example:
++
++```txt
++Ash Slime deck:
++  Slime Tackle x2
++  Jelly Guard x1
++```
++
++This means Ash Slime attacks more often than it guards.
++
++---
++
++## 5. Player Card Families
++
++Player-side card families:
++
++```txt
++Keeper Attack
++= Keeper acts directly against enemies. No orange command line.
++
++Keeper Skill
++= block, draw, setup, utility, self-defense.
++
++Keeper Signal
++= class identity information cards: read, reveal, scope, mark, prepare, coordinate.
++
++Pet-Command
++= card commands an active pet. Uses orange command line.
++
++Pet Support
++= card modifies or supports pet state, resources, upgrades, or future commands. May target a pet.
++
++Power / Ongoing
++= long-term combat modifier. Use sparingly in the first slice.
++```
++
++Hard grammar rule:
++
++```txt
++Only true pet-command cards should use the command visual grammar.
++Only cards that actually command a pet should use the command tag.
++```
++
++---
++
++## 6. Enemy Card Families
++
++Enemy-side card families:
++
++```txt
++Attack
++= damages the Keeper/player by default.
++
++Guard
++= gains block, protects self, or shields allies.
++
++Debuff
++= applies a negative status to the player.
++
++Buff
++= improves self or ally.
++
++Burn / Status
++= applies Burn or another status.
++
++Obscure
++= hides or degrades Intent visibility. Phase 1 may represent this through telegraph/default visibility before a full obscure effect exists.
++
++Charge
++= prepares a stronger or delayed future action.
++
++Signature
++= a named enemy identity card.
++
++Boss Phase
++= boss card-like phase action; still resolved through data and events.
++```
++
++Enemy cards can use the same effect language as player cards, but enemy card definitions should not be mixed into the player reward registry.
++
++---
++
++## 7. First Player: Ashbound Keeper
++
++First class name:
++
++```txt
++Ashbound Keeper
++```
++
++Implementation compatibility note:
++
++```txt
++The current player class id may remain novice_tamer temporarily for migration/tests,
++but the player-facing class name should be Ashbound Keeper.
++```
++
++Identity:
++
++```txt
++field tactician
++companion handler
++ash-wilds survivor
++information reader
++pet-command coordinator
++```
++
++Core strengths:
++
++```txt
++information advantage
++stable pet-command access
++Burn pressure
++safe defensive play
++mid-combat adaptation through reveal/scope
++```
++
++Core weaknesses:
++
++```txt
++low raw burst at start
++needs sequencing
++elite/boss uncertainty requires investment in reveal/scope or safe play
++```
++
++Recommended class data:
++
++```txt
++Max HP: 70
++Energy: 3
++Draw per turn: 5
++Starting deck size: 10
++Max active pets: 1
++Pet slot model: collection-based, future-ready
++Starting pet: Ember Fox
++Starting passive: Field Sense
++```
++
++Class tags:
++
++```txt
++keeper
++signal
++fieldcraft
++burn
++command
++scout
++```
++
++---
++
++## 8. Ashbound Keeper Passive: Field Sense
++
++Starting passive:
++
++```txt
++Field Sense
++Normal enemies show category Intent.
++Elites, bosses, and rare bearers show ? unless revealed or scoped.
++```
++
++Why this exists:
++
++```txt
++Intent visibility is not universal free information.
++The first class receives a weak information passive so early combat is readable.
++Advanced enemies still preserve uncertainty and adaptive room.
++```
++
++Field Sense should be represented as a class modifier/passive, not a hardcoded UI rule.
++
++---
++
++## 9. First Pet: Ember Fox
++
++Ember Fox is the first active pet and the first slice's emotional anchor.
++
++Role:
++
++```txt
++Burn / Command / Guard / Fetch / Read-the-field support
++```
++
++Combat personality:
++
++```txt
++agile
++responsive
++creates pressure through Burn
++protects the Keeper through Tailguard
++smooths bad hands through Fetch
++later helps read enemy intent through upgrades
++```
++
++Ember Fox is not:
++
++```txt
++raw damage pet only
++a passive stat stick
++a disposable summon
++a generic fire spell source
++a pet with Phase 1 HP
++```
++
++Phase 1 pet HP rule:
++
++```txt
++Do not give Ember Fox an HP bar in Phase 1.
++Do not implement enemy pet targeting, pet death, pet injury, revive, or morale without a later contract.
++```
++
++Ember Charge rule:
++
++```txt
++Ember Charge is not baseline.
++It appears only when an upgrade/card such as Banked Ember enables it.
++```
++
++---
++
++## 10. Starter Deck v0.2
++
++Starting deck size:
++
++```txt
++10 cards
++5 Keeper / Signal cards
++5 Pet-Command cards
++```
++
++Starter deck list:
++
++```txt
++Keeper's Tap x2
++Field Brace x2
++Read the Ash x1
++Fox Bite x2
++Tailguard x1
++Kindle Mark x1
++Fetch Signal x1
++```
++
++Starting deck IDs:
++
++```txt
++keepers_tap
++keepers_tap
++field_brace
++field_brace
++read_the_ash
++fox_bite
++fox_bite
++tailguard
++kindle_mark
++fetch_signal
++```
++
++Design reason:
++
++```txt
++The first hand should usually show at least one pet-command card.
++The first deck should teach responding to enemy plans, not only dealing damage.
++The first deck should show that information is a resource.
++```
++
++---
++
++## 11. Starter Card Contracts
++
++### Keeper's Tap
++
++```txt
++ID: keepers_tap
++Family: Keeper Attack
++Cost: 1
++Target: Enemy
++Rarity: starter
++Source: classBound
++Effect: Deal 5 damage.
++Tags: keeper, attack, signal
++Purpose: direct Keeper action; no orange command line.
++```
++
++### Field Brace
++
++```txt
++ID: field_brace
++Family: Keeper Skill
++Cost: 1
++Target: Self
++Rarity: starter
++Source: classBound
++Effect: Gain 5 Block.
++Tags: keeper, block, guard
++Purpose: basic safety, especially against unknown or attack-category Intent.
++```
++
++### Read the Ash
++
++```txt
++ID: read_the_ash
++Family: Keeper Signal
++Cost: 1
++Target: Enemy
++Rarity: starter
++Source: classBound
++Effect: Draw 1. Improve target enemy Intent visibility by 1 level for current plan, capped at rough.
++Tags: keeper, signal, scout, draw, reveal
++Purpose: teach that information can be bought with energy/card tempo.
++```
++
++### Fox Bite
++
++```txt
++ID: fox_bite
++Family: Pet-Command
++Cost: 1
++Target: Pet + Enemy
++Rarity: starter
++Source: petBound
++Effect: Command Ember Fox: pet attacks for 4, then apply 2 Burn.
++Tags: pet, fox, command, attack, burn
++Purpose: core pet-command attack and Burn identity.
++```
++
++### Tailguard
++
++```txt
++ID: tailguard
++Family: Pet-Command
++Cost: 1
++Target: Pet + Self
++Rarity: starter
++Source: petBound
++Effect: Command Ember Fox: gain 6 Block; fox reacts with guard.
++Tags: pet, fox, command, guard, block
++Purpose: prove the pet protects, not only attacks.
++```
++
++### Kindle Mark
++
++```txt
++ID: kindle_mark
++Family: Pet-Command
++Cost: 1
++Target: Pet + Enemy
++Rarity: starter
++Source: petBound
++Effect: Command Ember Fox: apply 3 Burn.
++Tags: pet, fox, command, burn, setup, mark
++Purpose: answer enemy Guard/block turns through delayed pressure.
++```
++
++### Fetch Signal
++
++```txt
++ID: fetch_signal
++Family: Pet-Command
++Cost: 0
++Target: Pet / No enemy
++Rarity: starter
++Source: petBound
++Effect: Command Ember Fox: draw 1; fox reacts with fetch.
++Tags: pet, fox, command, fetch, draw
++Purpose: 0-cost utility command, hand smoothing, pet identity in awkward hands.
++```
++
++---
++
++## 12. First Reward Card Pool
++
++The first map reward pool should be small and identity-rich.
++
++Recommended first-slice card count:
++
++```txt
++Universal player commons: 3-5
++Ashbound Keeper commons: 3-5
++Ember Fox petBound commons/uncommons: 4-6
++Uncommons: 4-6
++Rares: 1-3, with at least one rare holder hook
++```
++
++Initial reward cards:
++
++```txt
++Ember Spark
++  universalPlayer common
++  Deal damage and apply Burn.
++
++Quick Guard
++  universalPlayer common
++  Gain Block.
++
++Trail Notes
++  universalPlayer common
++  Draw cards.
++
++Field Signal
++  classBound common
++  Draw and improve Intent visibility.
++
++Measured Step
++  classBound common
++  Gain Block and improve Intent visibility.
++
++Kindle
++  classBound uncommon
++  Apply Burn to all enemies.
++
++Cinder Sweep
++  classBound uncommon
++  Deal area damage and apply Burn.
++
++Coordinated Strike
++  classBound uncommon pet-command
++  Command Ember Fox to attack; this must use pet-command grammar.
++
++Fox Flare
++  petBound uncommon
++  Ember Fox attack + Burn.
++
++Sootstep
++  petBound common
++  Burn + guarded movement.
++
++Return Signal
++  petBound uncommon
++  Ember Fox fetch/draw utility.
++
++Ash Rewrite
++  encounterReward rare
++  Draw and scope/improve target enemy Intent visibility.
++  Primary source: Cinder Scribe rare-card bearer.
++```
++
++Reward-pool rule:
++
++```txt
++Generic cards fill gaps.
++ClassBound cards express Ashbound Keeper reading/signaling.
++PetBound cards express Ember Fox behavior.
++EncounterReward cards should feel discovered or earned, not just randomly found.
++```
++
++---
++
++## 13. First Pet Upgrade Pool
++
++Pet upgrades should change play pattern, not only add numbers.
++
++Initial Ember Fox upgrades:
++
++```txt
++Warm Bond
++  First Ember Fox command each combat costs 1 less.
++  Role: opener / early pet identity.
++
++Burning Fang
++  Burn-tagged Ember Fox commands gain stronger pet attack and Burn application.
++  Role: Burn-command scaling.
++
++Ash Instinct
++  When a burned enemy dies during your turn, draw 1 once per turn.
++  Role: Burn payoff / hand smoothing.
++```
++
++Recommended next upgrades after this patch:
++
++```txt
++Soot-Paw Instinct
++  Once per turn, after your first pet-command, improve target enemy Intent visibility by 1 level.
++  Role: ties Ember Fox to the information game.
++
++Banked Ember
++  Burn damage stores Ember Charge, max 3. At full charge, next pet-command is empowered.
++  Role: introduces named pet resource and pips only when mechanic exists.
++
++Old Shrine Memory
++  Unlocks a pet memory and future petBound card options.
++  Role: progression / side story.
++```
++
++---
++
++## 14. First Map: Ashwood Trail
++
++First map name:
++
++```txt
++Ashwood Trail
++```
++
++Purpose:
++
++```txt
++Teach that enemies have card-like plans.
++Teach that Intent visibility is partial information.
++Teach the difference between direct Keeper action and pet command.
++Teach Burn as a delayed answer to Guard/block.
++Introduce one information-disrupting enemy.
++Introduce one adaptive elite.
++Introduce one rare-card bearer.
++End with a boss-like test of partial information and Burn/Guard pressure.
++```
++
++Supported encounter sizes:
++
++```txt
++1-3 enemies only.
++```
++
++First map encounter roster:
++
++```txt
++Normal:
++  Ash Slime
++  Cinder Mite
++  Soot Crow
++  Root Husk
++  Mixed pairs/trios from those enemies
++
++Elite:
++  Charred Stag
++
++Rare holder:
++  Cinder Scribe
++
++Boss:
++  Emberroot Warden
++```
++
++---
++
++## 15. Normal Enemy: Ash Slime
++
++Purpose:
++
++```txt
++Teach Attack vs Guard.
++```
++
++Contract:
++
++```txt
++ID: training_slime   # compatibility id
++Display name: Ash Slime
++HP: 20
++Hand size: 1
++Plan mode: locked
++Field Sense visibility: category
++```
++
++Deck / ability frequency:
++
++```txt
++Slime Tackle x2
++  Attack
++  Deal 6.
++
++Jelly Guard x1
++  Guard
++  Gain 5 Block.
++```
++
++Player lesson:
++
++```txt
++Attack category -> block, Tailguard, race, or kill.
++Guard category -> Burn/setup is stronger than dumping all direct damage into block.
++```
++
++---
++
++## 16. Normal Enemy: Cinder Mite
++
++Purpose:
++
++```txt
++Teach debuff/Burn pressure and racing debuffs.
++```
++
++Contract:
++
++```txt
++ID: ash_mite   # compatibility id
++Display name: Cinder Mite
++HP: 16
++Hand size: 1
++Plan mode: locked
++Field Sense visibility: category
++```
++
++Deck:
++
++```txt
++Ash Bite x2
++  Attack
++  Deal 4.
++
++Cinder Dust x1
++  Debuff
++  Apply Burn 1 to Keeper.
++
++Skitter x1
++  Guard
++  Gain 3 Block.
++```
++
++Player lesson:
++
++```txt
++Debuff category can be answered by racing damage, blocking safely, or using Read the Ash for better information.
++```
++
++---
++
++## 17. Normal Enemy: Soot Crow
++
++Purpose:
++
++```txt
++Teach that information can be disrupted.
++```
++
++Contract:
++
++```txt
++ID: soot_crow
++Display name: Soot Crow
++HP: 18
++Hand size: 1
++Plan mode: locked
++Field Sense visibility: category unless action telegraph is hidden/unknown
++```
++
++Deck:
++
++```txt
++Peck x2
++  Attack
++  Deal 5.
++
++Ash Flutter x1
++  Special / Obscure-flavored
++  Gain 2 Block and hide behind ash.
++
++Black Caw x1
++  Debuff
++  Apply Burn 1.
++```
++
++Implementation note:
++
++```txt
++Full obscureIntent is reserved by the combat rules.
++Phase 1 can represent Soot Crow's identity through unknown/default telegraph and special tags until full obscure resolution is implemented.
++```
++
++Player lesson:
++
++```txt
++Read the Ash and reveal/scope cards are not luxury; information can be part of survival.
++```
++
++---
++
++## 18. Normal Enemy: Root Husk
++
++Purpose:
++
++```txt
++Teach slow Guard pressure and Burn as answer to defensive enemies.
++```
++
++Contract:
++
++```txt
++ID: root_husk
++Display name: Root Husk
++HP: 28
++Hand size: 1
++Plan mode: locked
++Field Sense visibility: category
++```
++
++Deck:
++
++```txt
++Root Swipe x2
++  Attack
++  Deal 7.
++
++Bark Over x2
++  Guard
++  Gain 7 Block.
++
++Ember Sap x1
++  Special / Guard
++  Gain 5 Block and prepare pressure.
++```
++
++Player lesson:
++
++```txt
++Burn/setup remains valuable when the enemy spends turns guarding.
++```
++
++---
++
++## 19. Elite: Charred Stag
++
++Purpose:
++
++```txt
++First adaptive enemy.
++```
++
++Contract:
++
++```txt
++ID: charred_stag
++Display name: Charred Stag
++HP: 55
++Hand size: 2
++Plan slots: 1
++Plan mode: adaptive / charging
++Default visibility: unknown
++Field Sense: does not fully reveal
++Read/reveal: can improve one level
++Scope: can show better current-plan information later
++```
++
++Deck:
++
++```txt
++Antler Strike x2
++  Attack
++  Deal 10.
++
++Ember Hooves x1
++  Special / Attack / Burn
++  Deal 6 and apply Burn 1.
++
++Guarded Snort x1
++  Guard
++  Gain 9 Block.
++
++Paw the Ash x1
++  Charge
++  Gain 4 Block and prepare a stronger line.
++
++Crown Flare x1
++  Special / Obscure / Burn
++  Gain 4 Block and apply Burn 1.
++```
++
++Adaptive fairness:
++
++```txt
++The elite may adapt only within its hand/candidate set and authored rules.
++It may not create a perfect counter from nowhere.
++If a visible plan changes, the UI/event layer must communicate instability or plan change.
++```
++
++---
++
++## 20. Rare-Card Bearer: Cinder Scribe
++
++Purpose:
++
++```txt
++First rare-card holder encounter.
++The rare card should feel carried, guarded, or written by the encounter, not randomly generated.
++```
++
++Contract:
++
++```txt
++ID: cinder_scribe
++Encounter ID: cinder_scribe_encounter
++Display name: Cinder Scribe
++HP: 42
++Hand size: 2
++Plan mode: locked / light adaptive later
++Difficulty: rare
++Reward bearer kind: cardBearer
++Held reward: Ash Rewrite
++Reveal state: rumored
++First-time reward: guaranteed
++Repeat drop: chance-based, with fallback reward pool
++```
++
++Deck:
++
++```txt
++Ink Spark x2
++  Special / Attack / Burn
++  Deal 5 and apply Burn 1.
++
++Page Shield x1
++  Guard
++  Gain 8 Block.
++
++Smudge the Future x1
++  Special / Obscure-flavored
++  Gain 4 Block and hide/blur the future.
++```
++
++Held reward:
++
++```txt
++Ash Rewrite
++  Rarity: rare
++  Source: encounterReward
++  Effect: Draw 1. Scope/improve target enemy Intent visibility by 2 levels, capped at scoped.
++```
++
++---
++
++## 21. Boss: Emberroot Warden
++
++Purpose:
++
++```txt
++First-map boss-like test of partial information, Guard, Burn, and pet-command sequencing.
++```
++
++Contract:
++
++```txt
++ID: forest_warden   # compatibility id
++Display name: Emberroot Warden
++HP: 90
++Hand size: 3
++Plan slots: 1
++Plan mode: adaptive + charging
++Default visibility: unknown / phase / charge marker
++Field Sense: does not fully reveal
++Scope/reveal: improves current-plan information
++```
++
++Deck:
++
++```txt
++Root Slam x2
++  Attack
++  Deal 12.
++
++Cinder Bark x2
++  Guard / Burn
++  Gain 10 Block. Apply Burn 1.
++
++Old Flame x1
++  Debuff
++  Apply Burn 2.
++
++Ash Bloom x1
++  Charge / Special
++  Prepares the next pressure line.
++
++Ancient Shelter x1
++  Guard / Cleanse
++  Gain 12 Block. Reduce Burn on self by 2.
++```
++
++Boss lesson:
++
++```txt
++The player cannot solve the boss by reading free exact intent every turn.
++They need safe play, Burn pressure, and selective information spending.
++```
++
++---
++
++## 22. First Map Encounter Graph
++
++Recommended Ashwood Trail flow:
++
++```txt
++Start
++  -> Ash Slime / Cinder Mite early choices
++  -> mixed normal fights
++  -> Root Husk / Soot Crow pressure choices
++  -> Charred Stag elite OR Cinder Scribe rare holder branch
++  -> Emberroot Warden boss
++```
++
++The exact graph can be small. What matters is that the first map offers:
++
++```txt
++simple tutorial fight
++status/debuff fight
++information disruption fight
++defensive enemy fight
++adaptive elite
++rare-card bearer
++boss-like endpoint
++```
++
++---
++
++## 23. How Combat Should Feel
++
++### Basic normal enemy turn
++
++```txt
++Enemy shows Attack category through Field Sense.
++Player chooses Field Brace / Tailguard / race damage.
++Enemy resolves its card-like action.
++Cards move through draw, hand, discard.
++```
++
++### Unknown or blurred Intent turn
++
++```txt
++Enemy shows ? or Special.
++Player can spend Read the Ash to improve visibility.
++Player can choose safe block, Burn setup, or risk damage race.
++```
++
++### Pet-command turn
++
++```txt
++Player hovers Fox Bite.
++Orange line points to Ember Fox.
++Enemy rings show valid effect targets.
++On play, CardPlayed -> EnergySpent -> PetCommanded -> PetReacted -> Damage/Status events.
++```
++
++### Elite adaptive turn
++
++```txt
++Elite starts hidden or partial.
++Reveal improves information but may not fully lock the plan.
++Scope later can show candidate set or current preferred action.
++Player chooses whether to overblock, setup Burn, or attack.
++```
++
++---
++
++## 24. Effect Verbs Required by This Foundation
++
++Implemented or reserved effect language needed by this content:
++
++```txt
++damage
++block
++draw
++applyStatus
++cleanseStatus
++petAttack
++petBlock
++petReact
++improveIntentVisibility
++revealIntent      # reserved / future expansion
++scopeIntent       # reserved / future expansion
++obscureIntent     # reserved / future expansion
++enemyPlanChanged  # event / future expansion
++```
++
++Starter content should avoid complex conditional text until the engine has proper conditional-effect support.
++
++Deferred conditional examples:
++
++```txt
++If target has Burn...
++If the enemy intends to Attack...
++If you played a pet-command this turn...
++If this enemy's plan is adaptive...
++```
++
++These are good future design spaces, but they should be data-driven when implemented.
++
++---
++
++## 25. Implementation Contract for Current Patch
++
++This content foundation expects the codebase to expose:
++
++```txt
++Card metadata:
++  source
++  rarity
++  rewardPools
++  dropSources
++  duplicatePolicy
++
++Intent visibility model:
++  IntentVisibilityLevel
++  intentVisibilityOverrides on CombatState
++  improveIntentVisibility effect
++  EnemyIntentVisibilityChanged event
++
++Class passive:
++  Field Sense as a player class modifier
++
++First content:
++  Ashbound Keeper display name
++  Ember Fox command card set
++  starter deck v0.2
++  Ashwood Trail encounters
++  Ash Slime, Cinder Mite, Soot Crow, Root Husk
++  Charred Stag
++  Cinder Scribe rare-card bearer
++  Emberroot Warden
++```
++
++Compatibility rule:
++
++```txt
++Existing ids may remain for compatibility if tests, saves, or scenes depend on them.
++Player-facing names and content behavior should move to the v0.2 contract.
++```
++
++---
++
++## 26. What This Document Does Not Yet Finalize
++
++Not finalized:
++
++```txt
++final balance
++final card art
++final enemy art
++full rare-holder reward resolution UI
++full adaptive AI implementation
++true scope candidate-set UI
++pet unlock encounters
++second pet
++multi-pet targeting UI
++pet HP / injury / morale
++full conditional card language
++```
++
++Do not block implementation of the first content contract on these deferred systems.
++
++---
++
++## 27. Hard Recommendation
++
++Lock the first playable content around this sentence:
++
++```txt
++Ashbound Keeper survives Ashwood Trail by reading imperfect enemy plans,
++signaling through cards, and commanding Ember Fox as a co-hero.
++```
++
++Everything in the first map should support that sentence. If a card, enemy, or reward does not support it, it should be cut, delayed, or rewritten.
+diff --git a/src/game-core/data/balance/act1-normal.ts b/src/game-core/data/balance/act1-normal.ts
+index f2a27d8..bbe5865 100644
+--- a/src/game-core/data/balance/act1-normal.ts
++++ b/src/game-core/data/balance/act1-normal.ts
+@@ -16,50 +16,113 @@ export const act1NormalBalance = {
+     restHealAmount: 20
+   },
+   cards: {
++    // Legacy fixture cards kept registered for tests and migration fixtures.
+     strikeCost: 1,
+     strikeDamage: 6,
+     defendCost: 1,
+     defendBlock: 5,
+     focusCost: 0,
+     focusDraw: 1,
++
++    // Ashbound Keeper starter kit.
++    keepersTapCost: 1,
++    keepersTapDamage: 5,
++    fieldBraceCost: 1,
++    fieldBraceBlock: 5,
++    readTheAshCost: 1,
++    readTheAshDraw: 1,
++    readTheAshVisibilitySteps: 1,
++
++    // Ember Fox starter commands.
+     foxBiteCost: 1,
+-    foxBitePetAttack: 5,
++    foxBitePetAttack: 4,
+     foxBiteBurn: 2,
++    tailguardCost: 1,
++    tailguardBlock: 6,
++    kindleMarkCost: 1,
++    kindleMarkBurn: 3,
++    fetchSignalCost: 0,
++    fetchSignalDraw: 1,
++
++    // Legacy pet command aliases kept registered for old traces/fixtures.
+     foxGuardCost: 1,
+     foxGuardBlock: 5,
+     foxFetchCost: 0,
+     foxFetchDraw: 1,
++
++    // Reward cards.
+     emberSparkCost: 1,
+     emberSparkDamage: 4,
+     emberSparkBurn: 1,
+     quickGuardCost: 1,
+     quickGuardBlock: 6,
++    trailNotesCost: 1,
++    trailNotesDraw: 2,
++    fieldSignalCost: 1,
++    fieldSignalDraw: 1,
++    fieldSignalVisibilitySteps: 1,
++    ashMarkCost: 1,
++    ashMarkBurn: 1,
++    ashMarkStacks: 2,
++    measuredStepCost: 1,
++    measuredStepBlock: 4,
++    measuredStepVisibilitySteps: 1,
+     studyCommandCost: 0,
+     studyCommandDraw: 1,
+     kindleCost: 1,
+     kindleBurn: 2,
++    cinderSweepCost: 1,
++    cinderSweepDamage: 3,
++    cinderSweepBurn: 1,
+     coordinatedStrikeCost: 1,
+-    coordinatedStrikeDamage: 5,
++    coordinatedStrikePetAttack: 6,
+     foxFlareCost: 1,
+     foxFlarePetAttack: 3,
+-    foxFlareBurn: 3
++    foxFlareBurn: 3,
++    sootstepCost: 1,
++    sootstepBurn: 2,
++    sootstepBlock: 3,
++    returnSignalCost: 0,
++    returnSignalDraw: 1,
++    ashRewriteCost: 1,
++    ashRewriteDraw: 1,
++    ashRewriteVisibilitySteps: 2
+   },
+   monsters: {
+-    trainingSlimeHp: 24,
+-    trainingSlimeAttack: 6,
+-    trainingSlimeBlock: 4,
+-    ashMiteHp: 20,
+-    ashMiteAttack: 4,
+-    ashMiteBurn: 1,
+-    charredStagHp: 35,
++    ashSlimeHp: 20,
++    ashSlimeAttack: 6,
++    ashSlimeBlock: 5,
++    cinderMiteHp: 16,
++    cinderMiteAttack: 4,
++    cinderMiteBurn: 1,
++    cinderMiteBlock: 3,
++    sootCrowHp: 18,
++    sootCrowPeck: 5,
++    sootCrowBlock: 2,
++    sootCrowBurn: 1,
++    rootHuskHp: 28,
++    rootHuskSwipe: 7,
++    rootHuskBlock: 7,
++    rootHuskSapBlock: 4,
++    charredStagHp: 55,
+     charredStagAntlerStrikeDamage: 10,
+     charredStagEmberHoovesDamage: 6,
+     charredStagEmberHoovesBurn: 1,
+-    charredStagGuardedSnortBlock: 7,
+-    forestWardenHp: 48,
+-    forestWardenRootSlamDamage: 12,
+-    forestWardenCinderBarkBlock: 10,
+-    forestWardenCinderBarkBurn: 1,
+-    forestWardenOldFlameBurn: 2
++    charredStagGuardedSnortBlock: 9,
++    charredStagPawTheAshBlock: 4,
++    charredStagCrownFlareBlock: 4,
++    charredStagCrownFlareBurn: 1,
++    cinderScribeHp: 42,
++    cinderScribeInkSparkDamage: 5,
++    cinderScribeInkSparkBurn: 1,
++    cinderScribePageShieldBlock: 8,
++    cinderScribeSmudgeBlock: 3,
++    emberrootWardenHp: 90,
++    emberrootWardenRootSlamDamage: 12,
++    emberrootWardenCinderBarkBlock: 10,
++    emberrootWardenCinderBarkBurn: 1,
++    emberrootWardenOldFlameBurn: 2,
++    emberrootWardenAncientShelterBlock: 12,
++    emberrootWardenAncientShelterCleanse: 2
+   }
+ } as const;
+diff --git a/src/game-core/data/builders/cards.ts b/src/game-core/data/builders/cards.ts
+index ad913e0..998a847 100644
+--- a/src/game-core/data/builders/cards.ts
++++ b/src/game-core/data/builders/cards.ts
+@@ -1,5 +1,5 @@
+-import type { CardId, PetDefinitionId } from "../../ids";
+-import type { CardDefinition, CardRarity } from "../../model/card";
++import type { CardId, PetDefinitionId, RewardPoolId } from "../../ids";
++import type { CardDefinition, CardRarity, CardSource, CardDuplicatePolicy, RewardDropSource } from "../../model/card";
+ import type { EffectDefinition } from "../../model/effect";
+
+ type CardBuilderInput = {
+@@ -11,6 +11,10 @@ type CardBuilderInput = {
+   readonly rarity?: CardRarity;
+   readonly effects: readonly EffectDefinition[];
+   readonly requiresPetDefinitionId?: PetDefinitionId;
++  readonly source?: CardSource;
++  readonly rewardPools?: readonly RewardPoolId[];
++  readonly dropSources?: readonly RewardDropSource[];
++  readonly duplicatePolicy?: CardDuplicatePolicy;
+ };
+
+ export const attackCard = (input: CardBuilderInput): CardDefinition => ({
+@@ -29,3 +33,10 @@ export const petCommandCard = (
+   ...input,
+   type: "pet-command"
+ });
++
++export const petSupportCard = (
++  input: CardBuilderInput & { readonly requiresPetDefinitionId?: PetDefinitionId }
++): CardDefinition => ({
++  ...input,
++  type: "pet-support"
++});
+diff --git a/src/game-core/data/builders/effects.ts b/src/game-core/data/builders/effects.ts
+index 10e1539..4fc39a3 100644
+--- a/src/game-core/data/builders/effects.ts
++++ b/src/game-core/data/builders/effects.ts
+@@ -1,10 +1,12 @@
+ import type { CombatantTarget, PetTarget } from "../../model/effect";
++import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "../../model/combat";
+ import type { StatusId, StoryFlagId } from "../../ids";
+ import type {
+   ApplyStatusEffect,
+   BlockEffect,
+   DamageEffect,
+   DrawEffect,
++  ImproveIntentVisibilityEffect,
+   PetAttackEffect,
+   PetBlockEffect,
+   PetReactEffect,
+@@ -39,6 +41,21 @@ export const applyStatusEffect = (
+   target
+ });
+
++export const improveIntentVisibilityEffect = (
++  target: CombatantTarget,
++  amount: number,
++  options: {
++    readonly maxLevel?: IntentVisibilityLevel;
++    readonly source?: IntentVisibilitySource;
++    readonly expires?: IntentVisibilityExpiry;
++  } = {}
++): ImproveIntentVisibilityEffect => ({
++  type: "improveIntentVisibility",
++  target,
++  amount,
++  ...options
++});
++
+ export const petAttackEffect = (
+   petTarget: PetTarget,
+   amount: number,
+diff --git a/src/game-core/data/cards/ember-fox-cards.ts b/src/game-core/data/cards/ember-fox-cards.ts
+index 3f94de3..014dc77 100644
+--- a/src/game-core/data/cards/ember-fox-cards.ts
++++ b/src/game-core/data/cards/ember-fox-cards.ts
+@@ -6,32 +6,84 @@ import {
+   blockEffect,
+   drawEffect,
+   petAttackEffect,
++  petBlockEffect,
+   petCommandCard,
+   petReactEffect
+ } from "../builders";
+
++const emberFoxId = petDefinitionId("ember_fox");
++
+ export const foxBite: CardDefinition = petCommandCard({
+   id: cardId("fox_bite"),
+   name: "Fox Bite",
+-  description: `Command the leading pet to strike for ${act1NormalBalance.cards.foxBitePetAttack}, then apply ${act1NormalBalance.cards.foxBiteBurn} burn.`,
++  description: `Command Ember Fox: pet attacks for ${act1NormalBalance.cards.foxBitePetAttack}, then apply ${act1NormalBalance.cards.foxBiteBurn} Burn.`,
+   cost: act1NormalBalance.cards.foxBiteCost,
+-  tags: ["pet", "fox", "attack", "burn", "command"],
+-  requiresPetDefinitionId: petDefinitionId("ember_fox"),
++  tags: ["pet", "fox", "command", "attack", "burn"],
++  requiresPetDefinitionId: emberFoxId,
+   rarity: "starter",
++  source: "petBound",
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
+   effects: [
+     petAttackEffect({ type: "leading" }, act1NormalBalance.cards.foxBitePetAttack, { type: "target" }),
+     applyStatusEffect(statusId("burn"), act1NormalBalance.cards.foxBiteBurn, { type: "target" })
+   ]
+ });
+
++export const tailguard: CardDefinition = petCommandCard({
++  id: cardId("tailguard"),
++  name: "Tailguard",
++  description: `Command Ember Fox: gain ${act1NormalBalance.cards.tailguardBlock} Block; Ember Fox guards the Keeper.`,
++  cost: act1NormalBalance.cards.tailguardCost,
++  tags: ["pet", "fox", "command", "guard", "block"],
++  requiresPetDefinitionId: emberFoxId,
++  rarity: "starter",
++  source: "petBound",
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  effects: [
++    petBlockEffect({ type: "leading" }, act1NormalBalance.cards.tailguardBlock, { type: "self" }),
++    petReactEffect({ type: "leading" }, "guard")
++  ]
++});
++
++export const kindleMark: CardDefinition = petCommandCard({
++  id: cardId("kindle_mark"),
++  name: "Kindle Mark",
++  description: `Command Ember Fox: apply ${act1NormalBalance.cards.kindleMarkBurn} Burn.`,
++  cost: act1NormalBalance.cards.kindleMarkCost,
++  tags: ["pet", "fox", "command", "burn", "setup", "mark"],
++  requiresPetDefinitionId: emberFoxId,
++  rarity: "starter",
++  source: "petBound",
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  effects: [applyStatusEffect(statusId("burn"), act1NormalBalance.cards.kindleMarkBurn, { type: "target" })]
++});
++
++export const fetchSignal: CardDefinition = petCommandCard({
++  id: cardId("fetch_signal"),
++  name: "Fetch Signal",
++  description: `Command Ember Fox: draw ${act1NormalBalance.cards.fetchSignalDraw}.`,
++  cost: act1NormalBalance.cards.fetchSignalCost,
++  tags: ["pet", "fox", "command", "fetch", "draw"],
++  requiresPetDefinitionId: emberFoxId,
++  rarity: "starter",
++  source: "petBound",
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  effects: [
++    drawEffect(act1NormalBalance.cards.fetchSignalDraw),
++    petReactEffect({ type: "leading" }, "fetch")
++  ]
++});
++
++// Legacy aliases kept registered for existing fixture ids and old smoke traces.
+ export const foxGuard: CardDefinition = petCommandCard({
+   id: cardId("fox_guard"),
+   name: "Fox Guard",
+-  description: `Gain ${act1NormalBalance.cards.foxGuardBlock} block and prompt the leading pet to guard.`,
++  description: `Legacy command: gain ${act1NormalBalance.cards.foxGuardBlock} Block and prompt Ember Fox to guard.`,
+   cost: act1NormalBalance.cards.foxGuardCost,
+-  tags: ["pet", "fox", "guard", "block", "command"],
+-  requiresPetDefinitionId: petDefinitionId("ember_fox"),
++  tags: ["pet", "fox", "guard", "block", "command", "legacy"],
++  requiresPetDefinitionId: emberFoxId,
+   rarity: "starter",
++  source: "legacy",
+   effects: [
+     blockEffect(act1NormalBalance.cards.foxGuardBlock, { type: "self" }),
+     petReactEffect({ type: "leading" }, "guard")
+@@ -41,15 +93,16 @@ export const foxGuard: CardDefinition = petCommandCard({
+ export const foxFetch: CardDefinition = petCommandCard({
+   id: cardId("fox_fetch"),
+   name: "Fox Fetch",
+-  description: `Draw ${act1NormalBalance.cards.foxFetchDraw} card and prompt the leading pet to fetch.`,
++  description: `Legacy command: draw ${act1NormalBalance.cards.foxFetchDraw} and prompt Ember Fox to fetch.`,
+   cost: act1NormalBalance.cards.foxFetchCost,
+-  tags: ["pet", "fox", "draw", "fetch", "command"],
+-  requiresPetDefinitionId: petDefinitionId("ember_fox"),
++  tags: ["pet", "fox", "draw", "fetch", "command", "legacy"],
++  requiresPetDefinitionId: emberFoxId,
+   rarity: "starter",
++  source: "legacy",
+   effects: [
+     drawEffect(act1NormalBalance.cards.foxFetchDraw),
+     petReactEffect({ type: "leading" }, "fetch")
+   ]
+ });
+
+-export const emberFoxCards = [foxBite, foxGuard, foxFetch] as const;
++export const emberFoxCards = [foxBite, tailguard, kindleMark, fetchSignal, foxGuard, foxFetch] as const;
+diff --git a/src/game-core/data/cards/reward-cards.ts b/src/game-core/data/cards/reward-cards.ts
+index 3eded25..03f2ebd 100644
+--- a/src/game-core/data/cards/reward-cards.ts
++++ b/src/game-core/data/cards/reward-cards.ts
+@@ -1,4 +1,4 @@
+-import { cardId, petDefinitionId, statusId } from "../../ids";
++import { cardId, petDefinitionId, rewardPoolId, statusId } from "../../ids";
+ import { act1NormalBalance } from "../balance/act1-normal";
+ import type { CardDefinition } from "../../model/card";
+ import {
+@@ -7,18 +7,28 @@ import {
+   blockEffect,
+   damageEffect,
+   drawEffect,
++  improveIntentVisibilityEffect,
+   petAttackEffect,
++  petBlockEffect,
+   petCommandCard,
+   petReactEffect,
+   skillCard
+ } from "../builders";
+
++const normalPool = rewardPoolId("normal");
++const elitePool = rewardPoolId("elite");
++const bossPool = rewardPoolId("boss");
++const emberFoxId = petDefinitionId("ember_fox");
++
+ export const emberSpark: CardDefinition = attackCard({
+   id: cardId("ember_spark"),
+   name: "Ember Spark",
+-  description: `Deal ${act1NormalBalance.cards.emberSparkDamage} damage and apply ${act1NormalBalance.cards.emberSparkBurn} burn.`,
++  description: `Deal ${act1NormalBalance.cards.emberSparkDamage} damage and apply ${act1NormalBalance.cards.emberSparkBurn} Burn.`,
+   cost: act1NormalBalance.cards.emberSparkCost,
+   rarity: "common",
++  source: "universalPlayer",
++  rewardPools: [normalPool, elitePool],
++  duplicatePolicy: { maxCopiesInRunDeck: 3 },
+   tags: ["attack", "burn", "fire"],
+   effects: [
+     damageEffect(act1NormalBalance.cards.emberSparkDamage, { type: "target" }),
+@@ -29,42 +39,111 @@ export const emberSpark: CardDefinition = attackCard({
+ export const quickGuard: CardDefinition = skillCard({
+   id: cardId("quick_guard"),
+   name: "Quick Guard",
+-  description: `Gain ${act1NormalBalance.cards.quickGuardBlock} block.`,
++  description: `Gain ${act1NormalBalance.cards.quickGuardBlock} Block.`,
+   cost: act1NormalBalance.cards.quickGuardCost,
+   rarity: "common",
++  source: "universalPlayer",
++  rewardPools: [normalPool, elitePool],
++  duplicatePolicy: { maxCopiesInRunDeck: 3 },
+   tags: ["block", "guard"],
+   effects: [blockEffect(act1NormalBalance.cards.quickGuardBlock, { type: "self" })]
+ });
+
+-export const studyCommand: CardDefinition = skillCard({
+-  id: cardId("study_command"),
+-  name: "Study Command",
+-  description: `Draw ${act1NormalBalance.cards.studyCommandDraw} card.`,
+-  cost: act1NormalBalance.cards.studyCommandCost,
++export const trailNotes: CardDefinition = skillCard({
++  id: cardId("trail_notes"),
++  name: "Trail Notes",
++  description: `Draw ${act1NormalBalance.cards.trailNotesDraw}.`,
++  cost: act1NormalBalance.cards.trailNotesCost,
+   rarity: "common",
+-  tags: ["draw", "command"],
+-  effects: [drawEffect(act1NormalBalance.cards.studyCommandDraw)]
++  source: "universalPlayer",
++  rewardPools: [normalPool, elitePool],
++  duplicatePolicy: { maxCopiesInRunDeck: 3 },
++  tags: ["draw", "setup", "scout"],
++  effects: [drawEffect(act1NormalBalance.cards.trailNotesDraw)]
++});
++
++export const fieldSignal: CardDefinition = skillCard({
++  id: cardId("field_signal"),
++  name: "Field Signal",
++  description: `Draw ${act1NormalBalance.cards.fieldSignalDraw}. Improve target enemy Intent visibility by ${act1NormalBalance.cards.fieldSignalVisibilitySteps} level.`,
++  cost: act1NormalBalance.cards.fieldSignalCost,
++  rarity: "common",
++  source: "classBound",
++  rewardPools: [normalPool, elitePool],
++  duplicatePolicy: { maxCopiesInRunDeck: 3 },
++  tags: ["keeper", "signal", "draw", "reveal"],
++  effects: [
++    drawEffect(act1NormalBalance.cards.fieldSignalDraw),
++    improveIntentVisibilityEffect(
++      { type: "target" },
++      act1NormalBalance.cards.fieldSignalVisibilitySteps,
++      { maxLevel: "rough", source: "card", expires: "currentPlan" }
++    )
++  ]
++});
++
++export const measuredStep: CardDefinition = skillCard({
++  id: cardId("measured_step"),
++  name: "Measured Step",
++  description: `Gain ${act1NormalBalance.cards.measuredStepBlock} Block. Improve target enemy Intent visibility by ${act1NormalBalance.cards.measuredStepVisibilitySteps} level.`,
++  cost: act1NormalBalance.cards.measuredStepCost,
++  rarity: "common",
++  source: "classBound",
++  rewardPools: [normalPool, elitePool],
++  duplicatePolicy: { maxCopiesInRunDeck: 3 },
++  tags: ["keeper", "signal", "block", "reveal"],
++  effects: [
++    blockEffect(act1NormalBalance.cards.measuredStepBlock, { type: "self" }),
++    improveIntentVisibilityEffect(
++      { type: "target" },
++      act1NormalBalance.cards.measuredStepVisibilitySteps,
++      { maxLevel: "category", source: "card", expires: "currentPlan" }
++    )
++  ]
+ });
+
+ export const kindle: CardDefinition = skillCard({
+   id: cardId("kindle"),
+   name: "Kindle",
+-  description: `Apply ${act1NormalBalance.cards.kindleBurn} burn to all enemies.`,
++  description: `Apply ${act1NormalBalance.cards.kindleBurn} Burn to all enemies.`,
+   cost: act1NormalBalance.cards.kindleCost,
+   rarity: "uncommon",
++  source: "classBound",
++  rewardPools: [normalPool, elitePool, bossPool],
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
+   tags: ["burn", "fire", "setup"],
+   effects: [applyStatusEffect(statusId("burn"), act1NormalBalance.cards.kindleBurn, { type: "allEnemies" })]
+ });
+
+-export const coordinatedStrike: CardDefinition = attackCard({
++export const cinderSweep: CardDefinition = attackCard({
++  id: cardId("cinder_sweep"),
++  name: "Cinder Sweep",
++  description: `Deal ${act1NormalBalance.cards.cinderSweepDamage} to all enemies and apply ${act1NormalBalance.cards.cinderSweepBurn} Burn.`,
++  cost: act1NormalBalance.cards.cinderSweepCost,
++  rarity: "uncommon",
++  source: "classBound",
++  rewardPools: [elitePool, bossPool],
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  tags: ["attack", "burn", "fire", "area"],
++  effects: [
++    damageEffect(act1NormalBalance.cards.cinderSweepDamage, { type: "allEnemies" }),
++    applyStatusEffect(statusId("burn"), act1NormalBalance.cards.cinderSweepBurn, { type: "allEnemies" })
++  ]
++});
++
++export const coordinatedStrike: CardDefinition = petCommandCard({
+   id: cardId("coordinated_strike"),
+   name: "Coordinated Strike",
+-  description: `Deal ${act1NormalBalance.cards.coordinatedStrikeDamage} damage and prompt the leading pet to follow up.`,
++  description: `Command Ember Fox: pet attacks for ${act1NormalBalance.cards.coordinatedStrikePetAttack}.`,
+   cost: act1NormalBalance.cards.coordinatedStrikeCost,
+   rarity: "uncommon",
+-  tags: ["attack", "pet", "command", "combo"],
++  source: "classBound",
++  rewardPools: [normalPool, elitePool, bossPool],
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  requiresPetDefinitionId: emberFoxId,
++  tags: ["pet", "fox", "command", "attack", "combo"],
+   effects: [
+-    damageEffect(act1NormalBalance.cards.coordinatedStrikeDamage, { type: "target" }),
++    petAttackEffect({ type: "leading" }, act1NormalBalance.cards.coordinatedStrikePetAttack, { type: "target" }),
+     petReactEffect({ type: "leading" }, "strike_followup")
+   ]
+ });
+@@ -72,22 +151,99 @@ export const coordinatedStrike: CardDefinition = attackCard({
+ export const foxFlare: CardDefinition = petCommandCard({
+   id: cardId("fox_flare"),
+   name: "Fox Flare",
+-  description: `Command the leading pet to strike for ${act1NormalBalance.cards.foxFlarePetAttack}, then apply ${act1NormalBalance.cards.foxFlareBurn} burn.`,
++  description: `Command Ember Fox: pet attacks for ${act1NormalBalance.cards.foxFlarePetAttack}, then apply ${act1NormalBalance.cards.foxFlareBurn} Burn.`,
+   cost: act1NormalBalance.cards.foxFlareCost,
+   rarity: "uncommon",
+-  requiresPetDefinitionId: petDefinitionId("ember_fox"),
+-  tags: ["pet", "fox", "burn", "command"],
++  source: "petBound",
++  rewardPools: [normalPool, elitePool, bossPool],
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  requiresPetDefinitionId: emberFoxId,
++  tags: ["pet", "fox", "burn", "command", "attack"],
+   effects: [
+     petAttackEffect({ type: "leading" }, act1NormalBalance.cards.foxFlarePetAttack, { type: "target" }),
+     applyStatusEffect(statusId("burn"), act1NormalBalance.cards.foxFlareBurn, { type: "target" })
+   ]
+ });
+
++export const sootstep: CardDefinition = petCommandCard({
++  id: cardId("sootstep"),
++  name: "Sootstep",
++  description: `Command Ember Fox: apply ${act1NormalBalance.cards.sootstepBurn} Burn. Gain ${act1NormalBalance.cards.sootstepBlock} Block.`,
++  cost: act1NormalBalance.cards.sootstepCost,
++  rarity: "common",
++  source: "petBound",
++  rewardPools: [normalPool, elitePool],
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  requiresPetDefinitionId: emberFoxId,
++  tags: ["pet", "fox", "command", "burn", "guard"],
++  effects: [
++    applyStatusEffect(statusId("burn"), act1NormalBalance.cards.sootstepBurn, { type: "target" }),
++    petBlockEffect({ type: "leading" }, act1NormalBalance.cards.sootstepBlock, { type: "self" })
++  ]
++});
++
++export const returnSignal: CardDefinition = petCommandCard({
++  id: cardId("return_signal"),
++  name: "Return Signal",
++  description: `Command Ember Fox: draw ${act1NormalBalance.cards.returnSignalDraw}.`,
++  cost: act1NormalBalance.cards.returnSignalCost,
++  rarity: "uncommon",
++  source: "petBound",
++  rewardPools: [normalPool, elitePool],
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  requiresPetDefinitionId: emberFoxId,
++  tags: ["pet", "fox", "command", "fetch", "draw"],
++  effects: [
++    drawEffect(act1NormalBalance.cards.returnSignalDraw),
++    petReactEffect({ type: "leading" }, "return")
++  ]
++});
++
++export const ashRewrite: CardDefinition = skillCard({
++  id: cardId("ash_rewrite"),
++  name: "Ash Rewrite",
++  description: `Draw ${act1NormalBalance.cards.ashRewriteDraw}. Scope target enemy by improving Intent visibility by ${act1NormalBalance.cards.ashRewriteVisibilitySteps} levels.`,
++  cost: act1NormalBalance.cards.ashRewriteCost,
++  rarity: "rare",
++  source: "encounterReward",
++  rewardPools: [elitePool, bossPool],
++  dropSources: [{ kind: "cardBearer", sourceId: "cinder_scribe_encounter" }],
++  duplicatePolicy: { maxCopiesInRunDeck: 1 },
++  tags: ["keeper", "signal", "scope", "rare", "draw"],
++  effects: [
++    drawEffect(act1NormalBalance.cards.ashRewriteDraw),
++    improveIntentVisibilityEffect(
++      { type: "target" },
++      act1NormalBalance.cards.ashRewriteVisibilitySteps,
++      { maxLevel: "scoped", source: "card", expires: "currentPlan" }
++    )
++  ]
++});
++
++// Legacy reward kept registered without the command tag so non-pet cards do not claim command grammar.
++export const studyCommand: CardDefinition = skillCard({
++  id: cardId("study_command"),
++  name: "Study Command",
++  description: `Draw ${act1NormalBalance.cards.studyCommandDraw} card.`,
++  cost: act1NormalBalance.cards.studyCommandCost,
++  rarity: "common",
++  source: "legacy",
++  tags: ["draw", "legacy"],
++  effects: [drawEffect(act1NormalBalance.cards.studyCommandDraw)]
++});
++
+ export const rewardCards = [
+   emberSpark,
+   quickGuard,
+-  studyCommand,
++  trailNotes,
++  fieldSignal,
++  measuredStep,
+   kindle,
++  cinderSweep,
+   coordinatedStrike,
+-  foxFlare
++  foxFlare,
++  sootstep,
++  returnSignal,
++  ashRewrite,
++  studyCommand
+ ] as const;
+diff --git a/src/game-core/data/cards/starter-cards.ts b/src/game-core/data/cards/starter-cards.ts
+index 0e03697..2abee28 100644
+--- a/src/game-core/data/cards/starter-cards.ts
++++ b/src/game-core/data/cards/starter-cards.ts
+@@ -1,18 +1,62 @@
+ import { cardId } from "../../ids";
+ import { act1NormalBalance } from "../balance/act1-normal";
+ import type { CardDefinition } from "../../model/card";
+-import { attackCard, blockEffect, damageEffect, drawEffect, skillCard } from "../builders";
++import { attackCard, blockEffect, damageEffect, drawEffect, improveIntentVisibilityEffect, skillCard } from "../builders";
+
++export const keepersTap: CardDefinition = attackCard({
++  id: cardId("keepers_tap"),
++  name: "Keeper's Tap",
++  description: `Deal ${act1NormalBalance.cards.keepersTapDamage} damage.`,
++  cost: act1NormalBalance.cards.keepersTapCost,
++  tags: ["keeper", "attack", "signal"],
++  rarity: "starter",
++  source: "classBound",
++  duplicatePolicy: { maxCopiesInRunDeck: 3 },
++  effects: [damageEffect(act1NormalBalance.cards.keepersTapDamage, { type: "target" })]
++});
++
++export const fieldBrace: CardDefinition = skillCard({
++  id: cardId("field_brace"),
++  name: "Field Brace",
++  description: `Gain ${act1NormalBalance.cards.fieldBraceBlock} Block.`,
++  cost: act1NormalBalance.cards.fieldBraceCost,
++  tags: ["keeper", "block", "guard"],
++  rarity: "starter",
++  source: "classBound",
++  duplicatePolicy: { maxCopiesInRunDeck: 3 },
++  effects: [blockEffect(act1NormalBalance.cards.fieldBraceBlock, { type: "self" })]
++});
++
++export const readTheAsh: CardDefinition = skillCard({
++  id: cardId("read_the_ash"),
++  name: "Read the Ash",
++  description: `Draw ${act1NormalBalance.cards.readTheAshDraw}. Improve target enemy Intent visibility by ${act1NormalBalance.cards.readTheAshVisibilitySteps} level for the current plan.`,
++  cost: act1NormalBalance.cards.readTheAshCost,
++  tags: ["keeper", "signal", "scout", "draw", "reveal"],
++  rarity: "starter",
++  source: "classBound",
++  duplicatePolicy: { maxCopiesInRunDeck: 2 },
++  effects: [
++    drawEffect(act1NormalBalance.cards.readTheAshDraw),
++    improveIntentVisibilityEffect(
++      { type: "target" },
++      act1NormalBalance.cards.readTheAshVisibilitySteps,
++      { maxLevel: "rough", source: "card", expires: "currentPlan" }
++    )
++  ]
++});
++
++// Legacy Phase-1 fixture cards remain registered so old traces and low-level tests
++// still have stable card ids. They are no longer used by the Ashbound Keeper starter deck.
+ export const strike: CardDefinition = attackCard({
+   id: cardId("strike"),
+   name: "Strike",
+   description: `Deal ${act1NormalBalance.cards.strikeDamage} damage.`,
+   cost: act1NormalBalance.cards.strikeCost,
+-  tags: ["attack"],
++  tags: ["attack", "legacy"],
+   rarity: "starter",
+-  effects: [
+-    damageEffect(act1NormalBalance.cards.strikeDamage, { type: "target" })
+-  ]
++  source: "legacy",
++  effects: [damageEffect(act1NormalBalance.cards.strikeDamage, { type: "target" })]
+ });
+
+ export const defend: CardDefinition = skillCard({
+@@ -20,11 +64,10 @@ export const defend: CardDefinition = skillCard({
+   name: "Defend",
+   description: `Gain ${act1NormalBalance.cards.defendBlock} block.`,
+   cost: act1NormalBalance.cards.defendCost,
+-  tags: ["block"],
++  tags: ["block", "legacy"],
+   rarity: "starter",
+-  effects: [
+-    blockEffect(act1NormalBalance.cards.defendBlock, { type: "self" })
+-  ]
++  source: "legacy",
++  effects: [blockEffect(act1NormalBalance.cards.defendBlock, { type: "self" })]
+ });
+
+ export const focus: CardDefinition = skillCard({
+@@ -32,11 +75,10 @@ export const focus: CardDefinition = skillCard({
+   name: "Focus",
+   description: `Draw ${act1NormalBalance.cards.focusDraw} card.`,
+   cost: act1NormalBalance.cards.focusCost,
+-  tags: ["draw"],
++  tags: ["draw", "legacy"],
+   rarity: "starter",
+-  effects: [
+-    drawEffect(act1NormalBalance.cards.focusDraw)
+-  ]
++  source: "legacy",
++  effects: [drawEffect(act1NormalBalance.cards.focusDraw)]
+ });
+
+-export const starterCards = [strike, defend, focus] as const;
++export const starterCards = [keepersTap, fieldBrace, readTheAsh, strike, defend, focus] as const;
+diff --git a/src/game-core/data/encounters/forest-encounters.ts b/src/game-core/data/encounters/forest-encounters.ts
+index 9855a47..91c1980 100644
+--- a/src/game-core/data/encounters/forest-encounters.ts
++++ b/src/game-core/data/encounters/forest-encounters.ts
+@@ -1,19 +1,19 @@
+-import { encounterId, monsterGroupId, monsterId, rewardPoolId } from "../../ids";
++import { cardId, encounterId, monsterGroupId, monsterId, rewardPoolId } from "../../ids";
+ import type { EncounterDefinition } from "../../model/encounter";
+
+-export const trainingSlimeEncounter: EncounterDefinition = {
++export const ashSlimeEncounter: EncounterDefinition = {
+   id: encounterId("training_slime_encounter"),
+   type: "combat",
+-  name: "Training Slime",
++  name: "Ash Slime",
+   monsterIds: [monsterId("training_slime")],
+-  tags: ["forest", "training"],
++  tags: ["forest", "tutorial", "attack", "guard"],
+   authoring: {
+     actId: "act1_forest",
+     difficultyBand: "tutorial",
+     budget: 1,
+     monsterRoles: ["training", "block"],
+     monsterGroups: [{
+-      id: monsterGroupId("training_slime_group"),
++      id: monsterGroupId("ash_slime_group"),
+       monsterIds: [monsterId("training_slime")],
+       roles: ["training", "block"],
+       minCount: 1,
+@@ -23,19 +23,19 @@ export const trainingSlimeEncounter: EncounterDefinition = {
+   }
+ };
+
+-export const ashMiteEncounter: EncounterDefinition = {
++export const cinderMiteEncounter: EncounterDefinition = {
+   id: encounterId("ash_mite_encounter"),
+   type: "combat",
+-  name: "Ash Mite",
++  name: "Cinder Mite",
+   monsterIds: [monsterId("ash_mite")],
+-  tags: ["forest", "burn"],
++  tags: ["forest", "burn", "debuff"],
+   authoring: {
+     actId: "act1_forest",
+     difficultyBand: "easy",
+     budget: 2,
+     monsterRoles: ["burn", "attack"],
+     monsterGroups: [{
+-      id: monsterGroupId("ash_mite_group"),
++      id: monsterGroupId("cinder_mite_group"),
+       monsterIds: [monsterId("ash_mite")],
+       roles: ["burn", "attack"],
+       minCount: 1,
+@@ -45,10 +45,54 @@ export const ashMiteEncounter: EncounterDefinition = {
+   }
+ };
+
++export const sootCrowEncounter: EncounterDefinition = {
++  id: encounterId("soot_crow_encounter"),
++  type: "combat",
++  name: "Soot Crow",
++  monsterIds: [monsterId("soot_crow")],
++  tags: ["forest", "information", "obscure"],
++  authoring: {
++    actId: "act1_forest",
++    difficultyBand: "normal",
++    budget: 3,
++    monsterRoles: ["information", "obscure", "burn"],
++    monsterGroups: [{
++      id: monsterGroupId("soot_crow_group"),
++      monsterIds: [monsterId("soot_crow")],
++      roles: ["information", "obscure"],
++      minCount: 1,
++      maxCount: 1
++    }],
++    rewardPoolId: rewardPoolId("normal")
++  }
++};
++
++export const rootHuskEncounter: EncounterDefinition = {
++  id: encounterId("root_husk_encounter"),
++  type: "combat",
++  name: "Root Husk",
++  monsterIds: [monsterId("root_husk")],
++  tags: ["forest", "guard", "burn-answer"],
++  authoring: {
++    actId: "act1_forest",
++    difficultyBand: "normal",
++    budget: 3,
++    monsterRoles: ["block", "frontline", "slow-pressure"],
++    monsterGroups: [{
++      id: monsterGroupId("root_husk_group"),
++      monsterIds: [monsterId("root_husk")],
++      roles: ["block", "frontline"],
++      minCount: 1,
++      maxCount: 1
++    }],
++    rewardPoolId: rewardPoolId("normal")
++  }
++};
++
+ export const forestDuoEncounter: EncounterDefinition = {
+   id: encounterId("forest_duo_encounter"),
+   type: "combat",
+-  name: "Forest Duo",
++  name: "Ashwood Duo",
+   monsterIds: [monsterId("training_slime"), monsterId("ash_mite")],
+   tags: ["forest", "multi-enemy"],
+   authoring: {
+@@ -76,22 +120,82 @@ export const forestDuoEncounter: EncounterDefinition = {
+   }
+ };
+
++export const crowMiteEncounter: EncounterDefinition = {
++  id: encounterId("crow_mite_encounter"),
++  type: "combat",
++  name: "Crow and Cinder Mite",
++  monsterIds: [monsterId("soot_crow"), monsterId("ash_mite")],
++  tags: ["forest", "multi-enemy", "information", "burn"],
++  authoring: {
++    actId: "act1_forest",
++    difficultyBand: "normal",
++    budget: 4,
++    monsterRoles: ["information", "burn", "multi-enemy"],
++    monsterGroups: [
++      {
++        id: monsterGroupId("crow_mite_crow_group"),
++        monsterIds: [monsterId("soot_crow")],
++        roles: ["information"],
++        minCount: 1,
++        maxCount: 1
++      },
++      {
++        id: monsterGroupId("crow_mite_mite_group"),
++        monsterIds: [monsterId("ash_mite")],
++        roles: ["burn"],
++        minCount: 1,
++        maxCount: 1
++      }
++    ],
++    rewardPoolId: rewardPoolId("normal")
++  }
++};
++
+ export const forestElitePlaceholder: EncounterDefinition = {
+   id: encounterId("forest_elite_placeholder"),
+   type: "elite",
+   name: "Charred Stag",
+   monsterIds: [monsterId("charred_stag")],
+-  tags: ["forest", "elite", "beast", "burn"],
++  tags: ["forest", "elite", "beast", "burn", "adaptive"],
+   rewardSeedSalt: "elite",
+   authoring: {
+     actId: "act1_forest",
+     difficultyBand: "elite",
+     budget: 5,
+-    monsterRoles: ["elite", "burn", "beast"],
++    monsterRoles: ["elite", "burn", "beast", "adaptive"],
+     monsterGroups: [{
+       id: monsterGroupId("charred_stag_group"),
+       monsterIds: [monsterId("charred_stag")],
+-      roles: ["elite", "burn", "beast"],
++      roles: ["elite", "burn", "beast", "adaptive"],
++      minCount: 1,
++      maxCount: 1
++    }],
++    rewardPoolId: rewardPoolId("elite")
++  }
++};
++
++export const cinderScribeEncounter: EncounterDefinition = {
++  id: encounterId("cinder_scribe_encounter"),
++  type: "elite",
++  name: "Cinder Scribe",
++  monsterIds: [monsterId("cinder_scribe")],
++  tags: ["forest", "rare-bearer", "information", "scribe"],
++  rewardSeedSalt: "rare-card-bearer",
++  rewardBearer: {
++    bearerKind: "cardBearer",
++    heldReward: { type: "playerCard", cardId: cardId("ash_rewrite"), rarity: "rare" },
++    revealState: "rumored",
++    dropRule: { chancePercent: 45, guaranteedFirstTime: true, pityKey: "ash_rewrite_first", fallbackRewardPoolId: rewardPoolId("elite") }
++  },
++  authoring: {
++    actId: "act1_forest",
++    difficultyBand: "rare",
++    budget: 5,
++    monsterRoles: ["rare-bearer", "information", "burn"],
++    monsterGroups: [{
++      id: monsterGroupId("cinder_scribe_group"),
++      monsterIds: [monsterId("cinder_scribe")],
++      roles: ["rare-bearer", "information"],
+       minCount: 1,
+       maxCount: 1
+     }],
+@@ -102,19 +206,19 @@ export const forestElitePlaceholder: EncounterDefinition = {
+ export const forestBossPlaceholder: EncounterDefinition = {
+   id: encounterId("forest_boss_placeholder"),
+   type: "boss",
+-  name: "Forest Warden",
++  name: "Emberroot Warden",
+   monsterIds: [monsterId("forest_warden")],
+-  tags: ["forest", "boss", "guardian", "burn"],
++  tags: ["forest", "boss", "guardian", "burn", "adaptive"],
+   rewardSeedSalt: "boss",
+   authoring: {
+     actId: "act1_forest",
+     difficultyBand: "boss",
+     budget: 8,
+-    monsterRoles: ["boss", "guardian", "burn"],
++    monsterRoles: ["boss", "guardian", "burn", "adaptive"],
+     monsterGroups: [{
+       id: monsterGroupId("forest_warden_group"),
+       monsterIds: [monsterId("forest_warden")],
+-      roles: ["boss", "guardian", "burn"],
++      roles: ["boss", "guardian", "burn", "adaptive"],
+       minCount: 1,
+       maxCount: 1
+     }],
+@@ -123,9 +227,13 @@ export const forestBossPlaceholder: EncounterDefinition = {
+ };
+
+ export const forestEncounters = [
+-  trainingSlimeEncounter,
+-  ashMiteEncounter,
++  ashSlimeEncounter,
++  cinderMiteEncounter,
++  sootCrowEncounter,
++  rootHuskEncounter,
+   forestDuoEncounter,
++  crowMiteEncounter,
+   forestElitePlaceholder,
++  cinderScribeEncounter,
+   forestBossPlaceholder
+ ] as const;
+diff --git a/src/game-core/data/monsters/forest-monsters.ts b/src/game-core/data/monsters/forest-monsters.ts
+index 3f8debe..75fab49 100644
+--- a/src/game-core/data/monsters/forest-monsters.ts
++++ b/src/game-core/data/monsters/forest-monsters.ts
+@@ -1,66 +1,150 @@
+ import { monsterAbilityId, monsterId, monsterIntentId, statusId } from "../../ids";
+ import { act1NormalBalance } from "../balance/act1-normal";
+-import type { MonsterAbilityDefinition, MonsterDefinition } from "../../model/monster";
++import type { MonsterAbilityDefinition, MonsterDefinition, MonsterIntentDefinition } from "../../model/monster";
+
+-export const trainingSlimeAttackAbility: MonsterAbilityDefinition = {
++const monsterAttack = (amount: number) => ({ type: "damage" as const, amount, target: { type: "target" as const } });
++const monsterBlock = (amount: number) => ({ type: "block" as const, amount, target: { type: "self" as const } });
++const monsterBurn = (stacks: number) => ({ type: "applyStatus" as const, statusId: statusId("burn"), stacks, target: { type: "target" as const } });
++const monsterCleanseBurn = (stacks: number) => ({ type: "cleanseStatus" as const, statusId: statusId("burn"), stacks, target: { type: "self" as const } });
++
++const intentFromAbility = (id: string, ability: MonsterAbilityDefinition): MonsterIntentDefinition => ({
++  id: monsterIntentId(id),
++  type: ability.intentType,
++  description: ability.description,
++  abilityId: ability.id,
++  effects: ability.effects
++});
++
++export const ashSlimeTackleAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("training_slime_attack"),
+   name: "Slime Tackle",
+   intentType: "attack",
+-  description: `Attack for ${act1NormalBalance.monsters.trainingSlimeAttack}.`,
+-  tags: ["attack", "training"],
+-  effects: [
+-    {
+-      type: "damage",
+-      amount: act1NormalBalance.monsters.trainingSlimeAttack,
+-      target: { type: "target" }
+-    }
+-  ]
++  description: `Attack for ${act1NormalBalance.monsters.ashSlimeAttack}.`,
++  tags: ["attack", "basic", "slime"],
++  tier: "basic",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.ashSlimeAttack)]
+ };
+
+-export const trainingSlimeBlockAbility: MonsterAbilityDefinition = {
++export const ashSlimeJellyGuardAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("training_slime_block"),
+   name: "Jelly Guard",
+   intentType: "block",
+-  description: `Gain ${act1NormalBalance.monsters.trainingSlimeBlock} block.`,
+-  tags: ["block", "training"],
+-  effects: [
+-    {
+-      type: "block",
+-      amount: act1NormalBalance.monsters.trainingSlimeBlock,
+-      target: { type: "self" }
+-    }
+-  ]
++  description: `Gain ${act1NormalBalance.monsters.ashSlimeBlock} Block.`,
++  tags: ["block", "basic", "slime"],
++  tier: "basic",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.ashSlimeBlock)]
+ };
+
+-export const ashMiteAttackAbility: MonsterAbilityDefinition = {
++export const cinderMiteBiteAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("ash_mite_attack"),
+   name: "Ash Bite",
+   intentType: "attack",
+-  description: `Attack for ${act1NormalBalance.monsters.ashMiteAttack}.`,
+-  tags: ["attack", "fire"],
+-  effects: [
+-    {
+-      type: "damage",
+-      amount: act1NormalBalance.monsters.ashMiteAttack,
+-      target: { type: "target" }
+-    }
+-  ]
++  description: `Attack for ${act1NormalBalance.monsters.cinderMiteAttack}.`,
++  tags: ["attack", "fire", "mite"],
++  tier: "basic",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.cinderMiteAttack)]
+ };
+
+-export const ashMiteBurnAbility: MonsterAbilityDefinition = {
++export const cinderMiteDustAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("ash_mite_burn"),
+   name: "Cinder Dust",
+   intentType: "debuff",
+-  description: `Apply ${act1NormalBalance.monsters.ashMiteBurn} burn.`,
+-  tags: ["debuff", "burn", "fire"],
+-  effects: [
+-    {
+-      type: "applyStatus",
+-      statusId: statusId("burn"),
+-      stacks: act1NormalBalance.monsters.ashMiteBurn,
+-      target: { type: "target" }
+-    }
+-  ]
++  description: `Apply ${act1NormalBalance.monsters.cinderMiteBurn} Burn.`,
++  tags: ["debuff", "burn", "fire", "mite"],
++  tier: "basic",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterBurn(act1NormalBalance.monsters.cinderMiteBurn)]
++};
++
++export const cinderMiteSkitterAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("cinder_mite_skitter"),
++  name: "Skitter",
++  intentType: "block",
++  description: `Gain ${act1NormalBalance.monsters.cinderMiteBlock} Block.`,
++  tags: ["block", "fire", "mite"],
++  tier: "basic",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.cinderMiteBlock)]
++};
++
++export const sootCrowPeckAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("soot_crow_peck"),
++  name: "Peck",
++  intentType: "attack",
++  description: `Attack for ${act1NormalBalance.monsters.sootCrowPeck}.`,
++  tags: ["attack", "crow", "information"],
++  tier: "basic",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.sootCrowPeck)]
++};
++
++export const sootCrowFlutterAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("soot_crow_flutter"),
++  name: "Ash Flutter",
++  intentType: "special",
++  description: `Gain ${act1NormalBalance.monsters.sootCrowBlock} Block and hide behind ash.`,
++  tags: ["block", "obscure", "crow", "information"],
++  tier: "advanced",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.sootCrowBlock)]
++};
++
++export const sootCrowBlackCawAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("soot_crow_black_caw"),
++  name: "Black Caw",
++  intentType: "debuff",
++  description: `Apply ${act1NormalBalance.monsters.sootCrowBurn} Burn.`,
++  tags: ["debuff", "burn", "crow", "information"],
++  tier: "advanced",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterBurn(act1NormalBalance.monsters.sootCrowBurn)]
++};
++
++export const rootHuskSwipeAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("root_husk_swipe"),
++  name: "Root Swipe",
++  intentType: "attack",
++  description: `Attack for ${act1NormalBalance.monsters.rootHuskSwipe}.`,
++  tags: ["attack", "root", "guardian"],
++  tier: "advanced",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.rootHuskSwipe)]
++};
++
++export const rootHuskBarkOverAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("root_husk_bark_over"),
++  name: "Bark Over",
++  intentType: "block",
++  description: `Gain ${act1NormalBalance.monsters.rootHuskBlock} Block.`,
++  tags: ["block", "root", "guardian"],
++  tier: "advanced",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.rootHuskBlock)]
++};
++
++export const rootHuskEmberSapAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("root_husk_ember_sap"),
++  name: "Ember Sap",
++  intentType: "special",
++  description: `Gain ${act1NormalBalance.monsters.rootHuskSapBlock} Block and prepare pressure.`,
++  tags: ["block", "special", "root", "guardian"],
++  tier: "advanced",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.rootHuskSapBlock)]
+ };
+
+ export const charredStagAntlerStrikeAbility: MonsterAbilityDefinition = {
+@@ -68,233 +152,370 @@ export const charredStagAntlerStrikeAbility: MonsterAbilityDefinition = {
+   name: "Antler Strike",
+   intentType: "attack",
+   description: `Antler Strike: attack for ${act1NormalBalance.monsters.charredStagAntlerStrikeDamage}.`,
+-  tags: ["attack", "elite"],
+-  effects: [
+-    {
+-      type: "damage",
+-      amount: act1NormalBalance.monsters.charredStagAntlerStrikeDamage,
+-      target: { type: "target" }
+-    }
+-  ]
++  tags: ["attack", "elite", "adaptive"],
++  tier: "elite",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.charredStagAntlerStrikeDamage)]
+ };
+
+ export const charredStagEmberHoovesAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("charred_stag_ember_hooves"),
+   name: "Ember Hooves",
+   intentType: "special",
+-  description: `Ember Hooves: attack for ${act1NormalBalance.monsters.charredStagEmberHoovesDamage} and apply ${act1NormalBalance.monsters.charredStagEmberHoovesBurn} burn.`,
+-  tags: ["attack", "burn", "elite", "special"],
+-  effects: [
+-    {
+-      type: "damage",
+-      amount: act1NormalBalance.monsters.charredStagEmberHoovesDamage,
+-      target: { type: "target" }
+-    },
+-    {
+-      type: "applyStatus",
+-      statusId: statusId("burn"),
+-      stacks: act1NormalBalance.monsters.charredStagEmberHoovesBurn,
+-      target: { type: "target" }
+-    }
+-  ]
++  description: `Ember Hooves: attack for ${act1NormalBalance.monsters.charredStagEmberHoovesDamage} and apply ${act1NormalBalance.monsters.charredStagEmberHoovesBurn} Burn.`,
++  tags: ["attack", "burn", "elite", "special", "adaptive"],
++  tier: "elite",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.charredStagEmberHoovesDamage), monsterBurn(act1NormalBalance.monsters.charredStagEmberHoovesBurn)]
+ };
+
+ export const charredStagGuardedSnortAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("charred_stag_guarded_snort"),
+   name: "Guarded Snort",
+   intentType: "block",
+-  description: `Guarded Snort: gain ${act1NormalBalance.monsters.charredStagGuardedSnortBlock} block.`,
+-  tags: ["block", "elite"],
+-  effects: [
+-    {
+-      type: "block",
+-      amount: act1NormalBalance.monsters.charredStagGuardedSnortBlock,
+-      target: { type: "self" }
+-    }
+-  ]
++  description: `Guarded Snort: gain ${act1NormalBalance.monsters.charredStagGuardedSnortBlock} Block.`,
++  tags: ["block", "elite", "adaptive"],
++  tier: "elite",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.charredStagGuardedSnortBlock)]
++};
++
++export const charredStagPawTheAshAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("charred_stag_paw_the_ash"),
++  name: "Paw the Ash",
++  intentType: "charge",
++  description: `Charge: gain ${act1NormalBalance.monsters.charredStagPawTheAshBlock} Block and prepare a stronger line.`,
++  tags: ["charge", "elite", "adaptive"],
++  tier: "elite",
++  planMode: "charging",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.charredStagPawTheAshBlock)]
++};
++
++export const charredStagCrownFlareAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("charred_stag_crown_flare"),
++  name: "Crown Flare",
++  intentType: "special",
++  description: `Obscure and guard: gain ${act1NormalBalance.monsters.charredStagCrownFlareBlock} Block and apply ${act1NormalBalance.monsters.charredStagCrownFlareBurn} Burn.`,
++  tags: ["special", "obscure", "burn", "elite", "adaptive"],
++  tier: "elite",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterBlock(act1NormalBalance.monsters.charredStagCrownFlareBlock), monsterBurn(act1NormalBalance.monsters.charredStagCrownFlareBurn)]
++};
++
++export const cinderScribeInkSparkAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("cinder_scribe_ink_spark"),
++  name: "Ink Spark",
++  intentType: "special",
++  description: `Deal ${act1NormalBalance.monsters.cinderScribeInkSparkDamage} and apply ${act1NormalBalance.monsters.cinderScribeInkSparkBurn} Burn.`,
++  tags: ["attack", "burn", "rare-bearer", "scribe"],
++  tier: "rareBearer",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.cinderScribeInkSparkDamage), monsterBurn(act1NormalBalance.monsters.cinderScribeInkSparkBurn)]
++};
++
++export const cinderScribePageShieldAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("cinder_scribe_page_shield"),
++  name: "Page Shield",
++  intentType: "block",
++  description: `Gain ${act1NormalBalance.monsters.cinderScribePageShieldBlock} Block.`,
++  tags: ["block", "rare-bearer", "scribe"],
++  tier: "rareBearer",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.cinderScribePageShieldBlock)]
++};
++
++export const cinderScribeSmudgeAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("cinder_scribe_smudge"),
++  name: "Smudge the Future",
++  intentType: "special",
++  description: `Obscure the future and gain ${act1NormalBalance.monsters.cinderScribeSmudgeBlock} Block.`,
++  tags: ["obscure", "special", "rare-bearer", "scribe"],
++  tier: "rareBearer",
++  planMode: "locked",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.cinderScribeSmudgeBlock)]
+ };
+
+-export const forestWardenRootSlamAbility: MonsterAbilityDefinition = {
++export const emberrootWardenRootSlamAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("forest_warden_root_slam"),
+   name: "Root Slam",
+   intentType: "attack",
+-  description: `Root Slam: attack for ${act1NormalBalance.monsters.forestWardenRootSlamDamage}.`,
+-  tags: ["attack", "boss"],
+-  effects: [
+-    {
+-      type: "damage",
+-      amount: act1NormalBalance.monsters.forestWardenRootSlamDamage,
+-      target: { type: "target" }
+-    }
+-  ]
++  description: `Root Slam: attack for ${act1NormalBalance.monsters.emberrootWardenRootSlamDamage}.`,
++  tags: ["attack", "boss", "adaptive"],
++  tier: "boss",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterAttack(act1NormalBalance.monsters.emberrootWardenRootSlamDamage)]
+ };
+
+-export const forestWardenCinderBarkAbility: MonsterAbilityDefinition = {
++export const emberrootWardenCinderBarkAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("forest_warden_cinder_bark"),
+   name: "Cinder Bark",
+   intentType: "special",
+-  description: `Cinder Bark: gain ${act1NormalBalance.monsters.forestWardenCinderBarkBlock} block and apply ${act1NormalBalance.monsters.forestWardenCinderBarkBurn} burn.`,
+-  tags: ["block", "burn", "boss", "special"],
+-  effects: [
+-    {
+-      type: "block",
+-      amount: act1NormalBalance.monsters.forestWardenCinderBarkBlock,
+-      target: { type: "self" }
+-    },
+-    {
+-      type: "applyStatus",
+-      statusId: statusId("burn"),
+-      stacks: act1NormalBalance.monsters.forestWardenCinderBarkBurn,
+-      target: { type: "target" }
+-    }
+-  ]
++  description: `Cinder Bark: gain ${act1NormalBalance.monsters.emberrootWardenCinderBarkBlock} Block and apply ${act1NormalBalance.monsters.emberrootWardenCinderBarkBurn} Burn.`,
++  tags: ["block", "burn", "boss", "special", "adaptive"],
++  tier: "boss",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterBlock(act1NormalBalance.monsters.emberrootWardenCinderBarkBlock), monsterBurn(act1NormalBalance.monsters.emberrootWardenCinderBarkBurn)]
+ };
+
+-export const forestWardenOldFlameAbility: MonsterAbilityDefinition = {
++export const emberrootWardenOldFlameAbility: MonsterAbilityDefinition = {
+   id: monsterAbilityId("forest_warden_old_flame"),
+   name: "Old Flame",
+   intentType: "debuff",
+-  description: `Old Flame: apply ${act1NormalBalance.monsters.forestWardenOldFlameBurn} burn.`,
+-  tags: ["burn", "boss", "debuff"],
+-  effects: [
+-    {
+-      type: "applyStatus",
+-      statusId: statusId("burn"),
+-      stacks: act1NormalBalance.monsters.forestWardenOldFlameBurn,
+-      target: { type: "target" }
+-    }
+-  ]
++  description: `Old Flame: apply ${act1NormalBalance.monsters.emberrootWardenOldFlameBurn} Burn.`,
++  tags: ["burn", "boss", "debuff", "adaptive"],
++  tier: "boss",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
++  effects: [monsterBurn(act1NormalBalance.monsters.emberrootWardenOldFlameBurn)]
++};
++
++export const emberrootWardenAshBloomAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("emberroot_warden_ash_bloom"),
++  name: "Ash Bloom",
++  intentType: "charge",
++  description: "Charge: prepare an unstable boss branch.",
++  tags: ["charge", "boss", "phase", "adaptive"],
++  tier: "boss",
++  planMode: "charging",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "unknown" },
++  effects: []
++};
++
++export const emberrootWardenAncientShelterAbility: MonsterAbilityDefinition = {
++  id: monsterAbilityId("emberroot_warden_ancient_shelter"),
++  name: "Ancient Shelter",
++  intentType: "block",
++  description: `Gain ${act1NormalBalance.monsters.emberrootWardenAncientShelterBlock} Block and reduce Burn.`,
++  tags: ["block", "cleanse", "boss", "adaptive"],
++  tier: "boss",
++  planMode: "adaptive",
++  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
++  effects: [monsterBlock(act1NormalBalance.monsters.emberrootWardenAncientShelterBlock), monsterCleanseBurn(act1NormalBalance.monsters.emberrootWardenAncientShelterCleanse)]
+ };
+
+ export const trainingSlime: MonsterDefinition = {
+   id: monsterId("training_slime"),
+-  name: "Training Slime",
+-  maxHp: act1NormalBalance.monsters.trainingSlimeHp,
+-  tags: ["forest", "slime", "training"],
+-  abilityIds: [trainingSlimeAttackAbility.id, trainingSlimeBlockAbility.id],
++  name: "Ash Slime",
++  maxHp: act1NormalBalance.monsters.ashSlimeHp,
++  tags: ["forest", "slime", "normal", "basic"],
++  abilityIds: [ashSlimeTackleAbility.id, ashSlimeJellyGuardAbility.id],
+   intentPool: [
+-    {
+-      id: monsterIntentId("training_slime_attack"),
+-      type: trainingSlimeAttackAbility.intentType,
+-      description: trainingSlimeAttackAbility.description,
+-      abilityId: trainingSlimeAttackAbility.id,
+-      effects: trainingSlimeAttackAbility.effects
+-    },
+-    {
+-      id: monsterIntentId("training_slime_block"),
+-      type: trainingSlimeBlockAbility.intentType,
+-      description: trainingSlimeBlockAbility.description,
+-      abilityId: trainingSlimeBlockAbility.id,
+-      effects: trainingSlimeBlockAbility.effects
+-    }
+-  ]
++    intentFromAbility("training_slime_attack", ashSlimeTackleAbility),
++    intentFromAbility("training_slime_block", ashSlimeJellyGuardAbility)
++  ],
++  cardGame: {
++    handSize: 1,
++    planSlots: 1,
++    defaultPlanMode: "locked",
++    defaultIntentVisibility: "category",
++    deck: [
++      { abilityId: ashSlimeTackleAbility.id, copies: 2 },
++      { abilityId: ashSlimeJellyGuardAbility.id, copies: 1 }
++    ]
++  }
+ };
+
+ export const ashMite: MonsterDefinition = {
+   id: monsterId("ash_mite"),
+-  name: "Ash Mite",
+-  maxHp: act1NormalBalance.monsters.ashMiteHp,
+-  tags: ["forest", "mite", "fire", "burn"],
+-  abilityIds: [ashMiteAttackAbility.id, ashMiteBurnAbility.id],
++  name: "Cinder Mite",
++  maxHp: act1NormalBalance.monsters.cinderMiteHp,
++  tags: ["forest", "mite", "fire", "burn", "normal"],
++  abilityIds: [cinderMiteBiteAbility.id, cinderMiteDustAbility.id, cinderMiteSkitterAbility.id],
+   intentPool: [
+-    {
+-      id: monsterIntentId("ash_mite_attack"),
+-      type: ashMiteAttackAbility.intentType,
+-      description: ashMiteAttackAbility.description,
+-      abilityId: ashMiteAttackAbility.id,
+-      effects: ashMiteAttackAbility.effects
+-    },
+-    {
+-      id: monsterIntentId("ash_mite_burn"),
+-      type: ashMiteBurnAbility.intentType,
+-      description: ashMiteBurnAbility.description,
+-      abilityId: ashMiteBurnAbility.id,
+-      effects: ashMiteBurnAbility.effects
+-    }
+-  ]
++    intentFromAbility("ash_mite_attack", cinderMiteBiteAbility),
++    intentFromAbility("ash_mite_burn", cinderMiteDustAbility),
++    intentFromAbility("cinder_mite_skitter", cinderMiteSkitterAbility)
++  ],
++  cardGame: {
++    handSize: 1,
++    planSlots: 1,
++    defaultPlanMode: "locked",
++    defaultIntentVisibility: "category",
++    deck: [
++      { abilityId: cinderMiteBiteAbility.id, copies: 2 },
++      { abilityId: cinderMiteDustAbility.id, copies: 1 },
++      { abilityId: cinderMiteSkitterAbility.id, copies: 1 }
++    ]
++  }
++};
++
++export const sootCrow: MonsterDefinition = {
++  id: monsterId("soot_crow"),
++  name: "Soot Crow",
++  maxHp: act1NormalBalance.monsters.sootCrowHp,
++  tags: ["forest", "crow", "information", "normal"],
++  abilityIds: [sootCrowPeckAbility.id, sootCrowFlutterAbility.id, sootCrowBlackCawAbility.id],
++  intentPool: [
++    intentFromAbility("soot_crow_peck", sootCrowPeckAbility),
++    intentFromAbility("soot_crow_flutter", sootCrowFlutterAbility),
++    intentFromAbility("soot_crow_black_caw", sootCrowBlackCawAbility)
++  ],
++  cardGame: {
++    handSize: 1,
++    planSlots: 1,
++    defaultPlanMode: "locked",
++    defaultIntentVisibility: "category",
++    deck: [
++      { abilityId: sootCrowPeckAbility.id, copies: 2 },
++      { abilityId: sootCrowFlutterAbility.id, copies: 1 },
++      { abilityId: sootCrowBlackCawAbility.id, copies: 1 }
++    ]
++  }
++};
++
++export const rootHusk: MonsterDefinition = {
++  id: monsterId("root_husk"),
++  name: "Root Husk",
++  maxHp: act1NormalBalance.monsters.rootHuskHp,
++  tags: ["forest", "root", "guardian", "normal", "block"],
++  abilityIds: [rootHuskSwipeAbility.id, rootHuskBarkOverAbility.id, rootHuskEmberSapAbility.id],
++  intentPool: [
++    intentFromAbility("root_husk_swipe", rootHuskSwipeAbility),
++    intentFromAbility("root_husk_bark_over", rootHuskBarkOverAbility),
++    intentFromAbility("root_husk_ember_sap", rootHuskEmberSapAbility)
++  ],
++  cardGame: {
++    handSize: 1,
++    planSlots: 1,
++    defaultPlanMode: "locked",
++    defaultIntentVisibility: "category",
++    deck: [
++      { abilityId: rootHuskSwipeAbility.id, copies: 2 },
++      { abilityId: rootHuskBarkOverAbility.id, copies: 2 },
++      { abilityId: rootHuskEmberSapAbility.id, copies: 1 }
++    ]
++  }
+ };
+
+ export const charredStag: MonsterDefinition = {
+   id: monsterId("charred_stag"),
+   name: "Charred Stag",
+   maxHp: act1NormalBalance.monsters.charredStagHp,
+-  tags: ["forest", "elite", "beast", "burn"],
++  tags: ["forest", "elite", "beast", "burn", "adaptive"],
+   abilityIds: [
+     charredStagAntlerStrikeAbility.id,
+     charredStagEmberHoovesAbility.id,
+-    charredStagGuardedSnortAbility.id
++    charredStagGuardedSnortAbility.id,
++    charredStagPawTheAshAbility.id,
++    charredStagCrownFlareAbility.id
+   ],
+   intentPool: [
+-    {
+-      id: monsterIntentId("charred_stag_antler_strike"),
+-      type: charredStagAntlerStrikeAbility.intentType,
+-      description: charredStagAntlerStrikeAbility.description,
+-      abilityId: charredStagAntlerStrikeAbility.id,
+-      effects: charredStagAntlerStrikeAbility.effects
+-    },
+-    {
+-      id: monsterIntentId("charred_stag_ember_hooves"),
+-      type: charredStagEmberHoovesAbility.intentType,
+-      description: charredStagEmberHoovesAbility.description,
+-      abilityId: charredStagEmberHoovesAbility.id,
+-      effects: charredStagEmberHoovesAbility.effects
+-    },
+-    {
+-      id: monsterIntentId("charred_stag_guarded_snort"),
+-      type: charredStagGuardedSnortAbility.intentType,
+-      description: charredStagGuardedSnortAbility.description,
+-      abilityId: charredStagGuardedSnortAbility.id,
+-      effects: charredStagGuardedSnortAbility.effects
+-    }
+-  ]
++    intentFromAbility("charred_stag_antler_strike", charredStagAntlerStrikeAbility),
++    intentFromAbility("charred_stag_ember_hooves", charredStagEmberHoovesAbility),
++    intentFromAbility("charred_stag_guarded_snort", charredStagGuardedSnortAbility),
++    intentFromAbility("charred_stag_paw_the_ash", charredStagPawTheAshAbility),
++    intentFromAbility("charred_stag_crown_flare", charredStagCrownFlareAbility)
++  ],
++  cardGame: {
++    handSize: 2,
++    planSlots: 1,
++    defaultPlanMode: "adaptive",
++    defaultIntentVisibility: "unknown",
++    adaptiveRuleIds: ["prefer_attack_if_player_low_block", "prefer_guard_if_player_overblocks"],
++    deck: [
++      { abilityId: charredStagAntlerStrikeAbility.id, copies: 2 },
++      { abilityId: charredStagEmberHoovesAbility.id, copies: 1 },
++      { abilityId: charredStagGuardedSnortAbility.id, copies: 1 },
++      { abilityId: charredStagPawTheAshAbility.id, copies: 1 },
++      { abilityId: charredStagCrownFlareAbility.id, copies: 1 }
++    ]
++  }
++};
++
++export const cinderScribe: MonsterDefinition = {
++  id: monsterId("cinder_scribe"),
++  name: "Cinder Scribe",
++  maxHp: act1NormalBalance.monsters.cinderScribeHp,
++  tags: ["forest", "rare-bearer", "scribe", "information"],
++  abilityIds: [cinderScribeInkSparkAbility.id, cinderScribePageShieldAbility.id, cinderScribeSmudgeAbility.id],
++  intentPool: [
++    intentFromAbility("cinder_scribe_ink_spark", cinderScribeInkSparkAbility),
++    intentFromAbility("cinder_scribe_page_shield", cinderScribePageShieldAbility),
++    intentFromAbility("cinder_scribe_smudge", cinderScribeSmudgeAbility)
++  ],
++  cardGame: {
++    handSize: 2,
++    planSlots: 1,
++    defaultPlanMode: "locked",
++    defaultIntentVisibility: "unknown",
++    deck: [
++      { abilityId: cinderScribeInkSparkAbility.id, copies: 2 },
++      { abilityId: cinderScribePageShieldAbility.id, copies: 1 },
++      { abilityId: cinderScribeSmudgeAbility.id, copies: 1 }
++    ]
++  }
+ };
+
+ export const forestWarden: MonsterDefinition = {
+   id: monsterId("forest_warden"),
+-  name: "Forest Warden",
+-  maxHp: act1NormalBalance.monsters.forestWardenHp,
+-  tags: ["forest", "boss", "guardian", "burn"],
++  name: "Emberroot Warden",
++  maxHp: act1NormalBalance.monsters.emberrootWardenHp,
++  tags: ["forest", "boss", "guardian", "burn", "adaptive"],
+   abilityIds: [
+-    forestWardenRootSlamAbility.id,
+-    forestWardenCinderBarkAbility.id,
+-    forestWardenOldFlameAbility.id
++    emberrootWardenRootSlamAbility.id,
++    emberrootWardenCinderBarkAbility.id,
++    emberrootWardenOldFlameAbility.id,
++    emberrootWardenAshBloomAbility.id,
++    emberrootWardenAncientShelterAbility.id
+   ],
+   intentPool: [
+-    {
+-      id: monsterIntentId("forest_warden_root_slam"),
+-      type: forestWardenRootSlamAbility.intentType,
+-      description: forestWardenRootSlamAbility.description,
+-      abilityId: forestWardenRootSlamAbility.id,
+-      effects: forestWardenRootSlamAbility.effects
+-    },
+-    {
+-      id: monsterIntentId("forest_warden_cinder_bark"),
+-      type: forestWardenCinderBarkAbility.intentType,
+-      description: forestWardenCinderBarkAbility.description,
+-      abilityId: forestWardenCinderBarkAbility.id,
+-      effects: forestWardenCinderBarkAbility.effects
+-    },
+-    {
+-      id: monsterIntentId("forest_warden_old_flame"),
+-      type: forestWardenOldFlameAbility.intentType,
+-      description: forestWardenOldFlameAbility.description,
+-      abilityId: forestWardenOldFlameAbility.id,
+-      effects: forestWardenOldFlameAbility.effects
+-    }
+-  ]
++    intentFromAbility("forest_warden_root_slam", emberrootWardenRootSlamAbility),
++    intentFromAbility("forest_warden_cinder_bark", emberrootWardenCinderBarkAbility),
++    intentFromAbility("forest_warden_old_flame", emberrootWardenOldFlameAbility),
++    intentFromAbility("emberroot_warden_ash_bloom", emberrootWardenAshBloomAbility),
++    intentFromAbility("emberroot_warden_ancient_shelter", emberrootWardenAncientShelterAbility)
++  ],
++  cardGame: {
++    handSize: 3,
++    planSlots: 1,
++    defaultPlanMode: "adaptive",
++    defaultIntentVisibility: "unknown",
++    adaptiveRuleIds: ["phase_after_half_hp", "prefer_charge_when_safe", "prefer_shelter_when_burning"],
++    deck: [
++      { abilityId: emberrootWardenRootSlamAbility.id, copies: 2 },
++      { abilityId: emberrootWardenCinderBarkAbility.id, copies: 2 },
++      { abilityId: emberrootWardenOldFlameAbility.id, copies: 1 },
++      { abilityId: emberrootWardenAshBloomAbility.id, copies: 1 },
++      { abilityId: emberrootWardenAncientShelterAbility.id, copies: 1 }
++    ]
++  }
+ };
+
+ export const forestMonsterAbilities = [
+-  trainingSlimeAttackAbility,
+-  trainingSlimeBlockAbility,
+-  ashMiteAttackAbility,
+-  ashMiteBurnAbility,
++  ashSlimeTackleAbility,
++  ashSlimeJellyGuardAbility,
++  cinderMiteBiteAbility,
++  cinderMiteDustAbility,
++  cinderMiteSkitterAbility,
++  sootCrowPeckAbility,
++  sootCrowFlutterAbility,
++  sootCrowBlackCawAbility,
++  rootHuskSwipeAbility,
++  rootHuskBarkOverAbility,
++  rootHuskEmberSapAbility,
+   charredStagAntlerStrikeAbility,
+   charredStagEmberHoovesAbility,
+   charredStagGuardedSnortAbility,
+-  forestWardenRootSlamAbility,
+-  forestWardenCinderBarkAbility,
+-  forestWardenOldFlameAbility
++  charredStagPawTheAshAbility,
++  charredStagCrownFlareAbility,
++  cinderScribeInkSparkAbility,
++  cinderScribePageShieldAbility,
++  cinderScribeSmudgeAbility,
++  emberrootWardenRootSlamAbility,
++  emberrootWardenCinderBarkAbility,
++  emberrootWardenOldFlameAbility,
++  emberrootWardenAshBloomAbility,
++  emberrootWardenAncientShelterAbility
+ ] as const;
+
+-export const forestMonsters = [trainingSlime, ashMite, charredStag, forestWarden] as const;
++export const forestMonsters = [trainingSlime, ashMite, sootCrow, rootHusk, charredStag, cinderScribe, forestWarden] as const;
+diff --git a/src/game-core/data/pets/ember-fox.ts b/src/game-core/data/pets/ember-fox.ts
+index 8c77cbd..73c7089 100644
+--- a/src/game-core/data/pets/ember-fox.ts
++++ b/src/game-core/data/pets/ember-fox.ts
+@@ -6,7 +6,7 @@ export const emberFox: PetDefinition = {
+   name: "Ember Fox",
+   species: "Fox",
+   tags: ["pet", "fox", "fire", "burn", "command"],
+-  baseCommandCardIds: [cardId("fox_bite"), cardId("fox_guard"), cardId("fox_fetch")],
++  baseCommandCardIds: [cardId("fox_bite"), cardId("tailguard"), cardId("kindle_mark"), cardId("fetch_signal")],
+   sideStoryId: storyEventId("ember_fox_side_story"),
+   evolutionTree: [
+     {
+diff --git a/src/game-core/data/players/ashbound-keeper-modifiers.ts b/src/game-core/data/players/ashbound-keeper-modifiers.ts
+new file mode 100644
+index 0000000..38d25b4
+--- /dev/null
++++ b/src/game-core/data/players/ashbound-keeper-modifiers.ts
+@@ -0,0 +1,11 @@
++import { playerClassModifierId } from "../../ids";
++import type { PlayerClassModifierDefinition } from "../../model/player";
++
++export const fieldSense: PlayerClassModifierDefinition = {
++  id: playerClassModifierId("field_sense"),
++  name: "Field Sense",
++  description: "Normal enemies show category Intent. Elites, bosses, and rare bearers remain unknown unless revealed or scoped.",
++  tags: ["field-sense", "intent", "passive", "reveal"]
++};
++
++export const ashboundKeeperClassModifiers = [fieldSense] as const;
+diff --git a/src/game-core/data/players/novice-tamer.ts b/src/game-core/data/players/novice-tamer.ts
+index 9e83f53..e5aff84 100644
+--- a/src/game-core/data/players/novice-tamer.ts
++++ b/src/game-core/data/players/novice-tamer.ts
+@@ -1,26 +1,28 @@
+-import { cardId, playerClassId } from "../../ids";
++import { cardId, playerClassId, playerClassModifierId } from "../../ids";
+ import { act1NormalBalance } from "../balance/act1-normal";
+ import type { PlayerClassDefinition } from "../../model/player";
+
+ export const noviceTamer: PlayerClassDefinition = {
+   id: playerClassId("novice_tamer"),
+-  name: "Novice Tamer",
++  name: "Ashbound Keeper",
+   startingDeckCardIds: [
+-    cardId("strike"),
+-    cardId("strike"),
+-    cardId("strike"),
+-    cardId("defend"),
+-    cardId("defend"),
+-    cardId("focus"),
++    cardId("keepers_tap"),
++    cardId("keepers_tap"),
++    cardId("field_brace"),
++    cardId("field_brace"),
++    cardId("read_the_ash"),
+     cardId("fox_bite"),
+-    cardId("fox_guard"),
+-    cardId("fox_fetch")
++    cardId("fox_bite"),
++    cardId("tailguard"),
++    cardId("kindle_mark"),
++    cardId("fetch_signal")
+   ],
+   startingRelicIds: [],
++  classModifierIds: [playerClassModifierId("field_sense")],
+   maxHp: act1NormalBalance.player.maxHp,
+   maxActivePets: 1,
+   petSlotCount: 1,
+-  classTags: ["starter", "pet", "command"]
++  classTags: ["starter", "keeper", "pet", "command", "burn", "scout", "fieldcraft"]
+ };
+
+ export const players = [noviceTamer] as const;
+diff --git a/src/game-core/data/registry.ts b/src/game-core/data/registry.ts
+index 4395975..565b702 100644
+--- a/src/game-core/data/registry.ts
++++ b/src/game-core/data/registry.ts
+@@ -4,6 +4,7 @@ import { starterCards } from "./cards/starter-cards";
+ import { forestEncounters } from "./encounters/forest-encounters";
+ import { forestMonsterAbilities, forestMonsters } from "./monsters/forest-monsters";
+ import { pets as petDefinitions } from "./pets/ember-fox";
++import { ashboundKeeperClassModifiers } from "./players/ashbound-keeper-modifiers";
+ import { players as playerDefinitions } from "./players/novice-tamer";
+ import { runMapTemplates as forestRunMapTemplates } from "./run-maps/act1-forest";
+ import { rewardPools as rewardPoolDefinitions } from "./rewards/reward-pools";
+@@ -13,7 +14,7 @@ import type { GameContentRegistry } from "../model/registry";
+ import { burnStatusDefinition } from "../model/status";
+
+ export const starterRegistry: GameContentRegistry = {
+-  contentVersion: "starter-act1-forest-v1",
++  contentVersion: "ashwood-trail-content-foundation-v2",
+   cards: [...starterCards, ...emberFoxCards, ...rewardCards],
+   statuses: [burnStatusDefinition],
+   pets: petDefinitions,
+@@ -25,7 +26,7 @@ export const starterRegistry: GameContentRegistry = {
+   rewardPools: rewardPoolDefinitions,
+   petUpgrades: emberFoxUpgrades,
+   petModifiers: emberFoxUpgrades.flatMap((upgrade) => upgrade.modifiers),
+-  playerClassModifiers: [],
++  playerClassModifiers: ashboundKeeperClassModifiers,
+   storyEvents: emberFoxStoryEvents,
+   petSideStories: emberFoxPetSideStories
+ };
+diff --git a/src/game-core/data/run-maps/act1-forest.ts b/src/game-core/data/run-maps/act1-forest.ts
+index c867586..9aafd22 100644
+--- a/src/game-core/data/run-maps/act1-forest.ts
++++ b/src/game-core/data/run-maps/act1-forest.ts
+@@ -3,7 +3,7 @@ import type { RunMapTemplateDefinition } from "../../model/run-map";
+
+ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
+   id: runTemplateId("act1_forest"),
+-  name: "Act 1 - Forest",
++  name: "Ashwood Trail",
+   mapId: runMapId("act1_forest_map"),
+   actId: "act1_forest",
+   nodes: [
+@@ -27,23 +27,38 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
+       id: runNodeId("act1_forest_1_combat_a"),
+       type: "combat",
+       layer: 1,
+-      encounterIds: [encounterId("forest_duo_encounter"), encounterId("training_slime_encounter")],
+-      nextNodeIds: [runNodeId("act1_forest_2_rest_a")],
+-      authoring: { budgetMin: 1, budgetMax: 3 }
++      encounterIds: [encounterId("forest_duo_encounter"), encounterId("soot_crow_encounter")],
++      nextNodeIds: [runNodeId("act1_forest_2_combat_a"), runNodeId("act1_forest_2_rest_a")],
++      authoring: { budgetMin: 2, budgetMax: 4 }
+     },
+     {
+       id: runNodeId("act1_forest_1_event_a"),
+       type: "event",
+       layer: 1,
+-      nextNodeIds: [runNodeId("act1_forest_2_rest_a")],
+-      authoring: { notes: "Story or resource event slot." }
++      nextNodeIds: [runNodeId("act1_forest_2_combat_a"), runNodeId("act1_forest_2_rest_a")],
++      authoring: { notes: "Story, shrine, or field-journal event slot." }
++    },
++    {
++      id: runNodeId("act1_forest_2_combat_a"),
++      type: "combat",
++      layer: 2,
++      encounterIds: [encounterId("root_husk_encounter"), encounterId("crow_mite_encounter")],
++      nextNodeIds: [runNodeId("act1_forest_3_rest_a"), runNodeId("act1_forest_3_rare_a")],
++      authoring: { budgetMin: 3, budgetMax: 4 }
+     },
+     {
+       id: runNodeId("act1_forest_2_rest_a"),
+       type: "rest",
+       layer: 2,
+-      nextNodeIds: [runNodeId("act1_forest_3_elite_a")],
+-      authoring: { notes: "Recovery before elite." }
++      nextNodeIds: [runNodeId("act1_forest_3_elite_a"), runNodeId("act1_forest_3_rare_a")],
++      authoring: { notes: "Recovery before elite or rare card bearer." }
++    },
++    {
++      id: runNodeId("act1_forest_3_rest_a"),
++      type: "rest",
++      layer: 3,
++      nextNodeIds: [runNodeId("act1_forest_4_elite_a")],
++      authoring: { notes: "Recovery before the late elite." }
+     },
+     {
+       id: runNodeId("act1_forest_3_elite_a"),
+@@ -53,10 +68,26 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
+       nextNodeIds: [runNodeId("act1_forest_4_boss_a")],
+       authoring: { budgetMin: 5, budgetMax: 5 }
+     },
++    {
++      id: runNodeId("act1_forest_3_rare_a"),
++      type: "elite",
++      layer: 3,
++      encounterIds: [encounterId("cinder_scribe_encounter")],
++      nextNodeIds: [runNodeId("act1_forest_4_boss_a")],
++      authoring: { budgetMin: 5, budgetMax: 5 }
++    },
++    {
++      id: runNodeId("act1_forest_4_elite_a"),
++      type: "elite",
++      layer: 4,
++      encounterIds: [encounterId("forest_elite_placeholder")],
++      nextNodeIds: [runNodeId("act1_forest_4_boss_a")],
++      authoring: { budgetMin: 5, budgetMax: 5 }
++    },
+     {
+       id: runNodeId("act1_forest_4_boss_a"),
+       type: "boss",
+-      layer: 4,
++      layer: 5,
+       encounterIds: [encounterId("forest_boss_placeholder")],
+       nextNodeIds: [],
+       authoring: { budgetMin: 8, budgetMax: 8 }
+diff --git a/src/game-core/debug/state-hash.ts b/src/game-core/debug/state-hash.ts
+index 2f40c7e..61ecb66 100644
+--- a/src/game-core/debug/state-hash.ts
++++ b/src/game-core/debug/state-hash.ts
+@@ -1,6 +1,6 @@
+ import type { AgentRunDriverSnapshot } from "./agent-actions";
+
+-export type AgentStateHashSchemaVersion = 1 | 2 | 3;
++export type AgentStateHashSchemaVersion = 1 | 2 | 3 | 4;
+
+ export type AgentStateHashOptions = {
+   readonly schemaVersion?: AgentStateHashSchemaVersion;
+diff --git a/src/game-core/model/card.ts b/src/game-core/model/card.ts
+index f10974b..d7a62b9 100644
+--- a/src/game-core/model/card.ts
++++ b/src/game-core/model/card.ts
+@@ -1,8 +1,32 @@
+-import type { CardId, PetDefinitionId } from "../ids";
++import type { CardId, PetDefinitionId, RewardPoolId } from "../ids";
+ import type { EffectDefinition } from "./effect";
+
+-export type CardType = "attack" | "skill" | "power" | "pet-command";
+-export type CardRarity = "starter" | "common" | "uncommon" | "rare" | "special";
++export type CardType = "attack" | "skill" | "power" | "pet-command" | "pet-support" | "other";
++export type CardRarity = "starter" | "common" | "uncommon" | "rare" | "special" | "unique";
++
++export type CardSource =
++  | "universalPlayer"
++  | "classBound"
++  | "petBound"
++  | "petSupport"
++  | "encounterReward"
++  | "eventOnly"
++  | "enemyCommon"
++  | "enemySignature"
++  | "eliteOnly"
++  | "bossOnly"
++  | "temporary"
++  | "legacy";
++
++export type RewardDropSource = {
++  readonly kind: "normalPool" | "elitePool" | "bossPool" | "cardBearer" | "petBearer" | "event";
++  readonly sourceId?: string;
++};
++
++export type CardDuplicatePolicy = {
++  readonly maxCopiesInRunDeck?: number;
++  readonly duplicateAllowed?: boolean;
++};
+
+ export type CardDefinition = {
+   readonly id: CardId;
+@@ -14,4 +38,8 @@ export type CardDefinition = {
+   readonly effects: readonly EffectDefinition[];
+   readonly requiresPetDefinitionId?: PetDefinitionId;
+   readonly rarity?: CardRarity;
++  readonly source?: CardSource;
++  readonly rewardPools?: readonly RewardPoolId[];
++  readonly dropSources?: readonly RewardDropSource[];
++  readonly duplicatePolicy?: CardDuplicatePolicy;
+ };
+diff --git a/src/game-core/model/combat.ts b/src/game-core/model/combat.ts
+index e156add..f43e320 100644
+--- a/src/game-core/model/combat.ts
++++ b/src/game-core/model/combat.ts
+@@ -42,6 +42,31 @@ export type ActiveMonsterIntent = {
+   readonly intentId: MonsterIntentId;
+ };
+
++export type IntentVisibilityLevel = "none" | "unknown" | "category" | "rough" | "exact" | "scoped";
++
++export type IntentVisibilitySource =
++  | "classPassive"
++  | "card"
++  | "petUpgrade"
++  | "enemyObscure"
++  | "encounter"
++  | "debug";
++
++export type IntentVisibilityExpiry =
++  | "currentPlan"
++  | "endOfPlayerTurn"
++  | "afterEnemyAction"
++  | "combat"
++  | "never";
++
++export type CombatIntentVisibilityState = {
++  readonly monsterCombatantId: CombatantId;
++  readonly level: IntentVisibilityLevel;
++  readonly source: IntentVisibilitySource;
++  readonly expires: IntentVisibilityExpiry;
++  readonly sourceCardInstanceId?: CardInstanceId;
++};
++
+ export type PlannedMonsterAbility = {
+   readonly monsterCombatantId: CombatantId;
+   readonly intentId: MonsterIntentId;
+@@ -66,6 +91,7 @@ export type CombatState = {
+   readonly runPetStates: readonly RunPetState[];
+   readonly monsterIntents: readonly ActiveMonsterIntent[];
+   readonly plannedMonsterAbilities?: readonly PlannedMonsterAbility[];
++  readonly intentVisibilityOverrides?: readonly CombatIntentVisibilityState[];
+   readonly cardInstances: readonly CombatCardInstance[];
+   readonly drawPile: readonly CardInstanceId[];
+   readonly hand: readonly CardInstanceId[];
+diff --git a/src/game-core/model/effect.ts b/src/game-core/model/effect.ts
+index 989d418..ddcc31a 100644
+--- a/src/game-core/model/effect.ts
++++ b/src/game-core/model/effect.ts
+@@ -5,6 +5,7 @@ import type {
+   StatusId,
+   StoryFlagId
+ } from "../ids";
++import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "./combat";
+ import type { CardPile } from "./event";
+
+ export type CombatantTarget =
+@@ -106,6 +107,15 @@ export type PetReactEffect = {
+   readonly reaction: string;
+ };
+
++export type ImproveIntentVisibilityEffect = {
++  readonly type: "improveIntentVisibility";
++  readonly target: CombatantTarget;
++  readonly amount: number;
++  readonly maxLevel?: IntentVisibilityLevel;
++  readonly source?: IntentVisibilitySource;
++  readonly expires?: IntentVisibilityExpiry;
++};
++
+ export type SetStoryFlagEffect = {
+   readonly type: "setStoryFlag";
+   readonly flagId: StoryFlagId;
+@@ -126,6 +136,7 @@ export type EffectDefinition =
+   | PetAttackEffect
+   | PetBlockEffect
+   | PetReactEffect
++  | ImproveIntentVisibilityEffect
+   | SetStoryFlagEffect;
+
+ export const knownEffectTypes = [
+@@ -143,5 +154,6 @@ export const knownEffectTypes = [
+   "petAttack",
+   "petBlock",
+   "petReact",
++  "improveIntentVisibility",
+   "setStoryFlag"
+ ] as const satisfies readonly EffectDefinition["type"][];
+diff --git a/src/game-core/model/encounter.ts b/src/game-core/model/encounter.ts
+index a20eb0c..c3eab13 100644
+--- a/src/game-core/model/encounter.ts
++++ b/src/game-core/model/encounter.ts
+@@ -1,8 +1,9 @@
+-import type { EncounterId, MonsterGroupId, MonsterId, RewardPoolId } from "../ids";
++import type { CardId, EncounterId, MonsterGroupId, MonsterId, PetDefinitionId, RewardPoolId, UpgradeId } from "../ids";
++import type { CardRarity } from "./card";
+
+ export type EncounterType = "combat" | "elite" | "boss";
+
+-export type EncounterDifficultyBand = "tutorial" | "easy" | "normal" | "hard" | "elite" | "boss";
++export type EncounterDifficultyBand = "tutorial" | "easy" | "normal" | "hard" | "elite" | "boss" | "rare";
+
+ export type EncounterMonsterGroupDefinition = {
+   readonly id: MonsterGroupId;
+@@ -22,6 +23,26 @@ export type EncounterAuthoringMetadata = {
+   readonly rewardPoolId: RewardPoolId;
+ };
+
++export type HeldRewardDefinition =
++  | { readonly type: "playerCard"; readonly cardId: CardId; readonly rarity: CardRarity }
++  | { readonly type: "petDefinition"; readonly petDefinitionId: PetDefinitionId }
++  | { readonly type: "petCommandCard"; readonly cardId: CardId; readonly petDefinitionId: PetDefinitionId }
++  | { readonly type: "petUpgrade"; readonly upgradeId: UpgradeId };
++
++export type RewardDropRule = {
++  readonly chancePercent: number;
++  readonly pityKey?: string;
++  readonly guaranteedFirstTime?: boolean;
++  readonly fallbackRewardPoolId?: RewardPoolId;
++};
++
++export type EncounterRewardBearer = {
++  readonly bearerKind: "cardBearer" | "petBearer" | "upgradeBearer";
++  readonly heldReward: HeldRewardDefinition;
++  readonly revealState: "knownBeforeCombat" | "rumored" | "hiddenUntilWin";
++  readonly dropRule: RewardDropRule;
++};
++
+ export type EncounterDefinition = {
+   readonly id: EncounterId;
+   readonly type: EncounterType;
+@@ -30,4 +51,5 @@ export type EncounterDefinition = {
+   readonly tags: readonly string[];
+   readonly rewardSeedSalt?: string;
+   readonly authoring?: EncounterAuthoringMetadata;
++  readonly rewardBearer?: EncounterRewardBearer;
+ };
+diff --git a/src/game-core/model/event.ts b/src/game-core/model/event.ts
+index e44683a..366d4f2 100644
+--- a/src/game-core/model/event.ts
++++ b/src/game-core/model/event.ts
+@@ -21,14 +21,15 @@ import type {
+   StoryFlagId,
+   UpgradeId
+ } from "../ids";
++import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "./combat";
+ import type { MonsterIntentType } from "./monster";
+ import type { RewardOption } from "./reward";
+
+ export type CardPile = "draw" | "hand" | "discard" | "exhaust";
+
+ export const GAME_EVENT_LEGACY_SCHEMA_VERSION = 1;
+-export const GAME_EVENT_PREVIOUS_SCHEMA_VERSION = 2;
+-export const GAME_EVENT_SCHEMA_VERSION = 3;
++export const GAME_EVENT_PREVIOUS_SCHEMA_VERSION = 3;
++export const GAME_EVENT_SCHEMA_VERSION = 4;
+
+ export type GameEventSchemaVersion =
+   | typeof GAME_EVENT_LEGACY_SCHEMA_VERSION
+@@ -91,6 +92,13 @@ export type GameEvent =
+       readonly intentType: MonsterIntentType;
+       readonly description: string;
+     }
++  | {
++      readonly type: "EnemyIntentVisibilityChanged";
++      readonly monsterId: CombatantId;
++      readonly level: IntentVisibilityLevel;
++      readonly source: IntentVisibilitySource;
++      readonly expires: IntentVisibilityExpiry;
++    }
+   | {
+       readonly type: "MonsterAbilityPlayed";
+       readonly monsterId: CombatantId;
+diff --git a/src/game-core/model/monster.ts b/src/game-core/model/monster.ts
+index 3c0dea8..8d7b632 100644
+--- a/src/game-core/model/monster.ts
++++ b/src/game-core/model/monster.ts
+@@ -1,7 +1,17 @@
+ import type { MonsterAbilityId, MonsterId, MonsterIntentId } from "../ids";
++import type { IntentVisibilityLevel } from "./combat";
+ import type { EffectDefinition } from "./effect";
+
+-export type MonsterIntentType = "attack" | "block" | "debuff" | "special";
++export type MonsterIntentType = "attack" | "block" | "debuff" | "buff" | "special" | "charge" | "unknown";
++
++export type EnemyCardTier = "basic" | "advanced" | "elite" | "boss" | "rareBearer" | "special";
++export type EnemyPlanMode = "locked" | "adaptive" | "charging" | "scriptedPhase";
++
++export type MonsterAbilityTelegraphDefinition = {
++  readonly defaultVisibility?: IntentVisibilityLevel;
++  readonly amountLabelMode?: "hidden" | "rough" | "exact";
++  readonly targetHint?: "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
++};
+
+ export type MonsterAbilityDefinition = {
+   readonly id: MonsterAbilityId;
+@@ -10,6 +20,9 @@ export type MonsterAbilityDefinition = {
+   readonly description: string;
+   readonly tags: readonly string[];
+   readonly effects: readonly EffectDefinition[];
++  readonly tier?: EnemyCardTier;
++  readonly planMode?: EnemyPlanMode;
++  readonly telegraph?: MonsterAbilityTelegraphDefinition;
+ };
+
+ export type MonsterIntentDefinition = {
+@@ -29,6 +42,20 @@ export type MonsterIntentScheduleStep = {
+   readonly conditions?: readonly MonsterIntentScheduleCondition[];
+ };
+
++export type EnemyCardDeckEntryDefinition = {
++  readonly abilityId: MonsterAbilityId;
++  readonly copies: number;
++};
++
++export type MonsterCardGameDefinition = {
++  readonly deck: readonly EnemyCardDeckEntryDefinition[];
++  readonly handSize: number;
++  readonly planSlots: number;
++  readonly defaultPlanMode: EnemyPlanMode;
++  readonly defaultIntentVisibility: IntentVisibilityLevel;
++  readonly adaptiveRuleIds?: readonly string[];
++};
++
+ export type MonsterDefinition = {
+   readonly id: MonsterId;
+   readonly name: string;
+@@ -37,4 +64,5 @@ export type MonsterDefinition = {
+   readonly abilityIds?: readonly MonsterAbilityId[];
+   readonly intentPool: readonly MonsterIntentDefinition[];
+   readonly intentSchedule?: readonly MonsterIntentScheduleStep[];
++  readonly cardGame?: MonsterCardGameDefinition;
+ };
+diff --git a/src/game-core/systems/effect-descriptors.ts b/src/game-core/systems/effect-descriptors.ts
+index 3506385..cc7d325 100644
+--- a/src/game-core/systems/effect-descriptors.ts
++++ b/src/game-core/systems/effect-descriptors.ts
+@@ -12,6 +12,7 @@ export type EffectResolverKey =
+   | "cleanseStatus"
+   | "consumeStatus"
+   | "petReact"
++  | "intentVisibility"
+   | "storyFlag";
+
+ export type EffectCombatantTargetRequirement = "none" | "required";
+@@ -235,6 +236,17 @@ export const effectDescriptors = {
+     requiresStoryFlagId: false,
+     requiresPetReaction: true
+   },
++  improveIntentVisibility: {
++    type: "improveIntentVisibility",
++    resolverKey: "intentVisibility",
++    combatantTarget: "required",
++    petTarget: "none",
++    amount: "nonNegativeInteger",
++    requiresStatusId: false,
++    requiresStacks: false,
++    requiresStoryFlagId: false,
++    requiresPetReaction: false
++  },
+   setStoryFlag: {
+     type: "setStoryFlag",
+     resolverKey: "storyFlag",
+diff --git a/src/game-core/systems/effects.ts b/src/game-core/systems/effects.ts
+index 47b860c..47e49ff 100644
+--- a/src/game-core/systems/effects.ts
++++ b/src/game-core/systems/effects.ts
+@@ -1,7 +1,7 @@
+ import { cardInstanceId, type CardId, type CardInstanceId, type CombatantId, type MonsterIntentId } from "../ids";
+ import type { GameActionError, GameActionResult } from "../model/action";
+ import type { CombatantTarget, EffectDefinition } from "../model/effect";
+-import type { CombatantState, CombatState } from "../model/combat";
++import type { CombatantState, CombatState, IntentVisibilityLevel } from "../model/combat";
+ import type { GameEvent } from "../model/event";
+ import type { GameContentRegistry } from "../model/registry";
+ import type { CombatStatusState } from "../model/status";
+@@ -675,6 +675,80 @@ const resolveConsumeStatusEffect = (
+   return { ok: true, state: nextState, events, errors: [] };
+ };
+
++const intentVisibilityLevels = ["none", "unknown", "category", "rough", "exact", "scoped"] as const satisfies readonly IntentVisibilityLevel[];
++
++const getIntentVisibilityRank = (level: IntentVisibilityLevel): number =>
++  intentVisibilityLevels.indexOf(level);
++
++const improveIntentVisibilityLevel = (
++  current: IntentVisibilityLevel,
++  amount: number,
++  maxLevel: IntentVisibilityLevel | undefined
++): IntentVisibilityLevel => {
++  const maxRank = maxLevel === undefined
++    ? intentVisibilityLevels.length - 1
++    : getIntentVisibilityRank(maxLevel);
++  const currentRank = getIntentVisibilityRank(current);
++  const nextRank = Math.min(Math.max(0, currentRank + amount), maxRank);
++
++  return intentVisibilityLevels[nextRank] ?? current;
++};
++
++const resolveIntentVisibilityEffect = (
++  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "improveIntentVisibility" }>>
++): GameActionResult<CombatState> => {
++  const targets = resolveCombatantTargets(
++    input.state,
++    input.context.sourceId,
++    input.effect.target,
++    input.context.targetId ?? input.context.defaultTargetId
++  );
++  if (isActionError(targets)) {
++    return reject(input.originalState, targets);
++  }
++
++  let overrides = [...(input.state.intentVisibilityOverrides ?? [])];
++  const events: GameEvent[] = [];
++  const source = input.effect.source ?? "card";
++  const expires = input.effect.expires ?? "currentPlan";
++
++  for (const target of targets) {
++    if (target.type !== "monster" || !target.alive) {
++      continue;
++    }
++
++    const existing = overrides.find((override) => override.monsterCombatantId === target.id);
++    const currentLevel = existing?.level ?? "unknown";
++    const nextLevel = improveIntentVisibilityLevel(currentLevel, input.effect.amount, input.effect.maxLevel);
++    const nextOverride = {
++      monsterCombatantId: target.id,
++      level: nextLevel,
++      source,
++      expires,
++      ...(input.context.cardInstanceId ? { sourceCardInstanceId: input.context.cardInstanceId } : {})
++    };
++
++    overrides = [
++      ...overrides.filter((override) => override.monsterCombatantId !== target.id),
++      nextOverride
++    ];
++    events.push({
++      type: "EnemyIntentVisibilityChanged",
++      monsterId: target.id,
++      level: nextLevel,
++      source,
++      expires
++    });
++  }
++
++  return {
++    ok: true,
++    state: appendEvents({ ...input.state, intentVisibilityOverrides: overrides }, events),
++    events,
++    errors: []
++  };
++};
++
+ const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
+   draw: resolveDrawEffect as EffectHandler,
+   pileMove: resolvePileMoveEffect as EffectHandler,
+@@ -687,7 +761,8 @@ const effectResolvers: Record<EffectResolverKey, EffectHandler> = {
+   blockLike: resolveBlockLikeEffect as EffectHandler,
+   applyStatus: resolveApplyStatusEffect as EffectHandler,
+   cleanseStatus: resolveCleanseStatusEffect as EffectHandler,
+-  consumeStatus: resolveConsumeStatusEffect as EffectHandler
++  consumeStatus: resolveConsumeStatusEffect as EffectHandler,
++  intentVisibility: resolveIntentVisibilityEffect as EffectHandler
+ };
+
+ export const resolveEffects = (
+diff --git a/src/game-core/systems/monster-intents.ts b/src/game-core/systems/monster-intents.ts
+index eba07a2..32d823f 100644
+--- a/src/game-core/systems/monster-intents.ts
++++ b/src/game-core/systems/monster-intents.ts
+@@ -300,6 +300,14 @@ export const chooseMonsterIntents = (
+     });
+   }
+
+-  const nextState = appendEvents({ ...state, monsterIntents: activeIntents, plannedMonsterAbilities: plannedAbilities }, events);
++  const persistentIntentVisibilityOverrides = (state.intentVisibilityOverrides ?? []).filter((override) =>
++    override.expires === "combat" || override.expires === "never"
++  );
++  const nextState = appendEvents({
++    ...state,
++    monsterIntents: activeIntents,
++    plannedMonsterAbilities: plannedAbilities,
++    intentVisibilityOverrides: persistentIntentVisibilityOverrides
++  }, events);
+   return { ok: true, state: nextState, events, errors: [] };
+ };
+diff --git a/src/game-core/systems/pet-modifier-selectors.ts b/src/game-core/systems/pet-modifier-selectors.ts
+index f71a16a..ffa61c9 100644
+--- a/src/game-core/systems/pet-modifier-selectors.ts
++++ b/src/game-core/systems/pet-modifier-selectors.ts
+@@ -9,7 +9,9 @@ export const knownPetModifierSelectorCardTypes = [
+   "attack",
+   "skill",
+   "power",
+-  "pet-command"
++  "pet-command",
++  "pet-support",
++  "other"
+ ] as const satisfies readonly CardType[];
+
+ export const matchesCardSelector = (
+diff --git a/src/game-core/systems/rewards.ts b/src/game-core/systems/rewards.ts
+index 99c7e2e..071e26d 100644
+--- a/src/game-core/systems/rewards.ts
++++ b/src/game-core/systems/rewards.ts
+@@ -125,6 +125,15 @@ const isEligibleCard = (
+     return false;
+   }
+
++  if (
++    card.source === "encounterReward" ||
++    card.source === "eventOnly" ||
++    card.source === "temporary" ||
++    card.source === "legacy"
++  ) {
++    return false;
++  }
++
+   if (!card.requiresPetDefinitionId) {
+     return true;
+   }
+@@ -167,6 +176,59 @@ const buildCardOptions = (
+       }))
+   );
+
++const shouldOfferRewardBearerDrop = (
++  chancePercent: number,
++  guaranteedFirstTime: boolean | undefined,
++  rng: ReturnType<typeof createRng>
++): boolean => {
++  if (guaranteedFirstTime) {
++    // v0.2 does not yet persist per-bearer pity history, so guaranteed-first-time
++    // bearer rewards are treated as guaranteed whenever that encounter is won.
++    return true;
++  }
++
++  return rng.nextFloat() * 100 < chancePercent;
++};
++
++const buildRewardBearerCardOptions = (
++  registry: GameContentRegistry,
++  combat: CombatState,
++  offerId: RewardOfferState["id"],
++  rng: ReturnType<typeof createRng>
++): readonly CardRewardOption[] => {
++  const encounter = combat.encounterId
++    ? registry.encounters.find((candidate) => candidate.id === combat.encounterId)
++    : undefined;
++  const bearer = encounter?.rewardBearer;
++
++  if (!bearer || bearer.bearerKind !== "cardBearer") {
++    return [];
++  }
++
++  const heldReward = bearer.heldReward;
++  if (heldReward.type !== "playerCard") {
++    return [];
++  }
++
++  if (!shouldOfferRewardBearerDrop(bearer.dropRule.chancePercent, bearer.dropRule.guaranteedFirstTime, rng)) {
++    return [];
++  }
++
++  const card = registry.cards.find((candidate) => candidate.id === heldReward.cardId);
++  if (!card) {
++    return [];
++  }
++
++  return [
++    {
++      id: rewardOptionId(`${offerId}:bearer:${encounter?.id ?? "encounter"}:card:${card.id}`),
++      type: "card" as const,
++      cardId: card.id
++    }
++  ];
++};
++
++
+ const buildPetUpgradeOptions = (
+   registry: GameContentRegistry,
+   run: RunState,
+@@ -238,6 +300,7 @@ export const generateCombatRewardOffer = (
+     status: "open",
+     options: []
+   };
++  const rewardBearerCardOptions = buildRewardBearerCardOptions(registry, combat, offerId, rng);
+   const cardOptions = rng
+     .shuffle(buildCardOptions(registry, run, petInstances, offerId))
+     .slice(0, Math.max(0, cardOptionCount));
+@@ -245,7 +308,7 @@ export const generateCombatRewardOffer = (
+     .shuffle(buildPetUpgradeOptions(registry, run, petInstances, offerId))
+     .slice(0, Math.max(0, petUpgradeOptionCount));
+   const deckOperationOptions = buildDeckOperationOptions(run, offerId).slice(0, Math.max(0, deckOperationOptionCount));
+-  const options = uniqueOptions([...cardOptions, ...petUpgradeOptions, ...deckOperationOptions]);
++  const options = uniqueOptions([...rewardBearerCardOptions, ...cardOptions, ...petUpgradeOptions, ...deckOperationOptions]);
+   const state: RewardOfferState = { ...baseOffer, options };
+   const event: GameEvent = { type: "RewardOffered", rewardOfferId: state.id, options: state.options };
+
+diff --git a/src/game-core/systems/validation.ts b/src/game-core/systems/validation.ts
+index cb0e3e4..1ed6b86 100644
+--- a/src/game-core/systems/validation.ts
++++ b/src/game-core/systems/validation.ts
+@@ -422,7 +422,7 @@ const storyTriggers = new Set<StoryTrigger>([
+ const isRunMapNodeCandidate = (value: unknown): value is RunMapNodeCandidate =>
+   isRecord(value);
+
+-const knownDifficultyBands = new Set(["tutorial", "easy", "normal", "hard", "elite", "boss"]);
++const knownDifficultyBands = new Set(["tutorial", "easy", "normal", "hard", "elite", "boss", "rare"]);
+ const knownRewardPoolOptionTypes = new Set(["card", "petUpgrade", "deckOperation"]);
+
+ type EncounterAuthoringValidationOptions = {
+@@ -1783,7 +1783,7 @@ export const validateRegistry = (
+       issues.push(issue("error", "invalid_monster_ability_description", `Monster ability '${String(abilityValue.id)}' description must be a non-empty string.`, `monsterAbilities[${abilityIndex}].description`));
+     }
+
+-    if (abilityValue.intentType !== "attack" && abilityValue.intentType !== "block" && abilityValue.intentType !== "debuff" && abilityValue.intentType !== "special") {
++    if (!["attack", "block", "debuff", "buff", "special", "charge", "unknown"].includes(String(abilityValue.intentType))) {
+       issues.push(issue("error", "invalid_monster_ability_intent_type", `Monster ability '${String(abilityValue.id)}' has unknown intent type '${String(abilityValue.intentType)}'.`, `monsterAbilities[${abilityIndex}].intentType`));
+     }
+
+diff --git a/src/game-phaser/animation/combat-event-messages.ts b/src/game-phaser/animation/combat-event-messages.ts
+index 7dd084e..45496f0 100644
+--- a/src/game-phaser/animation/combat-event-messages.ts
++++ b/src/game-phaser/animation/combat-event-messages.ts
+@@ -28,6 +28,8 @@ export const formatCombatEventMessage = (event: EventLike): string => {
+       return `Shuffled ${event.count} card(s) into ${event.to}.`;
+     case "EnergySpent":
+       return `Spent ${event.amount} energy (${event.remaining} remaining).`;
++    case "EnemyIntentVisibilityChanged":
++      return `${event.monsterId} intent visibility is now ${event.level}.`;
+     case "MonsterAbilityPlanned":
+       return `${event.monsterId} planned ${event.abilityId}: ${event.description}`;
+     case "MonsterAbilityPlayed":
+diff --git a/src/game-phaser/animation/combat-playback-policy.ts b/src/game-phaser/animation/combat-playback-policy.ts
+index 490aa6a..93ee782 100644
+--- a/src/game-phaser/animation/combat-playback-policy.ts
++++ b/src/game-phaser/animation/combat-playback-policy.ts
+@@ -45,6 +45,7 @@ export const combatPlaybackPolicies = {
+   DeckShuffled: { policy: "animated", visualRoute: "fx" },
+   EnergyGained: { policy: "logOnly", visualRoute: "log" },
+   EnergySpent: { policy: "animated", visualRoute: "fx" },
++  EnemyIntentVisibilityChanged: { policy: "animated", visualRoute: "fx" },
+   MonsterAbilityPlanned: { policy: "animated", visualRoute: "fx" },
+   MonsterAbilityPlayed: { policy: "animated", visualRoute: "fx" },
+   MonsterIntentResolved: { policy: "animated", visualRoute: "fx" },
+diff --git a/src/game-phaser/view-models/combat-view-model.ts b/src/game-phaser/view-models/combat-view-model.ts
+index b530153..c48945b 100644
+--- a/src/game-phaser/view-models/combat-view-model.ts
++++ b/src/game-phaser/view-models/combat-view-model.ts
+@@ -12,14 +12,17 @@ import {
+   type GameEvent,
+   type EncounterId,
+   type MonsterAbilityId,
++  type IntentVisibilityLevel,
+   type MonsterId,
+   type MonsterIntentId,
+   type PetInstance,
+   type PetInstanceId,
++  type PlayerClassId,
+   type RunState,
+   type RunNodeType,
+   type StatusDefinition,
+-  type StatusId
++  type StatusId,
++  playerClassModifierId
+ } from "../../game-core";
+ import {
+   buildCardActionContract,
+@@ -29,7 +32,7 @@ import {
+ } from "../../game-core";
+ import type { CardType } from "../../game-core/model/card";
+ import type { EffectDefinition } from "../../game-core/model/effect";
+-import type { MonsterAbilityDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
++import type { MonsterAbilityDefinition, MonsterDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
+ import { formatCombatEventMessage } from "../animation/combat-event-messages";
+ import { buildCombatPileViewModel } from "./combat-pile-view-model";
+
+@@ -117,6 +120,7 @@ export type MonsterIntentViewModel = {
+   readonly description: string;
+   readonly targetHint: "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
+   readonly amount?: number;
++  readonly visibilityLevel: IntentVisibilityLevel;
+   readonly tooltip: CombatTooltipCopyViewModel;
+   readonly detail: CombatDetailCopyViewModel;
+   readonly plannedAction: MonsterPlannedActionViewModel;
+@@ -124,7 +128,7 @@ export type MonsterIntentViewModel = {
+
+ export type MonsterPlannedActionViewModel = {
+   readonly source: "plannedAbility" | "fallbackMetadata" | "unknown";
+-  readonly revealPolicy: "revealed";
++  readonly revealPolicy: IntentVisibilityLevel;
+   readonly title: string;
+   readonly subtitle: string;
+   readonly abilityId?: MonsterAbilityId;
+@@ -234,7 +238,13 @@ const keywordCopyByTag: Readonly<Record<string, CombatKeywordExplanationViewMode
+   setup: { keyword: "Setup", explanation: "Builds advantage for a later action or turn." },
+   combo: { keyword: "Combo", explanation: "Rewards being combined with another card, tag, or status." },
+   finisher: { keyword: "Finisher", explanation: "Has extra value when ending a fight or defeating a target." },
+-  mark: { keyword: "Mark", explanation: "Flags a target for a later effect." }
++  mark: { keyword: "Mark", explanation: "Flags a target for a later effect." },
++  keeper: { keyword: "Keeper", explanation: "Belongs to the Ashbound Keeper class kit." },
++  scout: { keyword: "Scout", explanation: "Improves information or helps read enemy plans." },
++  reveal: { keyword: "Reveal", explanation: "Improves Intent visibility for hidden or partial enemy plans." },
++  signal: { keyword: "Signal", explanation: "Represents field signs, hand cues, or tactical communication." },
++  scope: { keyword: "Scope", explanation: "Advanced read of elite or boss plan information." },
++  legacy: { keyword: "Legacy", explanation: "Kept for old traces, fixtures, or migration compatibility." }
+ };
+
+ const keywordCopyByCardType: Readonly<Partial<Record<CardType, CombatKeywordExplanationViewModel>>> = {
+@@ -493,6 +503,8 @@ const describeMonsterEffect = (effect: EffectDefinition): string => {
+       return `Pet block ${effect.amount} to ${getCombatantTargetLabel(effect.target)}.`;
+     case "petReact":
+       return `Pet reaction: ${effect.reaction}.`;
++    case "improveIntentVisibility":
++      return `Improve Intent visibility by ${effect.amount}.`;
+     case "setStoryFlag":
+       return `Set story flag ${effect.flagId}.`;
+   }
+@@ -503,12 +515,13 @@ const buildPlannedActionViewModel = (
+   intentDefinition: MonsterIntentDefinition | undefined,
+   resolvedAbility: ResolvedMonsterAbilityDisplay | undefined,
+   targetHint: MonsterIntentViewModel["targetHint"],
+-  amount: number | undefined
++  amount: number | undefined,
++  visibilityLevel: IntentVisibilityLevel
+ ): MonsterPlannedActionViewModel => {
+   if (resolvedAbility) {
+     return {
+       source: resolvedAbility.source,
+-      revealPolicy: "revealed",
++      revealPolicy: visibilityLevel,
+       title: resolvedAbility.ability.name,
+       subtitle: `${resolvedAbility.ability.intentType} planned card`,
+       abilityId: resolvedAbility.ability.id,
+@@ -521,7 +534,7 @@ const buildPlannedActionViewModel = (
+
+   return {
+     source: intentDefinition ? "fallbackMetadata" : "unknown",
+-    revealPolicy: "revealed",
++    revealPolicy: visibilityLevel,
+     title: intentDefinition?.description ?? "Unknown planned action",
+     subtitle: `${intentDefinition?.type ?? "intent"} planned card`,
+     intentId: intent.intentId,
+@@ -535,6 +548,42 @@ const buildPlannedActionViewModel = (
+   };
+ };
+
++const intentVisibilityRank: Readonly<Record<IntentVisibilityLevel, number>> = {
++  none: 0,
++  unknown: 1,
++  category: 2,
++  rough: 3,
++  exact: 4,
++  scoped: 5
++};
++
++const maxIntentVisibilityLevel = (a: IntentVisibilityLevel, b: IntentVisibilityLevel): IntentVisibilityLevel =>
++  intentVisibilityRank[a] >= intentVisibilityRank[b] ? a : b;
++
++const resolveIntentVisibilityLevel = (
++  state: CombatState,
++  content: ContentContext,
++  monster: CombatantState | undefined,
++  monsterDefinition: MonsterDefinition | undefined
++): IntentVisibilityLevel => {
++  const override = monster
++    ? state.intentVisibilityOverrides?.find((candidate) => candidate.monsterCombatantId === monster.id)
++    : undefined;
++  const playerClassDefinitionId = state.player.definitionId as PlayerClassId | undefined;
++  const playerDefinition = playerClassDefinitionId
++    ? content.index.playersById.get(playerClassDefinitionId)
++    : undefined;
++  const hasFieldSense = playerDefinition?.classModifierIds?.includes(playerClassModifierId("field_sense")) ?? false;
++  const isAdvancedEnemy = monsterDefinition?.tags.some((tag) =>
++    tag === "elite" || tag === "boss" || tag === "rare-bearer"
++  ) ?? false;
++  const baseLevel: IntentVisibilityLevel = hasFieldSense && !isAdvancedEnemy
++    ? "category"
++    : (monsterDefinition?.cardGame?.defaultIntentVisibility ?? "unknown");
++
++  return override ? maxIntentVisibilityLevel(baseLevel, override.level) : baseLevel;
++};
++
+ const buildUiWarnings = (state: CombatState): readonly string[] => {
+   const warnings: string[] = [];
+
+@@ -645,12 +694,14 @@ export const buildCombatViewModel = (
+       const description = displaySource?.description ?? "Preparing an action.";
+       const targetHint = getIntentTargetHint(displaySource);
+       const amount = getIntentAmount(displaySource);
+-      const plannedAction = buildPlannedActionViewModel(intent, intentDefinition, resolvedAbility, targetHint, amount);
++      const visibilityLevel = resolveIntentVisibilityLevel(state.combat, content, monster, monsterDefinition);
++      const plannedAction = buildPlannedActionViewModel(intent, intentDefinition, resolvedAbility, targetHint, amount, visibilityLevel);
+
+       return {
+         monsterId: intent.monsterCombatantId,
+         intentId: intent.intentId,
+         abilityId: ability?.id,
++        visibilityLevel,
+         type: ability?.intentType ?? intentDefinition?.type ?? "intent",
+         label,
+         description,
+@@ -665,6 +716,7 @@ export const buildCombatViewModel = (
+           subtitle: `${monster?.name ?? "Enemy"} · ${plannedAction.subtitle}`,
+           lines: [
+             description,
++            `Visibility: ${visibilityLevel}`,
+             `Reveal policy: ${plannedAction.revealPolicy}`,
+             `Metadata source: ${plannedAction.source}`,
+             `Tags: ${plannedAction.tags.join(", ") || "none"}`,

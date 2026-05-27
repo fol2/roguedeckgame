@@ -29,18 +29,18 @@ describe("Burning Fang pet modifier", () => {
     const result = playFoxBite(createHandTunedCombatFixture(), "burning-fang-none");
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(17);
+    expect(result.state.monsters[0].hp).toBe(18);
     expect(result.state.monsters[0].statuses).toEqual([{ statusId: "burn", stacks: 2 }]);
     expect(result.events.some((event) => event.type === "PetModifierActivated")).toBe(false);
   });
 
-  it("modifies Fox Bite petAttack 5 to 7 and Burn 2 to 3", () => {
+  it("modifies Fox Bite petAttack 4 to 6 and Burn 2 to 3", () => {
     const result = playFoxBite(createStateWithPets([
       emberFoxWithUpgrades("ember_fox_001", ["burning_fang"])
     ]), "burning-fang-bite");
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(15);
+    expect(result.state.monsters[0].hp).toBe(16);
     expect(result.state.monsters[0].statuses).toEqual([{ statusId: "burn", stacks: 3 }]);
     expect(result.events).toContainEqual({
       type: "PetModifierActivated",
@@ -85,7 +85,7 @@ describe("Burning Fang pet modifier", () => {
     ), "burning-fang-inactive");
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(17);
+    expect(result.state.monsters[0].hp).toBe(18);
     expect(result.state.monsters[0].statuses).toEqual([{ statusId: "burn", stacks: 2 }]);
   });
 
@@ -97,7 +97,7 @@ describe("Burning Fang pet modifier", () => {
     const result = playFoxBite(state, "burning-fang-second");
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsters[0].hp).toBe(17);
+    expect(result.state.monsters[0].hp).toBe(18);
     expect(result.state.monsters[0].statuses).toEqual([{ statusId: "burn", stacks: 2 }]);
   });
 

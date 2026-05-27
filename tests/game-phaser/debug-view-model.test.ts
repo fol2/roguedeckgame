@@ -154,7 +154,7 @@ describe("Combat debug view model", () => {
     const registry = {
       ...starterRegistry,
       cards: starterRegistry.cards.map((card) =>
-        card.id === "focus"
+        starterRegistry.players[0].startingDeckCardIds.includes(card.id)
           ? {
               ...card,
               type: "attack" as const,
@@ -176,7 +176,7 @@ describe("Combat debug view model", () => {
     const combatNode = controller.getState().run.map?.nodes.find((node) => node.type === "combat" && node.status === "available");
     controller.selectMapNode(combatNode!.id);
     const viewModel = controller.getCombatViewModel()!;
-    const focus = viewModel.hand.find((card) => card.cardId === "focus");
+    const focus = viewModel.hand.find((card) => card.requiresManualTarget);
 
     expect(focus).toBeDefined();
     expect(focus?.requiresManualTarget).toBe(true);

@@ -300,6 +300,14 @@ export const chooseMonsterIntents = (
     });
   }
 
-  const nextState = appendEvents({ ...state, monsterIntents: activeIntents, plannedMonsterAbilities: plannedAbilities }, events);
+  const persistentIntentVisibilityOverrides = (state.intentVisibilityOverrides ?? []).filter((override) =>
+    override.expires === "combat" || override.expires === "never"
+  );
+  const nextState = appendEvents({
+    ...state,
+    monsterIntents: activeIntents,
+    plannedMonsterAbilities: plannedAbilities,
+    intentVisibilityOverrides: persistentIntentVisibilityOverrides
+  }, events);
   return { ok: true, state: nextState, events, errors: [] };
 };
