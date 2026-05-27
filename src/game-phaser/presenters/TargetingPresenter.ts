@@ -1,6 +1,7 @@
 import type { GameObjects, Scene } from "phaser";
 import { CARD_SIZE, getHandCardPosition } from "../layout/hand-layout";
 import { getPetSlotPosition } from "../layout/pet-layout";
+import { COMBAT_COMMAND_LINE_TOKENS, COMBAT_PLACEHOLDER_COLOURS } from "../layout/combat-ui-tokens";
 import type { CommandLineVisualState } from "./combat-visual-states";
 
 type Point = {
@@ -32,31 +33,33 @@ export class TargetingPresenter {
     const cardPoint = getHandCardPosition(input.handIndex, input.handTotal);
     const source = { x: cardPoint.x, y: cardPoint.y - CARD_SIZE.height / 2 + 18 };
     const target = getPetSlotPosition(input.petSlotIndex ?? 0);
-    const alpha = input.commandLineState === "hover" ? 0.32 : input.commandLineState === "selected" ? 0.68 : 0.9;
-    const width = input.commandLineState === "hover" ? 2 : input.commandLineState === "selected" ? 3 : 4;
-    const markerRadius = input.commandLineState === "resolving" ? 8 : 5;
+    const style = input.commandLineState === "hover"
+      ? COMBAT_COMMAND_LINE_TOKENS.hover
+      : input.commandLineState === "selected"
+        ? COMBAT_COMMAND_LINE_TOKENS.selected
+        : COMBAT_COMMAND_LINE_TOKENS.resolving;
     const points = this.sampleCommandCurve(source, target);
 
-    this.graphics.lineStyle(width, 0xffb35b, alpha);
+    this.graphics.lineStyle(style.width, COMBAT_PLACEHOLDER_COLOURS.commandThread, style.alpha);
     for (let index = 1; index < points.length; index += 1) {
       const previous = points[index - 1]!;
       const point = points[index]!;
       this.graphics.lineBetween(previous.x, previous.y, point.x, point.y);
     }
 
-    this.graphics.fillStyle(0xffd166, input.commandLineState === "hover" ? 0.6 : 0.92);
-    this.graphics.fillCircle(target.x, target.y, markerRadius);
+    this.graphics.fillStyle(COMBAT_PLACEHOLDER_COLOURS.commandMarker, style.markerAlpha);
+    this.graphics.fillCircle(target.x, target.y, style.markerRadius);
   }
 
   private sampleCommandCurve(source: Point, target: Point): readonly Point[] {
     const control: Point = {
       x: source.x + (target.x - source.x) * 0.38,
-      y: Math.min(source.y, target.y) - 84
+      y: Math.min(source.y, target.y) - COMBAT_COMMAND_LINE_TOKENS.controlLift
     };
     const points: Point[] = [];
 
-    for (let index = 0; index <= 18; index += 1) {
-      const t = index / 18;
+    for (let index = 0; index <= COMBAT_COMMAND_LINE_TOKENS.curveSampleCount; index += 1) {
+      const t = index / COMBAT_COMMAND_LINE_TOKENS.curveSampleCount;
       const inverse = 1 - t;
       points.push({
         x: inverse * inverse * source.x + 2 * inverse * t * control.x + t * t * target.x,

@@ -268,6 +268,20 @@ describe("CombatEventFxPresenter", () => {
     warning.mockRestore();
   });
 
+  it("warns and skips unknown future event visuals", async () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CombatEventFxPresenter(scene);
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    presenter.setViewModel(createViewModel());
+
+    await presenter.play({ type: "FutureEvent" } as never);
+
+    expect(warning).toHaveBeenCalledWith("CombatEventFxPresenter skipped unknown event visual: FutureEvent");
+    expect(records.lines).toEqual([]);
+    expect(records.texts).toEqual([]);
+    warning.mockRestore();
+  });
+
   it("uses the real hand card point for CardPlayed effects", async () => {
     const expectedCardPoint = getHandCardPosition(0, 2);
     const playedScene = createSceneStub();

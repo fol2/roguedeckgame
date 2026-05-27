@@ -10,6 +10,7 @@ import {
 import { getMonsterPosition, MONSTER_SLOT } from "../layout/combat-layout";
 import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from "./CombatOverlayPresenter";
 import type { CombatParityCombatantSnapshot } from "../debug/combat-parity";
+import { resolveCombatDetailCopy, resolveCombatTooltipCopy } from "../assets/combat-fallback-assets";
 import {
   getEnemyTargetRingStyle,
   resolveEnemyTargetVisualState,
@@ -275,19 +276,23 @@ export class MonsterPresenter {
           ? 0x3a284b
           : 0x2f2415;
     const tokenStroke = token?.visibility === "unknown" ? 0xaab4c5 : 0xff9aad;
-    const showIntentTooltip = (): void => this.onTooltipChanged({
-      title: token?.tooltip.title ?? "Unknown intent",
-      body: token?.tooltip.body ?? "No details available yet.",
-      x: position.x,
-      y: position.y + MONSTER_SLOT.intentTokenY,
-      delayMs: TOOLTIP_DELAYS_MS.statusIntent
-    });
-    const inspectIntent = (): void => this.onInspect(token?.detail ?? {
+    const showIntentTooltip = (): void => {
+      const tooltip = resolveCombatTooltipCopy(token?.tooltip ?? {
+        title: "Unknown intent"
+      });
+      this.onTooltipChanged({
+        title: tooltip.title,
+        body: tooltip.body,
+        x: position.x,
+        y: position.y + MONSTER_SLOT.intentTokenY,
+        delayMs: TOOLTIP_DELAYS_MS.statusIntent
+      });
+    };
+    const inspectIntent = (): void => this.onInspect(token?.detail ?? resolveCombatDetailCopy({
       title: "Unknown intent",
       subtitle: monster.name,
-      lines: ["No details available yet."],
       footer: "Intent detail."
-    });
+    }));
     const isRightClick = (pointer: PointerLike): boolean =>
       pointer.button === 2 || pointer.rightButtonDown?.() === true;
     let inspectedOnPointerDown = false;

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { combatantId, type CombatantId } from "../../src/game-core";
 import { CombatHudPresenter } from "../../src/game-phaser/presenters/CombatHudPresenter";
 import { MonsterPresenter } from "../../src/game-phaser/presenters/MonsterPresenter";
+import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
 import type { CombatViewModel, CombatantViewModel } from "../../src/game-phaser/view-models/combat-view-model";
 
 type Handler = (...args: unknown[]) => void;
@@ -106,7 +107,7 @@ const createCombatViewModel = (): CombatViewModel => ({
       monsterId: combatantId("monster"),
       visibility: "exact",
       kind: "attack",
-      iconKey: "intent.attack",
+      iconKey: CombatAssetKeys.icons.intentAttack,
       amountLabel: "6",
       targetHint: "keeper",
       tooltip: { title: "Attack", body: "This enemy is preparing to attack the Keeper.\nDamage: 6" },
@@ -249,6 +250,34 @@ describe("combat presenter parity snapshots", () => {
       ])
     }));
     expect(onSelected).not.toHaveBeenCalled();
+  });
+
+  it("uses centralized detail fallback copy when intent data is missing", () => {
+    const scene = createSceneStub();
+    const onInspect = vi.fn();
+    const presenter = new MonsterPresenter(scene, vi.fn(), vi.fn(), onInspect);
+    const viewModel = createCombatViewModel();
+
+    presenter.render(viewModel.monsters, []);
+
+    const created = (scene as unknown as {
+      readonly created: readonly {
+        readonly kind: string;
+        readonly handlers: Record<string, readonly Handler[]>;
+      }[];
+    }).created;
+    const tokenBody = created.find((object) =>
+      object.kind === "ellipse" && object.handlers.pointerdown && object.handlers.pointerup
+    );
+
+    tokenBody?.handlers.pointerdown?.[0]?.({ button: 2 });
+
+    expect(onInspect).toHaveBeenCalledWith({
+      title: "Unknown intent",
+      subtitle: "Training Slime",
+      lines: ["No details available yet."],
+      footer: "Intent detail."
+    });
   });
 
   it("renders unknown intent tokens without missing-data copy", () => {

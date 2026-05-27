@@ -10,12 +10,13 @@ import {
   PLAYER_HUD_AREA,
   getMonsterPosition
 } from "../layout/combat-layout";
+import { COMBAT_ANIMATION_DURATIONS, COMBAT_PLACEHOLDER_COLOURS } from "../layout/combat-ui-tokens";
 import { HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
 import { getPetSlotPosition } from "../layout/pet-layout";
 import type { CombatViewModel } from "../view-models/combat-view-model";
 
-const FX_DURATION_MS = 170;
-const FLOAT_DISTANCE = 24;
+const FX_DURATION_MS = COMBAT_ANIMATION_DURATIONS.eventFxMs;
+const FLOAT_DISTANCE = COMBAT_ANIMATION_DURATIONS.popupFloatDistance;
 
 type Point = {
   readonly x: number;
@@ -91,12 +92,45 @@ export class CombatEventFxPresenter {
 
     switch (event.type) {
       case "CardPlayed":
-        return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", 0xffd166);
+        return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", COMBAT_PLACEHOLDER_COLOURS.status);
       case "EnergySpent":
-        return this.playPulse(ENERGY_POINT, `-${event.amount}`, 0xffb35b);
+        return this.playPulse(ENERGY_POINT, `-${event.amount}`, COMBAT_PLACEHOLDER_COLOURS.commandThread);
       case "CardDrawn":
         return this.wait(0);
       case "CardMoved":
+        return this.wait(0);
+      case "RunCombatStarted":
+      case "RunCombatCompleted":
+      case "RunEnded":
+      case "CombatStarted":
+      case "TurnStarted":
+      case "TurnEnded":
+      case "CardCostModified":
+      case "CardCreated":
+      case "CardRetained":
+      case "EnergyGained":
+      case "PetModifierConsumed":
+      case "RewardOffered":
+      case "RewardSelected":
+      case "RewardSkipped":
+      case "CardRewardAdded":
+      case "RunDeckCardUpgraded":
+      case "RunDeckCardRemoved":
+      case "RunDeckCardTransformed":
+      case "PetUpgradeUnlocked":
+      case "StoryFlagSet":
+      case "PetStoryEventCompleted":
+      case "PetMemoryUnlocked":
+      case "PetBondXpAdded":
+      case "PetStoryFlagSet":
+      case "PetEvolutionNodeUnlocked":
+      case "StoryEventSeen":
+      case "SaveSnapshotCreated":
+      case "SaveSnapshotMigrated":
+      case "SaveSlotWritten":
+      case "SaveSlotLoaded":
+      case "SaveSlotDeleted":
+      case "ValidationWarning":
         return this.wait(0);
       case "DeckShuffled":
         return this.playTrace(
@@ -110,53 +144,54 @@ export class CombatEventFxPresenter {
           this.getCardPoint(event.cardInstanceId, event.type),
           this.getPetPoint(event.petInstanceId, event.type),
           "Command",
-          0xffb35b
+          COMBAT_PLACEHOLDER_COLOURS.commandThread
         );
       case "PetReacted":
-        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.reaction, 0xffd166);
+        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.reaction, COMBAT_PLACEHOLDER_COLOURS.status);
       case "PetModifierActivated":
-        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.modifierId, 0xffd166);
+        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.modifierId, COMBAT_PLACEHOLDER_COLOURS.status);
       case "DamageDealt":
         return this.playImpactAtTarget(
           this.getCombatantPoint(event.targetId),
           `-${event.amount}`,
-          0xff758f
+          COMBAT_PLACEHOLDER_COLOURS.impact
         );
       case "BlockGained":
-        return this.playPulse(this.getCombatantPoint(event.targetId), `+${event.amount} block`, 0x7dd3fc);
+        return this.playPulse(this.getCombatantPoint(event.targetId), `+${event.amount} block`, COMBAT_PLACEHOLDER_COLOURS.shield);
       case "StatusApplied":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} +${event.stacks}`, 0xffd166);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} +${event.stacks}`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusApplicationBlocked":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} blocked`, 0xaab4c5);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} blocked`, COMBAT_PLACEHOLDER_COLOURS.muted);
       case "StatusCleansed":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} cleansed`, 0x7dd3fc);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} cleansed`, COMBAT_PLACEHOLDER_COLOURS.shield);
       case "StatusConsumed":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} consumed`, 0xffd166);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} consumed`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusTicked":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} tick`, 0xff9aad);
       case "StatusDurationChanged":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} duration`, 0xffd166);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} duration`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusExpired":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} expired`, 0xaab4c5);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} expired`, COMBAT_PLACEHOLDER_COLOURS.muted);
       case "MonsterAbilityPlanned":
         return this.playPulse(this.getCombatantPoint(event.monsterId), event.intentType, 0xff9aad);
       case "MonsterAbilityPlayed":
-        return this.playPulse(this.getCombatantPoint(event.monsterId), "Act", 0xffd166);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Act", COMBAT_PLACEHOLDER_COLOURS.status);
       case "MonsterIntentResolved":
-        return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", 0xffd166);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", COMBAT_PLACEHOLDER_COLOURS.status);
       case "MonsterIntentSet":
         return this.playPulse(this.getCombatantPoint(event.monsterId), event.intentType, 0xff9aad);
       case "CombatantDefeated":
-        return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", 0xffd166);
+        return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", COMBAT_PLACEHOLDER_COLOURS.status);
       case "CombatEnded":
-        return this.playPopup(PLAYER_HUD_POINT, event.outcome === "won" ? "Victory" : "Defeat", 0xffd166);
+        return this.playPopup(PLAYER_HUD_POINT, event.outcome === "won" ? "Victory" : "Defeat", COMBAT_PLACEHOLDER_COLOURS.status);
       case "ActionRejected":
-        return this.playPopup(PLAYER_HUD_POINT, "Rejected", 0xff758f);
+        return this.playPopup(PLAYER_HUD_POINT, "Rejected", COMBAT_PLACEHOLDER_COLOURS.impact);
       case "PlayerClassModifierActivated":
-        return this.playPulse(PLAYER_HUD_POINT, event.modifierId, 0x7dd3fc);
+        return this.playPulse(PLAYER_HUD_POINT, event.modifierId, COMBAT_PLACEHOLDER_COLOURS.shield);
       case "TriggerQueueLimitReached":
-        return this.playPopup(PLAYER_HUD_POINT, "Trigger limit", 0xff758f);
+        return this.playPopup(PLAYER_HUD_POINT, "Trigger limit", COMBAT_PLACEHOLDER_COLOURS.impact);
       default:
+        console.warn(`CombatEventFxPresenter skipped unknown event visual: ${event.type}`);
         return this.wait(FX_DURATION_MS);
     }
   }

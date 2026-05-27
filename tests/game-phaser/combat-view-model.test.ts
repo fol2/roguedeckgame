@@ -14,6 +14,7 @@ import {
   buildCombatViewModel,
   getCardKeywordExplanations
 } from "../../src/game-phaser/view-models/combat-view-model";
+import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
 import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
 import { createEmberFoxInstanceFixture, createRunFixture } from "../../src/game-core/testing/fixtures";
 
@@ -318,7 +319,7 @@ describe("Combat view model", () => {
       token: {
         visibility: "exact",
         kind: "defend",
-        iconKey: "intent.defend",
+        iconKey: CombatAssetKeys.icons.intentDefend,
         amountLabel: "99",
         targetHint: "keeper",
         debug: {

@@ -31,9 +31,12 @@ import type { CardType } from "../../game-core/model/card";
 import type { EffectDefinition } from "../../game-core/model/effect";
 import type { MonsterAbilityDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
+import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
+import { COMBAT_UI_CAPS } from "../layout/combat-ui-caps";
 import { buildCombatPileViewModel } from "./combat-pile-view-model";
 
 export type { CardPlayMode, CardTargetKind } from "../../game-core";
+export { COMBAT_UI_CAPS } from "../layout/combat-ui-caps";
 
 export type CombatSandboxState = {
   readonly run: RunState;
@@ -122,7 +125,7 @@ export type CombatIntentTokenViewModel = {
   readonly monsterId: CombatantId;
   readonly visibility: IntentVisibilityDisplayLevel;
   readonly kind: "attack" | "defend" | "buff" | "debuff" | "special" | "unknown" | "charging";
-  readonly iconKey: string;
+  readonly iconKey: CombatAssetKey;
   readonly amountLabel?: string;
   readonly strengthLabel?: "Low" | "Med" | "High";
   readonly targetHint?: CombatIntentTargetHint;
@@ -228,16 +231,6 @@ export type CombatViewModel = {
     readonly maxCardVisibleTags: number;
   };
 };
-
-export const COMBAT_UI_CAPS = {
-  maxHandCards: 10,
-  maxEnemies: 3,
-  maxPetSlots: 3,
-  maxEnemyVisibleStatuses: 4,
-  maxPlayerVisibleStatuses: 5,
-  maxPetVisibleStatuses: 3,
-  maxCardVisibleTags: 4
-} as const;
 
 const findCard = (content: ContentContext, cardId: CardId) =>
   content.index.cardsById.get(cardId);
@@ -628,6 +621,25 @@ const getIntentGlyph = (kind: CombatIntentTokenViewModel["kind"]): string => {
   }
 };
 
+const getIntentIconKey = (kind: CombatIntentTokenViewModel["kind"]): CombatAssetKey => {
+  switch (kind) {
+    case "attack":
+      return CombatAssetKeys.icons.intentAttack;
+    case "defend":
+      return CombatAssetKeys.icons.intentDefend;
+    case "buff":
+      return CombatAssetKeys.icons.intentBuff;
+    case "debuff":
+      return CombatAssetKeys.icons.intentDebuff;
+    case "special":
+      return CombatAssetKeys.icons.intentSpecial;
+    case "charging":
+      return CombatAssetKeys.icons.intentCharging;
+    case "unknown":
+      return CombatAssetKeys.icons.intentUnknown;
+  }
+};
+
 const getIntentTargetCopy = (targetHint: CombatIntentTargetHint): string => {
   switch (targetHint) {
     case "keeper":
@@ -711,7 +723,7 @@ const buildIntentTokenViewModel = ({
     monsterId,
     visibility,
     kind,
-    iconKey: `intent.${kind}`,
+    iconKey: getIntentIconKey(kind),
     amountLabel: amount !== undefined ? String(amount) : undefined,
     targetHint,
     tooltip: {

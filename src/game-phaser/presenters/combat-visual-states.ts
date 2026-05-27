@@ -1,3 +1,5 @@
+import { COMBAT_TARGET_RING_TOKENS } from "../layout/combat-ui-tokens";
+
 export type EnemyTargetVisualState =
   | "hidden"
   | "base"
@@ -40,13 +42,48 @@ export type EnemyTargetRingStyle = {
 
 const ENEMY_TARGET_RING_STYLES: Record<EnemyTargetVisualState, EnemyTargetRingStyle> = {
   hidden: { strokeWidth: 0, strokeColour: 0x000000, alpha: 0, pulseScale: 1 },
-  base: { strokeWidth: 1, strokeColour: 0x7b8495, alpha: 0.2, pulseScale: 1 },
-  valid: { strokeWidth: 2, strokeColour: 0xffb35b, alpha: 0.42, pulseScale: 1.02 },
-  focused: { strokeWidth: 2, strokeColour: 0xffd166, alpha: 0.58, pulseScale: 1.04 },
-  hovered: { strokeWidth: 3, strokeColour: 0xffd166, alpha: 0.76, pulseScale: 1.07 },
-  submitted: { strokeWidth: 4, strokeColour: 0xffe0a3, alpha: 0.86, pulseScale: 1.1 },
-  impact: { strokeWidth: 5, strokeColour: 0xff758f, alpha: 0.95, pulseScale: 1.16 },
-  invalid: { strokeWidth: 2, strokeColour: 0x687386, alpha: 0.35, pulseScale: 1 }
+  base: {
+    strokeWidth: COMBAT_TARGET_RING_TOKENS.base.strokeWidth,
+    strokeColour: COMBAT_TARGET_RING_TOKENS.base.colour,
+    alpha: COMBAT_TARGET_RING_TOKENS.base.alpha,
+    pulseScale: COMBAT_TARGET_RING_TOKENS.base.pulseScale
+  },
+  valid: {
+    strokeWidth: COMBAT_TARGET_RING_TOKENS.valid.strokeWidth,
+    strokeColour: COMBAT_TARGET_RING_TOKENS.valid.colour,
+    alpha: COMBAT_TARGET_RING_TOKENS.valid.alpha,
+    pulseScale: COMBAT_TARGET_RING_TOKENS.valid.pulseScale
+  },
+  focused: {
+    strokeWidth: COMBAT_TARGET_RING_TOKENS.focused.strokeWidth,
+    strokeColour: COMBAT_TARGET_RING_TOKENS.focused.colour,
+    alpha: COMBAT_TARGET_RING_TOKENS.focused.alpha,
+    pulseScale: COMBAT_TARGET_RING_TOKENS.focused.pulseScale
+  },
+  hovered: {
+    strokeWidth: COMBAT_TARGET_RING_TOKENS.hovered.strokeWidth,
+    strokeColour: COMBAT_TARGET_RING_TOKENS.hovered.colour,
+    alpha: COMBAT_TARGET_RING_TOKENS.hovered.alpha,
+    pulseScale: COMBAT_TARGET_RING_TOKENS.hovered.pulseScale
+  },
+  submitted: {
+    strokeWidth: COMBAT_TARGET_RING_TOKENS.submitted.strokeWidth,
+    strokeColour: COMBAT_TARGET_RING_TOKENS.submitted.colour,
+    alpha: COMBAT_TARGET_RING_TOKENS.submitted.alpha,
+    pulseScale: COMBAT_TARGET_RING_TOKENS.submitted.pulseScale
+  },
+  impact: {
+    strokeWidth: COMBAT_TARGET_RING_TOKENS.impact.strokeWidth,
+    strokeColour: COMBAT_TARGET_RING_TOKENS.impact.colour,
+    alpha: COMBAT_TARGET_RING_TOKENS.impact.alpha,
+    pulseScale: COMBAT_TARGET_RING_TOKENS.impact.pulseScale
+  },
+  invalid: {
+    strokeWidth: COMBAT_TARGET_RING_TOKENS.invalid.strokeWidth,
+    strokeColour: COMBAT_TARGET_RING_TOKENS.invalid.colour,
+    alpha: COMBAT_TARGET_RING_TOKENS.invalid.alpha,
+    pulseScale: COMBAT_TARGET_RING_TOKENS.invalid.pulseScale
+  }
 };
 
 export const resolveEnemyTargetVisualState = ({
