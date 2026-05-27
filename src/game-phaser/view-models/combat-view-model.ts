@@ -11,6 +11,7 @@ import {
   type GameContentRegistry,
   type GameEvent,
   type EncounterId,
+  type MonsterAbilityId,
   type MonsterId,
   type MonsterIntentId,
   type PetInstance,
@@ -27,7 +28,7 @@ import {
 } from "../../game-core";
 import type { CardDefinition, CardType } from "../../game-core/model/card";
 import type { EffectDefinition } from "../../game-core/model/effect";
-import type { MonsterIntentType } from "../../game-core/model/monster";
+import type { MonsterAbilityDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
 import { buildCombatPileViewModel } from "./combat-pile-view-model";
 
@@ -109,6 +110,7 @@ export type CombatantViewModel = {
 export type MonsterIntentViewModel = {
   readonly monsterId: CombatantId;
   readonly intentId: MonsterIntentId;
+  readonly abilityId?: MonsterAbilityId;
   readonly type: MonsterIntentType | "intent";
   readonly label: string;
   readonly description: string;
@@ -459,6 +461,30 @@ const getIntentTargetHint = (
   return "keeper";
 };
 
+const getPlannedMonsterAbility = (
+  state: CombatState,
+  monsterCombatantId: CombatantId,
+  intentId: MonsterIntentId,
+  content: ContentContext
+): MonsterAbilityDefinition | undefined => {
+  const plannedAbility = state.plannedMonsterAbilities?.find((planned) =>
+    planned.monsterCombatantId === monsterCombatantId &&
+    planned.intentId === intentId
+  );
+
+  return plannedAbility
+    ? content.index.monsterAbilitiesById?.get(plannedAbility.abilityId)
+    : undefined;
+};
+
+const getFallbackMonsterAbility = (
+  intentDefinition: MonsterIntentDefinition | undefined,
+  content: ContentContext
+): MonsterAbilityDefinition | undefined =>
+  intentDefinition?.abilityId
+    ? content.index.monsterAbilitiesById?.get(intentDefinition.abilityId)
+    : undefined;
+
 const buildUiWarnings = (state: CombatState): readonly string[] => {
   const warnings: string[] = [];
 
@@ -561,15 +587,19 @@ export const buildCombatViewModel = (
         ? content.index.monstersById.get(monster.definitionId as MonsterId)
         : undefined;
       const intentDefinition = monsterDefinition?.intentPool.find((candidate) => candidate.id === intent.intentId);
-      const label = intentDefinition?.type ?? "intent";
-      const description = intentDefinition?.description ?? "Preparing an action.";
-      const targetHint = getIntentTargetHint(intentDefinition);
-      const amount = getIntentAmount(intentDefinition);
+      const ability = getPlannedMonsterAbility(state.combat, intent.monsterCombatantId, intent.intentId, content) ??
+        getFallbackMonsterAbility(intentDefinition, content);
+      const displaySource = ability ?? intentDefinition;
+      const label = ability?.intentType ?? intentDefinition?.type ?? "intent";
+      const description = displaySource?.description ?? "Preparing an action.";
+      const targetHint = getIntentTargetHint(displaySource);
+      const amount = getIntentAmount(displaySource);
 
       return {
         monsterId: intent.monsterCombatantId,
         intentId: intent.intentId,
-        type: intentDefinition?.type ?? "intent",
+        abilityId: ability?.id,
+        type: ability?.intentType ?? intentDefinition?.type ?? "intent",
         label,
         description,
         targetHint,

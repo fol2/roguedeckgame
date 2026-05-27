@@ -220,8 +220,43 @@ describe("Combat view model", () => {
     const viewModel = createCombatSandboxController("view-model-intents").getViewModel();
 
     expect(viewModel.monsterIntents[0]?.label).toEqual(expect.any(String));
+    expect(viewModel.monsterIntents[0]?.abilityId).toEqual(expect.any(String));
     expect(viewModel.monsterIntents[0]?.description.length).toBeGreaterThan(0);
     expect(viewModel.monsterIntents[0]?.targetHint).toEqual(expect.any(String));
+  });
+
+  it("uses planned monster ability effects for intent display metadata", () => {
+    const controller = createCombatSandboxController("view-model-planned-ability-intent");
+    const state = controller.getState();
+    const plannedAbility = state.combat.plannedMonsterAbilities?.[0];
+
+    expect(plannedAbility).toBeDefined();
+
+    const viewModel = buildCombatViewModel(state, {
+      ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === plannedAbility!.abilityId
+          ? {
+              ...ability,
+              description: "Planned ability display copy.",
+              effects: [
+                {
+                  type: "damage",
+                  amount: 99,
+                  target: { type: "target" }
+                }
+              ]
+            }
+          : ability
+      )
+    });
+
+    expect(viewModel.monsterIntents[0]).toMatchObject({
+      abilityId: plannedAbility!.abilityId,
+      description: "Planned ability display copy.",
+      targetHint: "keeper",
+      amount: 99
+    });
   });
 
   it("reports unsupported Phase 1 UI counts without hiding the latest state", () => {
