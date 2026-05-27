@@ -58,7 +58,12 @@ const unplayableReason = (actionError: GameActionError): string => {
     return "No commandable active pet.";
   }
 
-  if (actionError.code === "missing_target" || actionError.code === "dead_target") {
+  if (
+    actionError.code === "missing_target" ||
+    actionError.code === "dead_target" ||
+    actionError.code === "invalid_target" ||
+    actionError.code === "invalid_target_type"
+  ) {
     return "No valid enemy target.";
   }
 
@@ -327,6 +332,21 @@ export const buildCardActionContract = (
       playable: false,
       actionError: targetError,
       unplayableReason: unplayableReason(targetError)
+    };
+  }
+
+  const targetAvailabilityError = profile.requiresActionTarget && base.validEnemyTargetIds.length === 0
+    ? error("missing_target", "This card requires an alive enemy target.", "targetId")
+    : undefined;
+  if (targetAvailabilityError) {
+    return {
+      ...base,
+      effectiveCost: costModifierResult.value.cost,
+      actorPetInstanceIds: ownerPetResult.value,
+      commandPetSlotIndex: commandPetSlotIndex(state, ownerPetResult.value),
+      playable: false,
+      actionError: targetAvailabilityError,
+      unplayableReason: unplayableReason(targetAvailabilityError)
     };
   }
 
