@@ -152,6 +152,7 @@ describe("content workbench UI", () => {
 
     expect(collections.map((collection) => collection.id)).toEqual([
       "cards",
+      "decks",
       "statuses",
       "pets",
       "players",
@@ -171,6 +172,11 @@ describe("content workbench UI", () => {
       count: 12,
       required: true
     });
+    expect(collections.find((collection) => collection.id === "decks")).toMatchObject({
+      label: "Decks",
+      count: 1,
+      required: false
+    });
     expect(collections.find((collection) => collection.id === "rewardPools")).toMatchObject({
       label: "Reward pools",
       count: 3,
@@ -184,6 +190,16 @@ describe("content workbench UI", () => {
     expect(JSON.parse(formatWorkbenchJson(strike))).toMatchObject({
       id: "strike",
       name: "Strike"
+    });
+
+    const starterDeck = collections.find((collection) => collection.id === "decks")?.items
+      .find((item) => item.id === "novice_tamer_starter");
+
+    expect(JSON.parse(formatWorkbenchJson(starterDeck))).toMatchObject({
+      id: "novice_tamer_starter",
+      size: 9,
+      petCommandCount: 3,
+      whereUsedByPlayerClassIds: ["novice_tamer"]
     });
   });
 

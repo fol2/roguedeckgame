@@ -9,6 +9,7 @@ import { buildContentDependencyReport } from "./content-dependencies";
 export type ContentReport = {
   readonly counts: {
     readonly cards: number;
+    readonly decks: number;
     readonly statuses: number;
     readonly pets: number;
     readonly monsterAbilities: number;
@@ -77,6 +78,7 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
   return {
     counts: {
       cards: registry.cards.length,
+      decks: registry.decks?.length ?? 0,
       statuses: (registry.statuses ?? [burnStatusDefinition]).length,
       pets: registry.pets.length,
       monsterAbilities: registry.monsterAbilities?.length ?? 0,

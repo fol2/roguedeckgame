@@ -1,12 +1,17 @@
 import { readdirSync, statSync, unlinkSync } from 'node:fs';
 import { dirname, basename, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 const args = process.argv.slice(2);
 const allowDirty = args.includes('--allow-dirty');
 const helpRequested = args.includes('--help') || args.includes('-h');
-const excludedPaths = ['archive', 'docs/evidence', 'docs/contracts/p1', 'docs/contracts/p1.5'];
-const contractFolderNames = ['p1', 'p1.5'];
+const excludedPaths = ['archive', 'docs/evidence', 'docs/contracts/p1', 'docs/contracts/p1.5', 'docs/contracts/p2'];
+const contractFolderNames = ['p1', 'p1.5', 'p2'];
+const nestedRepoArchivePatterns = [
+  /(?:^|\/)docs\/contracts\/.+\/(?:src|tests|\.github)\//,
+  /(?:^|\/)docs\/contracts\/.+\/package\.json$/
+];
 
 function printHelp() {
   console.log(`Usage: npm run zip:review [-- --allow-dirty]
@@ -82,6 +87,21 @@ function removeContractArchives(outputPath, cwd) {
   }
 }
 
+export function findNestedRepoArchiveEntries(zipEntries) {
+  return zipEntries
+    .split(/\r?\n/)
+    .filter((entry) => nestedRepoArchivePatterns.some((pattern) => pattern.test(entry)));
+}
+
+export function assertNoNestedRepoArchiveEntries(outputPath, cwd) {
+  const zipEntries = run('unzip', ['-Z1', outputPath], { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
+  const nestedEntries = findNestedRepoArchiveEntries(zipEntries);
+
+  if (nestedEntries.length > 0) {
+    throw new Error(`Review ZIP contains nested repo-shaped contract archive entries:\n${nestedEntries.join('\n')}`);
+  }
+}
+
 function main() {
   if (helpRequested) {
     printHelp();
@@ -123,6 +143,7 @@ function main() {
     { cwd: repoRoot },
   );
   removeContractArchives(outputPath, repoRoot);
+  assertNoNestedRepoArchiveEntries(outputPath, repoRoot);
 
   run('zip', ['-T', outputPath], { cwd: repoRoot, stdio: 'inherit' });
 
@@ -135,9 +156,11 @@ function main() {
   console.log(`Created review ZIP: ${outputPath}`);
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  }
 }

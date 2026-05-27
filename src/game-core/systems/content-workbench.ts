@@ -4,6 +4,7 @@ import { getStatusDescriptor } from "./status-descriptors";
 import { createContentSchemaFromRegistry } from "./content-schema";
 import { validateLevelAuthoringRegistry, validateRegistry, type ValidationIssue } from "./validation";
 import type { CardDefinition } from "../model/card";
+import type { DeckDefinition } from "../model/deck";
 import type { EncounterDefinition } from "../model/encounter";
 import type { MonsterAbilityDefinition, MonsterDefinition } from "../model/monster";
 import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from "../model/pet";
@@ -19,6 +20,7 @@ import { buildLevelAuthoringReport } from "../testing/level-authoring-report";
 
 export type ContentWorkbenchCollectionId =
   | "cards"
+  | "decks"
   | "statuses"
   | "pets"
   | "players"
@@ -55,6 +57,22 @@ export type ContentWorkbenchCardItem = {
   readonly preview: ContentWorkbenchAbilityPreview;
 };
 
+export type ContentWorkbenchDeckItem = {
+  readonly id: string;
+  readonly name: string;
+  readonly ownerPlayerClassId: string;
+  readonly ownerPlayerClassName?: string;
+  readonly cardIds: readonly string[];
+  readonly size: number;
+  readonly tags: readonly string[];
+  readonly authoringNotes?: string;
+  readonly cardTypes: Readonly<Record<string, number>>;
+  readonly rarityMix: Readonly<Record<string, number>>;
+  readonly tagDistribution: Readonly<Record<string, number>>;
+  readonly petCommandCount: number;
+  readonly whereUsedByPlayerClassIds: readonly string[];
+};
+
 export type ContentWorkbenchMonsterAbilityItem = {
   readonly id: string;
   readonly name: string;
@@ -88,6 +106,7 @@ export type ContentWorkbenchPlayerItem = {
   readonly maxHp: number;
   readonly maxActivePets: number;
   readonly petSlotCount: number;
+  readonly startingDeckId?: string;
   readonly startingDeckCardIds: readonly string[];
   readonly classTags: readonly string[];
 };
@@ -122,6 +141,40 @@ export type ContentWorkbenchRunMapItem = {
   readonly nodeCount: number;
   readonly combatNodeCount: number;
   readonly budgetedNodeCount: number;
+  readonly nodes: readonly {
+    readonly id: string;
+    readonly type: string;
+    readonly layer: number;
+    readonly encounterIds: readonly string[];
+    readonly nextNodeIds: readonly string[];
+    readonly budgetMin?: number;
+    readonly budgetMax?: number;
+    readonly notes?: string;
+    readonly meaning: string;
+    readonly encounters: readonly {
+      readonly id: string;
+      readonly type: EncounterDefinition["type"];
+      readonly name: string;
+      readonly monsterIds: readonly string[];
+      readonly monsters: readonly {
+        readonly id: string;
+        readonly name: string;
+        readonly roles: readonly string[];
+        readonly tags: readonly string[];
+      }[];
+      readonly monsterRoles: readonly string[];
+      readonly difficultyBand?: string;
+      readonly rewardPoolId?: string;
+      readonly budget?: number;
+      readonly monsterGroups: readonly {
+        readonly id: string;
+        readonly monsterIds: readonly string[];
+        readonly roles: readonly string[];
+        readonly minCount?: number;
+        readonly maxCount?: number;
+      }[];
+    }[];
+  }[];
 };
 
 export type ContentWorkbenchRewardPoolItem = {
@@ -267,6 +320,7 @@ export type ContentWorkbenchViewModel = {
   };
   readonly sections: {
     readonly cards: readonly ContentWorkbenchCardItem[];
+    readonly decks: readonly ContentWorkbenchDeckItem[];
     readonly monsterAbilities: readonly ContentWorkbenchMonsterAbilityItem[];
     readonly monsters: readonly ContentWorkbenchMonsterItem[];
     readonly statuses: readonly ContentWorkbenchStatusItem[];
@@ -285,6 +339,7 @@ export type ContentWorkbenchViewModel = {
 
 const schemaCollections = [
   "cards",
+  "decks",
   "statuses",
   "pets",
   "players",
@@ -315,6 +370,17 @@ const requiredSchemaCollections = new Set<ContentWorkbenchCollectionId>([
 const sortedById = <Item extends { readonly id: string }>(items: readonly Item[]): readonly Item[] =>
   [...items].sort((left, right) => left.id.localeCompare(right.id, "en-GB"));
 
+const incrementCount = (
+  counts: Record<string, number>,
+  key: string | undefined
+): void => {
+  if (!key) {
+    return;
+  }
+
+  counts[key] = (counts[key] ?? 0) + 1;
+};
+
 const abilityPreview = (descriptor: AbilityDescriptor): ContentWorkbenchAbilityPreview => ({
   source: descriptor.source,
   id: descriptor.id,
@@ -336,6 +402,49 @@ const mapCard = (card: CardDefinition): ContentWorkbenchCardItem => ({
   requiresPetDefinitionId: card.requiresPetDefinitionId,
   preview: abilityPreview(getCardAbilityDescriptor(card))
 });
+
+const mapDeck = (
+  deck: DeckDefinition,
+  registry: GameContentRegistry
+): ContentWorkbenchDeckItem => {
+  const cardTypes: Record<string, number> = {};
+  const rarityMix: Record<string, number> = {};
+  const tagDistribution: Record<string, number> = {};
+  let petCommandCount = 0;
+
+  for (const cardId of deck.cardIds) {
+    const card = registry.cards.find((candidate) => candidate.id === cardId);
+    incrementCount(cardTypes, card?.type ?? "missing");
+    incrementCount(rarityMix, card?.rarity ?? "unknown");
+    if (card?.type === "pet-command") {
+      petCommandCount += 1;
+    }
+    for (const tag of card?.tags ?? []) {
+      incrementCount(tagDistribution, tag);
+    }
+  }
+
+  const owner = registry.players.find((player) => player.id === deck.ownerPlayerClassId);
+
+  return {
+    id: deck.id,
+    name: deck.name,
+    ownerPlayerClassId: deck.ownerPlayerClassId,
+    ownerPlayerClassName: owner?.name,
+    cardIds: deck.cardIds,
+    size: deck.cardIds.length,
+    tags: deck.tags,
+    authoringNotes: deck.authoringNotes,
+    cardTypes,
+    rarityMix,
+    tagDistribution,
+    petCommandCount,
+    whereUsedByPlayerClassIds: registry.players
+      .filter((player) => player.startingDeckId === deck.id)
+      .map((player) => player.id)
+      .sort((left, right) => left.localeCompare(right, "en-GB"))
+  };
+};
 
 const mapMonsterAbility = (ability: MonsterAbilityDefinition): ContentWorkbenchMonsterAbilityItem => ({
   id: ability.id,
@@ -373,6 +482,7 @@ const mapPlayer = (player: PlayerClassDefinition): ContentWorkbenchPlayerItem =>
   maxHp: player.maxHp,
   maxActivePets: player.maxActivePets,
   petSlotCount: player.petSlotCount,
+  startingDeckId: player.startingDeckId,
   startingDeckCardIds: player.startingDeckCardIds,
   classTags: player.classTags
 });
@@ -400,13 +510,17 @@ const mapEncounter = (encounter: EncounterDefinition): ContentWorkbenchEncounter
   monsterGroupCount: encounter.authoring?.monsterGroups.length ?? 0
 });
 
-const mapRunMap = (template: RunMapTemplateDefinition): ContentWorkbenchRunMapItem => ({
+const mapRunMap = (
+  template: RunMapTemplateDefinition,
+  levelReport: ReturnType<typeof buildLevelAuthoringReport>
+): ContentWorkbenchRunMapItem => ({
   id: template.id,
   name: template.name,
   actId: template.actId,
   nodeCount: template.nodes.length,
   combatNodeCount: template.nodes.filter((node) => node.type === "combat" || node.type === "elite" || node.type === "boss").length,
-  budgetedNodeCount: template.nodes.filter((node) => node.authoring?.budgetMin !== undefined || node.authoring?.budgetMax !== undefined).length
+  budgetedNodeCount: template.nodes.filter((node) => node.authoring?.budgetMin !== undefined || node.authoring?.budgetMax !== undefined).length,
+  nodes: levelReport.runMapTemplates.find((runMap) => runMap.id === template.id)?.nodes ?? []
 });
 
 const mapRewardPool = (rewardPool: RewardPoolDefinition): ContentWorkbenchRewardPoolItem => ({
@@ -590,13 +704,14 @@ export const buildContentWorkbenchViewModel = (registry: GameContentRegistry): C
     },
     sections: {
       cards: sortedById(registry.cards.map(mapCard)),
+      decks: sortedById((registry.decks ?? []).map((deck) => mapDeck(deck, registry))),
       monsterAbilities: sortedById((registry.monsterAbilities ?? []).map(mapMonsterAbility)),
       monsters: sortedById(registry.monsters.map(mapMonster)),
       statuses: sortedById(statuses.map((status) => mapStatus(status, new Set(contentReport.runtimeSupportedStatusIds)))),
       players: sortedById(registry.players.map(mapPlayer)),
       pets: sortedById(registry.pets.map(mapPet)),
       encounters: sortedById(registry.encounters.map(mapEncounter)),
-      runMapTemplates: sortedById(registry.runMapTemplates.map(mapRunMap)),
+      runMapTemplates: sortedById(registry.runMapTemplates.map((template) => mapRunMap(template, levelAuthoringReport))),
       rewardPools: sortedById((registry.rewardPools ?? []).map(mapRewardPool)),
       petUpgrades: sortedById(registry.petUpgrades.map(mapPetUpgrade)),
       petModifiers: sortedById((registry.petModifiers ?? []).map(mapPetModifier)),

@@ -66,6 +66,7 @@ type WorkbenchSelectedContext = {
 
 const collectionLabels = {
   cards: "Cards",
+  decks: "Decks",
   statuses: "Statuses",
   pets: "Pets",
   players: "Players",
@@ -232,12 +233,15 @@ const itemMetadata = (item: WorkbenchItem): readonly string[] => {
     "type",
     "rarity",
     "cost",
+    "size",
+    "ownerPlayerClassId",
     "maxHp",
     "intentType",
     "intentCount",
     "scheduledIntentCount",
     "budget",
     "rewardPoolId",
+    "petCommandCount",
     "runtimeSupported",
     "modifierCount",
     "requirementCount"

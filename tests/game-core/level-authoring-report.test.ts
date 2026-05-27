@@ -33,7 +33,14 @@ describe("level authoring report", () => {
     });
     expect(first.encounters[0]).toMatchObject({
       id: "ash_mite_encounter",
+      name: "Ash Mite",
       rewardPoolId: "normal",
+      monsterIds: ["ash_mite"],
+      monsters: [expect.objectContaining({
+        id: "ash_mite",
+        name: "Ash Mite",
+        roles: ["attack", "burn"]
+      })],
       monsterGroups: [{
         id: "ash_mite_group",
         maxCount: 1,
@@ -42,6 +49,13 @@ describe("level authoring report", () => {
         roles: ["attack", "burn"]
       }]
     });
+    expect(first.encounters[2]).toMatchObject({
+      id: "forest_duo_encounter",
+      monsters: [
+        expect.objectContaining({ id: "ash_mite", roles: ["attack", "burn"] }),
+        expect.objectContaining({ id: "training_slime", roles: ["block", "frontline"] })
+      ]
+    });
     expect(first.runMapTemplates[0]).toMatchObject({
       id: "act1_forest",
       actId: "act1_forest",
@@ -49,6 +63,40 @@ describe("level authoring report", () => {
       combatNodeCount: 5,
       budgetedNodeCount: 5
     });
+    expect(first.runMapTemplates[0].nodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "act1_forest_0_combat_a",
+        type: "combat",
+        encounterIds: ["ash_mite_encounter", "training_slime_encounter"],
+        nextNodeIds: ["act1_forest_1_combat_a", "act1_forest_1_event_a"],
+        meaning: "Starts one of the listed combat encounters.",
+        encounters: expect.arrayContaining([
+          expect.objectContaining({
+            name: "Ash Mite",
+            rewardPoolId: "normal",
+            monsters: [expect.objectContaining({ name: "Ash Mite" })]
+          })
+        ])
+      }),
+      expect.objectContaining({
+        id: "act1_forest_3_elite_a",
+        type: "elite",
+        encounters: [expect.objectContaining({
+          name: "Charred Stag",
+          rewardPoolId: "elite",
+          monsters: [expect.objectContaining({ id: "charred_stag", name: "Charred Stag" })]
+        })]
+      }),
+      expect.objectContaining({
+        id: "act1_forest_4_boss_a",
+        type: "boss",
+        encounters: [expect.objectContaining({
+          name: "Forest Warden",
+          rewardPoolId: "boss",
+          monsters: [expect.objectContaining({ id: "forest_warden", name: "Forest Warden" })]
+        })]
+      })
+    ]));
   });
 
   it("validates starter encounter and run-map authoring metadata", () => {

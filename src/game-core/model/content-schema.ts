@@ -1,4 +1,5 @@
 import type { CardDefinition } from "./card";
+import type { DeckDefinition } from "./deck";
 import type { EncounterDefinition } from "./encounter";
 import type { MonsterAbilityDefinition, MonsterDefinition } from "./monster";
 import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from "./pet";
@@ -24,6 +25,7 @@ export type JsonSafe<T> =
   never;
 
 export type CardSchemaDefinition = JsonSafe<CardDefinition>;
+export type DeckSchemaDefinition = JsonSafe<DeckDefinition>;
 export type StatusSchemaDefinition = JsonSafe<StatusDefinition>;
 export type PetSchemaDefinition = JsonSafe<PetDefinition>;
 export type PlayerClassSchemaDefinition = JsonSafe<PlayerClassDefinition>;
@@ -41,6 +43,7 @@ export type PetSideStorySchemaDefinition = JsonSafe<PetSideStoryDefinition>;
 export type ContentSchema = {
   readonly contentVersion?: string;
   readonly cards: readonly CardSchemaDefinition[];
+  readonly decks?: readonly DeckSchemaDefinition[];
   readonly statuses?: readonly StatusSchemaDefinition[];
   readonly pets: readonly PetSchemaDefinition[];
   readonly players: readonly PlayerClassSchemaDefinition[];

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardId,
+  deckId,
   evolutionNodeId,
   monsterAbilityId,
   monsterId,
@@ -52,8 +53,20 @@ describe("starterRegistry", () => {
 
     expect(noviceTamer).toBeDefined();
     expect(noviceTamer?.name).toBe("Novice Tamer");
+    expect(noviceTamer?.startingDeckId).toBe(deckId("novice_tamer_starter"));
     expect(noviceTamer?.maxActivePets).toBe(1);
     expect(noviceTamer?.petSlotCount).toBe(1);
+  });
+
+  it("includes a first-class Novice Tamer starter deck", () => {
+    const starterDeck = starterRegistry.decks?.find((deck) => deck.id === deckId("novice_tamer_starter"));
+
+    expect(starterDeck).toBeDefined();
+    expect(starterDeck).toMatchObject({
+      ownerPlayerClassId: playerClassId("novice_tamer"),
+      cardIds: starterRegistry.players[0].startingDeckCardIds,
+      tags: expect.arrayContaining(["starter", "pet-command"])
+    });
   });
 
   it("validates player class modifier references and starting resources", () => {
@@ -248,6 +261,42 @@ describe("starterRegistry", () => {
     );
 
     expect(result.errors.map((error) => error.code)).toContain("missing_starting_deck_card");
+  });
+
+  it("validates starter deck definitions and player deck references", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        decks: [
+          {
+            ...starterRegistry.decks![0],
+            cardIds: [cardId("missing_card")]
+          },
+          {
+            ...starterRegistry.decks![0],
+            id: deckId("empty_starter"),
+            cardIds: []
+          },
+          {
+            ...starterRegistry.decks![0],
+            id: deckId("missing_owner"),
+            ownerPlayerClassId: playerClassId("missing_class")
+          }
+        ],
+        players: [
+          {
+            ...starterRegistry.players[0],
+            startingDeckId: deckId("unknown_starter")
+          }
+        ]
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toEqual(expect.arrayContaining([
+      "missing_deck_card",
+      "empty_deck",
+      "missing_deck_owner_player_class",
+      "missing_starting_deck"
+    ]));
   });
 
   it("reports missing pet command cards", () => {

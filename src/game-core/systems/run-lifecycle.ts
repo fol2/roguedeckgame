@@ -141,6 +141,17 @@ const findEncounter = (
 ): EncounterDefinition | undefined =>
   encounterId ? registry.encounters.find((encounter) => encounter.id === encounterId) : undefined;
 
+const resolveStartingDeckCardIds = (
+  player: GameContentRegistry["players"][number],
+  registry: GameContentRegistry
+): readonly GameContentRegistry["cards"][number]["id"][] | undefined => {
+  if (!player.startingDeckId) {
+    return player.startingDeckCardIds;
+  }
+
+  return registry.decks?.find((deck) => deck.id === player.startingDeckId)?.cardIds;
+};
+
 const advanceFromActiveNode = (
   run: RunState,
   completedNode: RunNodeState
@@ -269,6 +280,14 @@ export const createRun = (input: CreateRunInput): GameActionResult<RunState> => 
     );
   }
 
+  const startingDeckCardIds = resolveStartingDeckCardIds(player, registry);
+  if (!startingDeckCardIds) {
+    return rejectCreateRun(
+      input,
+      error("missing_starting_deck", `Player class '${player.id}' references missing starter deck '${player.startingDeckId}'.`, "playerClassId")
+    );
+  }
+
   const template = input.runTemplateId
     ? registry.runMapTemplates.find((candidate) => candidate.id === input.runTemplateId)
     : registry.runMapTemplates[0];
@@ -290,7 +309,7 @@ export const createRun = (input: CreateRunInput): GameActionResult<RunState> => 
     map: mapResult.state,
     playerHp: player.maxHp,
     playerMaxHp: player.maxHp,
-    deckCardIds: [...player.startingDeckCardIds],
+    deckCardIds: [...startingDeckCardIds],
     runFlags: [],
     storyFlags: []
   };

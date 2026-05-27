@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardId,
+  deckId,
   monsterId,
   monsterIntentId,
   rewardPoolId,
@@ -117,6 +118,48 @@ describe("content dependency report", () => {
         id: "missing_monster"
       })
     }));
+  });
+
+  it("reports deck card and player starter deck dependencies", () => {
+    const result = buildContentDependencyReport(cloneRegistry({
+      decks: [
+        {
+          ...starterRegistry.decks![0],
+          cardIds: [cardId("missing_deck_card")]
+        }
+      ],
+      players: [
+        {
+          ...starterRegistry.players[0],
+          startingDeckId: deckId("missing_starter")
+        }
+      ]
+    }));
+
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        severity: "error",
+        code: "missing_dependency",
+        path: "decks[0].cardIds[0]",
+        source: expect.objectContaining({
+          collection: "decks",
+          id: "novice_tamer_starter"
+        }),
+        target: expect.objectContaining({
+          collection: "cards",
+          id: "missing_deck_card"
+        })
+      }),
+      expect.objectContaining({
+        severity: "error",
+        code: "missing_dependency",
+        path: "players[0].startingDeckId",
+        target: expect.objectContaining({
+          collection: "decks",
+          id: "missing_starter"
+        })
+      })
+    ]));
   });
 
   it("reports encounter authoring reward pool and monster group dependencies", () => {

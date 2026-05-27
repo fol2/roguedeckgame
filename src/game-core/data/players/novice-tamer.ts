@@ -1,10 +1,11 @@
-import { cardId, playerClassId } from "../../ids";
+import { cardId, deckId, playerClassId } from "../../ids";
 import { act1NormalBalance } from "../balance/act1-normal";
 import type { PlayerClassDefinition } from "../../model/player";
 
 export const noviceTamer: PlayerClassDefinition = {
   id: playerClassId("novice_tamer"),
   name: "Novice Tamer",
+  startingDeckId: deckId("novice_tamer_starter"),
   startingDeckCardIds: [
     cardId("strike"),
     cardId("strike"),

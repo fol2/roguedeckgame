@@ -102,6 +102,7 @@ const buildRegistries = (registry: GameContentRegistry): ReadonlyMap<ContentDepe
 
   return new Map<ContentDependencyCollection, DefinitionById>([
     ["cards", index.cardsById as DefinitionById],
+    ["decks", index.decksById as DefinitionById],
     ["statuses", index.statusesById as DefinitionById],
     ["pets", index.petsById as DefinitionById],
     ["players", index.playersById as DefinitionById],
@@ -347,11 +348,24 @@ const collectCardReferences = (collector: ReferenceCollector, registry: GameCont
 const collectPlayerReferences = (collector: ReferenceCollector, registry: GameContentRegistry): void => {
   registry.players.forEach((player, playerIndex) => {
     const refSource = source("players", player.id, `players[${playerIndex}]`);
+    if (player.startingDeckId !== undefined) {
+      addReference(collector, "playerStartingDeck", refSource, "decks", player.startingDeckId, `players[${playerIndex}].startingDeckId`);
+    }
     player.startingDeckCardIds.forEach((cardId, cardIndex) => {
-      addReference(collector, "playerStartingDeck", refSource, "cards", cardId, `players[${playerIndex}].startingDeckCardIds[${cardIndex}]`);
+      addReference(collector, "playerStartingDeckCard", refSource, "cards", cardId, `players[${playerIndex}].startingDeckCardIds[${cardIndex}]`);
     });
     (player.classModifierIds ?? []).forEach((modifierId, modifierIndex) => {
       addReference(collector, "playerClassModifier", refSource, "playerClassModifiers", modifierId, `players[${playerIndex}].classModifierIds[${modifierIndex}]`);
+    });
+  });
+};
+
+const collectDeckReferences = (collector: ReferenceCollector, registry: GameContentRegistry): void => {
+  (registry.decks ?? []).forEach((deck, deckIndex) => {
+    const refSource = source("decks", deck.id, `decks[${deckIndex}]`);
+    addReference(collector, "deckOwnerPlayerClass", refSource, "players", deck.ownerPlayerClassId, `decks[${deckIndex}].ownerPlayerClassId`);
+    deck.cardIds.forEach((cardId, cardIndex) => {
+      addReference(collector, "deckCard", refSource, "cards", cardId, `decks[${deckIndex}].cardIds[${cardIndex}]`);
     });
   });
 };
@@ -703,6 +717,7 @@ export const buildContentDependencyReport = (registry: GameContentRegistry): Con
 
   collectStatusReferences(collector, registry);
   collectCardReferences(collector, registry);
+  collectDeckReferences(collector, registry);
   collectPlayerReferences(collector, registry);
   collectPetReferences(collector, registry);
   collectMonsterReferences(collector, registry);
