@@ -5,7 +5,8 @@ import { spawnSync } from 'node:child_process';
 const args = process.argv.slice(2);
 const allowDirty = args.includes('--allow-dirty');
 const helpRequested = args.includes('--help') || args.includes('-h');
-const excludedPaths = ['archive'];
+const excludedPaths = ['archive', 'docs/evidence', 'docs/contracts/p1', 'docs/contracts/p1.5'];
+const contractFolderNames = ['p1', 'p1.5'];
 
 function printHelp() {
   console.log(`Usage: npm run zip:review [-- --allow-dirty]
@@ -65,6 +66,22 @@ function removeOldReviewZips(parentDir, repoName, currentOutputPath) {
   return removedFiles;
 }
 
+function removeContractArchives(outputPath, cwd) {
+  const zipEntries = run('unzip', ['-Z1', outputPath], { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
+  const deleteArgs = [];
+
+  for (const folderName of contractFolderNames) {
+    const hasContractFolder = zipEntries.includes(`/docs/contracts/${folderName}/`);
+    if (hasContractFolder) {
+      deleteArgs.push(`*/docs/contracts/${folderName}/*`);
+    }
+  }
+
+  if (deleteArgs.length > 0) {
+    run('zip', ['-q', '-d', outputPath, ...deleteArgs], { cwd });
+  }
+}
+
 function main() {
   if (helpRequested) {
     printHelp();
@@ -105,6 +122,7 @@ function main() {
     ],
     { cwd: repoRoot },
   );
+  removeContractArchives(outputPath, repoRoot);
 
   run('zip', ['-T', outputPath], { cwd: repoRoot, stdio: 'inherit' });
 
