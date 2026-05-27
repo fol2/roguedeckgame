@@ -86,6 +86,16 @@ const activePetInstanceIds = (state: CombatState): readonly PetInstanceId[] =>
     state.petInstances.some((petInstance) => petInstance.id === petInstanceId)
   );
 
+const hasRequiredActivePet = (state: CombatState, card: CardDefinition): boolean => {
+  if (!card.requiresPetDefinitionId) {
+    return true;
+  }
+
+  return state.petInstances
+    .filter((petInstance) => state.activePetInstanceIds.includes(petInstance.id))
+    .some((petInstance) => petInstance.definitionId === card.requiresPetDefinitionId);
+};
+
 const validateCombatantTarget = (
   state: CombatState,
   target: CombatantTarget,
@@ -284,6 +294,21 @@ export const buildCardActionContract = (
       playable: false,
       actionError,
       unplayableReason: unplayableReason(actionError)
+    };
+  }
+
+  if (card.type === "pet-command" && !hasRequiredActivePet(state, card)) {
+    const petError = error(
+      "missing_required_active_pet",
+      `Card '${card.id}' requires an active pet of definition '${card.requiresPetDefinitionId}'.`,
+      "activePetInstanceIds"
+    );
+
+    return {
+      ...base,
+      playable: false,
+      actionError: petError,
+      unplayableReason: unplayableReason(petError)
     };
   }
 
