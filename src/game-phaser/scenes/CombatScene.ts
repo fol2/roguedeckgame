@@ -7,8 +7,9 @@ import type { RunSandboxController } from "../controllers/RunSandboxController";
 import { CombatEventPlayer } from "../animation/CombatEventPlayer";
 import { CombatEventFxPresenter } from "../animation/CombatEventFxPresenter";
 import { planCombatEventAnimation } from "../animation/combat-animation-plan";
-import { CardPresenter } from "../presenters/CardPresenter";
+import { CardPresenter, type CardDragDebugState } from "../presenters/CardPresenter";
 import { CombatHudPresenter } from "../presenters/CombatHudPresenter";
+import { CombatDebugOverlayPresenter } from "../presenters/CombatDebugOverlayPresenter";
 import {
   CombatOverlayPresenter,
   type CombatDetailPanel,
@@ -20,6 +21,7 @@ import { PetPresenter } from "../presenters/PetPresenter";
 import { PlayerPresenter } from "../presenters/PlayerPresenter";
 import { TargetingPresenter } from "../presenters/TargetingPresenter";
 import type { CombatCardViewModel, CombatViewModel } from "../view-models/combat-view-model";
+import type { DebugInputSnapshot } from "../view-models/debug-view-model";
 import { resolveCardDropAction } from "../interaction/card-interaction-policy";
 import {
   clearCombatSelection,
@@ -53,6 +55,7 @@ export class CombatScene extends Scene {
   private eventPlayer?: CombatEventPlayer;
   private eventFxPresenter?: CombatEventFxPresenter;
   private monsterPresenter?: MonsterPresenter;
+  private debugOverlayPresenter?: CombatDebugOverlayPresenter;
   private overlayPresenter?: CombatOverlayPresenter;
   private petPresenter?: PetPresenter;
   private playerPresenter?: PlayerPresenter;
@@ -76,6 +79,8 @@ export class CombatScene extends Scene {
   private browserFocused = true;
   private nextRequestId = 1;
   private pendingRequestId?: string;
+  private debugOverlayEnabled = false;
+  private debugDragState: DebugInputSnapshot["dragState"] = "idle";
   private removeFocusHandlers?: () => void;
   private playbackFinalViewModel?: CombatViewModel;
 
@@ -100,6 +105,8 @@ export class CombatScene extends Scene {
     this.pauseOpen = false;
     this.browserFocused = true;
     this.pendingRequestId = undefined;
+    this.debugDragState = "idle";
+    this.debugOverlayEnabled = this.readDebugOverlayEnabled();
     this.playbackFinalViewModel = undefined;
     configureFixedResolutionStage(this);
     this.cameras.main.setBackgroundColor(COMBAT_BACKGROUND_COLOUR);
@@ -153,6 +160,8 @@ export class CombatScene extends Scene {
       this.renderCurrentState(false);
     }, (cardInstanceId) => this.openCardDetail(cardInstanceId), (tooltip) => this.setTooltip(tooltip), (cardInstanceId, point) => {
       return this.handleCardDrop(cardInstanceId, point);
+    }, (state) => {
+      this.handleCardDragDebugState(state);
     });
     this.targetingPresenter = new TargetingPresenter(this);
     this.hudPresenter = new CombatHudPresenter(this, () => {
@@ -162,6 +171,7 @@ export class CombatScene extends Scene {
       this.renderCurrentState(false);
     });
     this.petPresenter = new PetPresenter(this, (slotIndex) => this.handlePetSelection(slotIndex), (tooltip) => this.setTooltip(tooltip), (detail) => this.openDetail(detail));
+    this.debugOverlayPresenter = new CombatDebugOverlayPresenter(this);
     this.overlayPresenter = new CombatOverlayPresenter(this, () => this.closeDetail(), () => this.closePauseOverlay());
     this.outcomeText = this.add.text(OUTCOME_LABEL.x, OUTCOME_LABEL.y, "", {
       color: "#ffd166",
@@ -202,6 +212,21 @@ export class CombatScene extends Scene {
     this.renderCurrentState();
   }
 
+  private readDebugOverlayEnabled(): boolean {
+    if (!this.isDebugOverlayAvailable() || typeof window === "undefined") {
+      return false;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    return params.get("combatDebug") === "1" ||
+      params.get("debugCombat") === "1" ||
+      window.localStorage.getItem("combatDebugOverlay") === "1";
+  }
+
+  private isDebugOverlayAvailable(): boolean {
+    return import.meta.env.DEV;
+  }
+
   private getInteractionCard(viewModel: CombatViewModel): CombatCardViewModel | undefined {
     return resolveInteractionCard(this.getInteractionState(), viewModel);
   }
@@ -223,11 +248,35 @@ export class CombatScene extends Scene {
     };
   }
 
+  private getDebugInputSnapshot(): DebugInputSnapshot {
+    return {
+      selectedCardId: this.selectedCardId,
+      selectedCardRevision: this.selectedCardRevision,
+      keyboardTargetId: this.keyboardTargetId,
+      hoveredCardId: this.hoveredCardId,
+      dragState: this.debugDragState,
+      inputLocked: this.inputLocked || this.isModalOpen() || !this.browserFocused,
+      inputLockReason: this.inputLocked
+        ? "playback"
+        : this.isModalOpen()
+          ? "modal"
+          : !this.browserFocused
+            ? "browser_blur"
+            : undefined,
+      pendingRequestId: this.pendingRequestId
+    };
+  }
+
   private applyInteractionState(state: CombatInteractionState): void {
     this.selectedCardId = state.selectedCardId;
     this.selectedCardRevision = state.selectedCardRevision;
     this.keyboardTargetId = state.keyboardTargetId;
     this.hoveredCardId = state.hoveredCardId;
+  }
+
+  private handleCardDragDebugState(state: CardDragDebugState): void {
+    this.debugDragState = state.state;
+    this.renderDebugOverlay();
   }
 
   private isModalOpen(): boolean {
@@ -285,6 +334,14 @@ export class CombatScene extends Scene {
       pauseOpen: this.pauseOpen,
       warnings: this.sandbox?.getCombatViewModel()?.uiWarnings ?? []
     });
+  }
+
+  private renderDebugOverlay(): void {
+    const debugOverlayVisible = this.isDebugOverlayAvailable() && this.debugOverlayEnabled;
+    this.debugOverlayPresenter?.render(
+      debugOverlayVisible ? this.sandbox?.getCombatDebugViewModel(this.getDebugInputSnapshot()) : undefined,
+      debugOverlayVisible
+    );
   }
 
   private openDetail(detail: CombatDetailPanel): void {
@@ -656,6 +713,15 @@ export class CombatScene extends Scene {
       return;
     }
 
+    if (this.isDebugOverlayAvailable() && (event.key === "`" || event.key === "F2")) {
+      this.debugOverlayEnabled = !this.debugOverlayEnabled;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("combatDebugOverlay", this.debugOverlayEnabled ? "1" : "0");
+      }
+      this.renderCurrentState(false);
+      return;
+    }
+
     if (this.inputLocked || this.isModalOpen() || !this.browserFocused || !this.sandbox) {
       return;
     }
@@ -703,6 +769,7 @@ export class CombatScene extends Scene {
       !this.eventLog ||
       !this.eventFxPresenter ||
       !this.monsterPresenter ||
+      !this.debugOverlayPresenter ||
       !this.overlayPresenter ||
       !this.petPresenter ||
       !this.playerPresenter ||
@@ -786,5 +853,6 @@ export class CombatScene extends Scene {
       pauseOpen: this.pauseOpen,
       warnings: viewModel.uiWarnings
     });
+    this.renderDebugOverlay();
   }
 }

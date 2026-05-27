@@ -53,6 +53,16 @@ type CardDropHandler = (
   point: Point
 ) => boolean | Promise<boolean>;
 
+export type CardDragDebugState =
+  | {
+      readonly state: "idle";
+    }
+  | {
+      readonly state: "dragging";
+      readonly cardInstanceId: CardInstanceId;
+      readonly point: Point;
+    };
+
 const getCardPreviewDescription = (description: string): string => {
   if (description.length <= CARD_TEXT.descriptionMaxLength) {
     return description;
@@ -113,6 +123,7 @@ export class CardPresenter {
   private readonly onInspect: (cardInstanceId: CardInstanceId) => void;
   private readonly onTooltipChanged: (tooltip?: CombatTooltip) => void;
   private readonly onDropped: CardDropHandler;
+  private readonly onDragDebugStateChanged: (state: CardDragDebugState) => void;
   private readonly visuals = new Map<CardInstanceId, CardVisual>();
   private visualHandOrder: CardInstanceId[] = [];
   private locked = false;
@@ -146,7 +157,8 @@ export class CardPresenter {
     onHoverChanged: (cardInstanceId?: CardInstanceId) => void = () => undefined,
     onInspect: (cardInstanceId: CardInstanceId) => void = () => undefined,
     onTooltipChanged: (tooltip?: CombatTooltip) => void = () => undefined,
-    onDropped: CardDropHandler = () => false
+    onDropped: CardDropHandler = () => false,
+    onDragDebugStateChanged: (state: CardDragDebugState) => void = () => undefined
   ) {
     this.scene = scene;
     this.onSelected = onSelected;
@@ -154,6 +166,7 @@ export class CardPresenter {
     this.onInspect = onInspect;
     this.onTooltipChanged = onTooltipChanged;
     this.onDropped = onDropped;
+    this.onDragDebugStateChanged = onDragDebugStateChanged;
     this.container = scene.add.container(0, 0);
     scene.input.on("pointermove", this.handleScenePointerMove);
     scene.input.on("pointerup", this.handleScenePointerUp);
@@ -326,6 +339,11 @@ export class CardPresenter {
         visual.dragOrigin = { x: group.x, y: group.y };
         visual.dragStartPoint = { x: group.x, y: group.y };
         this.activeDragVisual = visual;
+        this.onDragDebugStateChanged({
+          state: "dragging",
+          cardInstanceId: visual.cardInstanceId,
+          point: { x: group.x, y: group.y }
+        });
         group.setDepth(CARD_ANIMATION_DEPTH);
         group.setScale(1);
         this.onHoverChanged(undefined);
@@ -428,6 +446,11 @@ export class CardPresenter {
 
     visual.dragMoved = true;
     visual.container.setPosition(point.x, point.y);
+    this.onDragDebugStateChanged({
+      state: "dragging",
+      cardInstanceId: visual.cardInstanceId,
+      point
+    });
   }
 
   private cancelDrag(visual: CardVisual): void {
@@ -439,6 +462,7 @@ export class CardPresenter {
     if (this.activeDragVisual === visual) {
       this.activeDragVisual = undefined;
     }
+    this.onDragDebugStateChanged({ state: "idle" });
     visual.container.setDepth(0);
     this.layoutHand(true);
   }
@@ -458,6 +482,7 @@ export class CardPresenter {
     if (this.activeDragVisual === visual) {
       this.activeDragVisual = undefined;
     }
+    this.onDragDebugStateChanged({ state: "idle" });
 
     const accepted = await this.onDropped(visual.cardInstanceId, point);
     visual.dragOrigin = undefined;
@@ -521,7 +546,7 @@ export class CardPresenter {
       }
 
       const visual = this.visuals.get(cardInstanceId);
-      if (!visual || visual.moving) {
+      if (!visual || visual.moving || visual.dragging) {
         return;
       }
 

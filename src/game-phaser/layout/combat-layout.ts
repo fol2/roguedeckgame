@@ -237,6 +237,22 @@ export const UI_WARNING_LABEL = {
   fontSize: "12px"
 } as const;
 
+export const DEBUG_OVERLAY = {
+  x: COMBAT_BOARD.x + 12,
+  y: COMBAT_BOARD.y + 48,
+  width: 384,
+  height: 396,
+  padding: 12,
+  titleY: 10,
+  firstLineY: 34,
+  lineHeight: 18,
+  maxLines: 19,
+  fontSize: {
+    title: "13px",
+    body: "11px"
+  }
+} as const;
+
 const ENEMY_FORMATIONS = [
   [COMBAT_BOARD.x + COMBAT_BOARD.width - 230],
   [COMBAT_BOARD.x + COMBAT_BOARD.width - 330, COMBAT_BOARD.x + COMBAT_BOARD.width - 150],

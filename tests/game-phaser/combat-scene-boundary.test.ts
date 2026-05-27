@@ -248,6 +248,18 @@ describe("Combat scene boundary", () => {
     const eventFxPresenter = await readSource(join(root, "src/game-phaser/animation/CombatEventFxPresenter.ts"));
 
     expect(sceneSource).toMatch(/CombatOverlayPresenter/);
+    expect(sceneSource).toMatch(/CombatDebugOverlayPresenter/);
+    expect(sceneSource).toMatch(/getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\)\)/);
+    expect(sceneSource).toMatch(/combatDebug/);
+    expect(sceneSource).toMatch(/isDebugOverlayAvailable/);
+    expect(sceneSource).toMatch(/import\.meta\.env\.DEV/);
+    expect(sceneSource).toMatch(/this\.isDebugOverlayAvailable\(\) && \(event\.key === "`" \|\| event\.key === "F2"\)/);
+    expect(sceneSource).toMatch(/const debugOverlayVisible = this\.isDebugOverlayAvailable\(\) && this\.debugOverlayEnabled/);
+    expect(sceneSource).toMatch(/debugOverlayVisible \? this\.sandbox\?\.getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\)\) : undefined/);
+    expect(sceneSource).toMatch(/debugDragState: DebugInputSnapshot\["dragState"\] = "idle"/);
+    expect(sceneSource).toMatch(/handleCardDragDebugState\(state: CardDragDebugState\)/);
+    expect(sceneSource).toMatch(/this\.renderDebugOverlay\(\)/);
+    expect(sceneSource).not.toMatch(/handleCardDragDebugState\(state: CardDragDebugState\): void \{\n\s+this\.debugDragState = state\.state;\n\s+this\.renderCurrentState\(false\);/);
     expect(sceneSource).toMatch(/CombatEventFxPresenter/);
     expect(sceneSource).toMatch(/openPauseOverlay/);
     expect(sceneSource).toMatch(/closeDetail/);

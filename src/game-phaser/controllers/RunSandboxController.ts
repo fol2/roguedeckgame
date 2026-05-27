@@ -39,6 +39,11 @@ import {
   buildRunViewModel,
   type RunViewModel
 } from "../view-models/run-view-model";
+import {
+  buildCombatDebugViewModel,
+  type CombatDebugViewModel,
+  type DebugInputSnapshot
+} from "../view-models/debug-view-model";
 
 export type RunSandboxState = {
   readonly run: RunState;
@@ -51,6 +56,7 @@ export type RunSandboxController = {
   readonly getState: () => RunSandboxState;
   readonly getRunViewModel: () => RunViewModel;
   readonly getCombatViewModel: () => CombatViewModel | undefined;
+  readonly getCombatDebugViewModel: (input?: DebugInputSnapshot) => CombatDebugViewModel;
   readonly getRewardViewModel: () => RewardViewModel | undefined;
   readonly selectMapNode: (nodeId: RunNodeId) => GameActionResult<RunSandboxState>;
   readonly playHandCard: (
@@ -236,6 +242,14 @@ export const createRunSandboxController = (
           lastEvents: state.lastEvents
         }, content, revision)
       : undefined,
+    getCombatDebugViewModel: (input) => buildCombatDebugViewModel(state, state.combat
+      ? buildCombatViewModel({
+          run: state.run,
+          petInstances: state.petInstances,
+          combat: state.combat,
+          lastEvents: state.lastEvents
+        }, content, revision)
+      : undefined, input),
     getRewardViewModel: () => state.run.pendingRewardOffer
       ? buildRewardViewModel(state.run.pendingRewardOffer, state.lastEvents, content, state.petInstances)
       : undefined,

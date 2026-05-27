@@ -214,25 +214,37 @@ describe("CardPresenter", () => {
     const { scene, records } = createSceneStub();
     const onSelected = vi.fn();
     const onDropped = vi.fn().mockResolvedValue(false);
-    const presenter = new CardPresenter(
+    const firstCard = createCard("strike:1", "Strike");
+    let renderFromDragCallback = false;
+    let presenter!: CardPresenter;
+    const onDragDebugStateChanged = vi.fn((state) => {
+      if (renderFromDragCallback && state.state === "dragging") {
+        presenter.render([firstCard], false);
+      }
+    });
+    presenter = new CardPresenter(
       scene,
       onSelected,
       undefined,
       undefined,
       undefined,
-      onDropped
+      onDropped,
+      onDragDebugStateChanged
     );
-    const firstCard = createCard("strike:1", "Strike");
 
     presenter.render([firstCard], false);
     const cardContainer = records.containers.find((container) => container.startX !== 0 || container.startY !== 0) as {
       readonly draggable?: boolean;
       readonly handlers: Record<string, Handler[]>;
+      readonly x: number;
+      readonly y: number;
     } | undefined;
 
     expect(cardContainer?.draggable).toBe(true);
+    renderFromDragCallback = true;
     cardContainer?.handlers.dragstart?.[0]?.();
     cardContainer?.handlers.drag?.[0]?.({}, 940, 250);
+    expect(cardContainer).toMatchObject({ x: 940, y: 250 });
     cardContainer?.handlers.pointerup?.[0]?.({});
     cardContainer?.handlers.dragend?.[0]?.();
     await Promise.resolve();
@@ -240,6 +252,17 @@ describe("CardPresenter", () => {
 
     expect(onSelected).not.toHaveBeenCalled();
     expect(onDropped).toHaveBeenCalledWith(firstCard.cardInstanceId, { x: 940, y: 250 });
+    expect(onDragDebugStateChanged).toHaveBeenCalledWith({
+      state: "dragging",
+      cardInstanceId: firstCard.cardInstanceId,
+      point: expect.any(Object)
+    });
+    expect(onDragDebugStateChanged).toHaveBeenCalledWith({
+      state: "dragging",
+      cardInstanceId: firstCard.cardInstanceId,
+      point: { x: 940, y: 250 }
+    });
+    expect(onDragDebugStateChanged).toHaveBeenLastCalledWith({ state: "idle" });
     expect(hasTweenTo(records.tweens, getHandCardPosition(0, 1))).toBe(true);
   });
 });
