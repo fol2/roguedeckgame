@@ -96,6 +96,12 @@ export class CombatDebugOverlayPresenter {
     const playbackError = highlightedPlayback
       ? highlightedPlayback.errorSummary ?? "none"
       : "none";
+    const parityErrors = viewModel.parityDiagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
+    const parityWarnings = viewModel.parityDiagnostics.filter((diagnostic) => diagnostic.severity === "warn").length;
+    const latestParity = viewModel.parityDiagnostics[0];
+    const parity = latestParity
+      ? `${latestParity.stage} e=${parityErrors} w=${parityWarnings} ${latestParity.code}`
+      : "ok";
     const warnings = viewModel.uiWarnings.join(" | ") || "none";
 
     return [
@@ -124,6 +130,7 @@ export class CombatDebugOverlayPresenter {
       `Playback time: ${playbackTiming}`,
       `Playback fallback: ${playbackFallback}`,
       `Playback error: ${playbackError}`,
+      `Parity: ${parity}`,
       `Warnings: ${warnings}`
     ];
   }

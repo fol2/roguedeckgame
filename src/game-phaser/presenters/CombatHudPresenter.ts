@@ -4,6 +4,7 @@ import {
   type CombatantStatusViewModel,
   type CombatViewModel
 } from "../view-models/combat-view-model";
+import type { CombatParityCombatantSnapshot } from "../debug/combat-parity";
 import {
   COMBAT_PANEL_COLOUR,
   COMBAT_PANEL_STROKE,
@@ -18,6 +19,14 @@ import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from ".
 
 type CombatHudOptions = {
   readonly selectedCardActive?: boolean;
+};
+
+export type CombatHudParitySnapshot = {
+  readonly piles: {
+    readonly draw: number;
+    readonly discard: number;
+  };
+  readonly player: CombatParityCombatantSnapshot;
 };
 
 type PointerLike = {
@@ -55,8 +64,25 @@ const getVisiblePlayerStatusChips = (
           title: overflowTooltip.title,
           body: overflowTooltip.body
         }]
-      : [])
+    : [])
   ];
+};
+
+const parsePlayerHpLabel = (label: string): Pick<CombatParityCombatantSnapshot, "hp" | "maxHp"> => {
+  const match = /^HP\s+(\d+)\/(\d+)$/.exec(label);
+
+  return {
+    hp: match ? Number(match[1]) : Number.NaN,
+    maxHp: match ? Number(match[2]) : Number.NaN
+  };
+};
+
+const parsePlayerBlockLabel = (label: string): Pick<CombatParityCombatantSnapshot, "block"> => {
+  const match = /^Block\s+(\d+)$/.exec(label);
+
+  return {
+    block: match ? Number(match[1]) : Number.NaN
+  };
 };
 
 export class CombatHudPresenter {
@@ -67,6 +93,7 @@ export class CombatHudPresenter {
   private readonly onTooltipChanged: (tooltip?: CombatTooltip) => void;
   private readonly onInspect: (detail: CombatDetailPanel) => void;
   private readonly onBlockedEndTurn: () => void;
+  private latestParitySnapshot?: CombatHudParitySnapshot;
 
   public constructor(
     scene: Scene,
@@ -87,10 +114,17 @@ export class CombatHudPresenter {
 
   public render(viewModel: CombatViewModel, locked: boolean, options: CombatHudOptions = {}): void {
     this.container.removeAll(true);
-    this.renderPlayerHud(viewModel);
+    const playerSnapshot = this.renderPlayerHud(viewModel);
     this.renderEnergy(viewModel);
-    this.renderPile(DRAW_PILE.x, DRAW_PILE.y, DRAW_PILE.width, DRAW_PILE.height, viewModel.drawPile, true);
-    this.renderPile(DISCARD_PILE.x, DISCARD_PILE.y, DISCARD_PILE.width, DISCARD_PILE.height, viewModel.discardPile, false);
+    const drawCount = this.renderPile(DRAW_PILE.x, DRAW_PILE.y, DRAW_PILE.width, DRAW_PILE.height, viewModel.drawPile, true);
+    const discardCount = this.renderPile(DISCARD_PILE.x, DISCARD_PILE.y, DISCARD_PILE.width, DISCARD_PILE.height, viewModel.discardPile, false);
+    this.latestParitySnapshot = {
+      piles: {
+        draw: drawCount,
+        discard: discardCount
+      },
+      player: playerSnapshot
+    };
 
     const disabled = locked || options.selectedCardActive || viewModel.phase !== "player_turn";
     this.button.removeAll(true);
@@ -107,10 +141,16 @@ export class CombatHudPresenter {
     }).setOrigin(0.5));
   }
 
-  private renderPlayerHud(viewModel: CombatViewModel): void {
+  public getParitySnapshot(): CombatHudParitySnapshot | undefined {
+    return this.latestParitySnapshot;
+  }
+
+  private renderPlayerHud(viewModel: CombatViewModel): CombatParityCombatantSnapshot {
     const player = viewModel.player;
     const hpFill = player.maxHp > 0 ? Math.max(0, Math.min(1, player.hp / player.maxHp)) : 0;
     const hud = this.scene.add.container(PLAYER_HUD_AREA.x, PLAYER_HUD_AREA.y);
+    const hpLabel = `HP ${player.hp}/${player.maxHp}`;
+    const blockLabel = `Block ${player.block}`;
 
     hud.setSize(PLAYER_HUD_AREA.width, PLAYER_HUD_AREA.height);
     hud.setInteractive();
@@ -144,20 +184,22 @@ export class CombatHudPresenter {
       fontFamily: "Inter, sans-serif",
       fontSize: PLAYER_HUD_TEXT.fontSize.name
     }));
-    hud.add(this.scene.add.text(PLAYER_HUD_TEXT.hpLabelX, PLAYER_HUD_TEXT.hpLabelY, `HP ${player.hp}/${player.maxHp}`, {
+    const hpText = this.scene.add.text(PLAYER_HUD_TEXT.hpLabelX, PLAYER_HUD_TEXT.hpLabelY, hpLabel, {
       color: "#d8e6f7",
       fontFamily: "Inter, sans-serif",
       fontSize: PLAYER_HUD_TEXT.fontSize.body
-    }));
+    });
+    hud.add(hpText);
     hud.add(this.scene.add.rectangle(PLAYER_HUD_TEXT.hpBarX, PLAYER_HUD_TEXT.hpBarY, PLAYER_HUD_TEXT.hpBarWidth, PLAYER_HUD_TEXT.hpBarHeight, 0x293241, 1)
       .setOrigin(0, 0.5));
     hud.add(this.scene.add.rectangle(PLAYER_HUD_TEXT.hpBarX, PLAYER_HUD_TEXT.hpBarY, PLAYER_HUD_TEXT.hpBarWidth * hpFill, PLAYER_HUD_TEXT.hpBarHeight, 0xdf6b6b, 1)
       .setOrigin(0, 0.5));
-    hud.add(this.scene.add.text(PLAYER_HUD_TEXT.blockX, PLAYER_HUD_TEXT.blockY, `Block ${player.block}`, {
+    const blockText = this.scene.add.text(PLAYER_HUD_TEXT.blockX, PLAYER_HUD_TEXT.blockY, blockLabel, {
       color: "#bfe6ff",
       fontFamily: "Inter, sans-serif",
       fontSize: PLAYER_HUD_TEXT.fontSize.body
-    }));
+    });
+    hud.add(blockText);
     hud.add(this.scene.add.text(PLAYER_HUD_TEXT.statusX, PLAYER_HUD_TEXT.statusY, getVisiblePlayerStatusText(player.statuses), {
       color: "#b8c5d9",
       fontFamily: "Inter, sans-serif",
@@ -187,6 +229,12 @@ export class CombatHudPresenter {
       }).setOrigin(0.5));
     });
     this.container.add(hud);
+
+    return {
+      id: player.id,
+      ...parsePlayerHpLabel(hpText.text),
+      ...parsePlayerBlockLabel(blockText.text)
+    };
   }
 
   private renderEnergy(viewModel: CombatViewModel): void {
@@ -206,7 +254,7 @@ export class CombatHudPresenter {
     height: number,
     pileModel: CombatViewModel["drawPile"],
     faceDown: boolean
-  ): void {
+  ): number {
     const pile = this.scene.add.rectangle(x, y, width, height, faceDown ? 0x263f4e : 0x3d2f19, 1)
       .setStrokeStyle(2, faceDown ? 0x7dd3fc : 0xffbd66);
 
@@ -229,10 +277,13 @@ export class CombatHudPresenter {
     this.container.add(pile);
     this.container.add(this.scene.add.rectangle(x + 6, y - 6, width, height, faceDown ? 0x1f3340 : 0x2f2618, 0.65)
       .setStrokeStyle(1, faceDown ? 0x5aaac9 : 0xc9904e));
-    this.container.add(this.scene.add.text(x, y + height / 2 + 14, String(pileModel.count), {
+    const countText = this.scene.add.text(x, y + height / 2 + 14, String(pileModel.count), {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",
       fontSize: DRAW_PILE.fontSize
-    }).setOrigin(0.5));
+    }).setOrigin(0.5);
+    this.container.add(countText);
+
+    return Number(countText.text);
   }
 }

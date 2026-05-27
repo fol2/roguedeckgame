@@ -81,7 +81,7 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
   return object;
 };
 
-const createSceneStub = () => {
+const createSceneStub = (options: { readonly completeTweens?: boolean } = {}) => {
   const records = {
     containers: [] as Array<Record<string, unknown>>,
     tweens: [] as TweenConfig[]
@@ -115,7 +115,9 @@ const createSceneStub = () => {
         if (config.y !== undefined) {
           config.targets.y = config.y;
         }
-        config.onComplete?.();
+        if (options.completeTweens ?? true) {
+          config.onComplete?.();
+        }
       }
     }
   };
@@ -208,6 +210,56 @@ describe("CardPresenter", () => {
     presenter.render([firstCard], true);
 
     expect(records.containers).toHaveLength(createdContainersAfterFirstRender);
+  });
+
+  it("exposes card parity snapshots for visible hand and transient drag state", () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = createCard("strike:1", "Strike");
+
+    presenter.render([firstCard], false);
+    expect(presenter.getParitySnapshot()).toEqual([expect.objectContaining({
+      cardInstanceId: firstCard.cardInstanceId,
+      zone: "hand",
+      moving: false,
+      dragging: false,
+      visible: true
+    })]);
+
+    const cardContainer = records.containers.find((container) => container.startX !== 0 || container.startY !== 0) as {
+      readonly handlers: Record<string, Handler[]>;
+    } | undefined;
+    cardContainer?.handlers.dragstart?.[0]?.();
+
+    expect(presenter.getParitySnapshot()).toEqual([expect.objectContaining({
+      cardInstanceId: firstCard.cardInstanceId,
+      zone: "transient",
+      dragging: true
+    })]);
+  });
+
+  it("exposes discard pile zones while a hand card moves away", async () => {
+    const { scene, records } = createSceneStub({ completeTweens: false });
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = createCard("strike:1", "Strike");
+
+    presenter.render([firstCard], true);
+    const movement = presenter.playCardMoved({
+      type: "CardMoved",
+      cardInstanceId: firstCard.cardInstanceId,
+      cardId: firstCard.cardId,
+      from: "hand",
+      to: "discard"
+    }, []);
+
+    expect(presenter.getParitySnapshot()).toEqual([expect.objectContaining({
+      cardInstanceId: firstCard.cardInstanceId,
+      zone: "discard",
+      moving: true
+    })]);
+
+    records.tweens.at(-1)?.onComplete?.();
+    await movement;
   });
 
   it("drags playable cards to a drop point without also selecting them", async () => {

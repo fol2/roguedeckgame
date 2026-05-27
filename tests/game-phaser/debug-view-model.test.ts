@@ -54,6 +54,7 @@ describe("Combat debug view model", () => {
       visualRoute: "fx",
       outcome: "completed"
     }]);
+    expect(viewModel.parityDiagnostics).toEqual([]);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
     expect(JSON.stringify(controller.getState())).toBe(before);
   });

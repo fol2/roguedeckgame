@@ -4,6 +4,7 @@ import { COMBAT_UI_CAPS, type CombatCardViewModel } from "../view-models/combat-
 import { DISCARD_PILE, DRAW_PILE } from "../layout/combat-layout";
 import { CARD_SIZE, CARD_TEXT, HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
 import { TOOLTIP_DELAYS_MS, type CombatTooltip } from "./CombatOverlayPresenter";
+import type { CombatParityCardSnapshot } from "../debug/combat-parity";
 
 const CARD_MOVE_DURATION_MS = 210;
 const HAND_RELAYOUT_DURATION_MS = 120;
@@ -28,6 +29,7 @@ type CardVisual = {
   dragging: boolean;
   dragMoved: boolean;
   suppressClick: boolean;
+  parityZone: CombatParityCardSnapshot["zone"];
   dragOrigin?: Point;
   dragStartPoint?: Point;
 };
@@ -192,9 +194,22 @@ export class CardPresenter {
     cards.forEach((card) => {
       const visual = this.ensureVisual(card, undefined);
       visual.card = card;
+      visual.parityZone = "hand";
       this.renderCardVisual(visual);
     });
     this.layoutHand(false);
+  }
+
+  public getParitySnapshot(): readonly CombatParityCardSnapshot[] {
+    return [...this.visuals.values()].map((visual) => ({
+      cardInstanceId: visual.cardInstanceId,
+      zone: visual.dragging ? "transient" : visual.parityZone,
+      x: visual.container.x,
+      y: visual.container.y,
+      moving: visual.moving,
+      dragging: visual.dragging,
+      visible: true
+    }));
   }
 
   public async playCardMoved(event: Extract<GameEvent, { readonly type: "CardMoved" }>, finalCards: readonly CombatCardViewModel[]): Promise<boolean> {
@@ -233,7 +248,8 @@ export class CardPresenter {
       moving: false,
       dragging: false,
       dragMoved: false,
-      suppressClick: false
+      suppressClick: false,
+      parityZone: "hand"
     };
     visual.container.setSize(CARD_SIZE.width, CARD_SIZE.height);
     this.container.add(visual.container);
@@ -503,6 +519,7 @@ export class CardPresenter {
     }
 
     visual.moving = true;
+    visual.parityZone = pile === "discard" || pile === "exhaust" ? pile : "transient";
     visual.container.setDepth(CARD_ANIMATION_DEPTH);
     visual.container.disableInteractive();
     visual.container.removeAllListeners();
@@ -521,6 +538,7 @@ export class CardPresenter {
     const visual = this.ensureVisual(card, start);
     visual.card = card;
     visual.moving = true;
+    visual.parityZone = pile === "draw" || pile === "discard" ? pile : "transient";
     visual.container.setDepth(CARD_ANIMATION_DEPTH);
     this.renderCardVisual(visual);
     if (!this.visualHandOrder.includes(card.cardInstanceId)) {
@@ -532,8 +550,10 @@ export class CardPresenter {
       this.visualHandOrder.length
     );
     this.layoutHand(true, new Set([card.cardInstanceId]));
+    visual.parityZone = "transient";
     await this.tweenTo(visual.container, target, CARD_MOVE_DURATION_MS);
     visual.moving = false;
+    visual.parityZone = "hand";
     visual.container.setDepth(0);
     this.renderCardVisual(visual);
     this.layoutHand(false);

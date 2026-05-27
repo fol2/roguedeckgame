@@ -7,6 +7,12 @@ import type { RunSandboxController } from "../controllers/RunSandboxController";
 import { CombatEventPlayer } from "../animation/CombatEventPlayer";
 import { CombatEventFxPresenter } from "../animation/CombatEventFxPresenter";
 import { planCombatEventAnimation } from "../animation/combat-animation-plan";
+import {
+  checkCombatParity,
+  type CombatParityDiagnostic,
+  type CombatParityPresenterSnapshot,
+  type CombatParityStage
+} from "../debug/combat-parity";
 import { CardPresenter, type CardDragDebugState } from "../presenters/CardPresenter";
 import { CombatHudPresenter } from "../presenters/CombatHudPresenter";
 import { CombatDebugOverlayPresenter } from "../presenters/CombatDebugOverlayPresenter";
@@ -81,6 +87,7 @@ export class CombatScene extends Scene {
   private pendingRequestId?: string;
   private debugOverlayEnabled = false;
   private debugDragState: DebugInputSnapshot["dragState"] = "idle";
+  private parityDiagnostics: readonly CombatParityDiagnostic[] = [];
   private removeFocusHandlers?: () => void;
   private playbackFinalViewModel?: CombatViewModel;
 
@@ -106,6 +113,7 @@ export class CombatScene extends Scene {
     this.browserFocused = true;
     this.pendingRequestId = undefined;
     this.debugDragState = "idle";
+    this.parityDiagnostics = [];
     this.debugOverlayEnabled = this.readDebugOverlayEnabled();
     this.playbackFinalViewModel = undefined;
     configureFixedResolutionStage(this);
@@ -340,10 +348,49 @@ export class CombatScene extends Scene {
     const debugOverlayVisible = this.isDebugOverlayAvailable() && this.debugOverlayEnabled;
     this.debugOverlayPresenter?.render(
       debugOverlayVisible
-        ? this.sandbox?.getCombatDebugViewModel(this.getDebugInputSnapshot(), this.eventPlayer?.getPlaybackObservations() ?? [])
+        ? this.sandbox?.getCombatDebugViewModel(
+          this.getDebugInputSnapshot(),
+          this.eventPlayer?.getPlaybackObservations() ?? [],
+          this.parityDiagnostics
+        )
         : undefined,
       debugOverlayVisible
     );
+  }
+
+  private getParityPresenterSnapshot(): CombatParityPresenterSnapshot | undefined {
+    if (!this.cardPresenter || !this.hudPresenter || !this.monsterPresenter) {
+      return undefined;
+    }
+
+    const hudSnapshot = this.hudPresenter.getParitySnapshot();
+    return {
+      cards: this.cardPresenter.getParitySnapshot(),
+      piles: hudSnapshot?.piles ?? { draw: 0, discard: 0 },
+      player: hudSnapshot?.player,
+      monsters: this.monsterPresenter.getParitySnapshot()
+    };
+  }
+
+  private captureParityDiagnostics(
+    stage: CombatParityStage,
+    viewModel: CombatViewModel | undefined = this.sandbox?.getCombatViewModel(),
+    input: DebugInputSnapshot = this.getDebugInputSnapshot()
+  ): readonly CombatParityDiagnostic[] {
+    const presenters = this.getParityPresenterSnapshot();
+    if (!viewModel || !presenters) {
+      this.parityDiagnostics = [];
+      return this.parityDiagnostics;
+    }
+
+    this.parityDiagnostics = checkCombatParity({
+      stage,
+      viewModel,
+      input,
+      presenters
+    });
+
+    return this.parityDiagnostics;
   }
 
   private openDetail(detail: CombatDetailPanel): void {
@@ -630,12 +677,16 @@ export class CombatScene extends Scene {
       this.setFeedback(result.errors[0]?.message ?? "Action was rejected.");
       this.playbackFinalViewModel = undefined;
     }
+    this.captureParityDiagnostics("after_action_result");
+    this.renderDebugOverlay();
     try {
       await this.eventPlayer?.play(result.events);
     } catch (error) {
       console.warn("CombatScene recovered from event playback failure.", error);
     } finally {
       this.playbackFinalViewModel = undefined;
+      this.captureParityDiagnostics("after_playback_batch");
+      this.renderDebugOverlay();
       this.renderCurrentState();
       if (this.pendingRequestId === requestId) {
         this.pendingRequestId = undefined;
@@ -667,6 +718,7 @@ export class CombatScene extends Scene {
       console.warn("CombatScene recovered from continue playback failure.", error);
     }
     this.playbackFinalViewModel = undefined;
+    this.captureParityDiagnostics("after_playback_batch");
 
     const runStatus = this.sandbox.getState().run.status;
     if (runStatus === "reward") {
@@ -791,6 +843,7 @@ export class CombatScene extends Scene {
       return;
     }
 
+    const preReconcileInput = this.getDebugInputSnapshot();
     this.applyInteractionState(reconcileCombatInteractionState(this.getInteractionState(), viewModel));
 
     const combatEnded = viewModel.phase === "won" || viewModel.phase === "lost";
@@ -855,6 +908,24 @@ export class CombatScene extends Scene {
       pauseOpen: this.pauseOpen,
       warnings: viewModel.uiWarnings
     });
+    const staleInteractionDiagnostics = checkCombatParity({
+      stage: "scene_refresh",
+      viewModel,
+      input: preReconcileInput,
+      presenters: this.getParityPresenterSnapshot() ?? {
+        cards: [],
+        piles: { draw: viewModel.drawPile.count, discard: viewModel.discardPile.count },
+        player: {
+          id: viewModel.player.id,
+          hp: viewModel.player.hp,
+          maxHp: viewModel.player.maxHp,
+          block: viewModel.player.block
+        },
+        monsters: []
+      }
+    }).filter((diagnostic) => diagnostic.code === "stale_selected_card" || diagnostic.code === "unplayable_selected_card");
+    const sceneDiagnostics = this.captureParityDiagnostics("scene_refresh", viewModel);
+    this.parityDiagnostics = [...staleInteractionDiagnostics, ...sceneDiagnostics];
     this.renderDebugOverlay();
   }
 }

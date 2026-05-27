@@ -8,6 +8,7 @@ import {
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
 import type { CombatPlaybackObservation } from "../animation/combat-playback-policy";
 import type { RunSandboxState } from "../controllers/RunSandboxController";
+import type { CombatParityDiagnostic } from "../debug/combat-parity";
 import type { CombatViewModel } from "./combat-view-model";
 
 export type DebugInputSnapshot = {
@@ -78,6 +79,7 @@ export type CombatDebugViewModel = {
     readonly message: string;
   }[];
   readonly playbackObservations: readonly CombatPlaybackObservation[];
+  readonly parityDiagnostics: readonly CombatParityDiagnostic[];
   readonly uiWarnings: readonly string[];
 };
 
@@ -97,7 +99,8 @@ export const buildCombatDebugViewModel = (
   combatViewModel: CombatViewModel | undefined,
   input: DebugInputSnapshot = emptyInput,
   runtimeMetadata: RuntimeMetadata = currentRuntimeMetadata,
-  playbackObservations: readonly CombatPlaybackObservation[] = []
+  playbackObservations: readonly CombatPlaybackObservation[] = [],
+  parityDiagnostics: readonly CombatParityDiagnostic[] = []
 ): CombatDebugViewModel => {
   const currentNode = state.run.map?.nodes.find((node) => node.id === state.run.map?.currentNodeId);
 
@@ -159,6 +162,7 @@ export const buildCombatDebugViewModel = (
     })) ?? [],
     latestEvents: latestEvents(state.lastEvents),
     playbackObservations,
+    parityDiagnostics,
     uiWarnings: combatViewModel?.uiWarnings ?? []
   };
 };

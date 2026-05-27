@@ -122,6 +122,7 @@ const createDebugViewModel = (): CombatDebugViewModel => ({
     outcome: "completed",
     fallbackUsed: false
   }],
+  parityDiagnostics: [],
   uiWarnings: []
 });
 
@@ -167,6 +168,7 @@ describe("Combat debug overlay presenter", () => {
     expect(text).toContain("Playback time: start=3 end=5 dur=2");
     expect(text).toContain("Playback fallback: fallback=yes warn=missing_card_point");
     expect(text).toContain("Playback error: CardPlayed used hand fallback");
+    expect(text).toContain("Parity: ok");
   });
 
   it("highlights an older fallback from the full retained playback window", () => {
@@ -198,5 +200,24 @@ describe("Combat debug overlay presenter", () => {
     expect(text).toContain("Playback fallback: fallback=yes warn=unknown_event");
     expect(text).toContain("Playback error: Event was not recognised.");
     expect(text).toContain("Playback recent: Event7 ok, Event8 ok, Event9 ok");
+  });
+
+  it("renders parity diagnostics when visual state drifts", () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CombatDebugOverlayPresenter(scene);
+
+    presenter.render({
+      ...createDebugViewModel(),
+      parityDiagnostics: [{
+        stage: "scene_refresh",
+        severity: "error",
+        code: "stale_selected_card",
+        message: "Selected card is stale.",
+        entityId: "strike:1"
+      }]
+    }, true);
+
+    const text = records.texts.map((record) => record.text).join("\n");
+    expect(text).toContain("Parity: scene_refresh e=1 w=0 stale_selected_card");
   });
 });

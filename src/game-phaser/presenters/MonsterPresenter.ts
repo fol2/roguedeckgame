@@ -8,6 +8,7 @@ import {
 } from "../view-models/combat-view-model";
 import { getMonsterPosition, MONSTER_SLOT } from "../layout/combat-layout";
 import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from "./CombatOverlayPresenter";
+import type { CombatParityCombatantSnapshot } from "../debug/combat-parity";
 
 type MonsterRenderOptions = {
   readonly validTargetIds?: readonly CombatantId[];
@@ -52,12 +53,27 @@ const getVisibleStatusChips = (
     }));
 };
 
+const parseMonsterHpLabel = (
+  id: CombatantId,
+  label: string
+): CombatParityCombatantSnapshot => {
+  const match = /^HP\s+(\d+)\/(\d+)\s+B(\d+)$/.exec(label.replace(/\s+/g, " "));
+
+  return {
+    id,
+    hp: match ? Number(match[1]) : Number.NaN,
+    maxHp: match ? Number(match[2]) : Number.NaN,
+    block: match ? Number(match[3]) : Number.NaN
+  };
+};
+
 export class MonsterPresenter {
   private readonly container: GameObjects.Container;
   private readonly scene: Scene;
   private readonly onSelected: (monsterId: CombatantId) => void;
   private readonly onTooltipChanged: (tooltip?: CombatTooltip) => void;
   private readonly onInspect: (detail: CombatDetailPanel) => void;
+  private latestParitySnapshot: readonly CombatParityCombatantSnapshot[] = [];
 
   public constructor(
     scene: Scene,
@@ -77,6 +93,7 @@ export class MonsterPresenter {
     intents: readonly MonsterIntentViewModel[],
     options: MonsterRenderOptions = {}
   ): void {
+    const paritySnapshots: CombatParityCombatantSnapshot[] = [];
     this.container.removeAll(true);
 
     monsters.forEach((monster, index) => {
@@ -171,11 +188,13 @@ export class MonsterPresenter {
         .setOrigin(0.5));
       group.add(this.scene.add.rectangle(-MONSTER_SLOT.hpBarWidth / 2, MONSTER_SLOT.hpBarY, MONSTER_SLOT.hpBarWidth * hpFill, MONSTER_SLOT.hpBarHeight, 0xdf6b6b, 1)
         .setOrigin(0, 0.5));
-      group.add(this.scene.add.text(0, MONSTER_SLOT.hpBarY - 17, `HP ${monster.hp}/${monster.maxHp}  B${monster.block}`, {
+      const hpText = this.scene.add.text(0, MONSTER_SLOT.hpBarY - 17, `HP ${monster.hp}/${monster.maxHp}  B${monster.block}`, {
         color: "#f4cfda",
         fontFamily: "Inter, sans-serif",
         fontSize: MONSTER_SLOT.fontSize.hp
-      }).setOrigin(0.5));
+      }).setOrigin(0.5);
+      group.add(hpText);
+      paritySnapshots.push(parseMonsterHpLabel(monster.id, hpText.text));
       getVisibleStatusChips(monster.statuses, COMBAT_UI_CAPS.maxEnemyVisibleStatuses, monster.statusOverflowTooltip).forEach((status, statusIndex) => {
         const statusX = (statusIndex - 1.5) * MONSTER_SLOT.statusGap;
         const statusBox = this.scene.add.rectangle(statusX, MONSTER_SLOT.statusY, MONSTER_SLOT.statusSize, MONSTER_SLOT.statusSize, 0x3a2832, 1)
@@ -215,5 +234,10 @@ export class MonsterPresenter {
       });
       this.container.add(group);
     });
+    this.latestParitySnapshot = paritySnapshots;
+  }
+
+  public getParitySnapshot(): readonly CombatParityCombatantSnapshot[] {
+    return this.latestParitySnapshot;
   }
 }

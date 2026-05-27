@@ -164,7 +164,7 @@ describe("Combat scene boundary", () => {
     expect(source).toMatch(/endTurn\(viewModel\?\.revision, requestId\)/);
     expect(source).toMatch(/combat-ui-\$\{this\.nextRequestId\}/);
     expect(source).toMatch(/this\.inputLocked = true;\n\s+this\.clearTooltip\(\);\n\s+this\.renderCurrentState\(false\);\n\s+const result = action\(requestId\);/);
-    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
+    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
   });
 
   it("drives actual card movement from combat event playback", async () => {
@@ -249,16 +249,21 @@ describe("Combat scene boundary", () => {
 
     expect(sceneSource).toMatch(/CombatOverlayPresenter/);
     expect(sceneSource).toMatch(/CombatDebugOverlayPresenter/);
-    expect(sceneSource).toMatch(/getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\), this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\]\)/);
+    expect(sceneSource).toMatch(/getCombatDebugViewModel\(\n\s+this\.getDebugInputSnapshot\(\),\n\s+this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\],\n\s+this\.parityDiagnostics\n\s+\)/);
     expect(sceneSource).toMatch(/combatDebug/);
     expect(sceneSource).toMatch(/isDebugOverlayAvailable/);
     expect(sceneSource).toMatch(/import\.meta\.env\.DEV/);
     expect(sceneSource).toMatch(/this\.isDebugOverlayAvailable\(\) && \(event\.key === "`" \|\| event\.key === "F2"\)/);
     expect(sceneSource).toMatch(/const debugOverlayVisible = this\.isDebugOverlayAvailable\(\) && this\.debugOverlayEnabled/);
-    expect(sceneSource).toMatch(/debugOverlayVisible\s+\? this\.sandbox\?\.getCombatDebugViewModel\(this\.getDebugInputSnapshot\(\), this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\]\)\s+: undefined/);
+    expect(sceneSource).toMatch(/debugOverlayVisible\s+\? this\.sandbox\?\.getCombatDebugViewModel\(\n\s+this\.getDebugInputSnapshot\(\),\n\s+this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\],\n\s+this\.parityDiagnostics\n\s+\)\s+: undefined/);
     expect(sceneSource).toMatch(/debugDragState: DebugInputSnapshot\["dragState"\] = "idle"/);
     expect(sceneSource).toMatch(/handleCardDragDebugState\(state: CardDragDebugState\)/);
     expect(sceneSource).toMatch(/this\.renderDebugOverlay\(\)/);
+    expect(sceneSource).toMatch(/checkCombatParity/);
+    expect(sceneSource).toMatch(/captureParityDiagnostics\("after_action_result"\)/);
+    expect(sceneSource).toMatch(/captureParityDiagnostics\("after_playback_batch"\)/);
+    expect(sceneSource).toMatch(/captureParityDiagnostics\("scene_refresh", viewModel\)/);
+    expect(sceneSource).toMatch(/stale_selected_card/);
     expect(sceneSource).not.toMatch(/handleCardDragDebugState\(state: CardDragDebugState\): void \{\n\s+this\.debugDragState = state\.state;\n\s+this\.renderCurrentState\(false\);/);
     expect(sceneSource).toMatch(/CombatEventFxPresenter/);
     expect(sceneSource).toMatch(/openPauseOverlay/);

@@ -241,12 +241,12 @@ export const DEBUG_OVERLAY = {
   x: COMBAT_BOARD.x + 12,
   y: COMBAT_BOARD.y + 48,
   width: 384,
-  height: 486,
+  height: 504,
   padding: 12,
   titleY: 10,
   firstLineY: 34,
   lineHeight: 18,
-  maxLines: 24,
+  maxLines: 25,
   fontSize: {
     title: "13px",
     body: "11px"
