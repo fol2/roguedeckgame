@@ -1,6 +1,6 @@
 import type { CardInstanceId, CombatantId } from "../ids";
 import type { CombatState } from "./combat";
-import type { GameEvent } from "./event";
+import { projectGameEventsForSchema, type GameEvent, type GameEventSchemaVersion } from "./event";
 
 export type StartCombatAction = {
   readonly type: "startCombat";
@@ -42,3 +42,33 @@ export type GameActionResult<TState> = {
 
 export type CombatActionResult = GameActionResult<CombatState>;
 export type CreateCombatResult = GameActionResult<CombatState>;
+
+type StateWithEvents = {
+  readonly events?: readonly GameEvent[];
+  readonly lastEvents?: readonly GameEvent[];
+};
+
+const hasEventState = (state: unknown): state is StateWithEvents =>
+  typeof state === "object" &&
+  state !== null &&
+  ("events" in state || "lastEvents" in state);
+
+export const projectGameActionResultForSchema = <TState>(
+  result: GameActionResult<TState>,
+  schemaVersion: GameEventSchemaVersion
+): GameActionResult<TState> => {
+  const events = projectGameEventsForSchema(result.events, schemaVersion);
+  const state = hasEventState(result.state)
+    ? {
+        ...result.state,
+        ...("events" in result.state
+          ? { events: projectGameEventsForSchema(result.state.events ?? [], schemaVersion) }
+          : {}),
+        ...("lastEvents" in result.state
+          ? { lastEvents: projectGameEventsForSchema(result.state.lastEvents ?? [], schemaVersion) }
+          : {})
+      } as TState
+    : result.state;
+
+  return { ...result, state, events };
+};

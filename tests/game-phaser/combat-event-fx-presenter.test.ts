@@ -3,6 +3,7 @@ import {
   cardId,
   cardInstanceId,
   combatantId,
+  monsterAbilityId,
   monsterIntentId,
   petInstanceId,
   runId,
@@ -178,6 +179,20 @@ const combatEvents: readonly GameEvent[] = [
   { type: "CombatStarted", combatId: "combat-a", seed: "seed-a" },
   { type: "TurnStarted", turnNumber: 1, actorId: playerId },
   { type: "TurnEnded", turnNumber: 1, actorId: playerId },
+  {
+    type: "MonsterAbilityPlanned",
+    monsterId,
+    abilityId: monsterAbilityId("training_slime_attack"),
+    intentId: monsterIntentId("training_slime_attack"),
+    intentType: "attack",
+    description: "Attack."
+  },
+  {
+    type: "MonsterAbilityPlayed",
+    monsterId,
+    abilityId: monsterAbilityId("training_slime_attack"),
+    intentId: monsterIntentId("training_slime_attack")
+  },
   { type: "MonsterIntentSet", monsterId, intentId: monsterIntentId("training_slime_attack"), intentType: "attack", description: "Attack." },
   { type: "MonsterIntentResolved", monsterId, intentId: monsterIntentId("training_slime_attack") },
   { type: "CardPlayed", cardInstanceId: playedCardInstanceId, cardId: cardId("strike"), sourceId: playerId },
@@ -346,6 +361,28 @@ describe("CombatEventFxPresenter", () => {
 
     await expect(playSingleEvent({ type: "StatusExpired", targetId: monsterId, statusId: statusId("burn") })).resolves.toMatchObject({
       texts: [expect.objectContaining({ text: "burn expired", x: monsterPoint.x, y: monsterPoint.y })]
+    });
+
+    await expect(playSingleEvent({
+      type: "MonsterAbilityPlanned",
+      monsterId,
+      abilityId: monsterAbilityId("training_slime_attack"),
+      intentId: monsterIntentId("training_slime_attack"),
+      intentType: "attack",
+      description: "Attack."
+    })).resolves.toMatchObject({
+      circles: [expect.objectContaining({ x: monsterPoint.x, y: monsterPoint.y })],
+      texts: [expect.objectContaining({ text: "attack", x: monsterPoint.x, y: monsterPoint.y - 20 })]
+    });
+
+    await expect(playSingleEvent({
+      type: "MonsterAbilityPlayed",
+      monsterId,
+      abilityId: monsterAbilityId("training_slime_attack"),
+      intentId: monsterIntentId("training_slime_attack")
+    })).resolves.toMatchObject({
+      circles: [expect.objectContaining({ x: monsterPoint.x, y: monsterPoint.y })],
+      texts: [expect.objectContaining({ text: "Act", x: monsterPoint.x, y: monsterPoint.y - 20 })]
     });
 
     await expect(playSingleEvent({

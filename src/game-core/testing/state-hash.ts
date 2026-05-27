@@ -1,5 +1,11 @@
 import type { AgentRunDriverSnapshot } from "./agent-actions";
 
+export type AgentStateHashSchemaVersion = 1 | 2;
+
+export type AgentStateHashOptions = {
+  readonly schemaVersion?: AgentStateHashSchemaVersion;
+};
+
 const stable = (value: unknown): unknown => {
   if (Array.isArray(value)) {
     return value.map(stable);
@@ -21,9 +27,12 @@ const cardIdentity = (snapshot: AgentRunDriverSnapshot, cardInstanceId: string) 
 };
 
 export const createAgentStateHash = (
-  snapshot: AgentRunDriverSnapshot
+  snapshot: AgentRunDriverSnapshot,
+  options: AgentStateHashOptions = {}
 ): string => {
   const combat = snapshot.combat;
+  const schemaVersion = options.schemaVersion ?? 1;
+  const includePlannedAbilities = schemaVersion >= 2;
   const value = {
     run: {
       status: snapshot.run.status,
@@ -71,7 +80,12 @@ export const createAgentStateHash = (
             block: monster.block,
             alive: monster.alive,
             statuses: monster.statuses,
-            intents: combat.monsterIntents.filter((intent) => intent.monsterCombatantId === monster.id)
+            intents: combat.monsterIntents.filter((intent) => intent.monsterCombatantId === monster.id),
+            ...(includePlannedAbilities
+              ? {
+                  plannedAbilities: (combat.plannedMonsterAbilities ?? []).filter((planned) => planned.monsterCombatantId === monster.id)
+                }
+              : {})
           })),
           energy: combat.energy,
           maxEnergy: combat.maxEnergy,

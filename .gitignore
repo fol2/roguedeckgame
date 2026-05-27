@@ -3,3 +3,4 @@ dist/
 dist-cli/
 coverage/
 .compound-engineering/*.local.yaml
+.playwright-mcp/

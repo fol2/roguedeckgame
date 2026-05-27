@@ -42,9 +42,11 @@ describe("createCombat", () => {
     expect(result.state?.energy).toBe(3);
     expect(result.state?.maxEnergy).toBe(3);
     expect(result.state?.hand).toHaveLength(5);
-    expect(result.events.map((event) => event.type).slice(0, 5)).toEqual([
+    expect(result.state?.plannedMonsterAbilities).toHaveLength(1);
+    expect(result.events.map((event) => event.type).slice(0, 6)).toEqual([
       "CombatStarted",
       "DeckShuffled",
+      "MonsterAbilityPlanned",
       "MonsterIntentSet",
       "TurnStarted",
       "CardMoved"

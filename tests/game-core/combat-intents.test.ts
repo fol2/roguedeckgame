@@ -4,6 +4,7 @@ import {
   combatantId,
   createCombat,
   createRng,
+  monsterAbilityId,
   monsterId,
   monsterIntentId,
   starterRegistry
@@ -16,7 +17,11 @@ describe("monster intents", () => {
     const state = createCombatFixture({ monsterIds: [monsterId("training_slime"), monsterId("ash_mite")] });
 
     expect(state.monsterIntents).toHaveLength(2);
+    expect(state.plannedMonsterAbilities).toHaveLength(2);
     expect(state.monsterIntents.map((intent) => intent.monsterCombatantId)).toEqual(
+      state.monsters.map((monster) => monster.id)
+    );
+    expect((state.plannedMonsterAbilities ?? []).map((planned) => planned.monsterCombatantId)).toEqual(
       state.monsters.map((monster) => monster.id)
     );
   });
@@ -29,6 +34,7 @@ describe("monster intents", () => {
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
     expect(first.state.monsterIntents).toEqual(second.state.monsterIntents);
+    expect(first.state.plannedMonsterAbilities).toEqual(second.state.plannedMonsterAbilities);
     expect(first.events).toEqual(second.events);
   });
 
@@ -56,6 +62,7 @@ describe("monster intents", () => {
 
     expect(result.ok).toBe(true);
     expect(result.state.monsterIntents).toEqual([]);
+    expect(result.state.plannedMonsterAbilities).toEqual([]);
     expect(result.events).toEqual([]);
   });
 
@@ -164,6 +171,36 @@ describe("monster intents", () => {
     expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
   });
 
+  it("returns ok false when a scheduled intent references a missing monster ability", () => {
+    const registry = {
+      ...starterRegistry,
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              intentPool: [
+                {
+                  ...monster.intentPool[0],
+                  abilityId: monsterAbilityId("missing_training_slime_ability")
+                }
+              ]
+            }
+          : monster
+      )
+    };
+    const state = { ...createEnemyTurnFixture(), monsterIntents: [], plannedMonsterAbilities: [] };
+    const rng = createRng("missing-ability");
+    const freshRng = createRng("missing-ability");
+
+    const result = chooseMonsterIntents(state, registry, rng);
+
+    expect(result.ok).toBe(false);
+    expect(result.state).toBe(state);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["missing_monster_ability"]);
+    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+    expect(rng.nextInt(1_000_000)).toBe(freshRng.nextInt(1_000_000));
+  });
+
   it("does not advance RNG when validation fails after an earlier alive monster", () => {
     const registry = {
       ...starterRegistry,
@@ -221,10 +258,11 @@ describe("monster intents", () => {
     expect(result.ok).toBe(false);
     expect(result.state.phase).toBe("not_started");
     expect(result.state.monsterIntents).toEqual([]);
+    expect(result.state.plannedMonsterAbilities).toEqual([]);
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["empty_monster_intent_pool"]);
   });
 
-  it("emits MonsterIntentSet events during combat creation", () => {
+  it("emits planned ability events before MonsterIntentSet during combat creation", () => {
     const result = createCombat({
       run: createRunFixture(),
       registry: starterRegistry,
@@ -234,10 +272,12 @@ describe("monster intents", () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(result.events.some((event) => event.type === "MonsterAbilityPlanned")).toBe(true);
     expect(result.events.some((event) => event.type === "MonsterIntentSet")).toBe(true);
-    expect(result.events.map((event) => event.type).slice(0, 4)).toEqual([
+    expect(result.events.map((event) => event.type).slice(0, 5)).toEqual([
       "CombatStarted",
       "DeckShuffled",
+      "MonsterAbilityPlanned",
       "MonsterIntentSet",
       "TurnStarted"
     ]);
@@ -253,7 +293,22 @@ describe("monster intents", () => {
         intentId: expect.any(String)
       }
     ]);
+    expect(result.state.plannedMonsterAbilities).toEqual([
+      {
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: result.state.monsterIntents[0].intentId,
+        abilityId: expect.any(String)
+      }
+    ]);
     expect(result.events[0]).toMatchObject({
+      type: "MonsterAbilityPlanned",
+      monsterId: combatantId("monster:training_slime:0"),
+      abilityId: expect.any(String),
+      intentId: expect.any(String),
+      intentType: expect.any(String),
+      description: expect.any(String)
+    });
+    expect(result.events[1]).toMatchObject({
       type: "MonsterIntentSet",
       monsterId: combatantId("monster:training_slime:0"),
       intentId: expect.any(String),

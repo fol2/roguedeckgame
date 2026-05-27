@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { cardId, createAgentRunDriver, checkAgentRunInvariants } from "../../src/game-core";
+import {
+  cardId,
+  createAgentRunDriver,
+  checkAgentRunInvariants,
+  monsterAbilityId,
+  monsterIntentId
+} from "../../src/game-core";
 
 describe("agent simulation invariants", () => {
   it("passes a clean driver snapshot", () => {
@@ -62,6 +68,80 @@ describe("agent simulation invariants", () => {
     expect(checkAgentRunInvariants(lostWithAlivePlayer).issues.map((issue) => issue.code)).toContain("lost_combat_with_alive_player");
   });
 
+  it("fails active monster intents without matching planned abilities", () => {
+    const driver = createAgentRunDriver({ seed: "invariant-unplanned-intent" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const broken = {
+      ...snapshot,
+      combat: { ...snapshot.combat!, plannedMonsterAbilities: [] }
+    };
+
+    expect(checkAgentRunInvariants(broken).issues.map((issue) => issue.code)).toContain("monster_intent_without_planned_ability");
+  });
+
+  it("fails planned monster abilities without matching active intents", () => {
+    const driver = createAgentRunDriver({ seed: "invariant-stale-planned-ability" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const broken = {
+      ...snapshot,
+      combat: {
+        ...snapshot.combat!,
+        monsterIntents: [],
+        plannedMonsterAbilities: [
+          {
+            monsterCombatantId: snapshot.combat!.monsters[0].id,
+            intentId: monsterIntentId("training_slime_attack"),
+            abilityId: monsterAbilityId("training_slime_attack")
+          }
+        ]
+      }
+    };
+
+    expect(checkAgentRunInvariants(broken).issues.map((issue) => issue.code)).toContain("planned_ability_without_monster_intent");
+  });
+
+  it("fails duplicate planned monster abilities", () => {
+    const driver = createAgentRunDriver({ seed: "invariant-duplicate-planned-ability" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const plannedAbility = snapshot.combat!.plannedMonsterAbilities![0];
+    const broken = {
+      ...snapshot,
+      combat: {
+        ...snapshot.combat!,
+        plannedMonsterAbilities: [plannedAbility, plannedAbility]
+      }
+    };
+
+    expect(checkAgentRunInvariants(broken).issues.map((issue) => issue.code)).toContain("duplicate_planned_monster_ability");
+  });
+
+  it("fails planned monster ability id mismatches", () => {
+    const driver = createAgentRunDriver({ seed: "invariant-planned-ability-mismatch" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const plannedAbility = snapshot.combat!.plannedMonsterAbilities![0];
+    const mismatchedAbilityId = plannedAbility.abilityId === monsterAbilityId("training_slime_attack")
+      ? monsterAbilityId("training_slime_block")
+      : monsterAbilityId("training_slime_attack");
+    const broken = {
+      ...snapshot,
+      combat: {
+        ...snapshot.combat!,
+        plannedMonsterAbilities: [
+          {
+            ...plannedAbility,
+            abilityId: mismatchedAbilityId
+          }
+        ]
+      }
+    };
+
+    expect(checkAgentRunInvariants(broken).issues.map((issue) => issue.code)).toContain("planned_monster_ability_id_mismatch");
+  });
+
   it("fails reward options that reference unregistered cards", () => {
     const driver = createAgentRunDriver({ seed: "invariant-reward-card" });
     const snapshot = driver.getSnapshot();
@@ -82,5 +162,18 @@ describe("agent simulation invariants", () => {
     };
 
     expect(checkAgentRunInvariants(broken).issues.map((issue) => issue.code)).toContain("reward_card_missing");
+  });
+
+  it("accepts legacy combat snapshots without planned ability storage", () => {
+    const driver = createAgentRunDriver({ seed: "invariant-legacy-combat-shape" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const { plannedMonsterAbilities: _plannedMonsterAbilities, ...legacyCombat } = snapshot.combat!;
+    const legacySnapshot = {
+      ...snapshot,
+      combat: legacyCombat
+    };
+
+    expect(checkAgentRunInvariants(legacySnapshot).issues.map((issue) => issue.code)).not.toContain("monster_intent_without_planned_ability");
   });
 });

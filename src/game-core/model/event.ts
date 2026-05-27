@@ -3,6 +3,7 @@ import type {
   CardInstanceId,
   CombatantId,
   EvolutionNodeId,
+  MonsterAbilityId,
   MonsterIntentId,
   EncounterId,
   PetModifierId,
@@ -24,6 +25,13 @@ import type { MonsterIntentType } from "./monster";
 import type { RewardOption } from "./reward";
 
 export type CardPile = "draw" | "hand" | "discard" | "exhaust";
+
+export const GAME_EVENT_LEGACY_SCHEMA_VERSION = 1;
+export const GAME_EVENT_SCHEMA_VERSION = 2;
+
+export type GameEventSchemaVersion =
+  | typeof GAME_EVENT_LEGACY_SCHEMA_VERSION
+  | typeof GAME_EVENT_SCHEMA_VERSION;
 
 export type GameEvent =
   | {
@@ -67,11 +75,25 @@ export type GameEvent =
   | { readonly type: "TurnStarted"; readonly turnNumber: number; readonly actorId: CombatantId }
   | { readonly type: "TurnEnded"; readonly turnNumber: number; readonly actorId: CombatantId }
   | {
+      readonly type: "MonsterAbilityPlanned";
+      readonly monsterId: CombatantId;
+      readonly abilityId: MonsterAbilityId;
+      readonly intentId: MonsterIntentId;
+      readonly intentType: MonsterIntentType;
+      readonly description: string;
+    }
+  | {
       readonly type: "MonsterIntentSet";
       readonly monsterId: CombatantId;
       readonly intentId: MonsterIntentId;
       readonly intentType: MonsterIntentType;
       readonly description: string;
+    }
+  | {
+      readonly type: "MonsterAbilityPlayed";
+      readonly monsterId: CombatantId;
+      readonly abilityId: MonsterAbilityId;
+      readonly intentId: MonsterIntentId;
     }
   | {
       readonly type: "MonsterIntentResolved";
@@ -217,3 +239,17 @@ export type GameEvent =
   | { readonly type: "SaveSlotLoaded"; readonly slotId: string; readonly updatedAt: string; readonly schemaVersion: number }
   | { readonly type: "SaveSlotDeleted"; readonly slotId: string }
   | { readonly type: "ValidationWarning"; readonly code: string; readonly message: string };
+
+export const projectGameEventsForSchema = (
+  events: readonly GameEvent[],
+  schemaVersion: GameEventSchemaVersion
+): readonly GameEvent[] => {
+  if (schemaVersion >= GAME_EVENT_SCHEMA_VERSION) {
+    return events;
+  }
+
+  return events.filter((event) =>
+    event.type !== "MonsterAbilityPlanned" &&
+    event.type !== "MonsterAbilityPlayed"
+  );
+};

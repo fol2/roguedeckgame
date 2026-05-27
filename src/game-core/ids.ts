@@ -6,6 +6,7 @@ export type PetDefinitionId = Brand<string, "PetDefinitionId">;
 export type PetInstanceId = Brand<string, "PetInstanceId">;
 export type PlayerClassId = Brand<string, "PlayerClassId">;
 export type MonsterId = Brand<string, "MonsterId">;
+export type MonsterAbilityId = Brand<string, "MonsterAbilityId">;
 export type UpgradeId = Brand<string, "UpgradeId">;
 export type StoryEventId = Brand<string, "StoryEventId">;
 export type StoryFlagId = Brand<string, "StoryFlagId">;
@@ -31,6 +32,7 @@ export const petDefinitionId = (value: string): PetDefinitionId => value as PetD
 export const petInstanceId = (value: string): PetInstanceId => value as PetInstanceId;
 export const playerClassId = (value: string): PlayerClassId => value as PlayerClassId;
 export const monsterId = (value: string): MonsterId => value as MonsterId;
+export const monsterAbilityId = (value: string): MonsterAbilityId => value as MonsterAbilityId;
 export const upgradeId = (value: string): UpgradeId => value as UpgradeId;
 export const storyEventId = (value: string): StoryEventId => value as StoryEventId;
 export const storyFlagId = (value: string): StoryFlagId => value as StoryFlagId;

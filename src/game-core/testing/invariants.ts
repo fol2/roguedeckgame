@@ -208,6 +208,44 @@ const checkCombatInvariants = (combat: CombatState, run: RunState, issues: Invar
   if (deadMonsterIntent) {
     issues.push(issue("dead_monster_has_intent", "Dead monsters should not have active intents.", "combat.monsterIntents"));
   }
+  const hasPlannedAbilityStorage = Object.prototype.hasOwnProperty.call(combat, "plannedMonsterAbilities");
+  const plannedMonsterAbilities = combat.plannedMonsterAbilities ?? [];
+  const deadMonsterPlannedAbility = plannedMonsterAbilities.find((planned) => !aliveMonsterIds.has(planned.monsterCombatantId));
+  if (deadMonsterPlannedAbility) {
+    issues.push(issue("dead_monster_has_planned_ability", "Dead monsters should not have planned abilities.", "combat.plannedMonsterAbilities"));
+  }
+  if (hasPlannedAbilityStorage) {
+    const plannedAbilityKeys = plannedMonsterAbilities.map((planned) => `${planned.monsterCombatantId}:${planned.intentId}`);
+    pushDuplicateIssue(
+      issues,
+      plannedAbilityKeys,
+      "duplicate_planned_monster_ability",
+      "Planned monster abilities must be unique per monster and intent.",
+      "combat.plannedMonsterAbilities"
+    );
+    const intentKeys = new Set(combat.monsterIntents.map((intent) => `${intent.monsterCombatantId}:${intent.intentId}`));
+    const stalePlannedAbility = plannedMonsterAbilities.find((planned) => !intentKeys.has(`${planned.monsterCombatantId}:${planned.intentId}`));
+    if (stalePlannedAbility) {
+      issues.push(issue("planned_ability_without_monster_intent", "Planned monster abilities should have matching active monster intents.", "combat.monsterIntents"));
+    }
+    const plannedKeys = new Set(plannedAbilityKeys);
+    const unplannedIntent = combat.monsterIntents.find((intent) => !plannedKeys.has(`${intent.monsterCombatantId}:${intent.intentId}`));
+    if (unplannedIntent) {
+      issues.push(issue("monster_intent_without_planned_ability", "Active monster intents should have matching planned abilities.", "combat.plannedMonsterAbilities"));
+    }
+    const monsterDefinitionsById = new Map(starterRegistry.monsters.map((monster) => [String(monster.id), monster]));
+    const mismatchedPlannedAbility = plannedMonsterAbilities.find((planned) => {
+      const monster = combat.monsters.find((candidate) => candidate.id === planned.monsterCombatantId);
+      const monsterDefinition = monster?.definitionId ? monsterDefinitionsById.get(String(monster.definitionId)) : undefined;
+      const intent = monsterDefinition?.intentPool.find((candidate) => candidate.id === planned.intentId);
+      const expectedAbilityId = intent?.abilityId ?? intent?.id;
+
+      return expectedAbilityId !== undefined && planned.abilityId !== expectedAbilityId;
+    });
+    if (mismatchedPlannedAbility) {
+      issues.push(issue("planned_monster_ability_id_mismatch", "Planned monster ability id should match the active intent's resolved ability.", "combat.plannedMonsterAbilities"));
+    }
+  }
 
   pushDuplicateIssue(
     issues,

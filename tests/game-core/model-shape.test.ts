@@ -13,6 +13,11 @@ import {
   petMemoryId,
   evolutionNodeId,
   storyEventId,
+  monsterAbilityId,
+  monsterIntentId,
+  GAME_EVENT_LEGACY_SCHEMA_VERSION,
+  projectGameActionResultForSchema,
+  projectGameEventsForSchema,
   type GameEvent,
   petModifierId,
   runMapId,
@@ -117,6 +122,20 @@ describe("model shape", () => {
       { type: "DeckShuffled", from: "deck", to: "draw", count: 3 },
       { type: "ActionRejected", code: "sample", message: "Sample rejection" },
       { type: "CombatantDefeated", combatantId: combatantId("training_slime") },
+      {
+        type: "MonsterAbilityPlanned",
+        monsterId: combatantId("monster:training_slime:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        intentId: monsterIntentId("training_slime_attack"),
+        intentType: "attack",
+        description: "Deal 6 damage."
+      },
+      {
+        type: "MonsterAbilityPlayed",
+        monsterId: combatantId("monster:training_slime:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        intentId: monsterIntentId("training_slime_attack")
+      },
       {
         type: "RunCreated",
         runId: createRunFixture().id,
@@ -230,6 +249,128 @@ describe("model shape", () => {
     ];
 
     expect(JSON.parse(JSON.stringify(events))).toEqual(events);
+  });
+
+  it("projects v2 ability events for legacy event consumers", () => {
+    const events: readonly GameEvent[] = [
+      {
+        type: "MonsterAbilityPlanned",
+        monsterId: combatantId("monster:training_slime:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        intentId: monsterIntentId("training_slime_attack"),
+        intentType: "attack",
+        description: "Deal 6 damage."
+      },
+      {
+        type: "MonsterIntentSet",
+        monsterId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack"),
+        intentType: "attack",
+        description: "Deal 6 damage."
+      },
+      {
+        type: "MonsterAbilityPlayed",
+        monsterId: combatantId("monster:training_slime:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        intentId: monsterIntentId("training_slime_attack")
+      },
+      {
+        type: "MonsterIntentResolved",
+        monsterId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }
+    ];
+
+    expect(projectGameEventsForSchema(events, GAME_EVENT_LEGACY_SCHEMA_VERSION).map((event) => event.type)).toEqual([
+      "MonsterIntentSet",
+      "MonsterIntentResolved"
+    ]);
+  });
+
+  it("projects action result events and state events for legacy consumers", () => {
+    const result = projectGameActionResultForSchema({
+      ok: true,
+      state: {
+        events: [
+          {
+            type: "MonsterAbilityPlayed" as const,
+            monsterId: combatantId("monster:training_slime:0"),
+            abilityId: monsterAbilityId("training_slime_attack"),
+            intentId: monsterIntentId("training_slime_attack")
+          },
+          {
+            type: "MonsterIntentResolved" as const,
+            monsterId: combatantId("monster:training_slime:0"),
+            intentId: monsterIntentId("training_slime_attack")
+          }
+        ],
+        lastEvents: [
+          {
+            type: "MonsterAbilityPlanned" as const,
+            monsterId: combatantId("monster:training_slime:0"),
+            abilityId: monsterAbilityId("training_slime_attack"),
+            intentId: monsterIntentId("training_slime_attack"),
+            intentType: "attack" as const,
+            description: "Deal 6 damage."
+          },
+          {
+            type: "MonsterIntentSet" as const,
+            monsterId: combatantId("monster:training_slime:0"),
+            intentId: monsterIntentId("training_slime_attack"),
+            intentType: "attack" as const,
+            description: "Deal 6 damage."
+          }
+        ]
+      },
+      events: [
+        {
+          type: "MonsterAbilityPlayed" as const,
+          monsterId: combatantId("monster:training_slime:0"),
+          abilityId: monsterAbilityId("training_slime_attack"),
+          intentId: monsterIntentId("training_slime_attack")
+        },
+        {
+          type: "MonsterIntentResolved" as const,
+          monsterId: combatantId("monster:training_slime:0"),
+          intentId: monsterIntentId("training_slime_attack")
+        }
+      ],
+      errors: []
+    }, GAME_EVENT_LEGACY_SCHEMA_VERSION);
+
+    expect(result.events.map((event) => event.type)).toEqual(["MonsterIntentResolved"]);
+    expect(result.state.events.map((event) => event.type)).toEqual(["MonsterIntentResolved"]);
+    expect(result.state.lastEvents.map((event) => event.type)).toEqual(["MonsterIntentSet"]);
+  });
+
+  it("projects legacy action result state lastEvents without requiring state events", () => {
+    const result = projectGameActionResultForSchema({
+      ok: true,
+      state: {
+        lastEvents: [
+          {
+            type: "MonsterAbilityPlanned" as const,
+            monsterId: combatantId("monster:training_slime:0"),
+            abilityId: monsterAbilityId("training_slime_attack"),
+            intentId: monsterIntentId("training_slime_attack"),
+            intentType: "attack" as const,
+            description: "Deal 6 damage."
+          },
+          {
+            type: "MonsterIntentSet" as const,
+            monsterId: combatantId("monster:training_slime:0"),
+            intentId: monsterIntentId("training_slime_attack"),
+            intentType: "attack" as const,
+            description: "Deal 6 damage."
+          }
+        ]
+      },
+      events: [],
+      errors: []
+    }, GAME_EVENT_LEGACY_SCHEMA_VERSION);
+
+    expect("events" in result.state).toBe(false);
+    expect(result.state.lastEvents.map((event) => event.type)).toEqual(["MonsterIntentSet"]);
   });
 
   it("does not import Phaser from game-core", () => {
