@@ -1096,6 +1096,7 @@ export class CombatSceneOrchestrator extends Scene {
     this.eventFxPresenter.setViewModel(viewModel);
     const systemControlsLocked = this.isSceneControlLocked();
     const cardControlsLocked = this.isGameplayInputLocked() || combatEnded;
+    const syncCardPresenter = this.playbackFinalViewModel === undefined;
     const modalOpen = this.isModalOpen();
     const interactionCard = this.getInteractionCard(viewModel);
     const activeCard = modalOpen ? undefined : interactionCard;
@@ -1139,10 +1140,12 @@ export class CombatSceneOrchestrator extends Scene {
       impactTargetId: this.impactTargetId,
       locked: cardControlsLocked
     });
-    this.cardPresenter.render(viewModel.hand, cardControlsLocked, {
-      selectedCardId: this.selectedCardId,
-      hoveredCardId: this.hoveredCardId
-    });
+    if (syncCardPresenter) {
+      this.cardPresenter.render(viewModel.hand, cardControlsLocked, {
+        selectedCardId: this.selectedCardId,
+        hoveredCardId: this.hoveredCardId
+      });
+    }
     this.targetingPresenter.render({
       handIndex: activeCardIndex !== undefined && activeCardIndex >= 0 ? activeCardIndex : undefined,
       handTotal: viewModel.hand.length,

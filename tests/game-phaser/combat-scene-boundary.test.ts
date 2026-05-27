@@ -216,6 +216,8 @@ describe("Combat scene boundary", () => {
     expect(sceneSource).toMatch(/playCardMovementForEvent\(event\)/);
     expect(sceneSource).toMatch(/planCombatEventAnimation\(event, this\.playbackFinalViewModel\)/);
     expect(sceneSource).toMatch(/cardPresenter\.playCardMoved\(command\.event, command\.finalHand\)/);
+    expect(sceneSource).toMatch(/const syncCardPresenter = this\.playbackFinalViewModel === undefined;/);
+    expect(sceneSource).toMatch(/if \(syncCardPresenter\) \{\n\s+this\.cardPresenter\.render\(viewModel\.hand, cardControlsLocked,/);
     expect(sceneSource).toMatch(/Card movement planner fallback/);
     expect(cardPresenter).toMatch(/visuals = new Map<CardInstanceId, CardVisual>/);
     expect(cardPresenter).toMatch(/visualHandOrder: CardInstanceId\[\] = \[\]/);
