@@ -1,7 +1,15 @@
 import {
   buildContentWorkbenchViewModel,
+  analyzeAgentTraces,
+  buildBalanceDashboardViewModel,
+  checkSimulationHealth,
   currentRuntimeMetadata,
+  runFuzzSimulation,
   starterRegistry,
+  type BalanceDashboardViewModel,
+  type BalanceDashboardEntry,
+  type BalanceDashboardEncounterEntry,
+  type BalanceDashboardDamageEntry,
   type ContentWorkbenchCollectionId,
   type ContentWorkbenchDiagnostics,
   type ContentWorkbenchViewModel
@@ -119,6 +127,27 @@ const button = (className: string, textContent: string, onClick: () => void): HT
 
 export const createContentWorkbenchModel = (): ContentWorkbenchViewModel =>
   buildContentWorkbenchViewModel(starterRegistry);
+
+export const createWorkbenchBalanceDashboard = (): BalanceDashboardViewModel => {
+  const simulation = runFuzzSimulation({
+    seed: "workbench-balance-dashboard",
+    runs: 20,
+    maxSteps: 300,
+    invalidActionRate: 0
+  });
+  const report = analyzeAgentTraces(simulation.traces);
+  const healthIssues = checkSimulationHealth(report, {
+    requireCompletedRun: true,
+    requireInvalidRejections: false
+  });
+
+  return buildBalanceDashboardViewModel(
+    report,
+    healthIssues,
+    currentRuntimeMetadata,
+    starterRegistry.contentVersion
+  );
+};
 
 export const createWorkbenchCollections = (
   viewModel: ContentWorkbenchViewModel
@@ -289,12 +318,94 @@ const renderDiagnosticsPanel = (viewModel: ContentWorkbenchViewModel): HTMLEleme
   return panel;
 };
 
-const renderReportsPanel = (viewModel: ContentWorkbenchViewModel): HTMLElement => {
+const renderBalanceEntryList = (
+  entries: readonly BalanceDashboardEntry[],
+  emptyText: string
+): HTMLElement => {
+  const list = element("ul", "content-workbench__balance-list");
+
+  if (entries.length === 0) {
+    list.append(element("li", "content-workbench__empty", emptyText));
+    return list;
+  }
+
+  for (const entry of entries) {
+    list.append(appendChildren(element("li", "content-workbench__balance-row"), [
+      element("span", undefined, entry.label),
+      element("strong", undefined, entry.valueLabel)
+    ]));
+  }
+
+  return list;
+};
+
+const renderEncounterOutcomes = (
+  entries: readonly BalanceDashboardEncounterEntry[]
+): HTMLElement =>
+  renderBalanceEntryList(entries.map((entry) => ({
+    ...entry,
+    valueLabel: `${entry.started} starts · ${entry.won} won · ${entry.valueLabel}`
+  })), "No encounter outcomes.");
+
+const renderDamageEntries = (
+  entries: readonly BalanceDashboardDamageEntry[]
+): HTMLElement =>
+  renderBalanceEntryList(entries, "No encounter damage.");
+
+const renderBalanceDashboard = (dashboard: BalanceDashboardViewModel): HTMLElement => {
+  const section = element("section", "content-workbench__report-band content-workbench__balance-dashboard");
+  section.dataset.testid = "workbench-balance-dashboard";
+  const healthCopy = dashboard.healthIssues.length === 0
+    ? "No balance health issues."
+    : dashboard.healthIssues.map((issue) => `${issue.severity}: ${issue.code}`).join(", ");
+
+  section.append(
+    appendChildren(element("div", "content-workbench__panel-heading"), [
+      element("h3", undefined, "Balance dashboard"),
+      element("span", undefined, `${dashboard.runtimeMetadata.packageName}@${dashboard.runtimeMetadata.packageVersion} · ${dashboard.contentVersion ?? "unknown content"}`)
+    ]),
+    appendChildren(element("div", "content-workbench__metrics"), dashboard.summary.map((summary) =>
+      metric(summary.label, summary.value)
+    )),
+    appendChildren(element("section", "content-workbench__balance-section"), [
+      element("h3", undefined, "Encounter outcomes"),
+      renderEncounterOutcomes(dashboard.sections.encounterOutcomes)
+    ]),
+    appendChildren(element("section", "content-workbench__balance-section"), [
+      element("h3", undefined, "Damage by encounter"),
+      renderDamageEntries(dashboard.sections.damageByEncounter)
+    ]),
+    appendChildren(element("section", "content-workbench__balance-section"), [
+      element("h3", undefined, "Reward pick rates"),
+      renderBalanceEntryList(dashboard.sections.rewardPickRates, "No reward pick rates.")
+    ]),
+    appendChildren(element("section", "content-workbench__balance-section"), [
+      element("h3", undefined, "Monster ability frequency"),
+      renderBalanceEntryList(dashboard.sections.monsterAbilityFrequency, "No monster abilities.")
+    ]),
+    appendChildren(element("section", "content-workbench__balance-section"), [
+      element("h3", undefined, "Run paths"),
+      renderBalanceEntryList(dashboard.sections.runPaths, "No run paths.")
+    ]),
+    appendChildren(element("section", "content-workbench__balance-section"), [
+      element("h3", undefined, "Health issues"),
+      element("p", undefined, healthCopy)
+    ])
+  );
+
+  return section;
+};
+
+const renderReportsPanel = (
+  viewModel: ContentWorkbenchViewModel,
+  balanceDashboard: BalanceDashboardViewModel
+): HTMLElement => {
   const content = viewModel.reports.content;
   const level = viewModel.reports.levelAuthoring;
   const panel = element("div", "content-workbench__tab-panel");
 
   panel.append(
+    renderBalanceDashboard(balanceDashboard),
     appendChildren(element("div", "content-workbench__metrics"), [
       metric("Cards", content.counts.cards),
       metric("Monsters", content.counts.monsters),
@@ -333,6 +444,7 @@ const renderJsonPanel = (selectedItem: WorkbenchItem | undefined): HTMLElement =
 
 export const renderContentWorkbench = (mount: HTMLElement): void => {
   const viewModel = createContentWorkbenchModel();
+  const balanceDashboard = createWorkbenchBalanceDashboard();
   const collections = createWorkbenchCollections(viewModel);
   const firstCollection = collections[0];
   const state: {
@@ -484,7 +596,7 @@ export const renderContentWorkbench = (mount: HTMLElement): void => {
       ? renderJsonPanel(selectedItem)
       : state.tab === "diagnostics"
         ? renderDiagnosticsPanel(viewModel)
-        : renderReportsPanel(viewModel);
+        : renderReportsPanel(viewModel, balanceDashboard);
 
     detail.append(detailTitle, detailMeta, tabs, panel);
 

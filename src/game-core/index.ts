@@ -56,6 +56,7 @@ export * from "./systems/validation";
 export * from "./testing/action-space";
 export * from "./testing/agent-actions";
 export * from "./testing/analysis";
+export * from "./testing/balance-dashboard";
 export * from "./testing/content-dependencies";
 export * from "./testing/content-report";
 export * from "./testing/invariants";

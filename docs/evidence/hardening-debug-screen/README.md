@@ -202,3 +202,21 @@ Browser proof:
 Reviewer follow-up:
 
 - The controlled multi-pet proof does not change starter production content. It uses an explicit proof registry and two Ember Fox pet instances to verify two active slots across run creation, combat creation, pet-command routing, save/load restore, agent-driver simulation entry, combat/debug view models, and development-only browser preview.
+
+## Phase 13 - Balance Dashboard and Report UX
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `phase13-test-bundle.txt` records focused balance dashboard, simulation analysis, CLI report parity, content workbench UI, core workbench, and app-entry verification, plus `npm run typecheck`, `npm run build`, `npm run build:cli`, `npm test`, and `npm run smoke:localhost` passing. The focused run covered 6 files and 29 tests; the full test run covered 91 files and 726 tests.
+- `phase13-cli-simulation-bundle.txt` records the final CLI and simulation bundle passing: `npm run game:cli -- --help`, `npm run game:cli -- --version`, source and built CLI auto JSON runs, simulation version, simulation smoke analysis, replay of `tests/game-core/traces/smoke-complete.json`, `npm run sim:balance`, and `npm run sim:exhaustive-small`. The balance run covered 200 runs with no failures and no health issues; exhaustive-small covered 1000 runs with no failures.
+
+Browser proof:
+
+- `phase13-balance-dashboard.png` - local content workbench reports tab at `?workbench=content&phase13=balance-dashboard`, showing the balance dashboard with completion metrics, encounter outcomes, encounter damage, reward pick rates, monster ability frequency, run paths, and health issues.
+- `phase13-browser-console-warnings.txt` - Playwright console collection for the Phase 13 browser path, with zero errors and zero warnings.
+
+Reviewer follow-up:
+
+- The dashboard reads a `SimulationAggregateReport` through a core balance-dashboard view model and does not run simulation logic inside rendering helpers. The content workbench creates one deterministic local sample for the reports tab, the CLI/dashboard parity test keeps reward and monster-ability summaries aligned with existing report formatting, and the UI remains read-only without direct gameplay resolver calls.

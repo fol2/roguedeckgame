@@ -1,0 +1,71 @@
+Phase 13 repository hygiene
+Date: 2026-05-27
+
+$ git diff --check
+
+Exit code: 0
+
+$ git diff --cached --check
+
+Exit code: 0
+
+$ rg -n phaser src/game-core
+
+No matches.
+Exit code: 0
+
+$ rg gameplay resolver names in src/app/content-workbench.ts
+
+No matches.
+Exit code: 0
+
+$ git diff --cached --name-only
+
+docs/evidence/hardening-debug-screen/README.md
+docs/evidence/hardening-debug-screen/phase13-balance-dashboard.png
+docs/evidence/hardening-debug-screen/phase13-browser-console-warnings.txt
+docs/evidence/hardening-debug-screen/phase13-cli-simulation-bundle.txt
+docs/evidence/hardening-debug-screen/phase13-repository-hygiene.txt
+docs/evidence/hardening-debug-screen/phase13-test-bundle.txt
+src/app/content-workbench.ts
+src/app/styles.css
+src/game-core/index.ts
+src/game-core/testing/balance-dashboard.ts
+tests/game-cli/report-format.test.ts
+tests/game-core/balance-dashboard.test.ts
+tests/game-phaser/content-workbench-ui.test.ts
+Exit code: 0
+
+$ git ls-files --eol selected Phase 13 text files
+
+i/lf    w/lf    attr/text eol=lf      	docs/evidence/hardening-debug-screen/README.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase13-browser-console-warnings.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase13-cli-simulation-bundle.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase13-repository-hygiene.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase13-test-bundle.txt
+i/lf    w/lf    attr/text eol=lf      	src/app/content-workbench.ts
+i/lf    w/lf    attr/text eol=lf      	src/app/styles.css
+i/lf    w/lf    attr/text eol=lf      	src/game-core/index.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-core/testing/balance-dashboard.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-cli/report-format.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-core/balance-dashboard.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/content-workbench-ui.test.ts
+Exit code: 0
+
+$ git status --short --branch
+
+## feat/hardening-debug-screen
+M  docs/evidence/hardening-debug-screen/README.md
+A  docs/evidence/hardening-debug-screen/phase13-balance-dashboard.png
+A  docs/evidence/hardening-debug-screen/phase13-browser-console-warnings.txt
+A  docs/evidence/hardening-debug-screen/phase13-cli-simulation-bundle.txt
+A  docs/evidence/hardening-debug-screen/phase13-repository-hygiene.txt
+A  docs/evidence/hardening-debug-screen/phase13-test-bundle.txt
+M  src/app/content-workbench.ts
+M  src/app/styles.css
+M  src/game-core/index.ts
+A  src/game-core/testing/balance-dashboard.ts
+M  tests/game-cli/report-format.test.ts
+A  tests/game-core/balance-dashboard.test.ts
+M  tests/game-phaser/content-workbench-ui.test.ts
+Exit code: 0

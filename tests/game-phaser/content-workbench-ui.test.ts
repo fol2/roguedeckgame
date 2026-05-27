@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   createContentWorkbenchModel,
+  createWorkbenchBalanceDashboard,
   createWorkbenchCollections,
   filterWorkbenchItems,
   formatWorkbenchJson,
@@ -182,6 +183,23 @@ describe("content workbench UI", () => {
     expect(summary.unusedCardCount).toBeGreaterThanOrEqual(0);
   });
 
+  it("builds the balance dashboard from simulation aggregate data", () => {
+    const dashboard = createWorkbenchBalanceDashboard();
+
+    expect(dashboard.runtimeMetadata.packageName).toBe("roguedeckgame");
+    expect(dashboard.contentVersion).toBe("starter-act1-forest-v1");
+    expect(dashboard.summary.map((metric) => metric.label)).toEqual(expect.arrayContaining([
+      "Runs",
+      "Completion rate",
+      "Damage to player",
+      "Damage to monsters"
+    ]));
+    expect(dashboard.sections.encounterOutcomes.length).toBeGreaterThan(0);
+    expect(dashboard.sections.rewardPickRates.length).toBeGreaterThan(0);
+    expect(dashboard.sections.monsterAbilityFrequency.length).toBeGreaterThan(0);
+    expect(dashboard.sections.runPaths.length).toBeGreaterThan(0);
+  });
+
   it("renders collection switches, filters, tabs, and empty states through DOM events", () => {
     const restoreDocument = installFakeDocument();
     const mount = new FakeElement("div");
@@ -211,6 +229,13 @@ describe("content workbench UI", () => {
       expect(mount.textContent).toContain("No dependency issues.");
 
       findByTestId(mount, "workbench-tab-reports").click();
+      expect(findByTestId(mount, "workbench-balance-dashboard").textContent).toContain("Balance dashboard");
+      expect(mount.textContent).toContain("Completion rate");
+      expect(mount.textContent).toContain("Encounter outcomes");
+      expect(mount.textContent).toContain("Damage to player");
+      expect(mount.textContent).toContain("Health issues");
+      expect(mount.textContent).toContain("Reward pick rates");
+      expect(mount.textContent).toContain("Monster ability frequency");
       expect(mount.textContent).toContain("Content report");
       expect(mount.textContent).toContain("Level authoring report");
 
