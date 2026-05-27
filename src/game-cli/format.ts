@@ -1,5 +1,6 @@
 import type { AgentAction, AgentRunDriverSnapshot } from "../game-core/testing/agent-actions";
 import { starterRegistry } from "../game-core/data/registry";
+import { currentRuntimeMetadata, type RuntimeMetadata } from "../game-core";
 
 export type StateSummary = {
   readonly runStatus: string;
@@ -29,6 +30,15 @@ export type StateSummary = {
   }[];
   readonly rewards: readonly unknown[];
 };
+
+export const formatRuntimeMetadata = (metadata: RuntimeMetadata = currentRuntimeMetadata): string => [
+  `Package: ${metadata.packageName}@${metadata.packageVersion}`,
+  `Content version: ${metadata.contentVersion}`,
+  `Registry fingerprint: ${metadata.registryFingerprint}`,
+  `Event schema: ${metadata.gameEventSchemaVersion}`,
+  `Trace schema: ${metadata.traceSchemaVersion}`,
+  `Save schema: ${metadata.saveSchemaVersion}`
+].join("\n");
 
 export const actionLabel = (action: AgentAction): string => {
   if (action.type === "selectMapNode") {
@@ -124,6 +134,7 @@ export const formatJsonState = (
 ): string => JSON.stringify({
   type,
   ok,
+  runtimeMetadata: currentRuntimeMetadata,
   stateSummary: createStateSummary(snapshot),
   legalActions,
   events,

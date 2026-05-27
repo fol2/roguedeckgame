@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { parseSimulationCliOptions } from "./parse";
+import { formatRuntimeMetadata } from "./format";
 import { formatCountSummary, formatRateSummary } from "./report-format";
 import {
   runBoundedExhaustiveSimulation,
@@ -19,12 +20,14 @@ import {
 } from "../game-core/testing/analysis";
 import { act1NormalBalance } from "../game-core/data/balance/act1-normal";
 import { starterRegistry } from "../game-core/data/registry";
+import { currentRuntimeMetadata } from "../game-core/data/runtime-metadata";
 import { buildContentDependencyReport, formatContentDependencyIssue } from "../game-core/testing/content-dependencies";
 import { buildLevelSimulationAuthoringSummary } from "../game-core/testing/level-authoring-report";
 
 const modeLabel = (mode: SimulationResult["mode"]): string => mode === "exhaustive-small" ? "exhaustive-small" : mode;
 
 const printResult = (result: SimulationResult): void => {
+  console.log(formatRuntimeMetadata(result.runtimeMetadata));
   console.log(`Simulation mode: ${modeLabel(result.mode)}`);
   console.log(`Seed prefix: ${result.seed}`);
   console.log(`Runs: ${result.traces.length}`);
@@ -114,6 +117,10 @@ const printAnalysis = (
 
 const main = () => {
   const options = parseSimulationCliOptions(process.argv.slice(2));
+  if (options.version) {
+    console.log(JSON.stringify({ type: "version", runtimeMetadata: currentRuntimeMetadata }, null, 2));
+    return;
+  }
   const runs = options.strictBalance && options.mode === "fuzz"
     ? options.runs ?? act1NormalBalance.targets.normalSampleRuns
     : options.runs;

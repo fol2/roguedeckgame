@@ -14,6 +14,8 @@ import {
   type AgentTraceStep
 } from "./trace";
 import { getLegalAgentActions } from "./action-space";
+import { currentRuntimeMetadata } from "../data/runtime-metadata";
+import type { RuntimeMetadata } from "../model/runtime-metadata";
 
 export type SimulationMode = "smoke" | "fuzz" | "exhaustive-small" | "replay";
 
@@ -30,6 +32,7 @@ export type SimulationConfig = {
 
 export type SimulationResult = {
   readonly ok: boolean;
+  readonly runtimeMetadata: RuntimeMetadata;
   readonly mode: SimulationMode;
   readonly seed: string | number;
   readonly runsCompleted: number;
@@ -194,6 +197,7 @@ const normaliseSmokeResult = (seed: string | number, traces: readonly AgentTrace
   const allFailures = [...failures, ...syntheticFailure];
   return {
     ok: allFailures.length === 0,
+    runtimeMetadata: currentRuntimeMetadata,
     mode: "smoke",
     seed,
     runsCompleted: traces.filter((trace) => trace.finalStatus === "completed").length,
@@ -239,6 +243,7 @@ export const runFuzzSimulation = (
   const failures = traces.filter((trace) => trace.failure);
   return {
     ok: failures.length === 0,
+    runtimeMetadata: currentRuntimeMetadata,
     mode: "fuzz",
     seed: seedPrefix,
     runsCompleted: traces.filter((trace) => trace.finalStatus === "completed").length,
@@ -316,6 +321,7 @@ export const runBoundedExhaustiveSimulation = (
 
   return {
     ok: failures.length === 0,
+    runtimeMetadata: currentRuntimeMetadata,
     mode: "exhaustive-small",
     seed,
     runsCompleted: traces.filter((trace) => trace.finalStatus === "completed").length,
@@ -333,7 +339,7 @@ export const runReplaySimulation = (
       code: "missing_trace",
       message: "Replay mode requires a trace."
     });
-    return { ok: false, mode: "replay", seed: config.seed, runsCompleted: 0, traces: [failure], failures: [failure] };
+    return { ok: false, runtimeMetadata: currentRuntimeMetadata, mode: "replay", seed: config.seed, runsCompleted: 0, traces: [failure], failures: [failure] };
   }
 
   const replay = replayAgentTrace(config.trace);
@@ -342,6 +348,7 @@ export const runReplaySimulation = (
     : { ...config.trace, failure: replay.failure ?? { step: 0, code: "replay_failed", message: "Replay failed." } };
   return {
     ok: replay.ok,
+    runtimeMetadata: currentRuntimeMetadata,
     mode: "replay",
     seed: config.seed,
     runsCompleted: replay.finalStatus === "completed" ? 1 : 0,

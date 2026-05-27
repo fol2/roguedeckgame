@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { parseSimulationCliOptions } from "../../src/game-cli/parse";
+import { parseCliOptions, parseSimulationCliOptions } from "../../src/game-cli/parse";
 
 const envKeys = [
   "npm_config_invalid_action_rate",
@@ -21,6 +21,15 @@ afterEach(() => {
 });
 
 describe("simulation CLI parsing", () => {
+  it("parses game CLI version requests without changing gameplay options", () => {
+    const options = parseCliOptions(["--version"]);
+
+    expect(options.version).toBe(true);
+    expect(options.seed).toBe("cli-dev");
+    expect(options.auto).toBe(false);
+    expect(options.json).toBe(false);
+  });
+
   it("keeps npm script numeric flags bound to their own option names", () => {
     process.env.npm_config_invalid_action_rate = "true";
     process.env.npm_config_completion_rate_min = "true";
@@ -54,5 +63,12 @@ describe("simulation CLI parsing", () => {
 
     expect(options.invalidActionRate).toBe(0);
     expect(options.completionRateMin).toBe(0.99);
+  });
+
+  it("parses simulation version requests before running simulations", () => {
+    const options = parseSimulationCliOptions(["--version"]);
+
+    expect(options.version).toBe(true);
+    expect(options.mode).toBe("smoke");
   });
 });

@@ -4,16 +4,21 @@ import type { AgentAction } from "../game-core/testing/agent-actions";
 import { checkAgentRunInvariants } from "../game-core/testing/invariants";
 import { deterministicSmokePolicy } from "../game-core/testing/policies";
 import { parseCliOptions, parseJsonLineAction } from "./parse";
-import { actionLabel, formatHumanState, formatJsonState } from "./format";
+import { actionLabel, formatHumanState, formatJsonState, formatRuntimeMetadata } from "./format";
+import { currentRuntimeMetadata } from "../game-core";
 
 const helpText = `Pet Roguelite CLI
 
 Usage:
-  npm run game:cli -- --help
-  npm run game:cli -- --seed cli-dev
-  npm run game:cli -- --seed cli-dev --auto
-  npm run game:cli -- --seed cli-dev --json
-  npm run game:cli -- --seed cli-dev --json --auto
+  npm run game:help
+  npm run game:version
+  npm run game:auto
+  npm run game:auto:json
+  node scripts/run-cli-entry.mjs game-cli --seed cli-dev
+  node scripts/run-cli-entry.mjs game-cli --seed cli-dev --json
+
+Runtime provenance:
+${formatRuntimeMetadata()}
 `;
 
 const selectHumanAction = (input: string, legalActions: readonly AgentAction[]): AgentAction | "quit" | "help" | undefined => {
@@ -47,26 +52,26 @@ const runAuto = (seed: string | number, json: boolean, maxSteps: number): number
     invariantChecks += 1;
     if (!invariants.ok) {
       if (json) {
-        console.log(JSON.stringify({ type: "result", ok: false, seed, step, invariantIssues: invariants.issues }));
+        console.log(JSON.stringify({ type: "result", ok: false, runtimeMetadata: currentRuntimeMetadata, seed, step, invariantIssues: invariants.issues }));
       } else {
-        console.log(`Seed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${step}\nInvariant checks: failed\nTrace: not saved`);
+        console.log(`${formatRuntimeMetadata()}\nSeed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${step}\nInvariant checks: failed\nTrace: not saved`);
       }
       return 1;
     }
     if (snapshot.run.status === "completed" || snapshot.run.status === "lost") {
       if (json) {
-        console.log(JSON.stringify({ type: "result", ok: true, seed, finalStatus: snapshot.run.status, steps: step, invariantChecks, trace: "not saved" }));
+        console.log(JSON.stringify({ type: "result", ok: true, runtimeMetadata: currentRuntimeMetadata, seed, finalStatus: snapshot.run.status, steps: step, invariantChecks, trace: "not saved" }));
       } else {
-        console.log(`Seed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${step}\nInvariant checks: passed\nTrace: not saved`);
+        console.log(`${formatRuntimeMetadata()}\nSeed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${step}\nInvariant checks: passed\nTrace: not saved`);
       }
       return 0;
     }
     const action = deterministicSmokePolicy(snapshot);
     if (!action) {
       if (json) {
-        console.log(JSON.stringify({ type: "result", ok: false, seed, finalStatus: snapshot.run.status, steps: step, error: "no action available" }));
+        console.log(JSON.stringify({ type: "result", ok: false, runtimeMetadata: currentRuntimeMetadata, seed, finalStatus: snapshot.run.status, steps: step, error: "no action available" }));
       } else {
-        console.log(`Seed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${step}\nInvariant checks: failed\nTrace: not saved`);
+        console.log(`${formatRuntimeMetadata()}\nSeed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${step}\nInvariant checks: failed\nTrace: not saved`);
       }
       return 1;
     }
@@ -75,9 +80,9 @@ const runAuto = (seed: string | number, json: boolean, maxSteps: number): number
 
   const snapshot = driver.getSnapshot();
   if (json) {
-    console.log(JSON.stringify({ type: "result", ok: false, seed, finalStatus: snapshot.run.status, steps: maxSteps, error: "max steps exceeded" }));
+    console.log(JSON.stringify({ type: "result", ok: false, runtimeMetadata: currentRuntimeMetadata, seed, finalStatus: snapshot.run.status, steps: maxSteps, error: "max steps exceeded" }));
   } else {
-    console.log(`Seed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${maxSteps}\nInvariant checks: failed\nTrace: not saved`);
+    console.log(`${formatRuntimeMetadata()}\nSeed: ${seed}\nFinal status: ${snapshot.run.status}\nSteps: ${maxSteps}\nInvariant checks: failed\nTrace: not saved`);
   }
   return 1;
 };
@@ -135,6 +140,10 @@ const main = () => {
   const options = parseCliOptions(process.argv.slice(2));
   if (options.help) {
     console.log(helpText);
+    return;
+  }
+  if (options.version) {
+    console.log(JSON.stringify({ type: "version", runtimeMetadata: currentRuntimeMetadata }, null, 2));
     return;
   }
   if (options.auto) {

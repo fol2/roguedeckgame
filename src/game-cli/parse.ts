@@ -2,6 +2,7 @@ import type { AgentAction } from "../game-core/testing/agent-actions";
 
 export type CliOptions = {
   readonly help: boolean;
+  readonly version: boolean;
   readonly seed: string | number;
   readonly json: boolean;
   readonly auto: boolean;
@@ -10,6 +11,7 @@ export type CliOptions = {
 
 export type SimulationCliOptions = {
   readonly mode: "smoke" | "fuzz" | "exhaustive-small" | "replay";
+  readonly version: boolean;
   readonly seed: string | number;
   readonly runs?: number;
   readonly maxSteps?: number;
@@ -56,6 +58,7 @@ export const parseCliOptions = (args: readonly string[]): CliOptions => {
 
   return {
     help: args.includes("--help") || args.includes("-h") || process.env.npm_config_help === "true",
+    version: args.includes("--version") || process.env.npm_config_version === "true",
     seed,
     json: args.includes("--json") || process.env.npm_config_json === "true",
     auto: args.includes("--auto") || process.env.npm_config_auto === "true",
@@ -145,6 +148,7 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
 
   return {
     mode,
+    version: args.includes("--version") || process.env.npm_config_version === "true",
     seed,
     runs: Number.isFinite(runs) ? runs : undefined,
     maxSteps: Number.isFinite(maxSteps) ? maxSteps : undefined,

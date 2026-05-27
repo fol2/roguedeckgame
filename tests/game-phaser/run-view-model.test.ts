@@ -9,6 +9,7 @@ import {
   runTemplateId,
   type RunState
 } from "../../src/game-core";
+import { currentRuntimeMetadata } from "../../src/game-core";
 import { buildRunViewModel } from "../../src/game-phaser/view-models/run-view-model";
 
 const createRun = (): RunState => ({
@@ -60,6 +61,7 @@ describe("Run view model", () => {
     expect(viewModel.currentNodeId).toBe("node-a");
     expect(viewModel.nodes.map((node) => node.status)).toEqual(["active", "locked"]);
     expect(viewModel.eventMessages).toEqual(["Node selected: node-a"]);
+    expect(viewModel.runtimeMetadata).toEqual(currentRuntimeMetadata);
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
   });
 

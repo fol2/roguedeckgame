@@ -1,18 +1,18 @@
 import type { GameActionError } from "../model/action";
 import {
   GAME_EVENT_LEGACY_SCHEMA_VERSION,
-  GAME_EVENT_SCHEMA_VERSION,
   projectGameEventsForSchema,
   type GameEvent,
   type GameEventSchemaVersion
 } from "../model/event";
+import { TRACE_SCHEMA_VERSION } from "../model/runtime-metadata";
 import type { RunStatus } from "../model/run";
 import { createAgentRunDriver } from "./run-driver";
 import type { AgentAction, AgentActionSource, AgentRunDriverConfig, AgentTraceMode } from "./agent-actions";
 import { checkAgentRunInvariants, type InvariantIssue } from "./invariants";
 import { createAgentStateHash } from "./state-hash";
 
-export const AGENT_TRACE_SCHEMA_VERSION = GAME_EVENT_SCHEMA_VERSION;
+export const AGENT_TRACE_SCHEMA_VERSION = TRACE_SCHEMA_VERSION;
 export const AGENT_TRACE_LEGACY_SCHEMA_VERSION = GAME_EVENT_LEGACY_SCHEMA_VERSION;
 
 export type AgentTraceSchemaVersion = GameEventSchemaVersion;

@@ -7,7 +7,9 @@ import {
   type RunNodeStatus,
   type RunNodeType,
   type RunState,
-  type RunStatus
+  type RunStatus,
+  type RuntimeMetadata,
+  createRuntimeMetadata
 } from "../../game-core";
 import { formatRunEventMessage } from "../animation/run-event-messages";
 
@@ -31,6 +33,7 @@ export type RunViewModel = {
   readonly currentNodeType?: RunNodeType;
   readonly resetAvailable: boolean;
   readonly eventMessages: readonly string[];
+  readonly runtimeMetadata: RuntimeMetadata;
 };
 
 const nodeTypeLabel = (type: RunNodeType): string => {
@@ -72,6 +75,7 @@ export const buildRunViewModel = (
     currentNodeId: run.map?.currentNodeId,
     currentNodeType: currentNode?.type,
     resetAvailable: run.status === "completed" || run.status === "lost",
-    eventMessages: events.map(formatRunEventMessage)
+    eventMessages: events.map(formatRunEventMessage),
+    runtimeMetadata: createRuntimeMetadata(_registry)
   };
 };
