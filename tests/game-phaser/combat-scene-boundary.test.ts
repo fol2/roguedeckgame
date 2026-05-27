@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const scenePath = join(root, "src/game-phaser/scenes/CombatScene.ts");
+const orchestratorPath = join(root, "src/game-phaser/interaction/combat-scene-orchestrator.ts");
+const requestTrackerPath = join(root, "src/game-phaser/interaction/combat-ui-requests.ts");
+const keyboardInputPath = join(root, "src/game-phaser/interaction/combat-keyboard-input.ts");
 const presentersRoot = join(root, "src/game-phaser/presenters");
 const contractRoot = join(root, "docs/contracts/p2/16-roguedeckgame-e38efe7add57");
 
@@ -12,6 +15,9 @@ const normaliseLineEndings = (source: string): string => source.replace(/\r\n/g,
 
 const readSource = async (path: string): Promise<string> =>
   normaliseLineEndings(await readFile(path, "utf8"));
+
+const readCombatSceneSource = async (): Promise<string> =>
+  `${await readSource(scenePath)}\n${await readSource(orchestratorPath)}`;
 
 const forbiddenResolverIdentifiers = [
   "resolveEnemyTurn",
@@ -68,7 +74,8 @@ const readPngDimensions = async (path: string): Promise<{ readonly width: number
 describe("Combat scene boundary", () => {
   it("creates CombatScene and imports the controller, presenters, and event player", async () => {
     expect((await stat(scenePath)).isFile()).toBe(true);
-    const source = await readSource(scenePath);
+    expect((await stat(orchestratorPath)).isFile()).toBe(true);
+    const source = await readCombatSceneSource();
     const bootSource = await readSource(join(root, "src/game-phaser/scenes/BootScene.ts"));
 
     expect(source).toMatch(/RunSandboxController/);
@@ -87,8 +94,16 @@ describe("Combat scene boundary", () => {
     expect(bootSource).not.toMatch(/selectMapNode/);
   });
 
+  it("keeps CombatScene as a thin Phaser entrypoint after Pass 1 decomposition", async () => {
+    const sceneSource = await readSource(scenePath);
+
+    expect(sceneSource.split("\n").length).toBeLessThan(700);
+    expect(sceneSource).toMatch(/CombatSceneOrchestrator/);
+    expect(sceneSource).not.toMatch(/handleKeyboardInput|submitAction|renderCurrentState/);
+  });
+
   it("keeps CombatScene free from direct game-core resolver identifiers", async () => {
-    const source = await readSource(scenePath);
+    const source = await readCombatSceneSource();
     const identifiers = collectIdentifiers(scenePath, source);
     const forbidden = forbiddenResolverIdentifiers.filter((identifier) => identifiers.has(identifier));
 
@@ -109,7 +124,7 @@ describe("Combat scene boundary", () => {
   });
 
   it("uses layout helpers from the scene and presenters", async () => {
-    const sceneSource = await readSource(scenePath);
+    const sceneSource = await readCombatSceneSource();
     const cardPresenter = await readSource(join(presentersRoot, "CardPresenter.ts"));
     const petPresenter = await readSource(join(presentersRoot, "PetPresenter.ts"));
     const monsterPresenter = await readSource(join(presentersRoot, "MonsterPresenter.ts"));
@@ -121,7 +136,7 @@ describe("Combat scene boundary", () => {
   });
 
   it("avoids hard-coded coordinate clusters in CombatScene", async () => {
-    const source = await readSource(scenePath);
+    const source = await readCombatSceneSource();
 
     expect(source).not.toMatch(/\b(1280|720|640|360|5173)\b/);
   });
@@ -139,7 +154,7 @@ describe("Combat scene boundary", () => {
   });
 
   it("returns immediately after completed combat scene routing", async () => {
-    const source = await readSource(scenePath);
+    const source = await readCombatSceneSource();
 
     expect(source).toMatch(/if \(runStatus === "reward"\) \{\n\s+this\.scene\.start\(SceneKeys\.Reward\);\n\s+return;\n\s+\}/);
     expect(source).toMatch(/else if \(runStatus === "map_select"\) \{\n\s+this\.scene\.start\(SceneKeys\.Map\);\n\s+return;\n\s+\}/);
@@ -147,50 +162,59 @@ describe("Combat scene boundary", () => {
   });
 
   it("resets the input lock before scene reuse", async () => {
-    const source = await readSource(scenePath);
+    const source = await readCombatSceneSource();
 
-    expect(source).toMatch(/public create\(\): void \{\n\s+this\.inputLocked = false;/);
+    expect(source).toMatch(/public create\(\): void \{\n\s+this\.submitting = false;\n\s+this\.playbackLocked = false;/);
   });
 
   it("keeps the combat continue button available after cards lock on combat end", async () => {
-    const source = await readSource(scenePath);
+    const source = await readCombatSceneSource();
 
-    expect(source).toMatch(/const systemControlsLocked = this\.inputLocked \|\| this\.isModalOpen\(\) \|\| !this\.browserFocused;/);
-    expect(source).toMatch(/const cardControlsLocked = systemControlsLocked \|\| combatEnded;/);
+    expect(source).toMatch(/const systemControlsLocked = this\.isSceneControlLocked\(\);/);
+    expect(source).toMatch(/const cardControlsLocked = this\.isGameplayInputLocked\(\) \|\| combatEnded;/);
     expect(source).toMatch(/const continueVisible = viewModel\.continueAvailable && !systemControlsLocked;/);
   });
 
   it("carries combat revisions and locks input before gameplay actions are submitted", async () => {
-    const source = await readSource(scenePath);
+    const source = await readCombatSceneSource();
+    const requestSource = await readSource(requestTrackerPath);
 
     expect(source).toMatch(/selectedCardRevision/);
-    expect(source).toMatch(/pendingRequestId/);
-    expect(source).toMatch(/lastSubmittedRequestId/);
-    expect(source).toMatch(/lastSubmittedExpectedRevision/);
-    expect(source).toMatch(/lastActionRejection/);
+    expect(requestSource).toMatch(/pendingRequestId/);
+    expect(requestSource).toMatch(/lastSubmittedRequestId/);
+    expect(requestSource).toMatch(/lastSubmittedExpectedRevision/);
+    expect(requestSource).toMatch(/lastActionRejection/);
     expect(source).toMatch(/resolveCombatInputLockState/);
+    expect(source).toMatch(/submitting: this\.submitting/);
+    expect(source).toMatch(/playbackLocked: this\.playbackLocked/);
+    expect(source).toMatch(/detailOpen: this\.detailPanel !== undefined/);
+    expect(source).toMatch(/pauseOpen: this\.pauseOpen/);
     expect(source).toMatch(/playHandCard\(cardInstanceId, undefined, viewModel\.revision, requestId\)/);
     expect(source).toMatch(/playHandCard\(selectedCardId, monsterId, selectedRevision, requestId\)/);
     expect(source).toMatch(/endTurn\(viewModel\?\.revision, requestId\)/);
-    expect(source).toMatch(/beginCombatActionSubmission/);
-    expect(source).toMatch(/snapshot: this\.getActionSubmissionSnapshot\(\)/);
-    expect(source).toMatch(/this\.applyActionSubmissionSnapshot\(submission\.snapshot\)/);
+    expect(requestSource).toMatch(/beginCombatActionSubmission/);
+    expect(requestSource).toMatch(/snapshot: this\.getSnapshot\(\)/);
+    expect(requestSource).toMatch(/this\.applySnapshot\(submission\.snapshot\)/);
     expect(source).toMatch(/if \(submission\.status === "blocked"\)/);
+    const lockApplied = source.indexOf("this.submitting = true;");
+    const submissionStart = source.indexOf("const submission = this.requestTracker.beginCombatAction");
+    expect(lockApplied).toBeGreaterThanOrEqual(0);
+    expect(submissionStart).toBeGreaterThan(lockApplied);
+    const beforeSubmission = source.slice(lockApplied, submissionStart);
+    expect(beforeSubmission).toMatch(/this\.submitting = true;/);
+    expect(beforeSubmission).toMatch(/this\.clearTooltip\(\);/);
+    expect(beforeSubmission).toMatch(/this\.cardPresenter\?\.setLocked\(true\);/);
     const acceptedSubmissionStart = source.indexOf("const requestId = submission.requestId;");
     const resultRead = source.indexOf("const result = submission.result;", acceptedSubmissionStart);
     expect(acceptedSubmissionStart).toBeGreaterThanOrEqual(0);
     expect(resultRead).toBeGreaterThan(acceptedSubmissionStart);
-    const beforeResultRead = source.slice(acceptedSubmissionStart, resultRead);
-    expect(beforeResultRead).toMatch(/this\.inputLocked = true;/);
-    expect(beforeResultRead).toMatch(/this\.clearTooltip\(\);/);
-    expect(beforeResultRead).toMatch(/this\.cardPresenter\?\.setLocked\(true\);/);
-    expect(beforeResultRead).not.toMatch(/this\.renderCurrentState\(false\);/);
+    expect(source.slice(acceptedSubmissionStart, resultRead)).not.toMatch(/this\.renderCurrentState\(false\);/);
     expect(source).toMatch(/if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+this\.playbackFinalViewModel = this\.sandbox\?\.getCombatViewModel\(\);\n\s+\} else \{\n\s+this\.setFeedback\(result\.errors\[0\]\?\.message \?\? "Action was rejected\."\);\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.renderCurrentState\(false\);\n\s+\}/);
-    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.debugDragState = "idle";\n\s+if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
+    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.debugDragState = "idle";\n\s+if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+this\.requestTracker\.clearPendingIf\(requestId\);/);
   });
 
   it("drives actual card movement from combat event playback", async () => {
-    const sceneSource = await readSource(scenePath);
+    const sceneSource = await readCombatSceneSource();
     const cardPresenter = await readSource(join(presentersRoot, "CardPresenter.ts"));
     const eventPlayer = await readSource(join(root, "src/game-phaser/animation/CombatEventPlayer.ts"));
 
@@ -212,7 +236,8 @@ describe("Combat scene boundary", () => {
   });
 
   it("keeps targeting and keyboard interactions inside the Phaser scene only", async () => {
-    const source = await readSource(scenePath);
+    const source = await readCombatSceneSource();
+    const keyboardInput = await readSource(keyboardInputPath);
     const cardPresenter = await readSource(join(presentersRoot, "CardPresenter.ts"));
     const monsterPresenter = await readSource(join(presentersRoot, "MonsterPresenter.ts"));
     const petPresenter = await readSource(join(presentersRoot, "PetPresenter.ts"));
@@ -220,11 +245,12 @@ describe("Combat scene boundary", () => {
     const hudPresenter = await readSource(join(presentersRoot, "CombatHudPresenter.ts"));
 
     expect(source).toMatch(/handleKeyboardInput/);
-    expect(source).toMatch(/event\.key === "Escape"/);
-    expect(source).toMatch(/event\.key === " " \|\| event\.key === "Spacebar"/);
-    expect(source).toMatch(/event\.key === "Tab"/);
-    expect(source).toMatch(/event\.key === "Enter"/);
-    expect(source).toMatch(/event\.key\.toLowerCase\(\) === "i"/);
+    expect(source).toMatch(/handleCombatKeyboardInput/);
+    expect(keyboardInput).toMatch(/event\.key === "Escape"/);
+    expect(keyboardInput).toMatch(/event\.key === " " \|\| event\.key === "Spacebar"/);
+    expect(keyboardInput).toMatch(/event\.key === "Tab"/);
+    expect(keyboardInput).toMatch(/event\.key === "Enter"/);
+    expect(keyboardInput).toMatch(/event\.key\.toLowerCase\(\) === "i"/);
     expect(source).toMatch(/selectedCardActive/);
     expect(source).toMatch(/validTargetIds/);
     expect(source).toMatch(/restoreSelectionAfterFailedSubmit/);
@@ -252,9 +278,11 @@ describe("Combat scene boundary", () => {
     expect(monsterPresenter).toMatch(/maxEnemyVisibleStatuses/);
     expect(monsterPresenter).toMatch(/hitZoneHeight/);
     expect(monsterPresenter).toMatch(/statusOverflowTooltip/);
-    expect(monsterPresenter).toMatch(/plannedAction\.title/);
     expect(monsterPresenter).toMatch(/plannedAction\.source/);
-    expect(monsterPresenter).toMatch(/plannedCard/);
+    expect(monsterPresenter).toMatch(/intentGlyph/);
+    expect(monsterPresenter).toMatch(/focusedTargetId/);
+    expect(monsterPresenter).not.toMatch(/selectedTargetId/);
+    expect(monsterPresenter).not.toMatch(/String\(intent\.amount\)/);
     expect(monsterPresenter).not.toMatch(/More statuses/);
     expect(petPresenter).toMatch(/maxPetVisibleStatuses/);
     expect(petPresenter).toMatch(/pets\.slice\(0, PET_LAYOUT\.maxSlots\)/);
@@ -270,7 +298,8 @@ describe("Combat scene boundary", () => {
   });
 
   it("contains combat overlay and event playback failure-safety affordances", async () => {
-    const sceneSource = await readSource(scenePath);
+    const sceneSource = await readCombatSceneSource();
+    const keyboardInput = await readSource(keyboardInputPath);
     const overlayPresenter = await readSource(join(presentersRoot, "CombatOverlayPresenter.ts"));
     const eventPlayer = await readSource(join(root, "src/game-phaser/animation/CombatEventPlayer.ts"));
     const eventFxPresenter = await readSource(join(root, "src/game-phaser/animation/CombatEventFxPresenter.ts"));
@@ -283,13 +312,13 @@ describe("Combat scene boundary", () => {
     expect(sceneSource).toMatch(/combatDebug/);
     expect(sceneSource).toMatch(/isDebugOverlayAvailable/);
     expect(sceneSource).toMatch(/import\.meta\.env\.DEV/);
-    expect(sceneSource).toMatch(/this\.isDebugOverlayAvailable\(\) && \(event\.key === "`" \|\| event\.key === "F2"\)/);
+    expect(keyboardInput).toMatch(/context\.debugOverlayAvailable && \(event\.key === "`" \|\| event\.key === "F2"\)/);
     expect(sceneSource).toMatch(/copyDebugEventBatchJson/);
     expect(sceneSource).toMatch(/copyDebugTraceJson/);
-    expect(sceneSource).toMatch(/event\.key === "F7"/);
-    expect(sceneSource).toMatch(/event\.key === "F8"/);
-    expect(sceneSource).toMatch(/event\.key === "F7"[\s\S]*?event\.preventDefault\(\);[\s\S]*?copyDebugEventBatchJson/);
-    expect(sceneSource).toMatch(/event\.key === "F8"[\s\S]*?event\.preventDefault\(\);[\s\S]*?copyDebugTraceJson/);
+    expect(keyboardInput).toMatch(/event\.key === "F7"/);
+    expect(keyboardInput).toMatch(/event\.key === "F8"/);
+    expect(keyboardInput).toMatch(/event\.key === "F7"[\s\S]*?event\.preventDefault\(\);[\s\S]*?copyDebugEventBatchJson/);
+    expect(keyboardInput).toMatch(/event\.key === "F8"[\s\S]*?event\.preventDefault\(\);[\s\S]*?copyDebugTraceJson/);
     expect(sceneSource).toMatch(/navigator\.clipboard\.writeText/);
     expect(sceneSource).toMatch(/try \{[\s\S]*?navigator\.clipboard\.writeText\(payload\);[\s\S]*?\} catch \{[\s\S]*?console\.info\(payload\);[\s\S]*?\}/);
     expect(sceneSource).toMatch(/this\.sandbox\.getAgentTrace\(\)/);

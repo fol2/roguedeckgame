@@ -189,15 +189,15 @@ describe("combat presenter parity snapshots", () => {
     const created = (scene as unknown as { readonly created: readonly { readonly kind: string; readonly text?: string }[] }).created;
     expect(created).toContainEqual(expect.objectContaining({
       kind: "text",
-      text: "Clumsy Strike"
+      text: "attack"
     }));
     expect(created).toContainEqual(expect.objectContaining({
       kind: "text",
-      text: "ATK"
+      text: "INTENT"
     }));
   });
 
-  it("keeps long planned action titles inside the monster card label", () => {
+  it("keeps long intent labels inside the monster intent glyph", () => {
     const scene = createSceneStub();
     const presenter = new MonsterPresenter(scene);
     const viewModel = createCombatViewModel();
@@ -205,10 +205,7 @@ describe("combat presenter parity snapshots", () => {
 
     presenter.render(viewModel.monsters, [{
       ...monsterIntent,
-      plannedAction: {
-        ...monsterIntent.plannedAction,
-        title: "Very Long Monster Planned Action"
-      }
+      label: "Very Long Monster Intent Label"
     }]);
 
     const created = (scene as unknown as { readonly created: readonly { readonly kind: string; readonly text?: string }[] }).created;

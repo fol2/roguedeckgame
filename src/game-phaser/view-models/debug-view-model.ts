@@ -10,14 +10,17 @@ import type { CombatPlaybackObservation } from "../animation/combat-playback-pol
 import type { RunSandboxState } from "../controllers/RunSandboxController";
 import type { CombatParityDiagnostic } from "../debug/combat-parity";
 import type { CombatActionRejectionDiagnostic } from "../interaction/combat-action-submission";
-import type { CombatInputLockReason } from "../interaction/combat-interaction-state";
+import type { CombatInputLockReason } from "../interaction/combat-input-lock";
+import type { CombatPresentationMode } from "../interaction/combat-presentation-state";
 import type { CombatViewModel } from "./combat-view-model";
 
 export type DebugInputSnapshot = {
   readonly selectedCardId?: CardInstanceId;
   readonly selectedCardRevision?: number;
   readonly hoveredCardId?: CardInstanceId;
-  readonly keyboardTargetId?: CombatantId;
+  readonly focusedTargetId?: CombatantId;
+  readonly hoveredTargetId?: CombatantId;
+  readonly presentationMode?: CombatPresentationMode;
   readonly dragState: "idle" | "dragging";
   readonly inputLocked: boolean;
   readonly inputLockReason?: CombatInputLockReason;
