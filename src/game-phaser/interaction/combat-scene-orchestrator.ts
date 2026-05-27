@@ -45,6 +45,7 @@ import {
   setHoveredCombatTarget,
   type CombatInteractionState
 } from "./combat-interaction-state";
+import { resolveCombatCommandLineState } from "./combat-command-line-state";
 import { resolveCombatDropTarget, type DropPoint } from "./combat-drop-target-resolver";
 import {
   clearCombatOverlayTooltip,
@@ -70,11 +71,14 @@ import {
   COMBAT_TEXT,
   CONTINUE_BUTTON,
   ENCOUNTER_LABEL,
+  getMonsterPosition,
   MENU_BUTTON,
+  MONSTER_SLOT,
   OUTCOME_LABEL,
   RESET_RUN_BUTTON
 } from "../layout/combat-layout";
 import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
+import { GAME_HEIGHT, GAME_WIDTH } from "../layout/game-size";
 import { SceneKeys } from "../scenes/SceneKeys";
 
 export class CombatSceneOrchestrator extends Scene {
@@ -100,6 +104,8 @@ export class CombatSceneOrchestrator extends Scene {
   private selectedCardRevision?: number;
   private focusedTargetId?: CombatantId;
   private hoveredTargetId?: CombatantId;
+  private submittedTargetId?: CombatantId;
+  private impactTargetId?: CombatantId;
   private hoveredCardId?: CardInstanceId;
   private feedbackMessage = "";
   private presentationMode: CombatPresentationMode = "loading";
@@ -116,6 +122,7 @@ export class CombatSceneOrchestrator extends Scene {
   private debugDragState: DebugInputSnapshot["dragState"] = "idle";
   private parityDiagnostics: readonly CombatParityDiagnostic[] = [];
   private removeFocusHandlers?: () => void;
+  private removeNativeContextMenuInspection?: () => void;
   private playbackFinalViewModel?: CombatViewModel;
 
   public constructor() {
@@ -129,6 +136,8 @@ export class CombatSceneOrchestrator extends Scene {
     this.selectedCardRevision = undefined;
     this.focusedTargetId = undefined;
     this.hoveredTargetId = undefined;
+    this.submittedTargetId = undefined;
+    this.impactTargetId = undefined;
     this.hoveredCardId = undefined;
     this.applyInteractionState(createCombatInteractionState());
     this.feedbackMessage = "";
@@ -152,6 +161,7 @@ export class CombatSceneOrchestrator extends Scene {
     this.cameras.main.setBackgroundColor(COMBAT_BACKGROUND_COLOUR);
     this.input.mouse?.disableContextMenu();
     this.bindFocusAndResizeSafety();
+    this.bindNativeContextMenuInspection();
 
     const board = this.add.rectangle(COMBAT_BOARD.x, COMBAT_BOARD.y, COMBAT_BOARD.width, COMBAT_BOARD.height, 0x1b2230, 0.92)
       .setOrigin(0, 0)
@@ -188,6 +198,8 @@ export class CombatSceneOrchestrator extends Scene {
     this.eventFxPresenter = new CombatEventFxPresenter(this);
     this.eventPlayer = new CombatEventPlayer(this, this.eventLog, this.eventFxPresenter, (event) => {
       return this.playCardMovementForEvent(event);
+    }, (event) => {
+      this.handlePlaybackEventStarted(event);
     });
     this.playerPresenter = new PlayerPresenter(this);
     this.monsterPresenter = new MonsterPresenter(this, (monsterId) => {
@@ -560,6 +572,54 @@ export class CombatSceneOrchestrator extends Scene {
     });
   }
 
+  private bindNativeContextMenuInspection(): void {
+    this.removeNativeContextMenuInspection?.();
+
+    const canvas = this.game.canvas;
+    const handleContextMenu = (event: MouseEvent): void => {
+      const detail = this.getIntentDetailAtBrowserPoint(event);
+
+      if (!detail) {
+        return;
+      }
+
+      event.preventDefault();
+      this.openDetail(detail);
+    };
+
+    canvas.addEventListener("contextmenu", handleContextMenu);
+    this.removeNativeContextMenuInspection = () => {
+      canvas.removeEventListener("contextmenu", handleContextMenu);
+    };
+    this.events.once("shutdown", () => this.removeNativeContextMenuInspection?.());
+  }
+
+  private getIntentDetailAtBrowserPoint(event: MouseEvent): CombatDetailPanel | undefined {
+    const canvasBounds = this.game.canvas.getBoundingClientRect();
+    const stageX = ((event.clientX - canvasBounds.left) / canvasBounds.width) * GAME_WIDTH;
+    const stageY = ((event.clientY - canvasBounds.top) / canvasBounds.height) * GAME_HEIGHT;
+    const viewModel = this.sandbox?.getCombatViewModel();
+
+    if (!viewModel || this.isModalOpen()) {
+      return undefined;
+    }
+
+    for (let monsterIndex = 0; monsterIndex < viewModel.monsters.length; monsterIndex += 1) {
+      const monster = viewModel.monsters[monsterIndex];
+      const position = getMonsterPosition(monsterIndex, viewModel.monsters.length);
+      const radiusX = MONSTER_SLOT.intentTokenWidth / 2;
+      const radiusY = MONSTER_SLOT.intentTokenHeight / 2;
+      const normalisedX = (stageX - position.x) / radiusX;
+      const normalisedY = (stageY - (position.y + MONSTER_SLOT.intentTokenY)) / radiusY;
+
+      if (normalisedX * normalisedX + normalisedY * normalisedY <= 1) {
+        return viewModel.monsterIntents.find((intent) => intent.monsterId === monster?.id)?.token.detail;
+      }
+    }
+
+    return undefined;
+  }
+
   private restoreSelectionAfterFailedSubmit(
     selectedCardId: CardInstanceId,
     latestViewModel: CombatViewModel | undefined
@@ -667,6 +727,8 @@ export class CombatSceneOrchestrator extends Scene {
       return;
     }
 
+    this.submittedTargetId = targetId;
+    this.renderCurrentState(false);
     const result = await this.submitAction(
       (requestId) => this.sandbox!.playHandCard(cardInstanceId, targetId, revision, requestId),
       revision
@@ -701,6 +763,8 @@ export class CombatSceneOrchestrator extends Scene {
 
     const selectedCardId = this.selectedCardId;
     const selectedRevision = this.selectedCardRevision ?? viewModel.revision;
+    this.submittedTargetId = monsterId;
+    this.renderCurrentState(false);
     const result = await this.submitAction(
       (requestId) => this.sandbox!.playHandCard(selectedCardId, monsterId, selectedRevision, requestId),
       selectedRevision
@@ -737,13 +801,13 @@ export class CombatSceneOrchestrator extends Scene {
   }
 
   private async handleTurnEnd(): Promise<void> {
-    if (this.selectedCardId) {
-      this.setFeedback("Cancel or finish targeting before ending the turn.");
-      this.renderCurrentState(false);
+    if (this.isGameplayInputLocked() || !this.sandbox) {
       return;
     }
 
-    if (this.isGameplayInputLocked() || !this.sandbox) {
+    if (this.selectedCardId) {
+      this.setFeedback("Cancel or finish targeting before ending the turn.");
+      this.renderCurrentState(false);
       return;
     }
 
@@ -755,6 +819,11 @@ export class CombatSceneOrchestrator extends Scene {
   }
 
   private async playCardMovementForEvent(event: GameEvent): Promise<CombatPlaybackFallbackObservation | undefined> {
+    if (event.type === "DamageDealt") {
+      this.impactTargetId = undefined;
+      this.renderCurrentState(false);
+    }
+
     if (!this.cardPresenter) {
       return undefined;
     }
@@ -778,6 +847,20 @@ export class CombatSceneOrchestrator extends Scene {
     }
 
     return undefined;
+  }
+
+  private handlePlaybackEventStarted(event: GameEvent): void {
+    const viewModel = this.sandbox?.getCombatViewModel();
+    const impactTargetId = event.type === "DamageDealt" && viewModel?.monsters.some((monster) => monster.id === event.targetId)
+      ? event.targetId
+      : undefined;
+
+    if (this.impactTargetId === impactTargetId) {
+      return;
+    }
+
+    this.impactTargetId = impactTargetId;
+    this.renderCurrentState(false);
   }
 
   private async submitAction(
@@ -812,6 +895,7 @@ export class CombatSceneOrchestrator extends Scene {
 
     if (submission.status === "blocked") {
       const result = submission.result;
+      this.submittedTargetId = undefined;
       this.setFeedback(this.requestTracker.rejection?.message ?? "Gameplay input is locked.");
       this.debugDragState = "idle";
       this.clearTooltip();
@@ -829,6 +913,7 @@ export class CombatSceneOrchestrator extends Scene {
       this.feedbackMessage = "";
       this.playbackFinalViewModel = this.sandbox?.getCombatViewModel();
     } else {
+      this.submittedTargetId = undefined;
       this.setFeedback(result.errors[0]?.message ?? "Action was rejected.");
       this.playbackFinalViewModel = undefined;
       this.renderCurrentState(false);
@@ -841,6 +926,8 @@ export class CombatSceneOrchestrator extends Scene {
       console.warn("CombatScene recovered from event playback failure.", error);
     } finally {
       this.playbackFinalViewModel = undefined;
+      this.submittedTargetId = undefined;
+      this.impactTargetId = undefined;
       this.debugDragState = "idle";
       if (result.ok) {
         this.feedbackMessage = "";
@@ -1038,11 +1125,18 @@ export class CombatSceneOrchestrator extends Scene {
     const commandPetSlotIndex = activeCard?.isPetCommand
       ? activeCard.commandPetSlotIndex ?? 0
       : undefined;
-    this.petPresenter.render(viewModel.pets, commandPetSlotIndex);
+    this.petPresenter.render(viewModel.pets, commandPetSlotIndex === undefined
+      ? undefined
+      : {
+          slotIndex: commandPetSlotIndex,
+          state: this.selectedCardId === activeCard?.cardInstanceId ? "command_selected" : "command_hover"
+        });
     this.monsterPresenter.render(viewModel.monsters, viewModel.monsterIntents, {
       validTargetIds,
       focusedTargetId: this.focusedTargetId,
       hoveredTargetId: this.hoveredTargetId,
+      submittedTargetId: this.submittedTargetId,
+      impactTargetId: this.impactTargetId,
       locked: cardControlsLocked
     });
     this.cardPresenter.render(viewModel.hand, cardControlsLocked, {
@@ -1053,7 +1147,7 @@ export class CombatSceneOrchestrator extends Scene {
       handIndex: activeCardIndex !== undefined && activeCardIndex >= 0 ? activeCardIndex : undefined,
       handTotal: viewModel.hand.length,
       petSlotIndex: commandPetSlotIndex,
-      showPetCommandLine: activeCard?.isPetCommand ?? false
+      commandLineState: resolveCombatCommandLineState(activeCard, this.selectedCardId)
     });
     this.hudPresenter.render(viewModel, cardControlsLocked, {
       selectedCardActive: this.selectedCardId !== undefined

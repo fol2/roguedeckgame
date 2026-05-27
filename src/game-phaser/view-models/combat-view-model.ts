@@ -108,6 +108,34 @@ export type CombatantViewModel = {
   readonly detail: CombatDetailCopyViewModel;
 };
 
+export type IntentVisibilityDisplayLevel =
+  | "none"
+  | "unknown"
+  | "category"
+  | "rough"
+  | "exact"
+  | "scoped";
+
+export type CombatIntentTargetHint = "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
+
+export type CombatIntentTokenViewModel = {
+  readonly monsterId: CombatantId;
+  readonly visibility: IntentVisibilityDisplayLevel;
+  readonly kind: "attack" | "defend" | "buff" | "debuff" | "special" | "unknown" | "charging";
+  readonly iconKey: string;
+  readonly amountLabel?: string;
+  readonly strengthLabel?: "Low" | "Med" | "High";
+  readonly targetHint?: CombatIntentTargetHint;
+  readonly tooltip: CombatTooltipCopyViewModel;
+  readonly detail: CombatDetailCopyViewModel;
+  readonly debug?: {
+    readonly source?: MonsterPlannedActionViewModel["source"];
+    readonly abilityId?: MonsterAbilityId;
+    readonly intentId?: MonsterIntentId;
+    readonly tags?: readonly string[];
+  };
+};
+
 export type MonsterIntentViewModel = {
   readonly monsterId: CombatantId;
   readonly intentId: MonsterIntentId;
@@ -115,10 +143,11 @@ export type MonsterIntentViewModel = {
   readonly type: MonsterIntentType | "intent";
   readonly label: string;
   readonly description: string;
-  readonly targetHint: "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
+  readonly targetHint: CombatIntentTargetHint;
   readonly amount?: number;
   readonly tooltip: CombatTooltipCopyViewModel;
   readonly detail: CombatDetailCopyViewModel;
+  readonly token: CombatIntentTokenViewModel;
   readonly plannedAction: MonsterPlannedActionViewModel;
 };
 
@@ -378,16 +407,25 @@ const toCombatantViewModel = (combatant: CombatantState, content: ContentContext
   };
 };
 
-const getIntentAmount = (intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined): number | undefined => {
-  const damageAmounts = intentDefinition?.effects
-    .filter((effect): effect is Extract<EffectDefinition, { readonly type: "damage" }> => effect.type === "damage")
+const getIntentAmount = (
+  intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined,
+  intentType: MonsterIntentType | "intent"
+): number | undefined => {
+  const amountTypes: readonly EffectDefinition["type"][] =
+    intentType === "block" ? ["block", "petBlock"] :
+      intentType === "attack" ? ["damage", "petAttack"] :
+        [];
+  const amounts = intentDefinition?.effects
+    .filter((effect): effect is Extract<EffectDefinition, { readonly amount: number }> =>
+      amountTypes.includes(effect.type) && "amount" in effect
+    )
     .map((effect) => effect.amount) ?? [];
 
-  if (damageAmounts.length === 0) {
+  if (amounts.length === 0) {
     return undefined;
   }
 
-  return damageAmounts.reduce((sum, amount) => sum + amount, 0);
+  return amounts.reduce((sum, amount) => sum + amount, 0);
 };
 
 const getIntentTargetHint = (
@@ -510,7 +548,7 @@ const buildPlannedActionViewModel = (
       source: resolvedAbility.source,
       revealPolicy: "revealed",
       title: resolvedAbility.ability.name,
-      subtitle: `${resolvedAbility.ability.intentType} planned card`,
+      subtitle: `${resolvedAbility.ability.intentType} intent debug`,
       abilityId: resolvedAbility.ability.id,
       intentId: intent.intentId,
       intentType: resolvedAbility.ability.intentType,
@@ -523,7 +561,7 @@ const buildPlannedActionViewModel = (
     source: intentDefinition ? "fallbackMetadata" : "unknown",
     revealPolicy: "revealed",
     title: intentDefinition?.description ?? "Unknown planned action",
-    subtitle: `${intentDefinition?.type ?? "intent"} planned card`,
+    subtitle: `${intentDefinition?.type ?? "intent"} intent debug`,
     intentId: intent.intentId,
     intentType: intentDefinition?.type ?? "intent",
     tags: [],
@@ -532,6 +570,176 @@ const buildPlannedActionViewModel = (
       `Target: ${targetHint}`,
       amount !== undefined ? `Amount: ${amount}` : "Amount: not shown"
     ]
+  };
+};
+
+const getIntentTokenKind = (
+  intentType: MonsterIntentType | "intent"
+): CombatIntentTokenViewModel["kind"] => {
+  switch (intentType) {
+    case "attack":
+      return "attack";
+    case "block":
+      return "defend";
+    case "debuff":
+      return "debuff";
+    case "special":
+      return "special";
+    case "intent":
+      return "unknown";
+  }
+};
+
+const getIntentTitle = (kind: CombatIntentTokenViewModel["kind"]): string => {
+  switch (kind) {
+    case "attack":
+      return "Attack";
+    case "defend":
+      return "Guard";
+    case "buff":
+      return "Buff";
+    case "debuff":
+      return "Debuff";
+    case "special":
+      return "Special";
+    case "charging":
+      return "Charging";
+    case "unknown":
+      return "Unknown intent";
+  }
+};
+
+const getIntentGlyph = (kind: CombatIntentTokenViewModel["kind"]): string => {
+  switch (kind) {
+    case "attack":
+      return "ATK";
+    case "defend":
+      return "BLK";
+    case "buff":
+      return "UP";
+    case "debuff":
+      return "HEX";
+    case "special":
+      return "SP";
+    case "charging":
+      return "...";
+    case "unknown":
+      return "?";
+  }
+};
+
+const getIntentTargetCopy = (targetHint: CombatIntentTargetHint): string => {
+  switch (targetHint) {
+    case "keeper":
+      return "Keeper";
+    case "self":
+      return "Self";
+    case "ally":
+      return "Ally";
+    case "allEnemies":
+      return "All enemies";
+    case "pet":
+      return "Pet";
+    case "unknown":
+      return "Unknown";
+  }
+};
+
+const getIntentExplanation = (
+  kind: CombatIntentTokenViewModel["kind"],
+  targetHint: CombatIntentTargetHint
+): string => {
+  switch (kind) {
+    case "attack":
+      return `This enemy is preparing to attack ${getIntentTargetCopy(targetHint).toLowerCase()}.`;
+    case "defend":
+      return "This enemy is preparing to protect itself or an ally.";
+    case "debuff":
+      return `This enemy is preparing to weaken ${getIntentTargetCopy(targetHint).toLowerCase()}.`;
+    case "special":
+      return "This enemy is preparing a special action.";
+    case "buff":
+      return "This enemy is preparing to strengthen itself or an ally.";
+    case "charging":
+      return "This enemy is building up for a future action.";
+    case "unknown":
+      return "This enemy is preparing an action, but the details are hidden.";
+  }
+};
+
+const getIntentAmountLine = (
+  kind: CombatIntentTokenViewModel["kind"],
+  amount: number | undefined
+): string | undefined => {
+  if (amount === undefined) {
+    return undefined;
+  }
+
+  if (kind === "attack") {
+    return `Damage: ${amount}`;
+  }
+
+  if (kind === "defend") {
+    return `Block: ${amount}`;
+  }
+
+  return `Amount: ${amount}`;
+};
+
+const buildIntentTokenViewModel = ({
+  monsterId,
+  plannedAction,
+  intentType,
+  targetHint,
+  amount,
+  description
+}: {
+  readonly monsterId: CombatantId;
+  readonly plannedAction: MonsterPlannedActionViewModel;
+  readonly intentType: MonsterIntentType | "intent";
+  readonly targetHint: CombatIntentTargetHint;
+  readonly amount: number | undefined;
+  readonly description: string;
+}): CombatIntentTokenViewModel => {
+  const kind = getIntentTokenKind(intentType);
+  const title = getIntentTitle(kind);
+  const amountLine = getIntentAmountLine(kind, amount);
+  const explanation = getIntentExplanation(kind, targetHint);
+  const visibility: IntentVisibilityDisplayLevel = amount !== undefined ? "exact" : kind === "unknown" ? "unknown" : "category";
+
+  return {
+    monsterId,
+    visibility,
+    kind,
+    iconKey: `intent.${kind}`,
+    amountLabel: amount !== undefined ? String(amount) : undefined,
+    targetHint,
+    tooltip: {
+      title,
+      body: [
+        explanation,
+        amountLine,
+        `Target: ${getIntentTargetCopy(targetHint)}`
+      ].filter((line): line is string => Boolean(line)).join("\n")
+    },
+    detail: {
+      title,
+      subtitle: "Enemy intent",
+      lines: [
+        description,
+        explanation,
+        amountLine,
+        `Target: ${getIntentTargetCopy(targetHint)}`,
+        `Known detail: ${visibility === "exact" ? "Exact" : visibility === "category" ? "Category only" : "Unknown"}`
+      ].filter((line): line is string => Boolean(line)),
+      footer: "Intent detail."
+    },
+    debug: {
+      source: plannedAction.source,
+      abilityId: plannedAction.abilityId,
+      intentId: plannedAction.intentId,
+      tags: plannedAction.tags
+    }
   };
 };
 
@@ -644,37 +852,30 @@ export const buildCombatViewModel = (
       const label = ability?.intentType ?? intentDefinition?.type ?? "intent";
       const description = displaySource?.description ?? "Preparing an action.";
       const targetHint = getIntentTargetHint(displaySource);
-      const amount = getIntentAmount(displaySource);
+      const intentType = ability?.intentType ?? intentDefinition?.type ?? "intent";
+      const amount = getIntentAmount(displaySource, intentType);
       const plannedAction = buildPlannedActionViewModel(intent, intentDefinition, resolvedAbility, targetHint, amount);
+      const token = buildIntentTokenViewModel({
+        monsterId: intent.monsterCombatantId,
+        plannedAction,
+        intentType,
+        targetHint,
+        amount,
+        description
+      });
 
       return {
         monsterId: intent.monsterCombatantId,
         intentId: intent.intentId,
         abilityId: ability?.id,
-        type: ability?.intentType ?? intentDefinition?.type ?? "intent",
+        type: intentType,
         label,
         description,
         targetHint,
         amount,
-        tooltip: {
-          title: label,
-          body: description
-        },
-        detail: {
-          title: plannedAction.title,
-          subtitle: `${monster?.name ?? "Enemy"} · ${plannedAction.subtitle}`,
-          lines: [
-            description,
-            `Reveal policy: ${plannedAction.revealPolicy}`,
-            `Metadata source: ${plannedAction.source}`,
-            `Tags: ${plannedAction.tags.join(", ") || "none"}`,
-            `Target: ${targetHint}`,
-            amount !== undefined ? `Amount: ${amount}` : "Amount: not shown",
-            "Effects:",
-            ...(plannedAction.effectLines.length > 0 ? plannedAction.effectLines : ["No effects shown."])
-          ],
-          footer: "Monster planned card detail."
-        },
+        tooltip: token.tooltip,
+        detail: token.detail,
+        token,
         plannedAction
       };
     }),

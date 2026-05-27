@@ -106,14 +106,22 @@ describe("combat keyboard input", () => {
     expect(withSelection.calls).toEqual(["clearSelectedCard", "renderCurrentState"]);
   });
 
-  it("routes Space through the guarded turn-end path and blocks card detail while locked", async () => {
+  it("routes Space through the guarded turn-end path and blocks action keys while locked", async () => {
     const targeting = context();
     await handleCombatKeyboardInput(keyEvent(" "), targeting.context);
     expect(targeting.calls).toEqual(["handleTurnEnd"]);
 
-    const locked = context({ inputLocked: true });
-    await handleCombatKeyboardInput(keyEvent("i"), locked.context);
-    expect(locked.calls).toEqual([]);
+    const lockedDetail = context({ detailOpen: true, inputLocked: true });
+    await handleCombatKeyboardInput(keyEvent(" "), lockedDetail.context);
+    expect(lockedDetail.calls).toEqual([]);
+
+    const lockedPause = context({ inputLocked: true, pauseOpen: true });
+    await handleCombatKeyboardInput(keyEvent("Spacebar"), lockedPause.context);
+    expect(lockedPause.calls).toEqual([]);
+
+    const lockedInspect = context({ inputLocked: true });
+    await handleCombatKeyboardInput(keyEvent("i"), lockedInspect.context);
+    expect(lockedInspect.calls).toEqual([]);
   });
 
   it("cycles focus with Tab and submits the focused target with Enter", async () => {

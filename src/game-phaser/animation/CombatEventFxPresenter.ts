@@ -106,7 +106,7 @@ export class CombatEventFxPresenter {
           0x7dd3fc
         );
       case "PetCommanded":
-        return this.playTrace(
+        return this.playCommandThread(
           this.getCardPoint(event.cardInstanceId, event.type),
           this.getPetPoint(event.petInstanceId, event.type),
           "Command",
@@ -117,8 +117,7 @@ export class CombatEventFxPresenter {
       case "PetModifierActivated":
         return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.modifierId, 0xffd166);
       case "DamageDealt":
-        return this.playImpact(
-          this.getCombatantPoint(event.sourceId),
+        return this.playImpactAtTarget(
           this.getCombatantPoint(event.targetId),
           `-${event.amount}`,
           0xff758f
@@ -144,7 +143,7 @@ export class CombatEventFxPresenter {
       case "MonsterAbilityPlayed":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Act", 0xffd166);
       case "MonsterIntentResolved":
-        return this.playImpact(this.getCombatantPoint(event.monsterId), PLAYER_POINT, "Attack", 0xff758f);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", 0xffd166);
       case "MonsterIntentSet":
         return this.playPulse(this.getCombatantPoint(event.monsterId), event.intentType, 0xff9aad);
       case "CombatantDefeated":
@@ -290,6 +289,21 @@ export class CombatEventFxPresenter {
     return this.playPopup(to, label, colour);
   }
 
+  private playImpactAtTarget(to: Point, label: string, colour: number): Promise<void> {
+    const burst = this.scene.add.circle(to.x, to.y, MONSTER_SLOT.intentRadius / 2, colour, 0.35)
+      .setStrokeStyle(3, colour, 0.95);
+    this.container.add(burst);
+    this.scene.tweens.add({
+      targets: burst,
+      scale: 1.65,
+      alpha: 0,
+      duration: FX_DURATION_MS,
+      onComplete: () => burst.destroy()
+    });
+
+    return this.playPopup(to, label, colour);
+  }
+
   private playTrace(from: Point, to: Point, label: string, colour: number): Promise<void> {
     const line = this.scene.add.line(0, 0, from.x, from.y, to.x, to.y, colour, 0.9)
       .setOrigin(0, 0)
@@ -312,6 +326,53 @@ export class CombatEventFxPresenter {
     });
 
     return this.playPopup(to, label, colour);
+  }
+
+  private playCommandThread(from: Point, to: Point, label: string, colour: number): Promise<void> {
+    const points = this.sampleCommandCurve(from, to);
+    const lines = points.slice(1).map((point, index) => {
+      const previous = points[index]!;
+      return this.scene.add.line(0, 0, previous.x, previous.y, point.x, point.y, colour, 0.72)
+        .setOrigin(0, 0)
+        .setLineWidth(3);
+    });
+    const marker = this.scene.add.circle(from.x, from.y, 7, 0xffd166, 1);
+    this.container.add([...lines, marker]);
+    this.scene.tweens.add({
+      targets: marker,
+      x: to.x,
+      y: to.y,
+      duration: FX_DURATION_MS,
+      onComplete: () => marker.destroy()
+    });
+    this.scene.tweens.add({
+      targets: lines,
+      alpha: 0,
+      delay: FX_DURATION_MS / 2,
+      duration: FX_DURATION_MS / 2,
+      onComplete: () => lines.forEach((line) => line.destroy())
+    });
+
+    return this.playPopup(to, label, colour);
+  }
+
+  private sampleCommandCurve(from: Point, to: Point): readonly Point[] {
+    const control = {
+      x: from.x + (to.x - from.x) * 0.38,
+      y: Math.min(from.y, to.y) - 84
+    };
+    const points: Point[] = [];
+
+    for (let index = 0; index <= 16; index += 1) {
+      const t = index / 16;
+      const inverse = 1 - t;
+      points.push({
+        x: inverse * inverse * from.x + 2 * inverse * t * control.x + t * t * to.x,
+        y: inverse * inverse * from.y + 2 * inverse * t * control.y + t * t * to.y
+      });
+    }
+
+    return points;
   }
 
   private wait(duration: number): Promise<void> {

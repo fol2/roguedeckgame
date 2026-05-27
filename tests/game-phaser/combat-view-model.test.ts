@@ -292,7 +292,7 @@ describe("Combat view model", () => {
               description: "Planned ability display copy.",
               effects: [
                 {
-                  type: "damage",
+                  type: "block",
                   amount: 99,
                   target: { type: "target" }
                 }
@@ -312,17 +312,28 @@ describe("Combat view model", () => {
         revealPolicy: "revealed",
         title: expect.any(String),
         abilityId: plannedAbility!.abilityId,
-        subtitle: `${viewModel.monsterIntents[0]?.type} planned card`,
-        effectLines: ["Damage 99 to target."]
+        subtitle: `${viewModel.monsterIntents[0]?.type} intent debug`,
+        effectLines: ["Block 99 to target."]
+      },
+      token: {
+        visibility: "exact",
+        kind: "defend",
+        iconKey: "intent.defend",
+        amountLabel: "99",
+        targetHint: "keeper",
+        debug: {
+          source: "plannedAbility",
+          abilityId: plannedAbility!.abilityId
+        }
       }
     });
     expect(viewModel.monsterIntents[0]?.detail.lines).toEqual(expect.arrayContaining([
-      "Reveal policy: revealed",
-      "Metadata source: plannedAbility",
-      "Effects:",
-      "Damage 99 to target."
+      "Planned ability display copy.",
+      "Block: 99",
+      "Target: Keeper"
     ]));
-    expect(viewModel.monsterIntents[0]?.detail.footer).toBe("Monster planned card detail.");
+    expect(viewModel.monsterIntents[0]?.detail.lines.join("\n")).not.toMatch(/Reveal policy|Metadata source|Intent ID/);
+    expect(viewModel.monsterIntents[0]?.detail.footer).toBe("Intent detail.");
   });
 
   it("uses fallback monster ability metadata when planned storage is unavailable for display only", () => {

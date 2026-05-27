@@ -209,8 +209,10 @@ describe("Combat scene boundary", () => {
     expect(acceptedSubmissionStart).toBeGreaterThanOrEqual(0);
     expect(resultRead).toBeGreaterThan(acceptedSubmissionStart);
     expect(source.slice(acceptedSubmissionStart, resultRead)).not.toMatch(/this\.renderCurrentState\(false\);/);
-    expect(source).toMatch(/if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+this\.playbackFinalViewModel = this\.sandbox\?\.getCombatViewModel\(\);\n\s+\} else \{\n\s+this\.setFeedback\(result\.errors\[0\]\?\.message \?\? "Action was rejected\."\);\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.renderCurrentState\(false\);\n\s+\}/);
-    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.debugDragState = "idle";\n\s+if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+this\.requestTracker\.clearPendingIf\(requestId\);/);
+    expect(source).toMatch(/if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+this\.playbackFinalViewModel = this\.sandbox\?\.getCombatViewModel\(\);\n\s+\} else \{\n\s+this\.submittedTargetId = undefined;\n\s+this\.setFeedback\(result\.errors\[0\]\?\.message \?\? "Action was rejected\."\);\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.renderCurrentState\(false\);\n\s+\}/);
+    expect(source).toMatch(/handlePlaybackEventStarted/);
+    expect(source).toMatch(/event\.type === "DamageDealt" && viewModel\?\.monsters\.some/);
+    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.submittedTargetId = undefined;\n\s+this\.impactTargetId = undefined;\n\s+this\.debugDragState = "idle";\n\s+if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+this\.requestTracker\.clearPendingIf\(requestId\);/);
   });
 
   it("drives actual card movement from combat event playback", async () => {
@@ -278,17 +280,24 @@ describe("Combat scene boundary", () => {
     expect(monsterPresenter).toMatch(/maxEnemyVisibleStatuses/);
     expect(monsterPresenter).toMatch(/hitZoneHeight/);
     expect(monsterPresenter).toMatch(/statusOverflowTooltip/);
-    expect(monsterPresenter).toMatch(/plannedAction\.source/);
-    expect(monsterPresenter).toMatch(/intentGlyph/);
+    expect(monsterPresenter).toMatch(/renderIntentToken/);
+    expect(monsterPresenter).toMatch(/resolveEnemyTargetVisualState/);
+    expect(monsterPresenter).toMatch(/amountLabel/);
     expect(monsterPresenter).toMatch(/focusedTargetId/);
+    expect(monsterPresenter).toMatch(/submittedTargetId/);
+    expect(source).toMatch(/impactTargetId: this\.impactTargetId/);
     expect(monsterPresenter).not.toMatch(/selectedTargetId/);
-    expect(monsterPresenter).not.toMatch(/String\(intent\.amount\)/);
+    expect(monsterPresenter).not.toMatch(/plannedCard|INTENT/);
     expect(monsterPresenter).not.toMatch(/More statuses/);
     expect(petPresenter).toMatch(/maxPetVisibleStatuses/);
     expect(petPresenter).toMatch(/pets\.slice\(0, PET_LAYOUT\.maxSlots\)/);
     expect(petPresenter).toMatch(/statusOverflowTooltip/);
     expect(petPresenter).not.toMatch(/Pet status: \$\{/);
     expect(targetingPresenter).toMatch(/petSlotIndex/);
+    expect(targetingPresenter).toMatch(/sampleCommandCurve/);
+    expect(targetingPresenter).toMatch(/commandLineState/);
+    expect(source).toMatch(/resolveCombatCommandLineState\(activeCard, this\.selectedCardId\)/);
+    expect(targetingPresenter).not.toMatch(/showPetCommandLine/);
     expect(hudPresenter).toMatch(/maxPlayerVisibleStatuses/);
     expect(hudPresenter).toMatch(/statusOverflowTooltip/);
     expect(hudPresenter).not.toMatch(/More statuses/);

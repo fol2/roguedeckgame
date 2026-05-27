@@ -141,6 +141,43 @@ describe("CombatEventPlayer", () => {
     }]);
   });
 
+  it("notifies the scene when an event visual starts before FX playback settles", async () => {
+    const event: GameEvent = {
+      type: "DamageDealt",
+      sourceId: combatantId("player"),
+      targetId: combatantId("monster:training_slime:0"),
+      amount: 6,
+      blocked: 0
+    };
+    const eventLog = { append: vi.fn() };
+    let resolveFx: (() => void) | undefined;
+    const fxPresenter = {
+      play: vi.fn().mockReturnValue(new Promise<void>((resolve) => {
+        resolveFx = resolve;
+      }))
+    };
+    const onEventPlayed = vi.fn();
+    const onEventVisualStarted = vi.fn();
+    const player = new CombatEventPlayer(
+      createSceneStub() as never,
+      eventLog as never,
+      fxPresenter as never,
+      onEventPlayed,
+      onEventVisualStarted
+    );
+    const playback = player.play([event]);
+
+    await Promise.resolve();
+
+    expect(onEventVisualStarted).toHaveBeenCalledWith(event);
+    expect(onEventPlayed).not.toHaveBeenCalled();
+
+    resolveFx?.();
+    await playback;
+
+    expect(onEventPlayed).toHaveBeenCalledWith(event);
+  });
+
   it("waits for visible FX before finalizing event playback", async () => {
     const event: GameEvent = {
       type: "MonsterIntentSet",

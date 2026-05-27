@@ -53,11 +53,6 @@ export const handleCombatKeyboardInput = async (
     return;
   }
 
-  if (event.key === " " || event.key === "Spacebar") {
-    await context.handleTurnEnd();
-    return;
-  }
-
   if (context.debugOverlayAvailable && (event.key === "`" || event.key === "F2")) {
     context.setDebugOverlayEnabled(!context.debugOverlayEnabled);
     if (typeof window !== "undefined") {
@@ -95,6 +90,11 @@ export const handleCombatKeyboardInput = async (
   }
 
   if (context.inputLocked) {
+    return;
+  }
+
+  if (event.key === " " || event.key === "Spacebar") {
+    await context.handleTurnEnd();
     return;
   }
 

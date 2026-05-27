@@ -2,6 +2,12 @@ import type { GameObjects, Scene } from "phaser";
 import { COMBAT_UI_CAPS, type PetViewModel } from "../view-models/combat-view-model";
 import { getPetSlotPosition, PET_LAYOUT, PET_SLOT_SIZE, PET_TEXT } from "../layout/pet-layout";
 import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from "./CombatOverlayPresenter";
+import type { PetCommandVisualState } from "./combat-visual-states";
+
+type PetCommandPreview = {
+  readonly slotIndex: number;
+  readonly state: PetCommandVisualState;
+};
 
 type PointerLike = {
   readonly button?: number;
@@ -37,14 +43,22 @@ export class PetPresenter {
     this.container = scene.add.container(0, 0);
   }
 
-  public render(pets: readonly PetViewModel[], commandPreviewSlotIndex?: number): void {
+  public render(pets: readonly PetViewModel[], commandPreview?: PetCommandPreview): void {
     this.container.removeAll(true);
 
     pets.slice(0, PET_LAYOUT.maxSlots).forEach((activePet, index) => {
       const position = getPetSlotPosition(index);
       const slot = this.scene.add.container(position.x, position.y);
-      const commandPreviewActive = commandPreviewSlotIndex === index;
-      const ringColour = commandPreviewActive ? 0xffe0a3 : 0xffbd66;
+      const commandState = commandPreview?.slotIndex === index ? commandPreview.state : "active";
+      const ringColour = commandState === "command_hover"
+        ? 0xffd166
+        : commandState === "command_selected" || commandState === "resolving"
+          ? 0xffe0a3
+          : commandState === "empowered"
+            ? 0xfff2b8
+            : 0xffbd66;
+      const ringWidth = commandState === "active" ? 2 : commandState === "command_hover" ? 3 : 4;
+      const ringAlpha = commandState === "active" ? 0.82 : commandState === "command_hover" ? 0.9 : 1;
 
       slot.setSize(PET_SLOT_SIZE.width, PET_SLOT_SIZE.height);
       slot.setInteractive();
@@ -71,8 +85,8 @@ export class PetPresenter {
 
         this.onSelected(index);
       });
-      slot.add(this.scene.add.ellipse(0, 0, PET_LAYOUT.activeRingRadius * 2, PET_LAYOUT.activeRingRadius, 0x2f2415, 0.82)
-        .setStrokeStyle(commandPreviewActive ? 4 : 2, ringColour));
+      slot.add(this.scene.add.ellipse(0, 0, PET_LAYOUT.activeRingRadius * 2, PET_LAYOUT.activeRingRadius, 0x2f2415, ringAlpha)
+        .setStrokeStyle(ringWidth, ringColour));
       slot.add(this.scene.add.polygon(0, -20, [
         -42, 10,
         -18, -28,

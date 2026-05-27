@@ -28,6 +28,45 @@ export const CARD_TEXT = {
   }
 } as const;
 
+export const CARD_FRAME_ZONES = {
+  costSocket: {
+    x: CARD_SIZE.width / 2 - 18,
+    y: -CARD_SIZE.height / 2 + 22,
+    width: 26,
+    height: 26
+  },
+  titleBand: {
+    x: 0,
+    y: -CARD_SIZE.height / 2 + 21,
+    width: CARD_SIZE.width - 10,
+    height: 28
+  },
+  familyBadge: {
+    x: -CARD_SIZE.width / 2 + 28,
+    y: -CARD_SIZE.height / 2 + 51,
+    width: 42,
+    height: 17
+  },
+  artWindow: {
+    x: 0,
+    y: -22,
+    width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
+    height: 30
+  },
+  rulesTextBox: {
+    x: 0,
+    y: 25,
+    width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
+    height: 42
+  },
+  tagRow: {
+    x: 0,
+    y: CARD_SIZE.height / 2 - CARD_TEXT.tagBottomInset,
+    width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
+    height: 14
+  }
+} as const;
+
 export const HAND_LAYOUT = {
   y: GAME_HEIGHT - 92,
   leftX: DRAW_PILE.x + DRAW_PILE.width / 2 + 28,
