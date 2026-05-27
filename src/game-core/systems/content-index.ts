@@ -1,5 +1,6 @@
 import type {
   CardId,
+  DeckId,
   EncounterId,
   MonsterId,
   MonsterAbilityId,
@@ -14,6 +15,7 @@ import type {
   UpgradeId
 } from "../ids";
 import type { CardDefinition } from "../model/card";
+import type { DeckDefinition } from "../model/deck";
 import type { EncounterDefinition } from "../model/encounter";
 import type { MonsterAbilityDefinition, MonsterDefinition } from "../model/monster";
 import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from "../model/pet";
@@ -26,6 +28,7 @@ import type { PetSideStoryDefinition, StoryEventDefinition } from "../model/stor
 
 export type IndexedContentCollection =
   | "cards"
+  | "decks"
   | "statuses"
   | "pets"
   | "players"
@@ -47,6 +50,7 @@ export type DuplicateContentId = {
 
 export type ContentIndex = {
   readonly cardsById: ReadonlyMap<CardId, CardDefinition>;
+  readonly decksById: ReadonlyMap<DeckId, DeckDefinition>;
   readonly statusesById: ReadonlyMap<StatusId, StatusDefinition>;
   readonly petsById: ReadonlyMap<PetDefinitionId, PetDefinition>;
   readonly playersById: ReadonlyMap<PlayerClassId, PlayerClassDefinition>;
@@ -120,6 +124,7 @@ const collect = <Id extends string, Definition extends DefinitionWithId>(
 
 export const buildContentIndex = (registry: GameContentRegistry): ContentIndex => {
   const cards = collect<CardId, CardDefinition>("cards", registry.cards);
+  const decks = collect<DeckId, DeckDefinition>("decks", registry.decks ?? []);
   const statuses = collect<StatusId, StatusDefinition>("statuses", registry.statuses ?? [burnStatusDefinition]);
   const pets = collect<PetDefinitionId, PetDefinition>("pets", registry.pets);
   const players = collect<PlayerClassId, PlayerClassDefinition>("players", registry.players);
@@ -136,6 +141,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
 
   return {
     cardsById: cards.map,
+    decksById: decks.map,
     statusesById: statuses.map,
     petsById: pets.map,
     playersById: players.map,
@@ -151,6 +157,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
     petSideStoriesById: petSideStories.map,
     duplicateIds: [
       ...cards.duplicateIds,
+      ...decks.duplicateIds,
       ...statuses.duplicateIds,
       ...pets.duplicateIds,
       ...players.duplicateIds,

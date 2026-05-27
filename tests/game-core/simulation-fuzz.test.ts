@@ -45,6 +45,12 @@ describe("agent simulation fuzz", () => {
           customStrike,
           ...starterRegistry.cards.filter((card) => card.id !== "strike")
         ],
+        decks: starterRegistry.decks?.map((deck) => ({
+          ...deck,
+          cardIds: deck.cardIds.map((cardIdValue) =>
+            cardIdValue === "strike" ? customStrike.id : cardIdValue
+          )
+        })),
         players: [{
           ...starterRegistry.players[0],
           startingDeckCardIds: starterRegistry.players[0].startingDeckCardIds.map((cardIdValue) =>

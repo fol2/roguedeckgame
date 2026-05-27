@@ -823,7 +823,13 @@ export class CombatScene extends Scene {
     }
 
     this.inputLocked = true;
-    const result = this.sandbox.completeCombatIfEnded();
+    const expectedRevision = viewModel.revision;
+    const requestId = `combat-complete-${this.nextRequestId}`;
+    this.nextRequestId += 1;
+    this.pendingRequestId = requestId;
+    this.lastSubmittedRequestId = requestId;
+    this.lastSubmittedExpectedRevision = expectedRevision;
+    const result = this.sandbox.completeCombatIfEnded(expectedRevision, requestId);
     this.playbackFinalViewModel = this.sandbox.getCombatViewModel();
     this.renderCurrentState(false);
     try {
@@ -832,6 +838,9 @@ export class CombatScene extends Scene {
       console.warn("CombatScene recovered from continue playback failure.", error);
     }
     this.playbackFinalViewModel = undefined;
+    if (this.pendingRequestId === requestId) {
+      this.pendingRequestId = undefined;
+    }
     this.captureParityDiagnostics("after_playback_batch");
 
     const runStatus = this.sandbox.getState().run.status;

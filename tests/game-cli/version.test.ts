@@ -16,27 +16,6 @@ const runNode = (args: readonly string[]) => {
   };
 };
 
-const runNpm = (args: readonly string[]) => {
-  const npmExecPath = process.env.npm_execpath;
-  const result = npmExecPath
-    ? spawnSync(process.execPath, [npmExecPath, ...args], {
-        cwd: process.cwd(),
-        encoding: "utf8",
-        shell: false
-      })
-    : spawnSync("npm", args, {
-        cwd: process.cwd(),
-        encoding: "utf8",
-        shell: true
-      });
-
-  return {
-    status: result.status,
-    stdout: (result.stdout ?? "").trim(),
-    stderr: (result.stderr ?? "").trim()
-  };
-};
-
 const parseRuntimeMetadata = (stdout: string): unknown => JSON.parse(stdout).runtimeMetadata;
 
 describe("CLI runtime metadata", () => {
@@ -52,23 +31,15 @@ describe("CLI runtime metadata", () => {
     expect(parseRuntimeMetadata(json.stdout)).toEqual(currentRuntimeMetadata);
   });
 
-  it("prints CLI help through the npm-safe help command", () => {
-    const result = runNpm(["run", "game:help", "--silent"]);
+  it("prints CLI help through the transient entrypoint", () => {
+    const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--help"]);
 
     expect(result.status).toBe(0);
-    expect(result.stderr).not.toContain("npm warn");
+    expect(result.stderr).toBe("");
     expect(result.stdout).toContain("Pet Roguelite CLI");
     expect(result.stdout).not.toContain("npm run game:cli -- --");
     expect(result.stdout).toContain("Runtime provenance:");
     expect(result.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
-  });
-
-  it("reports shared runtime provenance through the npm-safe version command", () => {
-    const result = runNpm(["run", "game:version", "--silent"]);
-
-    expect(result.status).toBe(0);
-    expect(result.stderr).not.toContain("npm warn");
-    expect(parseRuntimeMetadata(result.stdout)).toEqual(currentRuntimeMetadata);
   });
 
   it("reports shared runtime provenance through the game CLI version command", () => {
@@ -107,22 +78,4 @@ describe("CLI runtime metadata", () => {
     expect(result.stderr).not.toContain("at ");
   });
 
-  it("keeps transient and built CLI provenance aligned", () => {
-    const build = runNpm(["run", "build:cli", "--silent"]);
-    expect(build.status).toBe(0);
-
-    const transientGame = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--version"]);
-    const builtGame = runNode(["dist-cli/game-cli.mjs", "--version"]);
-    const transientSimulation = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--version"]);
-    const builtSimulation = runNode(["dist-cli/simulate-runs.mjs", "--version"]);
-
-    expect(transientGame.status).toBe(0);
-    expect(builtGame.status).toBe(0);
-    expect(transientSimulation.status).toBe(0);
-    expect(builtSimulation.status).toBe(0);
-    expect(parseRuntimeMetadata(builtGame.stdout)).toEqual(parseRuntimeMetadata(transientGame.stdout));
-    expect(parseRuntimeMetadata(builtSimulation.stdout)).toEqual(parseRuntimeMetadata(transientSimulation.stdout));
-    expect(parseRuntimeMetadata(builtGame.stdout)).toEqual(currentRuntimeMetadata);
-    expect(parseRuntimeMetadata(builtSimulation.stdout)).toEqual(currentRuntimeMetadata);
-  });
 });

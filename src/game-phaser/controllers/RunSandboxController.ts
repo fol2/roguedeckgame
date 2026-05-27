@@ -97,7 +97,7 @@ export type RunSandboxController = {
     requestId: string
   ) => GameActionResult<RunSandboxState>;
   readonly endTurn: (expectedRevision: number | undefined, requestId: string) => GameActionResult<RunSandboxState>;
-  readonly completeCombatIfEnded: (expectedRevision?: number, requestId?: string) => GameActionResult<RunSandboxState>;
+  readonly completeCombatIfEnded: (expectedRevision: number | undefined, requestId: string) => GameActionResult<RunSandboxState>;
   readonly claimRewardOption: (
     rewardOptionId: RewardOptionId,
     expectedRevision?: number,
@@ -484,7 +484,7 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "endTurn" }, result);
     },
     completeCombatIfEnded: (expectedRevision, requestId) => {
-      const invalidRequest = rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }

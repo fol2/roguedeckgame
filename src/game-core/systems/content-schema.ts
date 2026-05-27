@@ -1,6 +1,7 @@
 import {
   cardId,
   combatantId,
+  deckId,
   encounterId,
   evolutionNodeId,
   monsterGroupId,
@@ -24,10 +25,12 @@ import {
   upgradeId
 } from "../ids";
 import type { CardDefinition } from "../model/card";
+import type { DeckDefinition } from "../model/deck";
 import type {
   CardSchemaDefinition,
   ContentSchema,
   ContentSchemaCollection,
+  DeckSchemaDefinition,
   EncounterSchemaDefinition,
   MonsterAbilitySchemaDefinition,
   MonsterSchemaDefinition,
@@ -69,6 +72,7 @@ export type ContentSchemaCompileResult = {
 
 const contentSchemaCollections = [
   "cards",
+  "decks",
   "statuses",
   "pets",
   "players",
@@ -314,6 +318,13 @@ const mapCard = (card: CardSchemaDefinition): CardDefinition => ({
   effects: mapEffects(card.effects)
 } as CardDefinition);
 
+const mapDeck = (deck: DeckSchemaDefinition): DeckDefinition => ({
+  ...deck,
+  id: deckId(deck.id),
+  ownerPlayerClassId: playerClassId(deck.ownerPlayerClassId),
+  cardIds: mapArrayValue(deck.cardIds, (id) => mapIdValue(id, cardId))
+} as DeckDefinition);
+
 const mapStatus = (status: StatusSchemaDefinition): StatusDefinition => ({
   ...status,
   id: statusId(status.id),
@@ -395,6 +406,7 @@ const mapPet = (pet: PetSchemaDefinition): PetDefinition => ({
 const mapPlayer = (player: PlayerClassSchemaDefinition): PlayerClassDefinition => ({
   ...player,
   id: playerClassId(player.id),
+  startingDeckId: player.startingDeckId === undefined ? undefined : deckId(player.startingDeckId),
   startingDeckCardIds: mapArrayValue(player.startingDeckCardIds, (id) => mapIdValue(id, cardId)),
   startingRelicIds: mapArrayValue(player.startingRelicIds, (id) => mapIdValue(id, relicId)),
   classModifierIds: mapArrayValue(player.classModifierIds, (id) => mapIdValue(id, playerClassModifierId))
@@ -557,6 +569,7 @@ const toRegistry = (
   baseRegistry: GameContentRegistry | undefined
 ): GameContentRegistry => {
   const statuses = collectionOrUndefined<StatusSchemaDefinition>(schema, baseRegistry, "statuses");
+  const decks = collectionOrUndefined<DeckSchemaDefinition>(schema, baseRegistry, "decks");
   const monsterAbilities = collectionOrUndefined<MonsterAbilitySchemaDefinition>(schema, baseRegistry, "monsterAbilities");
   const rewardPools = collectionOrUndefined<RewardPoolSchemaDefinition>(schema, baseRegistry, "rewardPools");
   const petModifiers = collectionOrUndefined<PetModifierSchemaDefinition>(schema, baseRegistry, "petModifiers");
@@ -567,6 +580,7 @@ const toRegistry = (
       ? schema.contentVersion
       : baseRegistry?.contentVersion,
     cards: collectionOrDefault<CardSchemaDefinition>(schema, baseRegistry, "cards").map(mapCard),
+    ...(decks === undefined ? {} : { decks: decks.map(mapDeck) }),
     ...(statuses === undefined ? {} : { statuses: statuses.map(mapStatus) }),
     pets: collectionOrDefault<PetSchemaDefinition>(schema, baseRegistry, "pets").map(mapPet),
     players: collectionOrDefault<PlayerClassSchemaDefinition>(schema, baseRegistry, "players").map(mapPlayer),

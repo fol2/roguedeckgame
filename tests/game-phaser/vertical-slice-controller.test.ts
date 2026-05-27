@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { cardInstanceId, type CombatPhase } from "../../src/game-core";
 import { createRunSandboxController } from "../../src/game-phaser/controllers/RunSandboxController";
 
+let controllerRequestIndex = 0;
+
+const nextControllerRequestId = (prefix: string): string => {
+  controllerRequestIndex += 1;
+  return `${prefix}-${controllerRequestIndex}`;
+};
+
 const firstAvailableNode = (
   controller: ReturnType<typeof createRunSandboxController>,
   type: string
@@ -47,7 +54,7 @@ const winCurrentCombat = (
   controller: ReturnType<typeof createRunSandboxController>
 ) => {
   forceCombatPhase(controller, "won");
-  const result = controller.completeCombatIfEnded();
+  const result = controller.completeCombatIfEnded(controller.getRevision(), nextControllerRequestId("complete-combat"));
 
   expect(result.ok).toBe(true);
   return result;
@@ -161,7 +168,7 @@ describe("vertical slice controller flow", () => {
 
     selectNode(controller, "combat");
     forceCombatPhase(controller, "lost");
-    const lost = controller.completeCombatIfEnded();
+    const lost = controller.completeCombatIfEnded(controller.getRevision(), nextControllerRequestId("complete-combat"));
 
     expect(lost.ok).toBe(true);
     expect(lost.state.run.status).toBe("lost");

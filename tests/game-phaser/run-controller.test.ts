@@ -6,6 +6,16 @@ import {
 import { replayAgentTrace } from "../../src/game-core/testing";
 import { createRunSandboxController } from "../../src/game-phaser/controllers/RunSandboxController";
 
+let controllerRequestIndex = 0;
+
+const nextControllerRequestId = (prefix: string): string => {
+  controllerRequestIndex += 1;
+  return `${prefix}-${controllerRequestIndex}`;
+};
+
+const completeCombat = (controller: ReturnType<typeof createRunSandboxController>) =>
+  controller.completeCombatIfEnded(controller.getRevision(), nextControllerRequestId("complete-combat"));
+
 const firstAvailableNode = (
   controller: ReturnType<typeof createRunSandboxController>,
   predicate: (type: string) => boolean
@@ -271,7 +281,7 @@ describe("Run sandbox controller", () => {
     finishCombat(controller);
     expect(controller.getCombatViewModel()?.phase).toBe("won");
 
-    const completeResult = controller.completeCombatIfEnded();
+    const completeResult = completeCombat(controller);
 
     expect(completeResult.ok).toBe(true);
     expect(completeResult.state.run.status).toBe("reward");
@@ -295,13 +305,36 @@ describe("Run sandbox controller", () => {
     expect(replayAgentTrace(controller.getAgentTrace()).ok).toBe(true);
   });
 
+  it("rejects duplicate combat completion request ids before advancing twice", () => {
+    const controller = createRunSandboxController("run-controller-combat-complete-duplicate");
+
+    startFirstCombat(controller);
+    finishCombat(controller);
+    expect(controller.getCombatViewModel()?.phase).toBe("won");
+
+    const requestId = "combat-complete-duplicate";
+    const first = controller.completeCombatIfEnded(controller.getRevision(), requestId);
+
+    expect(first.ok).toBe(true);
+    const before = controller.getState();
+    const duplicate = controller.completeCombatIfEnded(controller.getRevision(), requestId);
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.state.run).toBe(before.run);
+    expect(duplicate.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "duplicate_request",
+      path: "requestId"
+    });
+  });
+
   it("skips a pending reward back to map selection", () => {
     const controller = createRunSandboxController("run-controller-skip");
 
     startFirstCombat(controller);
     finishCombat(controller);
     expect(controller.getCombatViewModel()?.phase).toBe("won");
-    controller.completeCombatIfEnded();
+    completeCombat(controller);
 
     const skipResult = controller.skipReward();
 
@@ -342,7 +375,7 @@ describe("Run sandbox controller", () => {
 
     startFirstCombat(controller);
     finishCombat(controller);
-    controller.completeCombatIfEnded();
+    completeCombat(controller);
     controller.skipReward();
     const eventNode = firstAvailableNode(controller, (type) => type === "event");
 
@@ -389,7 +422,7 @@ describe("Run sandbox controller", () => {
 
     startFirstCombat(controller);
     finishCombat(controller);
-    controller.completeCombatIfEnded();
+    completeCombat(controller);
     controller.skipReward();
 
     const eventNode = firstAvailableNode(controller, (type) => type === "event");
@@ -463,7 +496,7 @@ describe("Run sandbox controller", () => {
 
     startFirstCombat(controller);
     finishCombat(controller);
-    controller.completeCombatIfEnded();
+    completeCombat(controller);
     const payload = {
       state: controller.getState(),
       run: controller.getRunViewModel(),

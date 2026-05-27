@@ -1,6 +1,7 @@
 import { emberFoxCards } from "./cards/ember-fox-cards";
 import { rewardCards } from "./cards/reward-cards";
 import { starterCards } from "./cards/starter-cards";
+import { decks as deckDefinitions } from "./decks/novice-tamer-starter";
 import { forestEncounters } from "./encounters/forest-encounters";
 import { forestMonsterAbilities, forestMonsters } from "./monsters/forest-monsters";
 import { pets as petDefinitions } from "./pets/ember-fox";
@@ -15,6 +16,7 @@ import { burnStatusDefinition } from "../model/status";
 export const starterRegistry: GameContentRegistry = {
   contentVersion: "starter-act1-forest-v1",
   cards: [...starterCards, ...emberFoxCards, ...rewardCards],
+  decks: deckDefinitions,
   statuses: [burnStatusDefinition],
   pets: petDefinitions,
   players: playerDefinitions,
@@ -31,6 +33,7 @@ export const starterRegistry: GameContentRegistry = {
 };
 
 export const cards = starterRegistry.cards;
+export const decks = starterRegistry.decks ?? [];
 export const statuses = starterRegistry.statuses;
 export const pets = starterRegistry.pets;
 export const players = starterRegistry.players;

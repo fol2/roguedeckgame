@@ -6,9 +6,17 @@ import type { SimulationAggregateReport } from "./analysis";
 export type EncounterAuthoringSummary = {
   readonly id: string;
   readonly type: EncounterDefinition["type"];
+  readonly name: string;
   readonly difficultyBand?: string;
   readonly budget?: number;
   readonly monsterCount: number;
+  readonly monsterIds: readonly string[];
+  readonly monsters: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly roles: readonly string[];
+    readonly tags: readonly string[];
+  }[];
   readonly monsterRoles: readonly string[];
   readonly monsterGroups: readonly {
     readonly id: string;
@@ -25,8 +33,12 @@ export type RunNodeAuthoringSummary = {
   readonly type: string;
   readonly layer: number;
   readonly encounterIds: readonly string[];
+  readonly nextNodeIds: readonly string[];
   readonly budgetMin?: number;
   readonly budgetMax?: number;
+  readonly notes?: string;
+  readonly meaning: string;
+  readonly encounters: readonly EncounterAuthoringSummary[];
 };
 
 export type RunMapAuthoringSummary = {
@@ -54,12 +66,65 @@ export type LevelSimulationAuthoringSummary = {
 const sortedById = <T extends { readonly id: string }>(values: readonly T[]): readonly T[] =>
   [...values].sort((left, right) => left.id.localeCompare(right.id));
 
-const encounterSummary = (encounter: EncounterDefinition): EncounterAuthoringSummary => ({
+const nodeMeaning = (type: string, notes?: string): string => {
+  if (notes) {
+    return notes;
+  }
+
+  switch (type) {
+    case "combat":
+      return "Starts one of the listed combat encounters.";
+    case "elite":
+      return "Starts an elite encounter and uses elite reward authoring.";
+    case "boss":
+      return "Starts the boss encounter and can end the run.";
+    case "rest":
+      return "Completes a non-combat recovery placeholder.";
+    case "event":
+      return "Completes a non-combat story or resource event placeholder.";
+    default:
+      return "Unknown run node type.";
+  }
+};
+
+const monsterRolesForEncounter = (
+  encounter: EncounterDefinition,
+  monsterId: EncounterDefinition["monsterIds"][number]
+): readonly string[] => {
+  const groupedRoles = (encounter.authoring?.monsterGroups ?? [])
+    .filter((group) => group.monsterIds.includes(monsterId))
+    .flatMap((group) => group.roles);
+
+  const roles = groupedRoles.length > 0
+    ? groupedRoles
+    : encounter.authoring?.monsterRoles ?? [];
+
+  return [...new Set(roles)].sort((left, right) => left.localeCompare(right));
+};
+
+const encounterSummary = (
+  encounter: EncounterDefinition,
+  registry: GameContentRegistry
+): EncounterAuthoringSummary => ({
   id: encounter.id,
   type: encounter.type,
+  name: encounter.name,
   difficultyBand: encounter.authoring?.difficultyBand,
   budget: encounter.authoring?.budget,
   monsterCount: encounter.monsterIds.length,
+  monsterIds: [...encounter.monsterIds].sort((left, right) => left.localeCompare(right)),
+  monsters: [...encounter.monsterIds]
+    .map((monsterId) => {
+      const monster = registry.monsters.find((candidate) => candidate.id === monsterId);
+
+      return {
+        id: monsterId,
+        name: monster?.name ?? String(monsterId),
+        roles: monsterRolesForEncounter(encounter, monsterId),
+        tags: [...(monster?.tags ?? [])].sort((left, right) => left.localeCompare(right))
+      };
+    })
+    .sort((left, right) => left.id.localeCompare(right.id)),
   monsterRoles: [...(encounter.authoring?.monsterRoles ?? [])].sort((left, right) => left.localeCompare(right)),
   monsterGroups: [...(encounter.authoring?.monsterGroups ?? [])]
     .map((group) => ({
@@ -73,14 +138,26 @@ const encounterSummary = (encounter: EncounterDefinition): EncounterAuthoringSum
   rewardPoolId: encounter.authoring?.rewardPoolId
 });
 
-const runMapSummary = (template: RunMapTemplateDefinition): RunMapAuthoringSummary => {
+const runMapSummary = (
+  template: RunMapTemplateDefinition,
+  registry: GameContentRegistry
+): RunMapAuthoringSummary => {
   const nodes = sortedById(template.nodes.map((node) => ({
     id: node.id,
     type: node.type,
     layer: node.layer,
     encounterIds: [...(node.encounterIds ?? [])].sort((left, right) => left.localeCompare(right)),
+    nextNodeIds: [...node.nextNodeIds].sort((left, right) => left.localeCompare(right)),
     budgetMin: node.authoring?.budgetMin,
-    budgetMax: node.authoring?.budgetMax
+    budgetMax: node.authoring?.budgetMax,
+    notes: node.authoring?.notes,
+    meaning: nodeMeaning(node.type, node.authoring?.notes),
+    encounters: sortedById(
+      (node.encounterIds ?? [])
+        .map((encounterId) => registry.encounters.find((encounter) => encounter.id === encounterId))
+        .filter((encounter): encounter is EncounterDefinition => encounter !== undefined)
+        .map((encounter) => encounterSummary(encounter, registry))
+    )
   })));
 
   return {
@@ -94,7 +171,7 @@ const runMapSummary = (template: RunMapTemplateDefinition): RunMapAuthoringSumma
 };
 
 export const buildLevelAuthoringReport = (registry: GameContentRegistry): LevelAuthoringReport => {
-  const encounters = sortedById(registry.encounters.map(encounterSummary));
+  const encounters = sortedById(registry.encounters.map((encounter) => encounterSummary(encounter, registry)));
   const encounterBudgetsByType = encounters.reduce<Record<string, number>>((budgets, encounter) => ({
     ...budgets,
     [encounter.type]: (budgets[encounter.type] ?? 0) + (encounter.budget ?? 0)
@@ -102,7 +179,7 @@ export const buildLevelAuthoringReport = (registry: GameContentRegistry): LevelA
 
   return {
     encounters,
-    runMapTemplates: sortedById(registry.runMapTemplates.map(runMapSummary)),
+    runMapTemplates: sortedById(registry.runMapTemplates.map((template) => runMapSummary(template, registry))),
     encounterBudgetsByType
   };
 };

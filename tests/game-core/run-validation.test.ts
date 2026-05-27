@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createRun,
+  deckId,
   encounterId,
   petDefinitionId,
   petInstanceId,
@@ -29,7 +30,7 @@ describe("run validation", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(result.state.deckCardIds).toEqual(starterRegistry.players[0].startingDeckCardIds);
+    expect(result.state.deckCardIds).toEqual(starterRegistry.decks?.[0].cardIds);
     expect(result.state.playerHp).toBe(starterRegistry.players[0].maxHp);
     expect(result.state.playerMaxHp).toBe(starterRegistry.players[0].maxHp);
     expect(result.events[0]).toMatchObject({
@@ -43,6 +44,29 @@ describe("run validation", () => {
       "RunNodeAvailable",
       "RunNodeAvailable"
     ]);
+  });
+
+  it("rejects run creation when the player starter deck is missing", () => {
+    const result = createRun({
+      seed: "missing-starter-deck",
+      playerClassId: playerClassId("novice_tamer"),
+      activePetInstanceIds: [petInstanceId("ember_fox_001")],
+      petInstances: [createEmberFoxInstanceFixture()],
+      registry: {
+        ...starterRegistry,
+        decks: [],
+        players: [{
+          ...starterRegistry.players[0],
+          startingDeckId: deckId("missing_starter")
+        }]
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      code: "missing_starting_deck",
+      path: "playerClassId"
+    }));
   });
 
   it("validates the starter registry with encounters and map templates", () => {

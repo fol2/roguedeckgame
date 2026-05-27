@@ -1122,6 +1122,7 @@ export const validateRegistry = (
   const registryRecord = registry as unknown as {
     readonly contentVersion?: unknown;
     readonly cards?: unknown;
+    readonly decks?: unknown;
     readonly pets?: unknown;
     readonly players?: unknown;
     readonly monsterAbilities?: unknown;
@@ -1140,6 +1141,7 @@ export const validateRegistry = (
   const contentIndex = buildContentIndex({
     contentVersion: typeof registryRecord.contentVersion === "string" ? registryRecord.contentVersion : "",
     cards: Array.isArray(registryRecord.cards) ? registryRecord.cards : [],
+    decks: Array.isArray(registryRecord.decks) ? registryRecord.decks : [],
     statuses: Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition],
     pets: Array.isArray(registryRecord.pets) ? registryRecord.pets : [],
     players: Array.isArray(registryRecord.players) ? registryRecord.players : [],
@@ -1169,6 +1171,10 @@ export const validateRegistry = (
 
   if (!Array.isArray(registryRecord.cards)) {
     issues.push(issue("error", "invalid_cards", "Cards must be an array.", "cards"));
+  }
+
+  if (registryRecord.decks !== undefined && !Array.isArray(registryRecord.decks)) {
+    issues.push(issue("error", "invalid_decks", "Decks must be an array when present.", "decks"));
   }
 
   if (
@@ -1220,6 +1226,7 @@ export const validateRegistry = (
   }
 
   const cardDefinitions = Array.isArray(registryRecord.cards) ? registryRecord.cards : [];
+  const deckDefinitions = Array.isArray(registryRecord.decks) ? registryRecord.decks : [];
   const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition];
   const playerDefinitions = Array.isArray(registryRecord.players) ? registryRecord.players : [];
   const monsterAbilityDefinitions = Array.isArray(registryRecord.monsterAbilities) ? registryRecord.monsterAbilities : [];
@@ -1269,6 +1276,12 @@ export const validateRegistry = (
     playerDefinitions
       .filter(isRecord)
       .map((player) => player.id)
+      .filter(isString)
+  );
+  const deckIds = new Set(
+    deckDefinitions
+      .filter(isRecord)
+      .map((deck) => deck.id)
       .filter(isString)
   );
   const playerClassModifierIds = new Set(
@@ -1530,6 +1543,59 @@ export const validateRegistry = (
     }
   };
 
+  deckDefinitions.forEach((deckValue, deckIndex) => {
+    if (!isRecord(deckValue)) {
+      issues.push(issue("error", "invalid_deck", "Deck definition must be an object.", `decks[${deckIndex}]`));
+      return;
+    }
+
+    const deck = deckValue;
+    if (typeof deck.id !== "string" || deck.id.length === 0) {
+      issues.push(issue("error", "invalid_deck", "Deck id must be a non-empty string.", `decks[${deckIndex}].id`));
+    }
+
+    if (typeof deck.name !== "string" || deck.name.length === 0) {
+      issues.push(issue("error", "invalid_deck", `Deck '${String(deck.id)}' name must be a non-empty string.`, `decks[${deckIndex}].name`));
+    }
+
+    if (typeof deck.ownerPlayerClassId !== "string" || deck.ownerPlayerClassId.length === 0) {
+      issues.push(issue("error", "invalid_deck_owner", `Deck '${String(deck.id)}' ownerPlayerClassId must be a non-empty string.`, `decks[${deckIndex}].ownerPlayerClassId`));
+    } else if (!playerClassIds.has(deck.ownerPlayerClassId)) {
+      issues.push(issue("error", "missing_deck_owner_player_class", `Deck '${String(deck.id)}' references missing player class '${deck.ownerPlayerClassId}'.`, `decks[${deckIndex}].ownerPlayerClassId`));
+    }
+
+    if (!Array.isArray(deck.cardIds)) {
+      issues.push(issue("error", "invalid_deck_cards", `Deck '${String(deck.id)}' cardIds must be an array.`, `decks[${deckIndex}].cardIds`));
+    } else if (deck.cardIds.length === 0) {
+      issues.push(issue("error", "empty_deck", `Deck '${String(deck.id)}' must contain at least one card.`, `decks[${deckIndex}].cardIds`));
+    } else {
+      deck.cardIds.forEach((cardId, cardIndex) => {
+        if (!cardIds.has(cardId)) {
+          issues.push(
+            issue(
+              "error",
+              "missing_deck_card",
+              `Deck '${String(deck.id)}' references missing card '${String(cardId)}'.`,
+              `decks[${deckIndex}].cardIds[${cardIndex}]`
+            )
+          );
+        }
+      });
+    }
+
+    if (!Array.isArray(deck.tags) || deck.tags.some((tag) => typeof tag !== "string" || tag.length === 0)) {
+      issues.push(issue("error", "invalid_deck_tags", `Deck '${String(deck.id)}' tags must be a string array.`, `decks[${deckIndex}].tags`));
+    }
+
+    if ("authoringNotes" in deck && deck.authoringNotes !== undefined && typeof deck.authoringNotes !== "string") {
+      issues.push(issue("error", "invalid_deck_authoring_notes", `Deck '${String(deck.id)}' authoringNotes must be a string when present.`, `decks[${deckIndex}].authoringNotes`));
+    }
+
+    if ("unlockRequirements" in deck && deck.unlockRequirements !== undefined && !Array.isArray(deck.unlockRequirements)) {
+      issues.push(issue("error", "invalid_deck_unlock_requirements", `Deck '${String(deck.id)}' unlockRequirements must be an array when present.`, `decks[${deckIndex}].unlockRequirements`));
+    }
+  });
+
   playerDefinitions.forEach((playerValue, playerIndex) => {
     if (!isRecord(playerValue)) {
       issues.push(issue("error", "invalid_player", "Player definition must be an object.", `players[${playerIndex}]`));
@@ -1539,6 +1605,14 @@ export const validateRegistry = (
     const player = playerValue;
     if (typeof player.id !== "string") {
       issues.push(issue("error", "invalid_player_id", "Player id must be a string.", `players[${playerIndex}].id`));
+    }
+
+    if ("startingDeckId" in player && player.startingDeckId !== undefined) {
+      if (typeof player.startingDeckId !== "string" || player.startingDeckId.length === 0) {
+        issues.push(issue("error", "invalid_starting_deck", `Player '${String(player.id)}' startingDeckId must be a non-empty string.`, `players[${playerIndex}].startingDeckId`));
+      } else if (!deckIds.has(player.startingDeckId)) {
+        issues.push(issue("error", "missing_starting_deck", `Player '${String(player.id)}' references missing starter deck '${player.startingDeckId}'.`, `players[${playerIndex}].startingDeckId`));
+      }
     }
 
     if (!Array.isArray(player.startingDeckCardIds)) {

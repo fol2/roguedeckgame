@@ -1,4 +1,5 @@
 import type { CardDefinition } from "./card";
+import type { DeckDefinition } from "./deck";
 import type { EncounterDefinition } from "./encounter";
 import type { MonsterAbilityDefinition, MonsterDefinition } from "./monster";
 import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from "./pet";
@@ -11,6 +12,7 @@ import type { StatusDefinition } from "./status";
 export type GameContentRegistry = {
   readonly contentVersion?: string;
   readonly cards: readonly CardDefinition[];
+  readonly decks?: readonly DeckDefinition[];
   readonly statuses?: readonly StatusDefinition[];
   readonly pets: readonly PetDefinition[];
   readonly players: readonly PlayerClassDefinition[];

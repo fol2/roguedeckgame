@@ -17,6 +17,7 @@ describe("content schema compiler", () => {
 
     expect(roundTripped).toEqual(schema);
     expect(roundTripped.cards).toHaveLength(starterRegistry.cards.length);
+    expect(roundTripped.decks).toHaveLength(starterRegistry.decks?.length ?? 0);
     expect(roundTripped.monsterAbilities).toHaveLength(starterRegistry.monsterAbilities?.length ?? 0);
     expect(roundTripped.statuses).toHaveLength(starterRegistry.statuses?.length ?? 0);
   });
@@ -29,6 +30,7 @@ describe("content schema compiler", () => {
     expect(result.issues).toEqual([]);
     expect(result.registry).toBeDefined();
     expect(result.registry?.cards).toHaveLength(starterRegistry.cards.length);
+    expect(result.registry?.decks).toHaveLength(starterRegistry.decks?.length ?? 0);
     expect(result.registry?.monsters).toHaveLength(starterRegistry.monsters.length);
     expect(result.registry?.monsterAbilities).toHaveLength(starterRegistry.monsterAbilities?.length ?? 0);
 
@@ -328,6 +330,38 @@ describe("content schema compiler", () => {
       code: "missing_starting_deck_card",
       path: "players[0].startingDeckCardIds[0]"
     }));
+  });
+
+  it("returns registry validation diagnostics for missing starter deck content", () => {
+    const schema = cloneSchema(createContentSchemaFromRegistry(starterRegistry));
+    const result = compileContentSchema({
+      ...schema,
+      decks: [
+        {
+          ...schema.decks![0],
+          cardIds: ["missing_card"]
+        }
+      ],
+      players: [
+        {
+          ...schema.players[0],
+          startingDeckId: "missing_starter"
+        }
+      ]
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.registry).toBeDefined();
+    expect(result.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "missing_deck_card",
+        path: "decks[0].cardIds[0]"
+      }),
+      expect.objectContaining({
+        code: "missing_starting_deck",
+        path: "players[0].startingDeckId"
+      })
+    ]));
   });
 
   it("returns registry validation diagnostics for missing monster ability references", () => {

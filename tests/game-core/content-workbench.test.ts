@@ -13,13 +13,17 @@ describe("content workbench view model", () => {
 
     expect(first).toEqual(second);
     expect(first.contentVersion).toBe("starter-act1-forest-v1");
-    expect(first.schema.collectionCount).toBe(14);
+    expect(first.schema.collectionCount).toBe(15);
     expect(Object.keys(first.sections).sort()).toEqual(
       first.schema.collections.map((collection) => collection.id).sort()
     );
     expect(first.schema.collections.find((collection) => collection.id === "cards")).toMatchObject({
       count: 12,
       required: true
+    });
+    expect(first.schema.collections.find((collection) => collection.id === "decks")).toMatchObject({
+      count: 1,
+      required: false
     });
     expect(first.schema.collections.find((collection) => collection.id === "rewardPools")).toMatchObject({
       count: 3,
@@ -68,6 +72,21 @@ describe("content workbench view model", () => {
       },
       effectSummaries: [{ type: "damage", amount: 6, combatantTarget: "target" }]
     });
+    expect(first.sections.decks).toEqual([expect.objectContaining({
+      id: "novice_tamer_starter",
+      ownerPlayerClassId: "novice_tamer",
+      size: 9,
+      petCommandCount: 3,
+      cardTypes: {
+        attack: 3,
+        skill: 3,
+        "pet-command": 3
+      },
+      rarityMix: {
+        starter: 9
+      },
+      whereUsedByPlayerClassIds: ["novice_tamer"]
+    })]);
     expect(first.sections.monsterAbilities.find((ability) => ability.id === "ash_mite_burn")?.preview).toMatchObject({
       source: "monsterAbility",
       displayRole: "debuff",
@@ -89,7 +108,29 @@ describe("content workbench view model", () => {
       id: "act1_forest",
       nodeCount: 7,
       combatNodeCount: 5,
-      budgetedNodeCount: 5
+      budgetedNodeCount: 5,
+      nodes: expect.arrayContaining([
+        expect.objectContaining({
+          id: "act1_forest_3_elite_a",
+          type: "elite",
+          encounters: [expect.objectContaining({
+            name: "Charred Stag",
+            monsterIds: ["charred_stag"],
+            rewardPoolId: "elite",
+            budget: 5
+          })]
+        }),
+        expect.objectContaining({
+          id: "act1_forest_4_boss_a",
+          type: "boss",
+          encounters: [expect.objectContaining({
+            name: "Forest Warden",
+            monsterIds: ["forest_warden"],
+            rewardPoolId: "boss",
+            budget: 8
+          })]
+        })
+      ])
     })]);
     expect(first.sections.petUpgrades.map((upgrade) => upgrade.id)).toEqual([
       "ash_instinct",
@@ -120,6 +161,7 @@ describe("content workbench view model", () => {
     expect(first.diagnostics.levelAuthoringErrors).toEqual([]);
     expect(first.diagnostics.dependencyReferenceCount).toBeGreaterThan(0);
     expect(first.reports.content.counts.monsterAbilities).toBe(10);
+    expect(first.reports.content.counts.decks).toBe(1);
     expect(first.reports.content.counts.petModifiers).toBe(3);
     expect(first.reports.content.dependencyReferenceCount).toBe(first.diagnostics.dependencyReferenceCount);
     expect(first.reports.content.dependencyMissingReferenceCount).toBe(0);

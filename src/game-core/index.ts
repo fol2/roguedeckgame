@@ -3,6 +3,7 @@ export * from "./model/action";
 export * from "./model/card";
 export * from "./model/combat";
 export * from "./model/content-schema";
+export * from "./model/deck";
 export * from "./model/effect";
 export * from "./model/encounter";
 export * from "./model/event";

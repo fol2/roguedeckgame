@@ -1,4 +1,4 @@
-import type { CardId, PlayerClassId, PlayerClassModifierId, RelicId, StatusId } from "../ids";
+import type { CardId, DeckId, PlayerClassId, PlayerClassModifierId, RelicId, StatusId } from "../ids";
 import type { EffectDefinition } from "./effect";
 import type { CardSelector, PetModifierLimit } from "./pet";
 
@@ -36,6 +36,7 @@ export type PlayerClassModifierRule =
 export type PlayerClassDefinition = {
   readonly id: PlayerClassId;
   readonly name: string;
+  readonly startingDeckId?: DeckId;
   readonly startingDeckCardIds: readonly CardId[];
   readonly startingRelicIds: readonly RelicId[];
   readonly classModifierIds?: readonly PlayerClassModifierId[];
