@@ -32,6 +32,12 @@ export type ValidationResult = {
   readonly warnings: readonly ValidationIssue[];
 };
 
+export type RegistryAuthoringValidationMode = "base" | "strictLevelAuthoring";
+
+export type RegistryValidationOptions = {
+  readonly authoringMode?: RegistryAuthoringValidationMode;
+};
+
 const issue = (
   severity: ValidationIssueSeverity,
   code: string,
@@ -327,6 +333,7 @@ const validatePlayerClassModifierRule = (
 
 type RunMapTemplateCandidate = {
   readonly id?: unknown;
+  readonly actId?: unknown;
   readonly nodes?: unknown;
 };
 
@@ -336,12 +343,21 @@ type RunMapNodeCandidate = {
   readonly layer?: unknown;
   readonly encounterIds?: unknown;
   readonly nextNodeIds?: unknown;
+  readonly authoring?: unknown;
 };
 
 type EncounterCandidate = {
   readonly id?: unknown;
   readonly type?: unknown;
   readonly monsterIds?: unknown;
+  readonly authoring?: unknown;
+};
+
+type RewardPoolCandidate = {
+  readonly id?: unknown;
+  readonly name?: unknown;
+  readonly rewardTypes?: unknown;
+  readonly tags?: unknown;
 };
 
 type StoryEventCandidate = {
@@ -405,7 +421,318 @@ const storyTriggers = new Set<StoryTrigger>([
 const isRunMapNodeCandidate = (value: unknown): value is RunMapNodeCandidate =>
   isRecord(value);
 
-const validateRunMapTemplates = (registry: GameContentRegistry): ValidationIssue[] => {
+const knownDifficultyBands = new Set(["tutorial", "easy", "normal", "hard", "elite", "boss"]);
+const knownRewardPoolOptionTypes = new Set(["card", "petUpgrade", "deckOperation"]);
+
+type EncounterAuthoringValidationOptions = {
+  readonly requireAuthoring: boolean;
+  readonly encounterMonsterIds: readonly unknown[];
+  readonly knownMonsterIds: ReadonlySet<string>;
+  readonly rewardPoolIds: ReadonlySet<string>;
+};
+
+const validateRewardPool = (
+  rewardPoolValue: unknown,
+  path: string
+): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+
+  if (!isRecord(rewardPoolValue)) {
+    return [issue("error", "invalid_reward_pool", "Reward pool definition must be an object.", path)];
+  }
+
+  const rewardPool = rewardPoolValue as RewardPoolCandidate;
+  if (typeof rewardPool.id !== "string" || rewardPool.id.length === 0) {
+    issues.push(issue("error", "invalid_reward_pool", "Reward pool id must be a non-empty string.", `${path}.id`));
+  }
+
+  if (typeof rewardPool.name !== "string" || rewardPool.name.length === 0) {
+    issues.push(issue("error", "invalid_reward_pool", `Reward pool '${String(rewardPool.id)}' name must be a non-empty string.`, `${path}.name`));
+  }
+
+  if (
+    !Array.isArray(rewardPool.rewardTypes) ||
+    rewardPool.rewardTypes.length === 0 ||
+    rewardPool.rewardTypes.some((rewardType) => typeof rewardType !== "string" || !knownRewardPoolOptionTypes.has(rewardType))
+  ) {
+    issues.push(issue("error", "invalid_reward_pool", `Reward pool '${String(rewardPool.id)}' rewardTypes must contain known reward option types.`, `${path}.rewardTypes`));
+  }
+
+  if (
+    !Array.isArray(rewardPool.tags) ||
+    rewardPool.tags.some((tag) => typeof tag !== "string" || tag.length === 0)
+  ) {
+    issues.push(issue("error", "invalid_reward_pool", `Reward pool '${String(rewardPool.id)}' tags must be a string array.`, `${path}.tags`));
+  }
+
+  return issues;
+};
+
+const validateEncounterAuthoring = (
+  authoring: unknown,
+  path: string,
+  encounterId: unknown,
+  options: EncounterAuthoringValidationOptions
+): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+
+  if (authoring === undefined) {
+    if (options.requireAuthoring) {
+      issues.push(issue("error", "missing_encounter_authoring", `Encounter '${String(encounterId)}' is used by a playable run node and must define authoring metadata.`, path));
+    }
+    return issues;
+  }
+
+  if (!isRecord(authoring)) {
+    return [issue("error", "invalid_encounter_authoring", "Encounter authoring metadata must be an object.", path)];
+  }
+
+  if (!knownDifficultyBands.has(String(authoring.difficultyBand))) {
+    issues.push(issue("error", "invalid_encounter_authoring", `Encounter '${String(encounterId)}' authoring difficultyBand is unknown.`, `${path}.difficultyBand`));
+  }
+
+  if (typeof authoring.budget !== "number" || !Number.isFinite(authoring.budget) || authoring.budget <= 0) {
+    issues.push(issue("error", "invalid_encounter_authoring", `Encounter '${String(encounterId)}' authoring budget must be positive.`, `${path}.budget`));
+  }
+
+  if (
+    "minPlayerLevel" in authoring &&
+    authoring.minPlayerLevel !== undefined &&
+    (typeof authoring.minPlayerLevel !== "number" || !Number.isInteger(authoring.minPlayerLevel) || authoring.minPlayerLevel < 0)
+  ) {
+    issues.push(issue("error", "invalid_encounter_authoring", `Encounter '${String(encounterId)}' authoring minPlayerLevel must be a non-negative integer.`, `${path}.minPlayerLevel`));
+  }
+
+  if (
+    !Array.isArray(authoring.monsterRoles) ||
+    authoring.monsterRoles.length === 0 ||
+    authoring.monsterRoles.some((role) => typeof role !== "string" || role.length === 0)
+  ) {
+    issues.push(issue("error", "invalid_encounter_authoring", `Encounter '${String(encounterId)}' authoring monsterRoles must be a non-empty string array.`, `${path}.monsterRoles`));
+  }
+
+  if ("actId" in authoring && authoring.actId !== undefined && (typeof authoring.actId !== "string" || authoring.actId.length === 0)) {
+    issues.push(issue("error", "invalid_encounter_authoring", `Encounter '${String(encounterId)}' authoring actId must be a non-empty string.`, `${path}.actId`));
+  }
+
+  if (options.requireAuthoring && (!("actId" in authoring) || authoring.actId === undefined)) {
+    issues.push(issue("error", "invalid_encounter_authoring", `Encounter '${String(encounterId)}' authoring actId is required for playable run nodes.`, `${path}.actId`));
+  }
+
+  if ("rewardPoolId" in authoring && authoring.rewardPoolId !== undefined && (typeof authoring.rewardPoolId !== "string" || authoring.rewardPoolId.length === 0)) {
+    issues.push(issue("error", "missing_encounter_reward_pool", `Encounter '${String(encounterId)}' authoring rewardPoolId must be a non-empty string.`, `${path}.rewardPoolId`));
+  }
+
+  if (typeof authoring.rewardPoolId === "string" && authoring.rewardPoolId.length > 0 && !options.rewardPoolIds.has(authoring.rewardPoolId)) {
+    issues.push(issue("error", "missing_encounter_reward_pool", `Encounter '${String(encounterId)}' references missing reward pool '${authoring.rewardPoolId}'.`, `${path}.rewardPoolId`));
+  }
+
+  if (!("rewardPoolId" in authoring) || authoring.rewardPoolId === undefined) {
+    issues.push(issue("error", "missing_encounter_reward_pool", `Encounter '${String(encounterId)}' authoring must reference a reward pool.`, `${path}.rewardPoolId`));
+  }
+
+  const encounterMonsterIds = new Set(
+    options.encounterMonsterIds.filter((monsterId): monsterId is string => typeof monsterId === "string")
+  );
+  const coveredMonsterIds = new Set<string>();
+  const seenMonsterGroupIds = new Set<string>();
+
+  if (!Array.isArray(authoring.monsterGroups) || authoring.monsterGroups.length === 0) {
+    issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' authoring monsterGroups must be a non-empty array.`, `${path}.monsterGroups`));
+  }
+
+  const monsterGroups = Array.isArray(authoring.monsterGroups) ? authoring.monsterGroups : [];
+  monsterGroups.forEach((monsterGroup, groupIndex) => {
+    const groupPath = `${path}.monsterGroups[${groupIndex}]`;
+    if (!isRecord(monsterGroup)) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group must be an object.`, groupPath));
+      return;
+    }
+
+    if (typeof monsterGroup.id !== "string" || monsterGroup.id.length === 0) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group id must be a non-empty string.`, `${groupPath}.id`));
+    } else if (seenMonsterGroupIds.has(monsterGroup.id)) {
+      issues.push(issue("error", "duplicate_encounter_monster_group", `Encounter '${String(encounterId)}' has duplicate monster group id '${monsterGroup.id}'.`, `${groupPath}.id`));
+    } else {
+      seenMonsterGroupIds.add(monsterGroup.id);
+    }
+
+    if (!Array.isArray(monsterGroup.roles) || monsterGroup.roles.length === 0 || monsterGroup.roles.some((role) => typeof role !== "string" || role.length === 0)) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group roles must be a non-empty string array.`, `${groupPath}.roles`));
+    }
+
+    if (!Array.isArray(monsterGroup.monsterIds) || monsterGroup.monsterIds.length === 0) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group monsterIds must be a non-empty array.`, `${groupPath}.monsterIds`));
+    }
+
+    const groupMonsterIds = Array.isArray(monsterGroup.monsterIds) ? monsterGroup.monsterIds : [];
+    groupMonsterIds.forEach((groupMonsterId, monsterIndex) => {
+      const monsterPath = `${groupPath}.monsterIds[${monsterIndex}]`;
+      if (typeof groupMonsterId !== "string" || !options.knownMonsterIds.has(groupMonsterId)) {
+        issues.push(issue("error", "missing_encounter_group_monster", `Encounter '${String(encounterId)}' monster group references missing monster '${String(groupMonsterId)}'.`, monsterPath));
+        return;
+      }
+
+      if (!encounterMonsterIds.has(groupMonsterId)) {
+        issues.push(issue("error", "encounter_monster_group_mismatch", `Encounter '${String(encounterId)}' monster group references monster '${groupMonsterId}' that is not in encounter monsterIds.`, monsterPath));
+        return;
+      }
+
+      coveredMonsterIds.add(groupMonsterId);
+    });
+
+    const minCount = monsterGroup.minCount;
+    const maxCount = monsterGroup.maxCount;
+    if (minCount !== undefined && (typeof minCount !== "number" || !Number.isInteger(minCount) || minCount <= 0)) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group minCount must be a positive integer.`, `${groupPath}.minCount`));
+    }
+    if (maxCount !== undefined && (typeof maxCount !== "number" || !Number.isInteger(maxCount) || maxCount <= 0)) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group maxCount must be a positive integer.`, `${groupPath}.maxCount`));
+    }
+    if (
+      typeof minCount === "number" &&
+      typeof maxCount === "number" &&
+      Number.isInteger(minCount) &&
+      Number.isInteger(maxCount) &&
+      minCount > maxCount
+    ) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group minCount cannot exceed maxCount.`, `${groupPath}.minCount`));
+    }
+    if (
+      typeof maxCount === "number" &&
+      Number.isInteger(maxCount) &&
+      maxCount > groupMonsterIds.length
+    ) {
+      issues.push(issue("error", "invalid_encounter_monster_group", `Encounter '${String(encounterId)}' monster group maxCount cannot exceed the number of listed monsters.`, `${groupPath}.maxCount`));
+    }
+  });
+
+  encounterMonsterIds.forEach((monsterId) => {
+    if (!coveredMonsterIds.has(monsterId)) {
+      issues.push(issue("error", "encounter_monster_group_mismatch", `Encounter '${String(encounterId)}' monster '${monsterId}' is not covered by any authoring monster group.`, `${path}.monsterGroups`));
+    }
+  });
+
+  return issues;
+};
+
+const validateRunNodeAuthoring = (
+  authoring: unknown,
+  path: string,
+  encounterIds: readonly unknown[],
+  encountersById: ReadonlyMap<string, EncounterCandidate & { readonly id: string }>,
+  options: {
+    readonly requireBudget: boolean;
+    readonly templateActId?: unknown;
+  }
+): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+
+  if (authoring === undefined) {
+    if (options.requireBudget) {
+      issues.push(issue("error", "missing_run_node_authoring", "Combat run node must define authoring metadata.", path));
+    }
+    return issues;
+  }
+
+  if (!isRecord(authoring)) {
+    return [issue("error", "invalid_run_node_authoring", "Run node authoring metadata must be an object.", path)];
+  }
+
+  const hasBudgetMin = "budgetMin" in authoring && authoring.budgetMin !== undefined;
+  const hasBudgetMax = "budgetMax" in authoring && authoring.budgetMax !== undefined;
+
+  if (options.requireBudget && (!hasBudgetMin || !hasBudgetMax)) {
+    issues.push(issue("error", "missing_run_node_budget", "Combat run node authoring must define budgetMin and budgetMax.", path));
+  }
+
+  if (hasBudgetMin && (typeof authoring.budgetMin !== "number" || !Number.isFinite(authoring.budgetMin) || authoring.budgetMin < 0)) {
+    issues.push(issue("error", "invalid_run_node_authoring", "Run node budgetMin must be a non-negative number.", `${path}.budgetMin`));
+  }
+
+  if (hasBudgetMax && (typeof authoring.budgetMax !== "number" || !Number.isFinite(authoring.budgetMax) || authoring.budgetMax < 0)) {
+    issues.push(issue("error", "invalid_run_node_authoring", "Run node budgetMax must be a non-negative number.", `${path}.budgetMax`));
+  }
+
+  if (
+    hasBudgetMin &&
+    hasBudgetMax &&
+    typeof authoring.budgetMin === "number" &&
+    typeof authoring.budgetMax === "number" &&
+    authoring.budgetMin > authoring.budgetMax
+  ) {
+    issues.push(issue("error", "invalid_run_node_authoring", "Run node budgetMin cannot exceed budgetMax.", `${path}.budgetMin`));
+  }
+
+  if ("notes" in authoring && authoring.notes !== undefined && (typeof authoring.notes !== "string" || authoring.notes.length === 0)) {
+    issues.push(issue("error", "invalid_run_node_authoring", "Run node notes must be a non-empty string.", `${path}.notes`));
+  }
+
+  const budgetMinValue = authoring.budgetMin;
+  const budgetMaxValue = authoring.budgetMax;
+  const hasValidBudgetRange =
+    hasBudgetMin &&
+    hasBudgetMax &&
+    typeof budgetMinValue === "number" &&
+    typeof budgetMaxValue === "number" &&
+    Number.isFinite(budgetMinValue) &&
+    Number.isFinite(budgetMaxValue) &&
+    budgetMinValue >= 0 &&
+    budgetMaxValue >= 0 &&
+    budgetMinValue <= budgetMaxValue;
+
+  if (hasValidBudgetRange) {
+    const budgetMin = budgetMinValue;
+    const budgetMax = budgetMaxValue;
+    encounterIds.forEach((encounterId, encounterIndex) => {
+      if (typeof encounterId !== "string") {
+        return;
+      }
+
+      const encounter = encountersById.get(encounterId);
+      const budget = isRecord(encounter?.authoring) && typeof encounter.authoring.budget === "number"
+        ? encounter.authoring.budget
+        : undefined;
+
+      if (budget !== undefined && (budget < budgetMin || budget > budgetMax)) {
+        issues.push(issue(
+          "error",
+          "run_node_encounter_budget_mismatch",
+          `Run node encounter '${encounterId}' has budget ${budget} outside node budget range.`,
+          `${path.replace(/\.authoring$/, "")}.encounterIds[${encounterIndex}]`
+        ));
+      }
+    });
+  }
+
+  if (typeof options.templateActId === "string" && options.templateActId.length > 0) {
+    encounterIds.forEach((encounterId, encounterIndex) => {
+      if (typeof encounterId !== "string") {
+        return;
+      }
+
+      const encounter = encountersById.get(encounterId);
+      const encounterActId = isRecord(encounter?.authoring) && typeof encounter.authoring.actId === "string"
+        ? encounter.authoring.actId
+        : undefined;
+      if (encounterActId !== undefined && encounterActId.length > 0 && encounterActId !== options.templateActId) {
+        issues.push(issue(
+          "error",
+          "run_node_encounter_act_mismatch",
+          `Run node references encounter '${encounterId}' from act '${encounterActId}' in template act '${options.templateActId}'.`,
+          `${path.replace(/\.authoring$/, "")}.encounterIds[${encounterIndex}]`
+        ));
+      }
+    });
+  }
+
+  return issues;
+};
+
+const validateRunMapTemplates = (
+  registry: GameContentRegistry,
+  options: { readonly strictLevelAuthoring: boolean } = { strictLevelAuthoring: false }
+): ValidationIssue[] => {
   const issues: ValidationIssue[] = [];
   const encounters = Array.isArray(registry.encounters) ? registry.encounters.filter(isRecord) : [];
   const runMapTemplates = Array.isArray(registry.runMapTemplates) ? registry.runMapTemplates : [];
@@ -438,6 +765,10 @@ const validateRunMapTemplates = (registry: GameContentRegistry): ValidationIssue
     }
 
     const template = templateValue as RunMapTemplateCandidate;
+    if ("actId" in template && template.actId !== undefined && (typeof template.actId !== "string" || template.actId.length === 0)) {
+      issues.push(issue("error", "invalid_run_map_template_act", `Run map template '${String(template.id)}' actId must be a non-empty string.`, `runMapTemplates[${templateIndex}].actId`));
+    }
+
     if (!Array.isArray(template.nodes)) {
       issues.push(
         issue(
@@ -463,6 +794,14 @@ const validateRunMapTemplates = (registry: GameContentRegistry): ValidationIssue
     }
 
     const validNodes = template.nodes.filter(isRunMapNodeCandidate);
+    if (
+      options.strictLevelAuthoring &&
+      validNodes.some((node) => combatNodeTypes.has(node.type as RunNodeType)) &&
+      template.actId === undefined
+    ) {
+      issues.push(issue("error", "invalid_run_map_template_act", `Run map template '${String(template.id)}' must define actId for combat authoring.`, `runMapTemplates[${templateIndex}].actId`));
+    }
+
     const nodeIds = new Set(validNodes.map((node) => node.id).filter((nodeId): nodeId is string => typeof nodeId === "string"));
     const seenNodeIds = new Set<string>();
     const duplicateNodeIds = new Set<string>();
@@ -638,6 +977,18 @@ const validateRunMapTemplates = (registry: GameContentRegistry): ValidationIssue
         );
       }
 
+      const nodeEncounterIds = Array.isArray(node.encounterIds) ? node.encounterIds : [];
+      issues.push(...validateRunNodeAuthoring(
+        node.authoring,
+        `${path}.authoring`,
+        nodeEncounterIds,
+        encountersById,
+        {
+          requireBudget: options.strictLevelAuthoring && combatNodeTypes.has(node.type as RunNodeType),
+          templateActId: template.actId
+        }
+      ));
+
       if ((node.type === "event" || node.type === "rest") && Array.isArray(node.encounterIds) && node.encounterIds.length > 0) {
         issues.push(
           issue(
@@ -749,7 +1100,12 @@ const validateRunMapTemplates = (registry: GameContentRegistry): ValidationIssue
   return issues;
 };
 
-export const validateRegistry = (registry: GameContentRegistry): ValidationResult => {
+export const validateRegistry = (
+  registry: GameContentRegistry,
+  options: RegistryValidationOptions = {}
+): ValidationResult => {
+  const strictLevelAuthoring = options.authoringMode === "strictLevelAuthoring";
+
   if (!isRecord(registry)) {
     const invalidRegistry = [
       issue("error", "invalid_registry", "Registry must be an object.", "registry")
@@ -771,6 +1127,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     readonly monsters?: unknown;
     readonly encounters?: unknown;
     readonly runMapTemplates?: unknown;
+    readonly rewardPools?: unknown;
     readonly petUpgrades?: unknown;
     readonly petModifiers?: unknown;
     readonly playerClassModifiers?: unknown;
@@ -789,6 +1146,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     monsters: Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [],
     encounters: Array.isArray(registryRecord.encounters) ? registryRecord.encounters : [],
     runMapTemplates: Array.isArray(registryRecord.runMapTemplates) ? registryRecord.runMapTemplates : [],
+    rewardPools: Array.isArray(registryRecord.rewardPools) ? registryRecord.rewardPools : [],
     petUpgrades: Array.isArray(registryRecord.petUpgrades) ? registryRecord.petUpgrades : [],
     petModifiers: Array.isArray(registryRecord.petModifiers) ? registryRecord.petModifiers : [],
     playerClassModifiers: Array.isArray(registryRecord.playerClassModifiers) ? registryRecord.playerClassModifiers : [],
@@ -848,6 +1206,10 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     issues.push(issue("error", "invalid_pet_upgrades", "Pet upgrades must be an array.", "petUpgrades"));
   }
 
+  if (registryRecord.rewardPools !== undefined && !Array.isArray(registryRecord.rewardPools)) {
+    issues.push(issue("error", "invalid_reward_pools", "Reward pools must be an array when present.", "rewardPools"));
+  }
+
   if (registryRecord.petModifiers !== undefined && !Array.isArray(registryRecord.petModifiers)) {
     issues.push(issue("error", "invalid_pet_modifiers", "Pet modifiers must be an array when present.", "petModifiers"));
   }
@@ -864,6 +1226,7 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
   const storyEventDefinitions = Array.isArray(registryRecord.storyEvents) ? registryRecord.storyEvents : [];
   const petSideStoryDefinitions = Array.isArray(registryRecord.petSideStories) ? registryRecord.petSideStories : [];
   const petDefinitions = Array.isArray(registryRecord.pets) ? registryRecord.pets : [];
+  const rewardPoolDefinitions = Array.isArray(registryRecord.rewardPools) ? registryRecord.rewardPools : [];
   const petUpgradeDefinitions = Array.isArray(registryRecord.petUpgrades) ? registryRecord.petUpgrades : [];
   const standalonePetModifierDefinitions = Array.isArray(registryRecord.petModifiers) ? registryRecord.petModifiers : [];
   const playerClassModifierDefinitions = Array.isArray(registryRecord.playerClassModifiers) ? registryRecord.playerClassModifiers : [];
@@ -913,6 +1276,40 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
       .map((modifier) => modifier.id)
       .filter(isString)
   );
+  const rewardPoolIds = new Set(
+    rewardPoolDefinitions
+      .filter(isRecord)
+      .map((rewardPool) => rewardPool.id)
+      .filter(isString)
+  );
+  const encounterIdsRequiringAuthoring = new Set<string>();
+  if (strictLevelAuthoring) {
+    (Array.isArray(registryRecord.runMapTemplates) ? registryRecord.runMapTemplates : []).forEach((templateValue) => {
+      if (!isRecord(templateValue) || !Array.isArray(templateValue.nodes)) {
+        return;
+      }
+
+      templateValue.nodes.forEach((nodeValue: unknown) => {
+        if (!isRunMapNodeCandidate(nodeValue)) {
+          return;
+        }
+
+        if (nodeValue.type !== "combat" && nodeValue.type !== "elite" && nodeValue.type !== "boss") {
+          return;
+        }
+
+        if (!Array.isArray(nodeValue.encounterIds)) {
+          return;
+        }
+
+        nodeValue.encounterIds.forEach((encounterId) => {
+          if (typeof encounterId === "string") {
+            encounterIdsRequiringAuthoring.add(encounterId);
+          }
+        });
+      });
+    });
+  }
   const storyEventIds = new Set(
     storyEventDefinitions
       .filter(isRecord)
@@ -1513,6 +1910,10 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
     }
   });
 
+  rewardPoolDefinitions.forEach((rewardPoolValue, rewardPoolIndex) => {
+    issues.push(...validateRewardPool(rewardPoolValue, `rewardPools[${rewardPoolIndex}]`));
+  });
+
   const knownEncounterTypes = new Set<EncounterType>(["combat", "elite", "boss"]);
   if (!Array.isArray(registry.encounters)) {
     issues.push(
@@ -1581,9 +1982,21 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
         );
       }
     });
+
+    issues.push(...validateEncounterAuthoring(
+      encounter.authoring,
+      `encounters[${encounterIndex}].authoring`,
+      encounter.id,
+      {
+        requireAuthoring: typeof encounter.id === "string" && encounterIdsRequiringAuthoring.has(encounter.id),
+        encounterMonsterIds,
+        knownMonsterIds: monsterIds,
+        rewardPoolIds
+      }
+    ));
   });
 
-  issues.push(...validateRunMapTemplates(registry));
+  issues.push(...validateRunMapTemplates(registry, { strictLevelAuthoring }));
 
   const petModifierIds = new Set<string>();
   petUpgradeDefinitions.forEach((upgradeValue, upgradeIndex) => {
@@ -2270,6 +2683,9 @@ export const validateRegistry = (registry: GameContentRegistry): ValidationResul
 
   return { issues, errors, warnings };
 };
+
+export const validateLevelAuthoringRegistry = (registry: GameContentRegistry): ValidationResult =>
+  validateRegistry(registry, { authoringMode: "strictLevelAuthoring" });
 
 export const validateRunStateShape = (runState: RunState): ValidationResult => {
   const issues: ValidationIssue[] = [];

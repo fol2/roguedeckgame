@@ -4,6 +4,7 @@ import type {
   PetInstanceId,
   RewardOfferId,
   RewardOptionId,
+  RewardPoolId,
   RunId,
   UpgradeId
 } from "../ids";
@@ -54,3 +55,12 @@ export type RewardClaimState = {
 export type RewardDefinition =
   | { readonly type: "petUpgrade"; readonly upgradeId: UpgradeId }
   | { readonly type: "card"; readonly cardId: CardId };
+
+export type RewardPoolOptionType = RewardOption["type"];
+
+export type RewardPoolDefinition = {
+  readonly id: RewardPoolId;
+  readonly name: string;
+  readonly rewardTypes: readonly RewardPoolOptionType[];
+  readonly tags: readonly string[];
+};

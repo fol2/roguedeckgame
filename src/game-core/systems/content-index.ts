@@ -7,6 +7,7 @@ import type {
   PetModifierId,
   PlayerClassModifierId,
   PlayerClassId,
+  RewardPoolId,
   RunTemplateId,
   StoryEventId,
   StatusId,
@@ -17,6 +18,7 @@ import type { EncounterDefinition } from "../model/encounter";
 import type { MonsterAbilityDefinition, MonsterDefinition } from "../model/monster";
 import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from "../model/pet";
 import type { PlayerClassDefinition, PlayerClassModifierDefinition } from "../model/player";
+import type { RewardPoolDefinition } from "../model/reward";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunMapTemplateDefinition } from "../model/run-map";
 import { burnStatusDefinition, type StatusDefinition } from "../model/status";
@@ -31,6 +33,7 @@ export type IndexedContentCollection =
   | "monsters"
   | "encounters"
   | "runMapTemplates"
+  | "rewardPools"
   | "petUpgrades"
   | "petModifiers"
   | "playerClassModifiers"
@@ -51,6 +54,7 @@ export type ContentIndex = {
   readonly monstersById: ReadonlyMap<MonsterId, MonsterDefinition>;
   readonly encountersById: ReadonlyMap<EncounterId, EncounterDefinition>;
   readonly runMapTemplatesById: ReadonlyMap<RunTemplateId, RunMapTemplateDefinition>;
+  readonly rewardPoolsById: ReadonlyMap<RewardPoolId, RewardPoolDefinition>;
   readonly petUpgradesById: ReadonlyMap<UpgradeId, PetUpgradeDefinition>;
   readonly petModifiersById: ReadonlyMap<PetModifierId, PetModifierDefinition>;
   readonly playerClassModifiersById: ReadonlyMap<PlayerClassModifierId, PlayerClassModifierDefinition>;
@@ -123,6 +127,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
   const monsters = collect<MonsterId, MonsterDefinition>("monsters", registry.monsters);
   const encounters = collect<EncounterId, EncounterDefinition>("encounters", registry.encounters);
   const runMapTemplates = collect<RunTemplateId, RunMapTemplateDefinition>("runMapTemplates", registry.runMapTemplates);
+  const rewardPools = collect<RewardPoolId, RewardPoolDefinition>("rewardPools", registry.rewardPools ?? []);
   const petUpgrades = collect<UpgradeId, PetUpgradeDefinition>("petUpgrades", registry.petUpgrades);
   const petModifiers = collect<PetModifierId, PetModifierDefinition>("petModifiers", registry.petModifiers ?? []);
   const playerClassModifiers = collect<PlayerClassModifierId, PlayerClassModifierDefinition>("playerClassModifiers", registry.playerClassModifiers ?? []);
@@ -138,6 +143,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
     monstersById: monsters.map,
     encountersById: encounters.map,
     runMapTemplatesById: runMapTemplates.map,
+    rewardPoolsById: rewardPools.map,
     petUpgradesById: petUpgrades.map,
     petModifiersById: petModifiers.map,
     playerClassModifiersById: playerClassModifiers.map,
@@ -152,6 +158,7 @@ export const buildContentIndex = (registry: GameContentRegistry): ContentIndex =
       ...monsters.duplicateIds,
       ...encounters.duplicateIds,
       ...runMapTemplates.duplicateIds,
+      ...rewardPools.duplicateIds,
       ...petUpgrades.duplicateIds,
       ...petModifiers.duplicateIds,
       ...playerClassModifiers.duplicateIds,

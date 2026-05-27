@@ -36,6 +36,34 @@ describe("content schema compiler", () => {
     expect(validation.errors).toEqual([]);
   });
 
+  it("keeps pre-authoring schemas valid through the base registry contract", () => {
+    const schema = cloneSchema(createContentSchemaFromRegistry(starterRegistry));
+    const oldSchema = {
+      ...schema,
+      rewardPools: undefined,
+      encounters: schema.encounters.map((encounter) => {
+        const { authoring: _authoring, ...legacyEncounter } = encounter;
+        return legacyEncounter;
+      }),
+      runMapTemplates: schema.runMapTemplates.map((template) => {
+        const { actId: _actId, ...legacyTemplate } = template;
+        return {
+          ...legacyTemplate,
+          nodes: template.nodes.map((node) => {
+            const { authoring: _authoring, ...legacyNode } = node;
+            return legacyNode;
+          })
+        };
+      })
+    };
+
+    const result = compileContentSchema(oldSchema as never);
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toEqual([]);
+    expect(validateRegistry(result.registry!).errors).toEqual([]);
+  });
+
   it("reports malformed top-level input and collections without throwing", () => {
     expect(compileContentSchema(null)).toMatchObject({
       ok: false,
