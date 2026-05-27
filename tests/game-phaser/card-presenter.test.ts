@@ -20,6 +20,7 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
   readonly destroy: () => void;
   readonly disableInteractive: () => void;
   readonly handlers: Record<string, Handler[]>;
+  parentContainer?: { readonly getWorldTransformMatrix?: () => { readonly applyInverse: (x: number, y: number) => { readonly x: number; readonly y: number } } };
   readonly on: (event: string, handler: Handler) => void;
   readonly removeAll: () => void;
   readonly removeAllListeners: () => void;
@@ -38,6 +39,9 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
     children: [] as unknown[],
     add: (child: unknown) => {
       object.children.push(child);
+      if (child && typeof child === "object" && "kind" in child) {
+        (child as { parentContainer?: typeof object }).parentContainer = object;
+      }
     },
     destroy: () => {
       object.destroyed = true;
@@ -332,5 +336,45 @@ describe("CardPresenter", () => {
     });
     expect(onDragDebugStateChanged).toHaveBeenLastCalledWith({ state: "idle" });
     expect(hasTweenTo(records.tweens, getHandCardPosition(0, 1))).toBe(true);
+  });
+
+  it("converts drag pointer positions through the fixed-stage parent scale", async () => {
+    const { scene, records } = createSceneStub();
+    const onDropped = vi.fn().mockResolvedValue(false);
+    const presenter = new CardPresenter(
+      scene,
+      vi.fn(),
+      undefined,
+      undefined,
+      undefined,
+      onDropped
+    );
+    const firstCard = createCard("strike:1", "Strike");
+
+    presenter.render([firstCard], false);
+    const cardContainer = records.containers.find((container) => container.startX !== 0 || container.startY !== 0) as {
+      readonly handlers: Record<string, Handler[]>;
+      readonly parentContainer?: {
+        getWorldTransformMatrix?: () => {
+          readonly applyInverse: (x: number, y: number) => { readonly x: number; readonly y: number };
+        };
+      };
+      readonly x: number;
+      readonly y: number;
+    } | undefined;
+
+    if (cardContainer?.parentContainer) {
+      cardContainer.parentContainer.getWorldTransformMatrix = () => ({
+        applyInverse: (x: number, y: number) => ({ x: x / 2, y: y / 2 })
+      });
+    }
+
+    cardContainer?.handlers.dragstart?.[0]?.();
+    cardContainer?.handlers.drag?.[0]?.({ worldX: 1880, worldY: 500 }, 1880, 500);
+    cardContainer?.handlers.pointerup?.[0]?.({ worldX: 1880, worldY: 500 });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(onDropped).toHaveBeenCalledWith(firstCard.cardInstanceId, { x: 940, y: 250 });
   });
 });
