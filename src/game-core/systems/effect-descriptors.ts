@@ -16,6 +16,17 @@ export type EffectResolverKey =
 export type EffectCombatantTargetRequirement = "none" | "required";
 export type EffectPetTargetRequirement = "none" | "required";
 export type EffectAmountRequirement = "none" | "nonNegativeNumber" | "nonNegativeInteger";
+export type AbilityTargetKind =
+  | "none"
+  | "self"
+  | "enemy"
+  | "allEnemies"
+  | "allAllies"
+  | "pet"
+  | "petAndEnemy"
+  | "petAndSelf";
+export type AbilityPlayMode = "immediate" | "selectEnemy" | "selectPet" | "unsupported";
+export type AbilityTargetBinding = "manual" | "default";
 
 export type EffectDescriptor<Type extends EffectDefinition["type"] = EffectDefinition["type"]> = {
   readonly type: Type;
@@ -27,6 +38,45 @@ export type EffectDescriptor<Type extends EffectDefinition["type"] = EffectDefin
   readonly requiresStacks: boolean;
   readonly requiresStoryFlagId: boolean;
   readonly requiresPetReaction: boolean;
+};
+
+export type AbilityTargetProfile = {
+  readonly targetKind: AbilityTargetKind;
+  readonly playMode: AbilityPlayMode;
+  readonly requiresTargetBinding: boolean;
+  readonly requiresManualTarget: boolean;
+  readonly usesDefaultTarget: boolean;
+  readonly hasPetTarget: boolean;
+  readonly targetsSelf: boolean;
+  readonly targetsAllEnemies: boolean;
+  readonly targetsAllAllies: boolean;
+};
+
+export type EffectSummary = {
+  readonly type: EffectDefinition["type"];
+  readonly amount?: number;
+  readonly cardId?: string;
+  readonly to?: string;
+  readonly combatantTarget?: EffectDefinition extends infer Effect
+    ? Effect extends { readonly type: EffectDefinition["type"]; readonly target: infer Target }
+      ? Target extends { readonly type: string }
+        ? Target["type"]
+        : never
+      : never
+    : never;
+  readonly petTarget?: EffectDefinition extends infer Effect
+    ? Effect extends { readonly type: EffectDefinition["type"]; readonly petTarget: infer Target }
+      ? Target extends { readonly type: string }
+        ? Target["type"]
+        : never
+      : never
+    : never;
+  readonly statusId?: string;
+  readonly stacks?: number;
+  readonly duration?: number;
+  readonly tagsAny?: readonly string[];
+  readonly flagId?: string;
+  readonly reaction?: string;
 };
 
 export const effectDescriptors = {
@@ -201,3 +251,114 @@ export const effectHasCombatantTarget = (effectDefinition: EffectDefinition): bo
 
 export const effectHasPetTarget = (effectDefinition: EffectDefinition): boolean =>
   getEffectDescriptor(effectDefinition.type).petTarget === "required";
+
+export const targetNeedsRuntimeTarget = (effectDefinition: EffectDefinition): boolean =>
+  "target" in effectDefinition &&
+  effectDefinition.target.type === "target" &&
+  effectDefinition.target.combatantId === undefined;
+
+export const getAbilityPlayMode = (targetKind: AbilityTargetKind): AbilityPlayMode => {
+  if (targetKind === "enemy" || targetKind === "petAndEnemy") {
+    return "selectEnemy";
+  }
+
+  if (
+    targetKind === "none" ||
+    targetKind === "self" ||
+    targetKind === "pet" ||
+    targetKind === "petAndSelf" ||
+    targetKind === "allEnemies" ||
+    targetKind === "allAllies"
+  ) {
+    return "immediate";
+  }
+
+  return "unsupported";
+};
+
+const effectTargetsSelf = (effectDefinition: EffectDefinition): boolean =>
+  effectHasCombatantTarget(effectDefinition) && "target" in effectDefinition && effectDefinition.target.type === "self";
+
+const effectTargetsAllEnemies = (effectDefinition: EffectDefinition): boolean =>
+  effectHasCombatantTarget(effectDefinition) && "target" in effectDefinition && effectDefinition.target.type === "allEnemies";
+
+const effectTargetsAllAllies = (effectDefinition: EffectDefinition): boolean =>
+  effectHasCombatantTarget(effectDefinition) && "target" in effectDefinition && effectDefinition.target.type === "allAllies";
+
+export const getEffectTargetProfile = (
+  effects: readonly EffectDefinition[],
+  options: {
+    readonly petCommand?: boolean;
+    readonly targetBinding?: AbilityTargetBinding;
+  } = {}
+): AbilityTargetProfile => {
+  const targetBinding = options.targetBinding ?? "manual";
+  const requiresTargetBinding = effects.some(targetNeedsRuntimeTarget);
+  const hasPetTarget = effects.some(effectHasPetTarget);
+  const targetsSelf = effects.some(effectTargetsSelf);
+  const targetsAllEnemies = effects.some(effectTargetsAllEnemies);
+  const targetsAllAllies = effects.some(effectTargetsAllAllies);
+  const isPetCommand = options.petCommand === true;
+
+  const targetKind = (() => {
+    if (requiresTargetBinding && isPetCommand) {
+      return "petAndEnemy";
+    }
+
+    if (requiresTargetBinding) {
+      return "enemy";
+    }
+
+    if (targetsSelf && isPetCommand) {
+      return "petAndSelf";
+    }
+
+    if (hasPetTarget || isPetCommand) {
+      return "pet";
+    }
+
+    if (targetsAllEnemies) {
+      return "allEnemies";
+    }
+
+    if (targetsAllAllies) {
+      return "allAllies";
+    }
+
+    if (targetsSelf) {
+      return "self";
+    }
+
+    return "none";
+  })();
+
+  return {
+    targetKind,
+    playMode: requiresTargetBinding && targetBinding === "default"
+      ? "immediate"
+      : getAbilityPlayMode(targetKind),
+    requiresTargetBinding,
+    requiresManualTarget: requiresTargetBinding && targetBinding === "manual",
+    usesDefaultTarget: requiresTargetBinding && targetBinding === "default",
+    hasPetTarget,
+    targetsSelf,
+    targetsAllEnemies,
+    targetsAllAllies
+  };
+};
+
+export const getEffectSummaries = (effects: readonly EffectDefinition[]): readonly EffectSummary[] =>
+  effects.map((effectDefinition) => ({
+    type: effectDefinition.type,
+    ...("amount" in effectDefinition ? { amount: effectDefinition.amount } : {}),
+    ...("cardId" in effectDefinition ? { cardId: effectDefinition.cardId } : {}),
+    ...("to" in effectDefinition ? { to: effectDefinition.to } : {}),
+    ...("target" in effectDefinition ? { combatantTarget: effectDefinition.target.type } : {}),
+    ...("petTarget" in effectDefinition ? { petTarget: effectDefinition.petTarget.type } : {}),
+    ...("statusId" in effectDefinition && effectDefinition.statusId !== undefined ? { statusId: effectDefinition.statusId } : {}),
+    ...("stacks" in effectDefinition && effectDefinition.stacks !== undefined ? { stacks: effectDefinition.stacks } : {}),
+    ...("duration" in effectDefinition && effectDefinition.duration !== undefined ? { duration: effectDefinition.duration } : {}),
+    ...("tagsAny" in effectDefinition && effectDefinition.tagsAny !== undefined ? { tagsAny: effectDefinition.tagsAny } : {}),
+    ...("flagId" in effectDefinition ? { flagId: effectDefinition.flagId } : {}),
+    ...("reaction" in effectDefinition ? { reaction: effectDefinition.reaction } : {})
+  }));

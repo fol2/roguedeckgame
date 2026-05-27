@@ -110,4 +110,18 @@ describe("card action profiles", () => {
       targetsAllEnemies: true
     });
   });
+
+  it("preserves the existing card target kind contract for all-allies effects", () => {
+    const profile = getCardActionProfile(createCard({
+      effects: [{ type: "block", amount: 3, target: { type: "allAllies" } }]
+    }));
+
+    expect(profile).toMatchObject({
+      targetKind: "self",
+      playMode: "immediate",
+      requiresManualTarget: false,
+      targetsSelf: false,
+      targetsAllEnemies: false
+    });
+  });
 });

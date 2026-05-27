@@ -1,8 +1,10 @@
 import type { CardDefinition } from "../model/card";
 import type { CombatantTarget, EffectDefinition } from "../model/effect";
 import {
-  effectHasCombatantTarget,
-  effectHasPetTarget as descriptorEffectHasPetTarget
+  getAbilityPlayMode,
+  getEffectTargetProfile,
+  targetNeedsRuntimeTarget,
+  type AbilityPlayMode
 } from "./effect-descriptors";
 
 export type CardTargetKind =
@@ -13,8 +15,7 @@ export type CardTargetKind =
   | "pet"
   | "petAndEnemy"
   | "petAndSelf";
-
-export type CardPlayMode = "immediate" | "selectEnemy" | "selectPet" | "unsupported";
+export type CardPlayMode = AbilityPlayMode;
 
 export type CardActionProfile = {
   readonly targetKind: CardTargetKind;
@@ -30,82 +31,31 @@ export const targetNeedsActionTarget = (target: CombatantTarget): boolean =>
   target.type === "target" && target.combatantId === undefined;
 
 export const effectNeedsActionTarget = (effectDefinition: EffectDefinition): boolean =>
-  "target" in effectDefinition && targetNeedsActionTarget(effectDefinition.target);
+  targetNeedsRuntimeTarget(effectDefinition);
 
 export const cardNeedsActionTarget = (card: CardDefinition): boolean =>
   card.effects.some(effectNeedsActionTarget);
 
-const effectTargetsSelf = (effectDefinition: EffectDefinition): boolean =>
-  effectHasCombatantTarget(effectDefinition) && "target" in effectDefinition && effectDefinition.target.type === "self";
-
-const effectTargetsAllEnemies = (effectDefinition: EffectDefinition): boolean =>
-  effectHasCombatantTarget(effectDefinition) && "target" in effectDefinition && effectDefinition.target.type === "allEnemies";
-
-const effectHasPetTarget = (effectDefinition: EffectDefinition): boolean =>
-  descriptorEffectHasPetTarget(effectDefinition);
-
-const getTargetKind = (card: CardDefinition): CardTargetKind => {
-  const requiresActionTarget = cardNeedsActionTarget(card);
-  const hasPetTarget = card.effects.some(effectHasPetTarget);
-  const targetsSelf = card.effects.some(effectTargetsSelf);
-  const targetsAllEnemies = card.effects.some(effectTargetsAllEnemies);
-  const isPetCommand = card.type === "pet-command";
-
-  if (requiresActionTarget && isPetCommand) {
-    return "petAndEnemy";
-  }
-
-  if (requiresActionTarget) {
-    return "enemy";
-  }
-
-  if (targetsSelf && isPetCommand) {
-    return "petAndSelf";
-  }
-
-  if (hasPetTarget || isPetCommand) {
-    return "pet";
-  }
-
-  if (targetsAllEnemies) {
-    return "allEnemies";
-  }
-
-  if (targetsSelf) {
-    return "self";
-  }
-
-  return "none";
-};
-
 export const getCardPlayMode = (targetKind: CardTargetKind): CardPlayMode => {
-  if (targetKind === "enemy" || targetKind === "petAndEnemy") {
-    return "selectEnemy";
-  }
-
-  if (
-    targetKind === "none" ||
-    targetKind === "self" ||
-    targetKind === "pet" ||
-    targetKind === "petAndSelf" ||
-    targetKind === "allEnemies"
-  ) {
-    return "immediate";
-  }
-
-  return "unsupported";
+  return getAbilityPlayMode(targetKind);
 };
 
 export const getCardActionProfile = (card: CardDefinition): CardActionProfile => {
-  const targetKind = getTargetKind(card);
+  const targetProfile = getEffectTargetProfile(card.effects, {
+    petCommand: card.type === "pet-command",
+    targetBinding: "manual"
+  });
+  const targetKind = targetProfile.targetKind === "allAllies"
+    ? "self"
+    : targetProfile.targetKind;
 
   return {
     targetKind,
     playMode: getCardPlayMode(targetKind),
-    requiresManualTarget: targetKind === "enemy" || targetKind === "petAndEnemy",
-    requiresActionTarget: cardNeedsActionTarget(card),
-    hasPetTarget: card.effects.some(effectHasPetTarget),
-    targetsSelf: card.effects.some(effectTargetsSelf),
-    targetsAllEnemies: card.effects.some(effectTargetsAllEnemies)
+    requiresManualTarget: targetProfile.requiresManualTarget,
+    requiresActionTarget: targetProfile.requiresTargetBinding,
+    hasPetTarget: targetProfile.hasPetTarget,
+    targetsSelf: targetProfile.targetsSelf,
+    targetsAllEnemies: targetProfile.targetsAllEnemies
   };
 };
