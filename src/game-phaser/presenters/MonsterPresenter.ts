@@ -67,6 +67,9 @@ const parseMonsterHpLabel = (
   };
 };
 
+const formatPlannedCardTitle = (title: string): string =>
+  title.length > 18 ? `${title.slice(0, 15)}...` : title;
+
 export class MonsterPresenter {
   private readonly container: GameObjects.Container;
   private readonly scene: Scene;
@@ -135,9 +138,6 @@ export class MonsterPresenter {
       group.add(hitZone);
       group.add(this.scene.add.ellipse(0, MONSTER_SLOT.targetRingY, MONSTER_SLOT.targetRingWidth, MONSTER_SLOT.targetRingHeight, 0xffb35b, 0)
         .setStrokeStyle(ringStroke, selected || valid ? 0xffb35b : 0x7b8495, ringAlpha));
-      const intentCircle = this.scene.add.circle(0, MONSTER_SLOT.intentY, MONSTER_SLOT.intentRadius, 0x331d23, 1)
-        .setStrokeStyle(2, 0xff758f);
-      intentCircle.setInteractive();
       const showIntentTooltip = (): void => this.onTooltipChanged({
         title: intent?.tooltip.title ?? "Unknown intent",
         body: intent?.tooltip.body ?? "No details available yet.",
@@ -145,10 +145,13 @@ export class MonsterPresenter {
         y: position.y + MONSTER_SLOT.intentY,
         delayMs: TOOLTIP_DELAYS_MS.statusIntent
       });
-      intentCircle.on("pointerover", showIntentTooltip);
-      intentCircle.on("pointermove", showIntentTooltip);
-      intentCircle.on("pointerout", () => this.onTooltipChanged(undefined));
-      intentCircle.on("pointerup", (pointer: PointerLike) => {
+      const plannedCard = this.scene.add.rectangle(0, MONSTER_SLOT.plannedCardY, MONSTER_SLOT.plannedCardWidth, MONSTER_SLOT.plannedCardHeight, 0x271923, 1)
+        .setStrokeStyle(2, intent?.plannedAction.source === "plannedAbility" ? 0xff9aad : 0x8f7180);
+      plannedCard.setInteractive();
+      plannedCard.on("pointerover", showIntentTooltip);
+      plannedCard.on("pointermove", showIntentTooltip);
+      plannedCard.on("pointerout", () => this.onTooltipChanged(undefined));
+      plannedCard.on("pointerup", (pointer: PointerLike) => {
         if (pointer.button === 2 || pointer.rightButtonDown?.() === true) {
           this.onInspect(intent?.detail ?? {
             title: "Unknown intent",
@@ -163,14 +166,20 @@ export class MonsterPresenter {
           this.onSelected(monster.id);
         }
       });
-      group.add(intentCircle);
-      group.add(this.scene.add.text(0, MONSTER_SLOT.intentY - 9, intent?.type === "attack" ? "ATK" : intent?.type.toUpperCase().slice(0, 3) ?? "?", {
+      group.add(plannedCard);
+      const plannedTitle = formatPlannedCardTitle(intent?.plannedAction.title ?? "Unknown");
+      group.add(this.scene.add.text(0, MONSTER_SLOT.plannedCardTitleY, plannedTitle, {
+        color: "#ffe4ec",
+        fontFamily: "Inter, sans-serif",
+        fontSize: MONSTER_SLOT.fontSize.plannedTitle
+      }).setOrigin(0.5));
+      group.add(this.scene.add.text(0, MONSTER_SLOT.plannedCardTypeY, intent?.type === "attack" ? "ATK" : intent?.type.toUpperCase().slice(0, 3) ?? "?", {
         color: "#ffd1dc",
         fontFamily: "Inter, sans-serif",
-        fontSize: MONSTER_SLOT.fontSize.intent
+        fontSize: MONSTER_SLOT.fontSize.plannedType
       }).setOrigin(0.5));
       if (intent?.amount !== undefined) {
-        group.add(this.scene.add.text(0, MONSTER_SLOT.intentY + 7, String(intent.amount), {
+        group.add(this.scene.add.text(0, MONSTER_SLOT.plannedCardAmountY, String(intent.amount), {
           color: "#ffe0a3",
           fontFamily: "Inter, sans-serif",
           fontSize: MONSTER_SLOT.fontSize.amount

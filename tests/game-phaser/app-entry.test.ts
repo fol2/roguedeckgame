@@ -36,8 +36,21 @@ describe("Vite app entry", () => {
     expect(main).toMatch(/querySelector<HTMLElement>\(["']#game-root["']\)/);
     expect(main).toMatch(/await import\(["']\.\/create-game["']\)/);
     expect(main).toMatch(/await import\(["']\.\/content-workbench["']\)/);
+    expect(main).toMatch(/await import\(["']\.\/development-combat-preview["']\)/);
     expect(main).not.toMatch(/import\s+\{\s*createGame\s*\}\s+from\s+["']\.\/create-game["']/);
     expect(main).toContain("Unable to start game");
+  });
+
+  it("keeps combat preview setup development-only and outside Phaser scenes", async () => {
+    const preview = await readProjectFile("src/app/development-combat-preview.ts");
+    const singleton = await readProjectFile("src/game-phaser/controllers/run-sandbox-singleton.ts");
+
+    expect(preview).toMatch(/import\.meta\.env\.DEV/);
+    expect(preview).toMatch(/prepareRunSandboxCombatPreview/);
+    expect(preview).not.toMatch(/selectMapNode/);
+    expect(singleton).toMatch(/prepareRunSandboxCombatPreview/);
+    expect(singleton).toMatch(/selectMapNode/);
+    expect(singleton).toMatch(/getCombatViewModel\(\)/);
   });
 
   it("keeps a high-resolution fixed canvas scaled to the browser", async () => {

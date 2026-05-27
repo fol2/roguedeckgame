@@ -118,6 +118,19 @@ export type MonsterIntentViewModel = {
   readonly amount?: number;
   readonly tooltip: CombatTooltipCopyViewModel;
   readonly detail: CombatDetailCopyViewModel;
+  readonly plannedAction: MonsterPlannedActionViewModel;
+};
+
+export type MonsterPlannedActionViewModel = {
+  readonly source: "plannedAbility" | "fallbackMetadata" | "unknown";
+  readonly revealPolicy: "revealed";
+  readonly title: string;
+  readonly subtitle: string;
+  readonly abilityId?: MonsterAbilityId;
+  readonly intentId: MonsterIntentId;
+  readonly intentType: MonsterIntentType | "intent";
+  readonly tags: readonly string[];
+  readonly effectLines: readonly string[];
 };
 
 export type CombatPileViewModel = {
@@ -461,29 +474,128 @@ const getIntentTargetHint = (
   return "keeper";
 };
 
+type ResolvedMonsterAbilityDisplay = {
+  readonly ability: MonsterAbilityDefinition;
+  readonly source: MonsterPlannedActionViewModel["source"];
+};
+
 const getPlannedMonsterAbility = (
   state: CombatState,
   monsterCombatantId: CombatantId,
   intentId: MonsterIntentId,
   content: ContentContext
-): MonsterAbilityDefinition | undefined => {
+): ResolvedMonsterAbilityDisplay | undefined => {
   const plannedAbility = state.plannedMonsterAbilities?.find((planned) =>
     planned.monsterCombatantId === monsterCombatantId &&
     planned.intentId === intentId
   );
-
-  return plannedAbility
+  const ability = plannedAbility
     ? content.index.monsterAbilitiesById?.get(plannedAbility.abilityId)
+    : undefined;
+
+  return ability
+    ? { ability, source: "plannedAbility" }
     : undefined;
 };
 
 const getFallbackMonsterAbility = (
   intentDefinition: MonsterIntentDefinition | undefined,
   content: ContentContext
-): MonsterAbilityDefinition | undefined =>
-  intentDefinition?.abilityId
+): ResolvedMonsterAbilityDisplay | undefined => {
+  const ability = intentDefinition?.abilityId
     ? content.index.monsterAbilitiesById?.get(intentDefinition.abilityId)
     : undefined;
+
+  return ability
+    ? { ability, source: "fallbackMetadata" }
+    : undefined;
+};
+
+const getCombatantTargetLabel = (target: { readonly type: string }): string => {
+  if (target.type === "self") {
+    return "self";
+  }
+
+  if (target.type === "allEnemies") {
+    return "all enemies";
+  }
+
+  if (target.type === "allAllies") {
+    return "all allies";
+  }
+
+  return "target";
+};
+
+const describeMonsterEffect = (effect: EffectDefinition): string => {
+  switch (effect.type) {
+    case "damage":
+      return `Damage ${effect.amount} to ${getCombatantTargetLabel(effect.target)}.`;
+    case "block":
+      return `Block ${effect.amount} to ${getCombatantTargetLabel(effect.target)}.`;
+    case "applyStatus":
+      return `Apply ${effect.stacks} ${effect.statusId} to ${getCombatantTargetLabel(effect.target)}.`;
+    case "cleanseStatus":
+      return `Cleanse status from ${getCombatantTargetLabel(effect.target)}.`;
+    case "draw":
+      return `Draw ${effect.amount}.`;
+    case "discard":
+      return `Discard ${effect.amount}.`;
+    case "exhaust":
+      return `Exhaust ${effect.amount}.`;
+    case "retain":
+      return `Retain ${effect.amount}.`;
+    case "createCard":
+      return `Create ${effect.cardId} in ${effect.to}.`;
+    case "gainEnergy":
+      return `Gain ${effect.amount} energy.`;
+    case "petAttack":
+      return `Pet attack ${effect.amount} to ${getCombatantTargetLabel(effect.target)}.`;
+    case "petBlock":
+      return `Pet block ${effect.amount} to ${getCombatantTargetLabel(effect.target)}.`;
+    case "petReact":
+      return `Pet reaction: ${effect.reaction}.`;
+    case "setStoryFlag":
+      return `Set story flag ${effect.flagId}.`;
+  }
+};
+
+const buildPlannedActionViewModel = (
+  intent: { readonly intentId: MonsterIntentId },
+  intentDefinition: MonsterIntentDefinition | undefined,
+  resolvedAbility: ResolvedMonsterAbilityDisplay | undefined,
+  targetHint: MonsterIntentViewModel["targetHint"],
+  amount: number | undefined
+): MonsterPlannedActionViewModel => {
+  if (resolvedAbility) {
+    return {
+      source: resolvedAbility.source,
+      revealPolicy: "revealed",
+      title: resolvedAbility.ability.name,
+      subtitle: `${resolvedAbility.ability.intentType} planned card`,
+      abilityId: resolvedAbility.ability.id,
+      intentId: intent.intentId,
+      intentType: resolvedAbility.ability.intentType,
+      tags: resolvedAbility.ability.tags,
+      effectLines: resolvedAbility.ability.effects.map(describeMonsterEffect)
+    };
+  }
+
+  return {
+    source: intentDefinition ? "fallbackMetadata" : "unknown",
+    revealPolicy: "revealed",
+    title: intentDefinition?.description ?? "Unknown planned action",
+    subtitle: `${intentDefinition?.type ?? "intent"} planned card`,
+    intentId: intent.intentId,
+    intentType: intentDefinition?.type ?? "intent",
+    tags: [],
+    effectLines: [
+      intentDefinition?.description ?? "No planned action metadata available.",
+      `Target: ${targetHint}`,
+      amount !== undefined ? `Amount: ${amount}` : "Amount: not shown"
+    ]
+  };
+};
 
 const buildUiWarnings = (state: CombatState): readonly string[] => {
   const warnings: string[] = [];
@@ -587,13 +699,15 @@ export const buildCombatViewModel = (
         ? content.index.monstersById.get(monster.definitionId as MonsterId)
         : undefined;
       const intentDefinition = monsterDefinition?.intentPool.find((candidate) => candidate.id === intent.intentId);
-      const ability = getPlannedMonsterAbility(state.combat, intent.monsterCombatantId, intent.intentId, content) ??
+      const resolvedAbility = getPlannedMonsterAbility(state.combat, intent.monsterCombatantId, intent.intentId, content) ??
         getFallbackMonsterAbility(intentDefinition, content);
+      const ability = resolvedAbility?.ability;
       const displaySource = ability ?? intentDefinition;
       const label = ability?.intentType ?? intentDefinition?.type ?? "intent";
       const description = displaySource?.description ?? "Preparing an action.";
       const targetHint = getIntentTargetHint(displaySource);
       const amount = getIntentAmount(displaySource);
+      const plannedAction = buildPlannedActionViewModel(intent, intentDefinition, resolvedAbility, targetHint, amount);
 
       return {
         monsterId: intent.monsterCombatantId,
@@ -609,15 +723,21 @@ export const buildCombatViewModel = (
           body: description
         },
         detail: {
-          title: label,
-          subtitle: monster?.name ?? "Enemy",
+          title: plannedAction.title,
+          subtitle: `${monster?.name ?? "Enemy"} · ${plannedAction.subtitle}`,
           lines: [
             description,
+            `Reveal policy: ${plannedAction.revealPolicy}`,
+            `Metadata source: ${plannedAction.source}`,
+            `Tags: ${plannedAction.tags.join(", ") || "none"}`,
             `Target: ${targetHint}`,
-            amount !== undefined ? `Amount: ${amount}` : "Amount: not shown"
+            amount !== undefined ? `Amount: ${amount}` : "Amount: not shown",
+            "Effects:",
+            ...(plannedAction.effectLines.length > 0 ? plannedAction.effectLines : ["No effects shown."])
           ],
-          footer: "Intent detail."
-        }
+          footer: "Monster planned card detail."
+        },
+        plannedAction
       };
     }),
     hand: state.combat.hand.map((cardInstanceId) => {

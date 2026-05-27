@@ -36,15 +36,21 @@ const createChainableObject = <T extends Record<string, unknown>>(shape: T) => {
 };
 
 const createSceneStub = (rewriteText: (text: string) => string = (text) => text) => {
+  const created: unknown[] = [];
+  const track = <T extends Record<string, unknown>>(object: T): T => {
+    created.push(object);
+    return object;
+  };
   const scene = {
+    created,
     add: {
-      container: (x = 0, y = 0) => createChainableObject({ kind: "container", x, y }),
-      circle: (x = 0, y = 0) => createChainableObject({ kind: "circle", x, y }),
-      ellipse: (x = 0, y = 0) => createChainableObject({ kind: "ellipse", x, y }),
-      line: (x = 0, y = 0) => createChainableObject({ kind: "line", x, y }),
-      rectangle: (x = 0, y = 0) => createChainableObject({ kind: "rectangle", x, y }),
-      triangle: (x = 0, y = 0) => createChainableObject({ kind: "triangle", x, y }),
-      text: (x = 0, y = 0, text = "") => createChainableObject({ kind: "text", x, y, text: rewriteText(text) })
+      container: (x = 0, y = 0) => track(createChainableObject({ kind: "container", x, y })),
+      circle: (x = 0, y = 0) => track(createChainableObject({ kind: "circle", x, y })),
+      ellipse: (x = 0, y = 0) => track(createChainableObject({ kind: "ellipse", x, y })),
+      line: (x = 0, y = 0) => track(createChainableObject({ kind: "line", x, y })),
+      rectangle: (x = 0, y = 0) => track(createChainableObject({ kind: "rectangle", x, y })),
+      triangle: (x = 0, y = 0) => track(createChainableObject({ kind: "triangle", x, y })),
+      text: (x = 0, y = 0, text = "") => track(createChainableObject({ kind: "text", x, y, text: rewriteText(text) }))
     }
   };
 
@@ -80,7 +86,34 @@ const createCombatViewModel = (): CombatViewModel => ({
   player: createCombatant(combatantId("player"), "player", 70, 70, 0),
   pets: [],
   monsters: [createCombatant(combatantId("monster"), "monster", 12, 12, 0)],
-  monsterIntents: [],
+  monsterIntents: [{
+    monsterId: combatantId("monster"),
+    intentId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["intentId"],
+    abilityId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["abilityId"],
+    type: "attack",
+    label: "attack",
+    description: "Attack the Keeper.",
+    targetHint: "keeper",
+    amount: 6,
+    tooltip: { title: "Clumsy Strike", body: "Attack the Keeper." },
+    detail: {
+      title: "Clumsy Strike",
+      subtitle: "Training Slime · attack planned card",
+      lines: ["Attack the Keeper."],
+      footer: "Monster planned card detail."
+    },
+    plannedAction: {
+      source: "plannedAbility",
+      revealPolicy: "revealed",
+      title: "Clumsy Strike",
+      subtitle: "attack planned card",
+      abilityId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["abilityId"],
+      intentId: "training_slime_attack" as CombatViewModel["monsterIntents"][number]["intentId"],
+      intentType: "attack",
+      tags: ["attack"],
+      effectLines: ["Damage 6 to target."]
+    }
+  }],
   hand: [],
   drawPile: { label: "Draw", count: 4, tooltip: { title: "Draw", body: "" }, detail: { title: "Draw", lines: [] } },
   discardPile: { label: "Discard", count: 1, tooltip: { title: "Discard", body: "" }, detail: { title: "Discard", lines: [] } },
@@ -144,5 +177,44 @@ describe("combat presenter parity snapshots", () => {
       maxHp: 12,
       block: 2
     }]);
+  });
+
+  it("renders monster intent metadata as a planned action card", () => {
+    const scene = createSceneStub();
+    const presenter = new MonsterPresenter(scene);
+    const viewModel = createCombatViewModel();
+
+    presenter.render(viewModel.monsters, viewModel.monsterIntents);
+
+    const created = (scene as unknown as { readonly created: readonly { readonly kind: string; readonly text?: string }[] }).created;
+    expect(created).toContainEqual(expect.objectContaining({
+      kind: "text",
+      text: "Clumsy Strike"
+    }));
+    expect(created).toContainEqual(expect.objectContaining({
+      kind: "text",
+      text: "ATK"
+    }));
+  });
+
+  it("keeps long planned action titles inside the monster card label", () => {
+    const scene = createSceneStub();
+    const presenter = new MonsterPresenter(scene);
+    const viewModel = createCombatViewModel();
+    const monsterIntent = viewModel.monsterIntents[0]!;
+
+    presenter.render(viewModel.monsters, [{
+      ...monsterIntent,
+      plannedAction: {
+        ...monsterIntent.plannedAction,
+        title: "Very Long Monster Planned Action"
+      }
+    }]);
+
+    const created = (scene as unknown as { readonly created: readonly { readonly kind: string; readonly text?: string }[] }).created;
+    expect(created).toContainEqual(expect.objectContaining({
+      kind: "text",
+      text: "Very Long Monst..."
+    }));
   });
 });

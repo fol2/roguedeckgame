@@ -22,6 +22,9 @@ const boot = async (): Promise<void> => {
     return;
   }
 
+  const { prepareDevelopmentCombatPreview } = await import("./development-combat-preview");
+  prepareDevelopmentCombatPreview(window.location);
+
   const { createGame } = await import("./create-game");
   createGame(mount);
 };

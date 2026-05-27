@@ -255,7 +255,47 @@ describe("Combat view model", () => {
       abilityId: plannedAbility!.abilityId,
       description: "Planned ability display copy.",
       targetHint: "keeper",
-      amount: 99
+      amount: 99,
+      plannedAction: {
+        source: "plannedAbility",
+        revealPolicy: "revealed",
+        title: expect.any(String),
+        abilityId: plannedAbility!.abilityId,
+        subtitle: `${viewModel.monsterIntents[0]?.type} planned card`,
+        effectLines: ["Damage 99 to target."]
+      }
+    });
+    expect(viewModel.monsterIntents[0]?.detail.lines).toEqual(expect.arrayContaining([
+      "Reveal policy: revealed",
+      "Metadata source: plannedAbility",
+      "Effects:",
+      "Damage 99 to target."
+    ]));
+    expect(viewModel.monsterIntents[0]?.detail.footer).toBe("Monster planned card detail.");
+  });
+
+  it("uses fallback monster ability metadata when planned storage is unavailable for display only", () => {
+    const controller = createCombatSandboxController("view-model-fallback-planned-card");
+    const state = controller.getState();
+    const plannedAbility = state.combat.plannedMonsterAbilities?.[0];
+
+    expect(plannedAbility).toBeDefined();
+
+    const viewModel = buildCombatViewModel({
+      ...state,
+      combat: {
+        ...state.combat,
+        plannedMonsterAbilities: []
+      }
+    });
+
+    expect(viewModel.monsterIntents[0]).toMatchObject({
+      abilityId: plannedAbility!.abilityId,
+      plannedAction: {
+        source: "fallbackMetadata",
+        revealPolicy: "revealed",
+        abilityId: plannedAbility!.abilityId
+      }
     });
   });
 

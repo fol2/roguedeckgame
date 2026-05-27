@@ -145,3 +145,22 @@ Browser proof:
 Reviewer follow-up:
 
 - The app entry now keeps Phaser behind a dynamic import. The content workbench route loads `src/app/content-workbench.ts` separately and consumes `buildContentWorkbenchViewModel(starterRegistry)` without importing Phaser or calling gameplay resolvers.
+
+## Phase 10 - Monster Planned Card UX
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `phase10-test-bundle.txt` records the focused planned-card verification, `npm run typecheck`, `npm run build`, `npm run build:cli`, `npm test`, and `npm run smoke:localhost` passing. The focused run covered 9 files and 93 tests; the full test run covered 89 files and 711 tests.
+- `phase10-cli-simulation-bundle.txt` records the final CLI and simulation bundle passing: `npm run game:cli -- --help`, `npm run game:cli -- --version`, `npm run game:cli -- --seed cli-dev --auto`, `npm run game:cli -- --seed cli-dev --json --auto`, direct source and built CLI JSON auto runs, simulation version, simulation smoke analysis, replay of `tests/game-core/traces/smoke-complete.json`, `npm run sim:balance`, and `npm run sim:exhaustive-small`. The balance run covered 200 runs with no failures; exhaustive-small covered 1000 runs with no failures.
+- `phase10-repository-hygiene.txt` records `git diff --check` passing, no `phaser` matches in `src/game-core`, staged Phase 10 file scope, and current branch/status output.
+
+Browser proof:
+
+- `phase10-planned-card-combat.png` - local development-only combat preview at `?combatPreview=1&combatDebug=1&phase10=planned-card`, showing the monster planned action rendered as a card-like action above the monster while the debug overlay reports planned ability metadata.
+- `phase10-browser-console-warnings.txt` - Playwright console collection for the Phase 10 browser path, with zero errors and zero warnings.
+
+Reviewer follow-up:
+
+- Monster planned action display is sourced from planned ability metadata first and registry fallback metadata second. Phaser presenters render the read-only view model and do not choose monster abilities or mutate combat resolution. The development-only combat preview is routed by the app bootstrap and prepares state through an explicit controller-level preview harness before Phaser starts; `BootScene` only routes to combat when that state already exists.

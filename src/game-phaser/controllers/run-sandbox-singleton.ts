@@ -16,3 +16,20 @@ export const resetRunSandboxController = (): RunSandboxController => {
 
   return sandbox;
 };
+
+export const prepareRunSandboxCombatPreview = (): RunSandboxController => {
+  const controller = getRunSandboxController();
+  if (controller.getCombatViewModel()) {
+    return controller;
+  }
+
+  const combatNode = controller.getRunViewModel().nodes.find((node) =>
+    node.status === "available" && (node.type === "combat" || node.type === "elite" || node.type === "boss")
+  );
+
+  if (combatNode) {
+    controller.selectMapNode(combatNode.id);
+  }
+
+  return controller;
+};

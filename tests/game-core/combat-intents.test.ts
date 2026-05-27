@@ -317,4 +317,26 @@ describe("monster intents", () => {
     });
     expect(result.state.monsterIntents[0].intentId).not.toBe(monsterIntentId("missing"));
   });
+
+  it("keeps planned monster ability event order stable for planned-card UI playback", () => {
+    const state = createEnemyTurnFixture();
+    const result = chooseMonsterIntents({ ...state, monsterIntents: [] }, starterRegistry, createRng("planned-card-order"));
+
+    expect(result.ok).toBe(true);
+    expect(result.events.map((event) => event.type)).toEqual([
+      "MonsterAbilityPlanned",
+      "MonsterIntentSet"
+    ]);
+    expect(result.events[0]).toMatchObject({
+      type: "MonsterAbilityPlanned",
+      monsterId: result.state.monsterIntents[0].monsterCombatantId,
+      abilityId: result.state.plannedMonsterAbilities![0].abilityId,
+      intentId: result.state.monsterIntents[0].intentId
+    });
+    expect(result.events[1]).toMatchObject({
+      type: "MonsterIntentSet",
+      monsterId: result.state.monsterIntents[0].monsterCombatantId,
+      intentId: result.state.monsterIntents[0].intentId
+    });
+  });
 });

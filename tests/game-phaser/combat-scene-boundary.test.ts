@@ -69,6 +69,7 @@ describe("Combat scene boundary", () => {
   it("creates CombatScene and imports the controller, presenters, and event player", async () => {
     expect((await stat(scenePath)).isFile()).toBe(true);
     const source = await readSource(scenePath);
+    const bootSource = await readSource(join(root, "src/game-phaser/scenes/BootScene.ts"));
 
     expect(source).toMatch(/RunSandboxController/);
     expect(source).toMatch(/CardPresenter/);
@@ -79,6 +80,11 @@ describe("Combat scene boundary", () => {
     expect(source).toMatch(/PlayerPresenter/);
     expect(source).toMatch(/TargetingPresenter/);
     expect(source).toMatch(/CombatEventPlayer/);
+    expect(bootSource).toMatch(/combatPreview/);
+    expect(bootSource).toMatch(/import\.meta\.env\.DEV/);
+    expect(bootSource).toMatch(/getCombatViewModel\(\)/);
+    expect(bootSource).toMatch(/SceneKeys\.Combat/);
+    expect(bootSource).not.toMatch(/selectMapNode/);
   });
 
   it("keeps CombatScene free from direct game-core resolver identifiers", async () => {
@@ -237,6 +243,9 @@ describe("Combat scene boundary", () => {
     expect(monsterPresenter).toMatch(/maxEnemyVisibleStatuses/);
     expect(monsterPresenter).toMatch(/hitZoneHeight/);
     expect(monsterPresenter).toMatch(/statusOverflowTooltip/);
+    expect(monsterPresenter).toMatch(/plannedAction\.title/);
+    expect(monsterPresenter).toMatch(/plannedAction\.source/);
+    expect(monsterPresenter).toMatch(/plannedCard/);
     expect(monsterPresenter).not.toMatch(/More statuses/);
     expect(petPresenter).toMatch(/maxPetVisibleStatuses/);
     expect(petPresenter).toMatch(/pets\.slice\(0, PET_LAYOUT\.maxSlots\)/);

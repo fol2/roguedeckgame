@@ -1,0 +1,77 @@
+Phase 10 repository hygiene
+
+Date: 2026-05-27
+
+===== git diff --check =====
+
+passed with no output
+
+===== git diff --cached --check =====
+
+passed with no output
+
+===== git diff --cached --name-only =====
+
+docs/evidence/hardening-debug-screen/README.md
+docs/evidence/hardening-debug-screen/phase10-browser-console-warnings.txt
+docs/evidence/hardening-debug-screen/phase10-cli-simulation-bundle.txt
+docs/evidence/hardening-debug-screen/phase10-planned-card-combat.png
+docs/evidence/hardening-debug-screen/phase10-repository-hygiene.txt
+docs/evidence/hardening-debug-screen/phase10-test-bundle.txt
+src/app/development-combat-preview.ts
+src/app/main.ts
+src/game-phaser/controllers/run-sandbox-singleton.ts
+src/game-phaser/layout/combat-layout.ts
+src/game-phaser/presenters/MonsterPresenter.ts
+src/game-phaser/scenes/BootScene.ts
+src/game-phaser/view-models/combat-view-model.ts
+tests/game-core/combat-intents.test.ts
+tests/game-phaser/app-entry.test.ts
+tests/game-phaser/combat-presenter-parity-snapshot.test.ts
+tests/game-phaser/combat-scene-boundary.test.ts
+tests/game-phaser/combat-view-model.test.ts
+
+===== git ls-files --eol staged text evidence and source files =====
+
+i/lf    w/lf    attr/text eol=lf      	docs/evidence/hardening-debug-screen/README.md
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase10-browser-console-warnings.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase10-cli-simulation-bundle.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase10-repository-hygiene.txt
+i/lf    w/lf    attr/text=auto eol=lf 	docs/evidence/hardening-debug-screen/phase10-test-bundle.txt
+i/lf    w/lf    attr/text eol=lf      	src/app/development-combat-preview.ts
+i/lf    w/lf    attr/text eol=lf      	src/app/main.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-phaser/controllers/run-sandbox-singleton.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-phaser/layout/combat-layout.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-phaser/presenters/MonsterPresenter.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-phaser/scenes/BootScene.ts
+i/lf    w/lf    attr/text eol=lf      	src/game-phaser/view-models/combat-view-model.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-core/combat-intents.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/app-entry.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/combat-presenter-parity-snapshot.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/combat-scene-boundary.test.ts
+i/lf    w/lf    attr/text eol=lf      	tests/game-phaser/combat-view-model.test.ts
+
+===== rg phaser boundary in src/game-core =====
+
+no matches
+
+===== git status --short =====
+
+M  docs/evidence/hardening-debug-screen/README.md
+A  docs/evidence/hardening-debug-screen/phase10-browser-console-warnings.txt
+A  docs/evidence/hardening-debug-screen/phase10-cli-simulation-bundle.txt
+A  docs/evidence/hardening-debug-screen/phase10-planned-card-combat.png
+A  docs/evidence/hardening-debug-screen/phase10-repository-hygiene.txt
+A  docs/evidence/hardening-debug-screen/phase10-test-bundle.txt
+A  src/app/development-combat-preview.ts
+M  src/app/main.ts
+M  src/game-phaser/controllers/run-sandbox-singleton.ts
+M  src/game-phaser/layout/combat-layout.ts
+M  src/game-phaser/presenters/MonsterPresenter.ts
+M  src/game-phaser/scenes/BootScene.ts
+M  src/game-phaser/view-models/combat-view-model.ts
+M  tests/game-core/combat-intents.test.ts
+M  tests/game-phaser/app-entry.test.ts
+M  tests/game-phaser/combat-presenter-parity-snapshot.test.ts
+M  tests/game-phaser/combat-scene-boundary.test.ts
+M  tests/game-phaser/combat-view-model.test.ts
