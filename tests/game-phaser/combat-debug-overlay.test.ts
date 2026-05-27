@@ -65,7 +65,9 @@ const createDebugViewModel = (): CombatDebugViewModel => ({
   input: {
     dragState: "idle",
     inputLocked: false,
-    pendingRequestId: "none"
+    pendingRequestId: "none",
+    lastRequestId: "request-1",
+    expectedRevision: 2
   },
   player: { hp: 70, maxHp: 70, block: 0 },
   hand: [],
@@ -74,6 +76,7 @@ const createDebugViewModel = (): CombatDebugViewModel => ({
   monsters: [{ id: "monster-1", name: "Training Slime", hp: 12, maxHp: 12, block: 0, alive: true }],
   plannedMonsterAbilities: [{ monsterCombatantId: "monster-1", intentId: "intent-1", abilityId: "slime_attack" }],
   latestEvents: [{ type: "CombatStarted", message: "Combat started." }],
+  latestActionRejection: undefined,
   playbackObservations: [{
     eventType: "CombatStarted",
     policy: "logOnly",
@@ -160,7 +163,7 @@ describe("Combat debug overlay presenter", () => {
     expect(text).toContain("Combat Debug");
     expect(text).toContain(`Runtime: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
     expect(text).toContain("Combat: player_turn turn=1 rev=2");
-    expect(text).toContain("Request: none");
+    expect(text).toContain("Request: none last=request-1 exp=2");
     expect(text).toContain("Piles: draw=5 discard=0 hand=0");
     expect(text).toContain("Events: CombatStarted");
     expect(text).toContain("Playback: CardPlayed animated/fx recovered");
@@ -169,6 +172,7 @@ describe("Combat debug overlay presenter", () => {
     expect(text).toContain("Playback fallback: fallback=yes warn=missing_card_point");
     expect(text).toContain("Playback error: CardPlayed used hand fallback");
     expect(text).toContain("Parity: ok");
+    expect(text).toContain("Rejected: none");
   });
 
   it("highlights an older fallback from the full retained playback window", () => {
@@ -219,5 +223,43 @@ describe("Combat debug overlay presenter", () => {
 
     const text = records.texts.map((record) => record.text).join("\n");
     expect(text).toContain("Parity: scene_refresh e=1 w=0 stale_selected_card");
+  });
+
+  it("renders the latest request rejection diagnostic", () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CombatDebugOverlayPresenter(scene);
+
+    presenter.render({
+      ...createDebugViewModel(),
+      latestActionRejection: {
+        code: "stale_combat_revision",
+        message: "Combat view revision 2 is stale; latest revision is 3.",
+        path: "combat.revision",
+        requestId: "request-2",
+        expectedRevision: 2
+      }
+    }, true);
+
+    const text = records.texts.map((record) => record.text).join("\n");
+    expect(text).toContain("Rejected: stale_combat_revision combat.revision");
+  });
+
+  it("renders visible playback lock reasons", () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CombatDebugOverlayPresenter(scene);
+
+    presenter.render({
+      ...createDebugViewModel(),
+      input: {
+        ...createDebugViewModel().input,
+        inputLocked: true,
+        inputLockReason: "playback",
+        pendingRequestId: "combat-ui-1"
+      }
+    }, true);
+
+    const text = records.texts.map((record) => record.text).join("\n");
+    expect(text).toContain("Input: locked playback");
+    expect(text).toContain("Request: combat-ui-1 last=request-1 exp=2");
   });
 });

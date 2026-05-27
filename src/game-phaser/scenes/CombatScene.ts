@@ -28,12 +28,18 @@ import { PlayerPresenter } from "../presenters/PlayerPresenter";
 import { TargetingPresenter } from "../presenters/TargetingPresenter";
 import type { CombatCardViewModel, CombatViewModel } from "../view-models/combat-view-model";
 import type { DebugInputSnapshot } from "../view-models/debug-view-model";
+import {
+  beginCombatActionSubmission,
+  type CombatActionRejectionDiagnostic,
+  type CombatActionSubmissionSnapshot
+} from "../interaction/combat-action-submission";
 import { resolveCardDropAction } from "../interaction/card-interaction-policy";
 import {
   clearCombatSelection,
   createCombatInteractionState,
   getInteractionCard as resolveInteractionCard,
   reconcileCombatInteractionState,
+  resolveCombatInputLockState,
   selectCombatCard,
   setHoveredCombatCard,
   type CombatInteractionState
@@ -85,6 +91,9 @@ export class CombatScene extends Scene {
   private browserFocused = true;
   private nextRequestId = 1;
   private pendingRequestId?: string;
+  private lastSubmittedRequestId?: string;
+  private lastSubmittedExpectedRevision?: number;
+  private lastActionRejection?: CombatActionRejectionDiagnostic;
   private debugOverlayEnabled = false;
   private debugDragState: DebugInputSnapshot["dragState"] = "idle";
   private parityDiagnostics: readonly CombatParityDiagnostic[] = [];
@@ -112,6 +121,9 @@ export class CombatScene extends Scene {
     this.pauseOpen = false;
     this.browserFocused = true;
     this.pendingRequestId = undefined;
+    this.lastSubmittedRequestId = undefined;
+    this.lastSubmittedExpectedRevision = undefined;
+    this.lastActionRejection = undefined;
     this.debugDragState = "idle";
     this.parityDiagnostics = [];
     this.debugOverlayEnabled = this.readDebugOverlayEnabled();
@@ -243,6 +255,24 @@ export class CombatScene extends Scene {
     this.feedbackMessage = message;
   }
 
+  private getActionSubmissionSnapshot(): CombatActionSubmissionSnapshot {
+    return {
+      nextRequestId: this.nextRequestId,
+      pendingRequestId: this.pendingRequestId,
+      lastSubmittedRequestId: this.lastSubmittedRequestId,
+      lastSubmittedExpectedRevision: this.lastSubmittedExpectedRevision,
+      lastActionRejection: this.lastActionRejection
+    };
+  }
+
+  private applyActionSubmissionSnapshot(snapshot: CombatActionSubmissionSnapshot): void {
+    this.nextRequestId = snapshot.nextRequestId;
+    this.pendingRequestId = snapshot.pendingRequestId;
+    this.lastSubmittedRequestId = snapshot.lastSubmittedRequestId;
+    this.lastSubmittedExpectedRevision = snapshot.lastSubmittedExpectedRevision;
+    this.lastActionRejection = snapshot.lastActionRejection;
+  }
+
   private clearSelectedCard(): void {
     this.applyInteractionState(clearCombatSelection(this.getInteractionState()));
   }
@@ -257,21 +287,23 @@ export class CombatScene extends Scene {
   }
 
   private getDebugInputSnapshot(): DebugInputSnapshot {
+    const lock = resolveCombatInputLockState({
+      playbackLocked: this.inputLocked,
+      modalOpen: this.isModalOpen(),
+      browserFocused: this.browserFocused
+    });
+
     return {
       selectedCardId: this.selectedCardId,
       selectedCardRevision: this.selectedCardRevision,
       keyboardTargetId: this.keyboardTargetId,
       hoveredCardId: this.hoveredCardId,
       dragState: this.debugDragState,
-      inputLocked: this.inputLocked || this.isModalOpen() || !this.browserFocused,
-      inputLockReason: this.inputLocked
-        ? "playback"
-        : this.isModalOpen()
-          ? "modal"
-          : !this.browserFocused
-            ? "browser_blur"
-            : undefined,
-      pendingRequestId: this.pendingRequestId
+      ...lock,
+      pendingRequestId: this.pendingRequestId,
+      lastRequestId: this.lastSubmittedRequestId,
+      expectedRevision: this.lastSubmittedExpectedRevision,
+      lastActionRejection: this.lastActionRejection
     };
   }
 
@@ -519,7 +551,10 @@ export class CombatScene extends Scene {
     }
 
     this.clearSelectedCard();
-    await this.submitAction((requestId) => this.sandbox!.playHandCard(cardInstanceId, undefined, viewModel.revision, requestId));
+    await this.submitAction(
+      (requestId) => this.sandbox!.playHandCard(cardInstanceId, undefined, viewModel.revision, requestId),
+      viewModel.revision
+    );
   }
 
   private async handleCardDrop(cardInstanceId: CardInstanceId, point: DropPoint): Promise<boolean> {
@@ -571,7 +606,10 @@ export class CombatScene extends Scene {
       return;
     }
 
-    const result = await this.submitAction((requestId) => this.sandbox!.playHandCard(cardInstanceId, targetId, revision, requestId));
+    const result = await this.submitAction(
+      (requestId) => this.sandbox!.playHandCard(cardInstanceId, targetId, revision, requestId),
+      revision
+    );
     if (result.ok) {
       this.clearSelectedCard();
       this.renderCurrentState();
@@ -602,7 +640,10 @@ export class CombatScene extends Scene {
 
     const selectedCardId = this.selectedCardId;
     const selectedRevision = this.selectedCardRevision ?? viewModel.revision;
-    const result = await this.submitAction((requestId) => this.sandbox!.playHandCard(selectedCardId, monsterId, selectedRevision, requestId));
+    const result = await this.submitAction(
+      (requestId) => this.sandbox!.playHandCard(selectedCardId, monsterId, selectedRevision, requestId),
+      selectedRevision
+    );
     if (result.ok) {
       this.clearSelectedCard();
       this.renderCurrentState();
@@ -646,7 +687,10 @@ export class CombatScene extends Scene {
     }
 
     const viewModel = this.sandbox.getCombatViewModel();
-    await this.submitAction((requestId) => this.sandbox!.endTurn(viewModel?.revision, requestId));
+    await this.submitAction(
+      (requestId) => this.sandbox!.endTurn(viewModel?.revision, requestId),
+      viewModel?.revision
+    );
   }
 
   private async playCardMovementForEvent(event: GameEvent): Promise<CombatPlaybackFallbackObservation | undefined> {
@@ -676,15 +720,44 @@ export class CombatScene extends Scene {
   }
 
   private async submitAction(
-    action: (requestId: string) => ReturnType<RunSandboxController["endTurn"]>
+    action: (requestId: string) => ReturnType<RunSandboxController["endTurn"]>,
+    expectedRevision: number | undefined
   ): Promise<ReturnType<RunSandboxController["endTurn"]>> {
-    const requestId = `combat-ui-${this.nextRequestId}`;
-    this.nextRequestId += 1;
-    this.pendingRequestId = requestId;
+    if (!this.sandbox) {
+      throw new Error("Combat action submitted without a sandbox controller.");
+    }
+
+    const lock = resolveCombatInputLockState({
+      playbackLocked: this.inputLocked,
+      modalOpen: this.isModalOpen(),
+      browserFocused: this.browserFocused
+    });
+
+    const submission = beginCombatActionSubmission({
+      snapshot: this.getActionSubmissionSnapshot(),
+      lock,
+      expectedRevision,
+      getState: () => this.sandbox!.getState(),
+      action
+    });
+    this.applyActionSubmissionSnapshot(submission.snapshot);
+
+    if (submission.status === "blocked") {
+      const result = submission.result;
+      this.setFeedback(submission.snapshot.lastActionRejection?.message ?? "Gameplay input is locked.");
+      this.debugDragState = "idle";
+      this.clearTooltip();
+      this.renderDebugOverlay();
+      this.renderCurrentState(false);
+
+      return result;
+    }
+
+    const requestId = submission.requestId;
     this.inputLocked = true;
     this.clearTooltip();
     this.renderCurrentState(false);
-    const result = action(requestId);
+    const result = submission.result;
     if (result.ok) {
       this.feedbackMessage = "";
       this.playbackFinalViewModel = this.sandbox?.getCombatViewModel();
@@ -700,6 +773,10 @@ export class CombatScene extends Scene {
       console.warn("CombatScene recovered from event playback failure.", error);
     } finally {
       this.playbackFinalViewModel = undefined;
+      this.debugDragState = "idle";
+      if (result.ok) {
+        this.feedbackMessage = "";
+      }
       this.captureParityDiagnostics("after_playback_batch");
       this.renderDebugOverlay();
       this.renderCurrentState();

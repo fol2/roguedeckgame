@@ -5,6 +5,7 @@ import {
   createCombatInteractionState,
   getInteractionCard,
   reconcileCombatInteractionState,
+  resolveCombatInputLockState,
   selectCombatCard,
   setHoveredCombatCard
 } from "../../src/game-phaser/interaction/combat-interaction-state";
@@ -60,5 +61,28 @@ describe("combat interaction state", () => {
     });
     expect(reconcileCombatInteractionState(selected, viewModel([card({ playable: false })]))).toEqual({});
     expect(reconcileCombatInteractionState(selected, viewModel([]))).toEqual({});
+  });
+
+  it("resolves input lock priority without Phaser scene state", () => {
+    expect(resolveCombatInputLockState({
+      playbackLocked: true,
+      modalOpen: true,
+      browserFocused: false
+    })).toEqual({ inputLocked: true, inputLockReason: "playback" });
+    expect(resolveCombatInputLockState({
+      playbackLocked: false,
+      modalOpen: true,
+      browserFocused: false
+    })).toEqual({ inputLocked: true, inputLockReason: "modal" });
+    expect(resolveCombatInputLockState({
+      playbackLocked: false,
+      modalOpen: false,
+      browserFocused: false
+    })).toEqual({ inputLocked: true, inputLockReason: "browser_blur" });
+    expect(resolveCombatInputLockState({
+      playbackLocked: false,
+      modalOpen: false,
+      browserFocused: true
+    })).toEqual({ inputLocked: false });
   });
 });

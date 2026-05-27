@@ -139,6 +139,68 @@ describe("Run sandbox controller", () => {
     expect(controller.getCombatViewModel()?.eventMessages[0]).toContain("Rejected:");
   });
 
+  it("rejects stale combat revisions before mutating run combat state", () => {
+    const controller = createRunSandboxController("run-controller-stale-revision");
+
+    startFirstCombat(controller);
+    const staleRevision = controller.getCombatViewModel()!.revision;
+    const firstEndTurn = controller.endTurn(staleRevision, "run-stale-first");
+
+    expect(firstEndTurn.ok).toBe(true);
+    expect(controller.getCombatViewModel()!.revision).toBeGreaterThan(staleRevision);
+
+    const beforeCombat = controller.getState().combat;
+    const stale = controller.endTurn(staleRevision, "run-stale-second");
+
+    expect(stale.ok).toBe(false);
+    expect(stale.state.combat).toBe(beforeCombat);
+    expect(stale.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "stale_combat_revision",
+      path: "combat.revision"
+    });
+  });
+
+  it("rejects duplicate gameplay request ids before applying a second action", () => {
+    const controller = createRunSandboxController("run-controller-duplicate-request");
+
+    startFirstCombat(controller);
+    const viewModel = controller.getCombatViewModel()!;
+    const first = controller.endTurn(viewModel.revision, "run-duplicate-request");
+
+    expect(first.ok).toBe(true);
+    const beforeCombat = controller.getState().combat;
+    const duplicate = controller.endTurn(controller.getCombatViewModel()!.revision, "run-duplicate-request");
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.state.combat).toBe(beforeCombat);
+    expect(duplicate.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "duplicate_request",
+      path: "requestId"
+    });
+  });
+
+  it("rejects missing gameplay request ids before applying combat actions", () => {
+    const controller = createRunSandboxController("run-controller-missing-request");
+
+    startFirstCombat(controller);
+    const viewModel = controller.getCombatViewModel()!;
+    const card = viewModel.hand.find((candidate) => candidate.playable);
+
+    expect(card).toBeDefined();
+    const beforeCombat = controller.getState().combat;
+    const missing = controller.playHandCard(card!.cardInstanceId, undefined, viewModel.revision, "");
+
+    expect(missing.ok).toBe(false);
+    expect(missing.state.combat).toBe(beforeCombat);
+    expect(missing.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_request_id",
+      path: "requestId"
+    });
+  });
+
   it("completes won combat into a pending reward, then claims the reward back to map selection", () => {
     const controller = createRunSandboxController("run-controller-claim");
 

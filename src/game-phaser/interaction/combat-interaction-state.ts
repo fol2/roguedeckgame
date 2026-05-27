@@ -8,7 +8,38 @@ export type CombatInteractionState = {
   readonly hoveredCardId?: CardInstanceId;
 };
 
+export type CombatInputLockReason = "playback" | "modal" | "browser_blur";
+
+export type CombatInputLockState = {
+  readonly inputLocked: boolean;
+  readonly inputLockReason?: CombatInputLockReason;
+};
+
 export const createCombatInteractionState = (): CombatInteractionState => ({});
+
+export const resolveCombatInputLockState = ({
+  playbackLocked,
+  modalOpen,
+  browserFocused
+}: {
+  readonly playbackLocked: boolean;
+  readonly modalOpen: boolean;
+  readonly browserFocused: boolean;
+}): CombatInputLockState => {
+  if (playbackLocked) {
+    return { inputLocked: true, inputLockReason: "playback" };
+  }
+
+  if (modalOpen) {
+    return { inputLocked: true, inputLockReason: "modal" };
+  }
+
+  if (!browserFocused) {
+    return { inputLocked: true, inputLockReason: "browser_blur" };
+  }
+
+  return { inputLocked: false };
+};
 
 export const clearCombatSelection = (
   state: CombatInteractionState

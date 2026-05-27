@@ -43,3 +43,26 @@ Browser proof:
 - `phase5-draw-discard-initial.png` - combat overlay before ending the turn.
 - `phase5-draw-discard-after-end-turn.png` - overlay after end-turn playback, showing turn 2, `DeckShuffled`, card movement playback observations, updated piles, and `Parity: ok`.
 - `phase5-console-warnings.txt` - Playwright console collection for the Phase 5 browser path, with zero errors and zero warnings.
+
+## Phase 6 - Input Race and Request Hardening
+
+Date: 2026-05-27
+
+Validation commands:
+
+- `npm run typecheck` - passed.
+- `npx vitest run tests/game-phaser/combat-action-submission.test.ts tests/game-phaser/combat-interaction-state.test.ts tests/game-phaser/run-controller.test.ts tests/game-phaser/debug-view-model.test.ts tests/game-phaser/combat-debug-overlay.test.ts tests/game-phaser/combat-scene-boundary.test.ts tests/game-core/agent-run-driver.test.ts` - passed, 7 files and 55 tests.
+- `npm run build` - passed with no warnings.
+- `npm test` - passed, 87 files and 693 tests.
+- `npm run smoke:localhost` - passed.
+- `git diff --check` - passed.
+- `rg -n "from ['\"](.*phaser|phaser)['\"]|from \"phaser\"|from 'phaser'" src/game-core` - no matches.
+
+Browser proof:
+
+- `phase6-input-hardening-initial.png` - run map before entering combat.
+- `phase6-input-hardening-combat.png` - combat debug overlay showing input ready state, no pending request, no rejection, and no parity drift.
+- `phase6-input-hardening-locked-playback.png` - overlay captured during accepted End Turn playback, showing `Input: locked playback`, the disabled End Turn control, and the active request (`combat-ui-1`).
+- `phase6-input-hardening-after-double-end-turn-v2.png` - overlay after a double End Turn interaction has settled, showing only one accepted request (`last=combat-ui-1 exp=1`), turn 2, revision 2, cleared disabled feedback, and no rejection or parity drift.
+- `phase6-request-rejection-diagnostics.json` - automated evidence index for stale revision, duplicate request, and input-locked overlay assertions.
+- `phase6-console-warnings.txt` - Playwright console collection for the Phase 6 browser path, with zero errors and zero warnings.

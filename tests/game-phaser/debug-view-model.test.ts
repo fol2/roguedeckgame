@@ -17,7 +17,9 @@ describe("Combat debug view model", () => {
       dragState: "dragging",
       inputLocked: true,
       inputLockReason: "playback",
-      pendingRequestId: "request-1"
+      pendingRequestId: "request-1",
+      lastRequestId: "request-1",
+      expectedRevision: 3
     }, [{
       eventType: "DamageDealt",
       policy: "animated",
@@ -43,7 +45,9 @@ describe("Combat debug view model", () => {
       dragState: "dragging",
       inputLocked: true,
       inputLockReason: "playback",
-      pendingRequestId: "request-1"
+      pendingRequestId: "request-1",
+      lastRequestId: "request-1",
+      expectedRevision: 3
     });
     expect(viewModel.hand.length).toBeGreaterThan(0);
     expect(viewModel.monsters.length).toBeGreaterThan(0);
@@ -55,6 +59,7 @@ describe("Combat debug view model", () => {
       outcome: "completed"
     }]);
     expect(viewModel.parityDiagnostics).toEqual([]);
+    expect(viewModel.latestActionRejection).toBeUndefined();
     expect(JSON.parse(JSON.stringify(viewModel))).toEqual(viewModel);
     expect(JSON.stringify(controller.getState())).toBe(before);
   });
@@ -110,5 +115,39 @@ describe("Combat debug view model", () => {
     expect(after.combat.revision).toBeGreaterThan(before.combat.revision ?? 0);
     expect(after.latestEvents.map((event) => event.type)).toContain("CardPlayed");
     expect(after.input.pendingRequestId).toBe("debug-play-card");
+  });
+
+  it("surfaces stale and duplicate request rejections for the debug overlay", () => {
+    const controller = createRunSandboxController("debug-view-model-rejection");
+    const combatNode = controller.getState().run.map?.nodes.find((node) => node.type === "combat" && node.status === "available");
+    controller.selectMapNode(combatNode!.id);
+    const staleRevision = controller.getCombatViewModel()!.revision;
+
+    controller.endTurn(staleRevision, "debug-stale-first");
+    controller.endTurn(staleRevision, "debug-stale-second");
+
+    const stale = controller.getCombatDebugViewModel({
+      dragState: "idle",
+      inputLocked: false,
+      lastRequestId: "debug-stale-second",
+      expectedRevision: staleRevision
+    });
+
+    expect(stale.latestActionRejection).toMatchObject({
+      code: "stale_combat_revision",
+      path: "combat.revision"
+    });
+
+    controller.endTurn(controller.getCombatViewModel()!.revision, "debug-stale-second");
+    const duplicate = controller.getCombatDebugViewModel({
+      dragState: "idle",
+      inputLocked: false,
+      lastRequestId: "debug-stale-second"
+    });
+
+    expect(duplicate.latestActionRejection).toMatchObject({
+      code: "duplicate_request",
+      path: "requestId"
+    });
   });
 });

@@ -102,6 +102,9 @@ export class CombatDebugOverlayPresenter {
     const parity = latestParity
       ? `${latestParity.stage} e=${parityErrors} w=${parityWarnings} ${latestParity.code}`
       : "ok";
+    const rejection = viewModel.latestActionRejection
+      ? `${viewModel.latestActionRejection.code} ${viewModel.latestActionRejection.path ?? "action"}`
+      : "none";
     const warnings = viewModel.uiWarnings.join(" | ") || "none";
 
     return [
@@ -116,7 +119,7 @@ export class CombatDebugOverlayPresenter {
         : "Combat: none",
       `Energy: ${viewModel.combat.energy ?? 0}/${viewModel.combat.maxEnergy ?? 0}`,
       `Input: ${viewModel.input.inputLocked ? "locked" : "ready"} ${viewModel.input.inputLockReason ?? ""}`.trim(),
-      `Request: ${pending}`,
+      `Request: ${pending} last=${viewModel.input.lastRequestId ?? "none"} exp=${viewModel.input.expectedRevision ?? "none"}`,
       `Selected: ${selected}`,
       `Drag: ${viewModel.input.dragState} hover=${viewModel.input.hoveredCardId ?? "none"}`,
       `Piles: draw=${viewModel.piles.draw} discard=${viewModel.piles.discard} hand=${viewModel.hand.length}`,
@@ -131,6 +134,7 @@ export class CombatDebugOverlayPresenter {
       `Playback fallback: ${playbackFallback}`,
       `Playback error: ${playbackError}`,
       `Parity: ${parity}`,
+      `Rejected: ${rejection}`,
       `Warnings: ${warnings}`
     ];
   }

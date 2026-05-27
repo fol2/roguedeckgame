@@ -9,6 +9,8 @@ import { formatCombatEventMessage } from "../animation/combat-event-messages";
 import type { CombatPlaybackObservation } from "../animation/combat-playback-policy";
 import type { RunSandboxState } from "../controllers/RunSandboxController";
 import type { CombatParityDiagnostic } from "../debug/combat-parity";
+import type { CombatActionRejectionDiagnostic } from "../interaction/combat-action-submission";
+import type { CombatInputLockReason } from "../interaction/combat-interaction-state";
 import type { CombatViewModel } from "./combat-view-model";
 
 export type DebugInputSnapshot = {
@@ -18,8 +20,11 @@ export type DebugInputSnapshot = {
   readonly keyboardTargetId?: CombatantId;
   readonly dragState: "idle" | "dragging";
   readonly inputLocked: boolean;
-  readonly inputLockReason?: string;
+  readonly inputLockReason?: CombatInputLockReason;
   readonly pendingRequestId?: string;
+  readonly lastRequestId?: string;
+  readonly expectedRevision?: number;
+  readonly lastActionRejection?: CombatActionRejectionDiagnostic;
 };
 
 export type CombatDebugViewModel = {
@@ -78,6 +83,7 @@ export type CombatDebugViewModel = {
     readonly type: string;
     readonly message: string;
   }[];
+  readonly latestActionRejection?: CombatActionRejectionDiagnostic;
   readonly playbackObservations: readonly CombatPlaybackObservation[];
   readonly parityDiagnostics: readonly CombatParityDiagnostic[];
   readonly uiWarnings: readonly string[];
@@ -93,6 +99,20 @@ const latestEvents = (events: readonly GameEvent[]): CombatDebugViewModel["lates
     type: event.type,
     message: formatCombatEventMessage(event)
   }));
+
+const latestActionRejection = (
+  events: readonly GameEvent[]
+): CombatActionRejectionDiagnostic | undefined => {
+  const rejected = [...events].reverse().find((event) => event.type === "ActionRejected");
+
+  return rejected?.type === "ActionRejected"
+    ? {
+        code: rejected.code,
+        message: rejected.message,
+        path: rejected.path
+      }
+    : undefined;
+};
 
 export const buildCombatDebugViewModel = (
   state: RunSandboxState,
@@ -161,6 +181,7 @@ export const buildCombatDebugViewModel = (
       abilityId: planned.abilityId
     })) ?? [],
     latestEvents: latestEvents(state.lastEvents),
+    latestActionRejection: input.lastActionRejection ?? latestActionRejection(state.lastEvents),
     playbackObservations,
     parityDiagnostics,
     uiWarnings: combatViewModel?.uiWarnings ?? []

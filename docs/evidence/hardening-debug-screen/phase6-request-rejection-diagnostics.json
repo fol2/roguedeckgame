@@ -1,0 +1,44 @@
+{
+  "phase": "HD-06",
+  "capturedAt": "2026-05-27",
+  "source": "Automated Phase 6 focused tests and Playwright browser proof",
+  "browserProof": [
+    {
+      "file": "docs/evidence/hardening-debug-screen/phase6-input-hardening-locked-playback.png",
+      "assertion": "Combat debug overlay shows Input: locked playback and Request: combat-ui-1 last=combat-ui-1 exp=1 while End Turn is disabled during playback."
+    },
+    {
+      "file": "docs/evidence/hardening-debug-screen/phase6-input-hardening-after-double-end-turn-v2.png",
+      "assertion": "After playback settles, the stale disabled feedback is cleared, End Turn is usable again, and the accepted request remains last=combat-ui-1 exp=1."
+    }
+  ],
+  "automatedOverlayAssertions": [
+    {
+      "file": "tests/game-phaser/combat-debug-overlay.test.ts",
+      "test": "renders the latest request rejection diagnostic",
+      "overlayText": "Rejected: stale_combat_revision combat.revision"
+    },
+    {
+      "file": "tests/game-phaser/combat-debug-overlay.test.ts",
+      "test": "renders visible playback lock reasons",
+      "overlayText": "Input: locked playback"
+    }
+  ],
+  "automatedRequestGuards": [
+    {
+      "file": "tests/game-phaser/combat-action-submission.test.ts",
+      "test": "accepts one gameplay request and blocks a double-submit while playback is locked",
+      "guarantee": "The first request mutates combat once; the second playback-locked submit returns ActionRejected input_locked and does not call the action callback."
+    },
+    {
+      "file": "tests/game-phaser/combat-action-submission.test.ts",
+      "test": "records stale and duplicate request diagnostics from controller rejections",
+      "guarantee": "Stale revision produces stale_combat_revision at combat.revision, and duplicate request ids produce duplicate_request at requestId."
+    },
+    {
+      "file": "tests/game-phaser/run-controller.test.ts",
+      "test": "rejects duplicate gameplay request ids before applying a second action",
+      "guarantee": "Duplicate gameplay request ids preserve the previous combat state."
+    }
+  ]
+}

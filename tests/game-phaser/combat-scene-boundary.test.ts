@@ -159,12 +159,20 @@ describe("Combat scene boundary", () => {
 
     expect(source).toMatch(/selectedCardRevision/);
     expect(source).toMatch(/pendingRequestId/);
+    expect(source).toMatch(/lastSubmittedRequestId/);
+    expect(source).toMatch(/lastSubmittedExpectedRevision/);
+    expect(source).toMatch(/lastActionRejection/);
+    expect(source).toMatch(/resolveCombatInputLockState/);
     expect(source).toMatch(/playHandCard\(cardInstanceId, undefined, viewModel\.revision, requestId\)/);
     expect(source).toMatch(/playHandCard\(selectedCardId, monsterId, selectedRevision, requestId\)/);
     expect(source).toMatch(/endTurn\(viewModel\?\.revision, requestId\)/);
-    expect(source).toMatch(/combat-ui-\$\{this\.nextRequestId\}/);
-    expect(source).toMatch(/this\.inputLocked = true;\n\s+this\.clearTooltip\(\);\n\s+this\.renderCurrentState\(false\);\n\s+const result = action\(requestId\);/);
-    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
+    expect(source).toMatch(/beginCombatActionSubmission/);
+    expect(source).toMatch(/snapshot: this\.getActionSubmissionSnapshot\(\)/);
+    expect(source).toMatch(/this\.applyActionSubmissionSnapshot\(submission\.snapshot\)/);
+    expect(source).toMatch(/if \(submission\.status === "blocked"\)/);
+    expect(source).toMatch(/this\.inputLocked = true;\n\s+this\.clearTooltip\(\);\n\s+this\.renderCurrentState\(false\);\n\s+const result = submission\.result;/);
+    expect(source).toMatch(/if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}/);
+    expect(source).toMatch(/finally \{\n\s+this\.playbackFinalViewModel = undefined;\n\s+this\.debugDragState = "idle";\n\s+if \(result\.ok\) \{\n\s+this\.feedbackMessage = "";\n\s+\}\n\s+this\.captureParityDiagnostics\("after_playback_batch"\);\n\s+this\.renderDebugOverlay\(\);\n\s+this\.renderCurrentState\(\);\n\s+if \(this\.pendingRequestId === requestId\)/);
   });
 
   it("drives actual card movement from combat event playback", async () => {

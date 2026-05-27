@@ -254,7 +254,7 @@ export const DEBUG_OVERLAY = {
   titleY: 10,
   firstLineY: 34,
   lineHeight: 18,
-  maxLines: 25,
+  maxLines: 26,
   fontSize: {
     title: "13px",
     body: "11px"
