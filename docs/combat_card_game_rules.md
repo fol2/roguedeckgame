@@ -1,4 +1,4 @@
-# Combat Card Game Rules v0.2
+# Combat Card Game Rules v0.3
 
 Status: implementation contract / living design rulebook
 Language: Cantonese / English technical terms
@@ -62,7 +62,7 @@ Player may not know it.
 Intent visibility is a player information effect, not a universal combat rule.
 ```
 
-呢條係 v0.2 嘅重要方向：**看見敵人意圖唔係免費規則，而係 class ability、buff、card effect、pet upgrade、reveal/scout/scope 等資訊能力帶嚟嘅優勢。**
+呢條係 v0.3 嘅重要方向：**看見敵人意圖唔係免費規則，而係 class ability、buff、card effect、pet upgrade、reveal/scout/scope 等資訊能力帶嚟嘅優勢。**
 
 ---
 
@@ -103,13 +103,13 @@ Exhaust Pile
 = 今場 combat 移除，不會再抽到。Combat 完結後通常返回 run deck，除非卡本身係 temporary。
 
 Removed / Trash
-= run-level 永久移除。v0.2 不建議 combat 內大量使用 trash，主要喺 camp/event/reward/removal screen 發生。
+= run-level 永久移除。v0.3 不建議 combat 內大量使用 trash，主要喺 camp/event/reward/removal screen 發生。
 
 Created / Temporary Cards
 = combat 內生成嘅卡。預設 combat 完結後消失，除非效果明確寫明加入 run deck。
 ```
 
-v0.2 建議數值：
+v0.3 建議數值：
 
 ```txt
 Starting deck size: 10
@@ -203,7 +203,7 @@ Trash / Remove rule：
 
 ```txt
 Trash means permanent run-deck removal.
-v0.2 prefers trash/removal outside combat.
+v0.3 prefers trash/removal outside combat.
 If combat effects later trash cards, they must be rare, explicit, and heavily tested.
 ```
 
@@ -270,7 +270,62 @@ Enemy card flow：
 7. Enemy discard reshuffles when draw pile is empty.
 ```
 
-Enemy does not need visible energy in v0.2. Their limitation should come from deck composition, cooldown tags, exhaust cards, phase rules, and adaptive constraints.
+Enemy does not need visible energy in v0.3. Their limitation should come from deck composition, cooldown tags, exhaust cards, phase rules, and adaptive constraints.
+
+---
+Enemy Card Holding Engine v0.3 implementation contract:
+
+```txt
+CombatState owns monsterCardStates for every enemy that uses card-game metadata.
+Each monsterCardState owns drawPile, hand, planned, discardPile, exhaustPile, handSize, and planSlots.
+Enemy card instances move between zones through typed events.
+Enemy plan creation must happen before player input unlocks.
+Enemy card finalization must happen before MonsterAbilityPlayed resolves.
+Resolved enemy cards move from planned to discard or exhaust.
+Enemy discard reshuffles into draw pile only when the enemy needs to draw and its draw pile is empty.
+Legacy intentPool-only enemies may still use the compatibility path, but new content should use cardGame metadata.
+```
+
+Required enemy-card lifecycle events:
+
+```txt
+EnemyDeckShuffled
+EnemyCardMoved
+EnemyPlanCreated
+EnemyPlanChanged
+EnemyPlanFinalized
+EnemyCardResolved
+```
+
+Event meaning:
+
+```txt
+EnemyDeckShuffled
+= enemy draw pile order changed through seeded RNG.
+
+EnemyCardMoved
+= enemy card instance moved between draw, hand, planned, discard, or exhaust.
+
+EnemyPlanCreated
+= enemy chose a locked plan or candidate set from current holdings.
+
+EnemyPlanChanged
+= adaptive enemy changed preferred card within a legal candidate set.
+
+EnemyPlanFinalized
+= planned card became the card that will resolve now.
+
+EnemyCardResolved
+= enemy card finished resolving and is ready to move to its destination zone.
+```
+
+Fairness rule for v0.3 implementation:
+
+```txt
+Adaptive enemies may only choose from cards that are already in hand / candidate set / explicit phase insertions.
+They must not create a perfect answer from nowhere.
+If visible plan information changes, core must emit an event so UI/debug tools can explain the change.
+```
 
 ---
 
@@ -331,7 +386,7 @@ Important: `?` should not feel like missing data. It is a valid designed state.
 
 Intent visibility should come from player-side effects.
 
-v0.2 reserves these effect families：
+v0.3 reserves these effect families：
 
 ```txt
 Reveal
@@ -474,7 +529,7 @@ Because intent is not always shown, we need fairness rules.
 
 Hidden intent is allowed, but hidden nonsense is not.
 
-v0.2 fairness contract：
+v0.3 fairness contract：
 
 ```txt
 1. Unknown intent must still obey enemy deck, cooldown, phase, and tier limits.
@@ -624,7 +679,7 @@ if enemy.name === "Slime" then hardcode attack
 
 ## 11. Player Card Families
 
-Player card families v0.2：
+Player card families v0.3：
 
 ```txt
 Attack
@@ -695,7 +750,7 @@ type RewardDropRule = {
 };
 ```
 
-v0.2 reward-bearing principles：
+v0.3 reward-bearing principles：
 
 ```txt
 1. Reward chance must use seeded RNG.
@@ -794,7 +849,7 @@ At combat end：
 7. Skipped reward clears pending reward and advances map state.
 ```
 
-Reward option types v0.2：
+Reward option types v0.3：
 
 ```txt
 card
@@ -1329,7 +1384,7 @@ Pet unlock: usually guaranteed by objective, not random chance.
 
 ### 26.4 Should elite/boss exact scope ever lock their action?
 
-Recommendation: not yet. v0.2 `Scope` should reveal candidate set or current preferred action. True locking can be a later rare control archetype.
+Recommendation: not yet. v0.3 `Scope` should reveal candidate set or current preferred action. True locking can be a later rare control archetype.
 
 ### 26.5 Do we allow no-intent combat at all?
 
@@ -1353,7 +1408,7 @@ Unique story reward: usually known or strongly hinted.
 
 ## 27. Current Strong Direction
 
-Lock v0.2 around this identity：
+Lock v0.3 around this identity：
 
 ```txt
 The player is not just playing cards.

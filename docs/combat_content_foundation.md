@@ -1,4 +1,4 @@
-# Combat Content Foundation v0.2
+# Combat Content Foundation v0.3
 
 Status: implementation contract / living content rulebook
 Language: English technical contract, with Cantonese design notes where useful
@@ -22,6 +22,39 @@ combat_content_foundation.md
 ```
 
 This document is not a final balance sheet. It is the contract for what the first playable content is trying to teach and how it should be represented in data.
+
+---
+## v0.3 Implementation Update
+
+v0.3 hardens the content foundation by making the first-map enemy `cardGame` metadata drive real runtime enemy holdings instead of acting only as descriptive metadata. New first-map enemies should now be authored with card-game fields that can produce enemy card instances, enemy hands, planned cards, discards, and deterministic reshuffles.
+
+Implementation expectations:
+
+```txt
+Normal enemies:
+  handSize = 1
+  planSlots = 1
+  planMode = locked
+
+Elites:
+  handSize = 2
+  planSlots = 1
+  planMode = adaptive or charging
+
+Bosses:
+  handSize = 3
+  planSlots = 1, with future room for special phase slots
+  planMode = adaptive / charging / scriptedPhase as data allows
+```
+
+Content authoring rule:
+
+```txt
+Every enemy deck entry should point to a real monster ability.
+Every monster ability used by an enemy deck should also have an Intent-facing representation.
+Enemy deck duplicates express frequency, not collectible duplicate limits.
+Enemy-card events are debug/presentation data; enemies are still rendered as sprites with Intent UI, not as visible battlefield cards.
+```
 
 ---
 
@@ -399,7 +432,7 @@ It appears only when an upgrade/card such as Banked Ember enables it.
 
 ---
 
-## 10. Starter Deck v0.2
+## 10. Starter Deck v0.3
 
 Starting deck size:
 
@@ -1179,7 +1212,7 @@ Class passive:
 First content:
   Ashbound Keeper display name
   Ember Fox command card set
-  starter deck v0.2
+  starter deck v0.3
   Ashwood Trail encounters
   Ash Slime, Cinder Mite, Soot Crow, Root Husk
   Charred Stag
@@ -1191,7 +1224,7 @@ Compatibility rule:
 
 ```txt
 Existing ids may remain for compatibility if tests, saves, or scenes depend on them.
-Player-facing names and content behavior should move to the v0.2 contract.
+Player-facing names and content behavior should move to the v0.3 contract.
 ```
 
 ---
