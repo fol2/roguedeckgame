@@ -18,13 +18,24 @@ import type { MonsterDefinition } from "../model/monster";
 import type { PetInstance, RunPetState } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
+import {
+  createPlayerCardActor,
+  findPlayerCardActor,
+  projectCombatStateFromCardActors,
+  updateCardActor
+} from "./card-actors";
 import { buildCardActionContract } from "./card-action-contract";
 import { cardNeedsActionTarget, targetNeedsActionTarget } from "./card-actions";
 import { moveCardBetweenPiles } from "./card-piles";
 import { drawCards } from "./draw";
 import { resolveCardEffects, resolveEffects } from "./effects";
 import { checkCombatOutcome } from "./outcome";
-import { chooseMonsterIntents, finalizePlannedMonsterAbility, findMonsterDefinition, resolveDiscardPlannedMonsterCard } from "./monster-intents";
+import {
+  chooseMonsterIntents,
+  finalizePlannedMonsterAbility,
+  findMonsterDefinition,
+  resolveDiscardSinglePlannedMonsterCard
+} from "./monster-intents";
 import {
   applyPetCommandCostModifiers,
   applyPetCommandEffectModifiers,
@@ -38,6 +49,8 @@ import { resolveTriggerQueueAfterEvents } from "./trigger-queue";
 
 const PLAYER_COMBATANT_ID = combatantId("player");
 const DEFAULT_OPENING_HAND_SIZE = 5;
+const DEFAULT_DRAW_PER_TURN = 3;
+const DEFAULT_MAX_HAND_SIZE = 10;
 const DEFAULT_MAX_ENERGY = 3;
 const DEFAULT_PLAYER_MAX_HP = act1NormalBalance.player.maxHp;
 
@@ -98,6 +111,15 @@ const createRejectedState = (input: CreateCombatInput): CombatState => {
     monsterIntents: [],
     plannedMonsterAbilities: [],
     monsterCardStates: [],
+    cardActors: [
+      createPlayerCardActor(PLAYER_COMBATANT_ID, cardInstances, [], {
+        openingHandSize: input.openingHandSize ?? DEFAULT_OPENING_HAND_SIZE,
+        drawPerTurn: DEFAULT_DRAW_PER_TURN,
+        maxHandSize: DEFAULT_MAX_HAND_SIZE,
+        maxEnergy: DEFAULT_MAX_ENERGY,
+        energy: 0
+      })
+    ],
     cardInstances,
     drawPile: [],
     hand: [],
@@ -452,10 +474,15 @@ const resolveCardOpeningStage = (
     ...effectModifierResult.value.events,
     energySpent
   ];
-  let nextState = appendEvents(
-    { ...costModifierResult.value.state, energy: state.energy - costModifierResult.value.cost },
-    openingEvents
-  );
+  const remainingEnergy = state.energy - costModifierResult.value.cost;
+  const playerActor = findPlayerCardActor(costModifierResult.value.state);
+  const stateWithSpentEnergy = playerActor
+    ? projectCombatStateFromCardActors(updateCardActor(costModifierResult.value.state, {
+        ...playerActor,
+        energy: remainingEnergy
+      }))
+    : { ...costModifierResult.value.state, energy: remainingEnergy };
+  let nextState = appendEvents(stateWithSpentEnergy, openingEvents);
   const events: GameEvent[] = [...openingEvents];
 
   if (card.type === "pet-command") {
@@ -612,6 +639,19 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
       error("missing_monster_definition", `Monster '${input.monsterIds[missingMonsterIndex]}' is not registered.`, "monsterIds")
     );
   }
+  const missingCardActorMonster = (monsters as readonly CombatantState[])
+    .map((monster) => input.registry.monsters.find((monsterDefinition) => monsterDefinition.id === monster.definitionId))
+    .find((monsterDefinition) => !monsterDefinition?.cardGame);
+  if (missingCardActorMonster) {
+    return rejectCreate(
+      input,
+      error(
+        "missing_monster_card_actor",
+        `Monster '${missingCardActorMonster.id}' must define cardActor/cardGame data for v0.5 combat.`,
+        "registry.monsters.cardGame"
+      )
+    );
+  }
 
   const cardInstances: CombatCardInstance[] = input.run.deckCardIds.map((cardId, index) => ({
     id: cardInstanceId(`${input.run.id}:card:${index}:${cardId}`),
@@ -640,6 +680,14 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     monsterIntents: [],
     plannedMonsterAbilities: [],
     monsterCardStates: [],
+    cardActors: [
+      createPlayerCardActor(PLAYER_COMBATANT_ID, cardInstances, shuffledDrawPile, {
+        openingHandSize: input.openingHandSize ?? DEFAULT_OPENING_HAND_SIZE,
+        drawPerTurn: DEFAULT_DRAW_PER_TURN,
+        maxHandSize: DEFAULT_MAX_HAND_SIZE,
+        maxEnergy: DEFAULT_MAX_ENERGY
+      })
+    ],
     cardInstances,
     drawPile: shuffledDrawPile,
     hand: [],
@@ -649,24 +697,26 @@ export const createCombat = (input: CreateCombatInput): CreateCombatResult => {
     maxEnergy: DEFAULT_MAX_ENERGY,
     events: initialEvents
   };
+  initialState = projectCombatStateFromCardActors(initialState);
 
-  const intentResult = chooseMonsterIntents(initialState, input.registry, rng);
-  if (!intentResult.ok) {
-    return rejectCreate(input, intentResult.errors[0] ?? error("monster_intent_selection_failed", "Monster intent selection failed."));
-  }
-
-  const turnStarted: GameEvent = { type: "TurnStarted", turnNumber: 1, actorId: PLAYER_COMBATANT_ID };
-  initialState = appendEvents(intentResult.state, [turnStarted]);
   const openingHandSize = input.openingHandSize ?? DEFAULT_OPENING_HAND_SIZE;
   const drawResult = drawCards(initialState, openingHandSize, rng);
   if (!drawResult.ok) {
     return drawResult;
   }
 
+  const intentResult = chooseMonsterIntents(drawResult.state, input.registry, rng, { opening: true });
+  if (!intentResult.ok) {
+    return rejectCreate(input, intentResult.errors[0] ?? error("monster_intent_selection_failed", "Monster intent selection failed."));
+  }
+
+  const turnStarted: GameEvent = { type: "TurnStarted", turnNumber: 1, actorId: PLAYER_COMBATANT_ID };
+  initialState = appendEvents(intentResult.state, [turnStarted]);
+
   return {
     ok: true,
-    state: drawResult.state,
-    events: [...initialEvents, ...intentResult.events, turnStarted, ...drawResult.events],
+    state: initialState,
+    events: [...initialEvents, ...drawResult.events, ...intentResult.events, turnStarted],
     errors: []
   };
 };
@@ -677,6 +727,8 @@ export const playCard = (
   registry: GameContentRegistry,
   rng: Rng
 ): GameActionResult<CombatState> => {
+  const originalState = state;
+  state = projectCombatStateFromCardActors(state);
   const actionContract = buildCardActionContract(
     state,
     { cardInstanceId: action.cardInstanceId, targetId: action.targetId, mode: "submit" },
@@ -684,29 +736,29 @@ export const playCard = (
   );
   if (!actionContract.playable) {
     return reject(
-      state,
+      originalState,
       actionContract.actionError ?? error("card_not_playable", actionContract.unplayableReason ?? "Card is not playable.")
     );
   }
 
   const playableCard = resolvePlayableCardContext(state, action, registry);
   if (!playableCard.ok) {
-    return reject(state, playableCard.error);
+    return reject(originalState, playableCard.error);
   }
 
   const openingStage = resolveCardOpeningStage(state, playableCard.value, registry, rng);
   if (!openingStage.ok) {
-    return reject(state, openingStage.error);
+    return reject(originalState, openingStage.error);
   }
 
   const effectStage = resolveCardEffectStage(openingStage.value, playableCard.value, action, registry, rng);
   if (!effectStage.ok) {
-    return reject(state, effectStage.error);
+    return reject(originalState, effectStage.error);
   }
 
   const finalMove = movePlayedCardToDiscard(effectStage.value.state, playableCard.value.cardInstance);
   if (!finalMove.ok) {
-    return reject(state, finalMove.error);
+    return reject(originalState, finalMove.error);
   }
 
   return {
@@ -725,38 +777,19 @@ export const endPlayerTurn = (
   state: CombatState,
   options?: { readonly registry: GameContentRegistry; readonly rng: Rng }
 ): GameActionResult<CombatState> => {
+  const originalState = state;
+  state = projectCombatStateFromCardActors(state);
   if (state.phase !== "player_turn") {
-    return reject(state, error("invalid_phase", "Only the player turn can be ended by this action.", "phase"));
+    return reject(originalState, error("invalid_phase", "Only the player turn can be ended by this action.", "phase"));
   }
 
-  let movedState = state;
-  const moveEvents: GameEvent[] = [];
-  const retainedCardInstanceIds = new Set(state.retainedCardInstanceIds ?? []);
-  for (const cardInstanceId of state.hand) {
-    if (retainedCardInstanceIds.has(cardInstanceId)) {
-      continue;
-    }
-
-    const moveResult = moveCardBetweenPiles(movedState, {
-      cardInstanceId,
-      from: "hand",
-      to: "discard"
-    });
-    if (!moveResult.ok) {
-      return reject(state, moveResult.error);
-    }
-
-    movedState = moveResult.state;
-    moveEvents.push(moveResult.event);
-  }
-
-  const statusResult = processEndOfTurnStatuses(movedState, movedState.player.id, options);
+  const statusResult = processEndOfTurnStatuses(state, state.player.id, options);
   if (!statusResult.ok) {
     return reject(state, statusResult.errors[0] ?? error("status_resolution_failed", "Status resolution failed."));
   }
 
   if (statusResult.state.phase === "won" || statusResult.state.phase === "lost") {
-    return { ok: true, state: statusResult.state, events: [...moveEvents, ...statusResult.events], errors: [] };
+    return { ok: true, state: statusResult.state, events: statusResult.events, errors: [] };
   }
 
   const turnEnded: GameEvent = {
@@ -764,7 +797,7 @@ export const endPlayerTurn = (
     turnNumber: state.turnNumber,
     actorId: state.player.id
   };
-  const events = [...moveEvents, ...statusResult.events, turnEnded];
+  const events = [...statusResult.events, turnEnded];
   const nextState = appendEvents(
     {
       ...statusResult.state,
@@ -785,12 +818,15 @@ export const startPlayerTurn = (
   rng: Rng,
   registry?: GameContentRegistry
 ): GameActionResult<CombatState> => {
+  const originalState = state;
   if (state.phase === "won" || state.phase === "lost") {
     return reject(state, error("combat_already_ended", "A new player turn cannot start after combat has ended.", "phase"));
   }
 
+  state = projectCombatStateFromCardActors(state);
+
   if (state.phase !== "enemy_turn") {
-    return reject(state, error("invalid_phase", "A player turn can only start after the enemy turn.", "phase"));
+    return reject(originalState, error("invalid_phase", "A player turn can only start after the enemy turn.", "phase"));
   }
 
   const statusResult = processStartOfTurnStatuses(
@@ -820,18 +856,22 @@ const startPlayerTurnAfterStatusTicks = (
     turnNumber: state.turnNumber + 1,
     actorId: state.player.id
   };
-  const nextState = appendEvents(
-    {
-      ...resetTurnPetModifierUsage(state),
-      phase: "player_turn",
-      activeActorId: state.player.id,
-      turnNumber: state.turnNumber + 1,
-      energy: state.maxEnergy,
-      player: { ...state.player, block: 0 }
-    },
-    [turnStarted]
-  );
-  const drawResult = drawCards(nextState, DEFAULT_OPENING_HAND_SIZE, rng);
+  const baseState = {
+    ...resetTurnPetModifierUsage(state),
+    phase: "player_turn" as const,
+    activeActorId: state.player.id,
+    turnNumber: state.turnNumber + 1,
+    player: { ...state.player, block: 0 }
+  };
+  const playerActor = findPlayerCardActor(baseState);
+  const stateWithRefilledActor = playerActor
+    ? projectCombatStateFromCardActors(updateCardActor(baseState, {
+        ...playerActor,
+        energy: playerActor.energyRefill
+      }))
+    : { ...baseState, energy: state.maxEnergy };
+  const nextState = appendEvents(stateWithRefilledActor, [turnStarted]);
+  const drawResult = drawCards(nextState, playerActor?.drawPerTurn ?? DEFAULT_DRAW_PER_TURN, rng);
   if (!drawResult.ok) {
     return reject(originalStateForReject, drawResult.errors[0] ?? error("draw_failed", "Could not draw cards for the player turn."));
   }
@@ -894,67 +934,71 @@ export const resolveEnemyTurn = (
     nextState = planned.state;
     events.push(...planned.events);
 
-    const abilityPlayedEvent: GameEvent = {
-      type: "MonsterAbilityPlayed",
-      monsterId: monster.id,
-      abilityId: planned.ability.id,
-      intentId: planned.intent.id
-    };
-    const resolvedEvent: GameEvent = {
-      type: "MonsterIntentResolved",
-      monsterId: monster.id,
-      intentId: planned.intent.id
-    };
-    const resolutionEvents = [abilityPlayedEvent, resolvedEvent];
-    nextState = appendEvents({ ...nextState, activeActorId: monster.id }, resolutionEvents);
-    events.push(...resolutionEvents);
+    for (const plannedStep of planned.sequence) {
+      const abilityPlayedEvent: GameEvent = {
+        type: "MonsterAbilityPlayed",
+        monsterId: monster.id,
+        abilityId: plannedStep.ability.id,
+        intentId: plannedStep.intent.id
+      };
+      const resolvedEvent: GameEvent = {
+        type: "MonsterIntentResolved",
+        monsterId: monster.id,
+        intentId: plannedStep.intent.id
+      };
+      const resolutionEvents = [abilityPlayedEvent, resolvedEvent];
+      nextState = appendEvents({ ...nextState, activeActorId: monster.id }, resolutionEvents);
+      events.push(...resolutionEvents);
 
-    const effectResult = resolveEffects(
-      nextState,
-      planned.ability.effects,
-      {
-        sourceId: monster.id,
-        defaultTargetId: nextState.player.id,
-        intentId: planned.intent.id
-      },
-      registry,
-      rng
-    );
-    if (!effectResult.ok) {
-      return reject(
-        originalState,
-        effectResult.errors[0] ?? error("effect_resolution_failed", "Monster intent effect resolution failed.")
+      const effectResult = resolveEffects(
+        nextState,
+        plannedStep.ability.effects,
+        {
+          sourceId: monster.id,
+          defaultTargetId: nextState.player.id,
+          intentId: plannedStep.intent.id
+        },
+        registry,
+        rng
       );
-    }
+      if (!effectResult.ok) {
+        return reject(
+          originalState,
+          effectResult.errors[0] ?? error("effect_resolution_failed", "Monster intent effect resolution failed.")
+        );
+      }
 
-    const enemyCardResolvedEvent: GameEvent | undefined = planned.cardInstanceId
-      ? {
-          type: "EnemyCardResolved",
-          monsterId: monster.id,
-          cardInstanceId: planned.cardInstanceId,
-          abilityId: planned.ability.id,
-          intentId: planned.intent.id
-        }
-      : undefined;
-    const stateAfterResolutionEvent = enemyCardResolvedEvent
-      ? appendEvents(effectResult.state, [enemyCardResolvedEvent])
-      : effectResult.state;
-    const discardResult = resolveDiscardPlannedMonsterCard(stateAfterResolutionEvent, monster.id);
-    nextState = appendEvents(discardResult.state, discardResult.events);
-    nextState = {
-      ...nextState,
-      intentVisibilityOverrides: (nextState.intentVisibilityOverrides ?? []).filter((override) =>
-        !(override.expires === "afterEnemyAction" && override.monsterCombatantId === monster.id)
-      )
-    };
-    events.push(...effectResult.events, ...(enemyCardResolvedEvent ? [enemyCardResolvedEvent] : []), ...discardResult.events);
+      const enemyCardResolvedEvent: GameEvent | undefined = plannedStep.cardInstanceId
+        ? {
+            type: "EnemyCardResolved",
+            monsterId: monster.id,
+            cardInstanceId: plannedStep.cardInstanceId,
+            abilityId: plannedStep.ability.id,
+            intentId: plannedStep.intent.id
+          }
+        : undefined;
+      const stateAfterResolutionEvent = enemyCardResolvedEvent
+        ? appendEvents(effectResult.state, [enemyCardResolvedEvent])
+        : effectResult.state;
+      const discardResult = plannedStep.cardInstanceId
+        ? resolveDiscardSinglePlannedMonsterCard(stateAfterResolutionEvent, monster.id, plannedStep.cardInstanceId)
+        : { state: stateAfterResolutionEvent, events: [] };
+      nextState = appendEvents(discardResult.state, discardResult.events);
+      nextState = {
+        ...nextState,
+        intentVisibilityOverrides: (nextState.intentVisibilityOverrides ?? []).filter((override) =>
+          !(override.expires === "afterEnemyAction" && override.monsterCombatantId === monster.id)
+        )
+      };
+      events.push(...effectResult.events, ...(enemyCardResolvedEvent ? [enemyCardResolvedEvent] : []), ...discardResult.events);
 
-    const outcomeResult = checkCombatOutcome(nextState);
-    nextState = outcomeResult.state;
-    events.push(...outcomeResult.events);
+      const outcomeResult = checkCombatOutcome(nextState);
+      nextState = outcomeResult.state;
+      events.push(...outcomeResult.events);
 
-    if (nextState.phase === "won" || nextState.phase === "lost") {
-      return { ok: true, state: nextState, events, errors: [] };
+      if (nextState.phase === "won" || nextState.phase === "lost") {
+        return { ok: true, state: nextState, events, errors: [] };
+      }
     }
   }
 
@@ -974,7 +1018,7 @@ export const resolveEnemyTurn = (
     return { ok: true, state: nextState, events, errors: [] };
   }
 
-  const intentResult = chooseMonsterIntents(nextState, registry, rng, { scheduledTurnNumber: nextState.turnNumber + 1 });
+  const intentResult = chooseMonsterIntents(nextState, registry, rng);
   if (!intentResult.ok) {
     return reject(
       originalState,

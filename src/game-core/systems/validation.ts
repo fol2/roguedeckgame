@@ -2020,11 +2020,29 @@ export const validateRegistry = (
             if (typeof entry.copies !== "number" || !Number.isInteger(entry.copies) || entry.copies <= 0) {
               issues.push(issue("error", "invalid_monster_card_game", "Enemy deck entry copies must be a positive integer.", `${entryPath}.copies`));
             }
+
+            if ("cost" in entry && entry.cost !== undefined) {
+              if (typeof entry.cost !== "number" || !Number.isInteger(entry.cost) || entry.cost < 0) {
+                issues.push(issue("error", "invalid_monster_card_game", "Enemy deck entry cost must be a non-negative integer.", `${entryPath}.cost`));
+              }
+            }
           });
         }
 
         if (typeof cardGame.handSize !== "number" || !Number.isInteger(cardGame.handSize) || cardGame.handSize <= 0) {
           issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame handSize must be a positive integer.`, `${cardGamePath}.handSize`));
+        }
+
+        for (const fieldName of ["openingHandSize", "drawPerTurn", "maxHandSize", "maxEnergy"] as const) {
+          if (typeof cardGame[fieldName] !== "number" || !Number.isInteger(cardGame[fieldName]) || cardGame[fieldName] <= 0) {
+            issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame ${fieldName} must be a positive integer.`, `${cardGamePath}.${fieldName}`));
+          }
+        }
+
+        if ("energyRefill" in cardGame && cardGame.energyRefill !== undefined) {
+          if (typeof cardGame.energyRefill !== "number" || !Number.isInteger(cardGame.energyRefill) || cardGame.energyRefill <= 0) {
+            issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame energyRefill must be a positive integer.`, `${cardGamePath}.energyRefill`));
+          }
         }
 
         if (typeof cardGame.planSlots !== "number" || !Number.isInteger(cardGame.planSlots) || cardGame.planSlots <= 0) {

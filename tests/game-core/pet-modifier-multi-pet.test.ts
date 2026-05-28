@@ -18,7 +18,8 @@ import {
 } from "../../src/game-core";
 import {
   createHandTunedCombatFixture,
-  createSecondEmberFoxInstanceFixture
+  createSecondEmberFoxInstanceFixture,
+  withPlayerCardActorState
 } from "../../src/game-core/testing/combat-fixtures";
 import { createEmberFoxInstanceFixture, createRunFixture } from "../../src/game-core/testing/fixtures";
 
@@ -149,7 +150,7 @@ describe("pet modifier multi-pet ownership", () => {
   });
 
   it("tracks Ash Instinct usage per pet instance", () => {
-    const state = {
+    const state = withPlayerCardActorState({
       ...createMultiPetState([
         emberFox("ember_fox_001", ["ash_instinct"]),
         emberFox("ember_fox_002", ["ash_instinct"])
@@ -168,10 +169,12 @@ describe("pet modifier multi-pet ownership", () => {
           hp: 18,
           maxHp: 18
         }
-      ],
+      ]
+    }, (actor) => ({
+      ...actor,
       hand: [cardInstanceId("strike:1")],
       drawPile: [cardInstanceId("strike:2")]
-    };
+    }));
     const result = playCard(
       state,
       { type: "playCard", cardInstanceId: cardInstanceId("strike:1"), targetId },
@@ -378,11 +381,12 @@ const createMultiPetState = (pets: readonly PetInstance[]): CombatState => {
   };
 };
 
-const withCardInHand = (state: CombatState, id: CardDefinition["id"]): CombatState => ({
-  ...state,
-  cardInstances: [
-    ...state.cardInstances,
-    { id: cardInstanceId(`${id}:1`), cardId: id, ownerId: combatantId("player") }
-  ],
-  hand: [...state.hand, cardInstanceId(`${id}:1`)]
-});
+const withCardInHand = (state: CombatState, id: CardDefinition["id"]): CombatState =>
+  withPlayerCardActorState(state, (actor) => ({
+    ...actor,
+    cardInstances: [
+      ...actor.cardInstances,
+      { id: cardInstanceId(`${id}:1`), cardId: id, ownerActorId: combatantId("player") }
+    ],
+    hand: [...actor.hand, cardInstanceId(`${id}:1`)]
+  }));

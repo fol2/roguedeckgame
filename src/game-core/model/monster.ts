@@ -45,10 +45,16 @@ export type MonsterIntentScheduleStep = {
 export type EnemyCardDeckEntryDefinition = {
   readonly abilityId: MonsterAbilityId;
   readonly copies: number;
+  readonly cost?: number;
 };
 
 export type MonsterCardGameDefinition = {
   readonly deck: readonly EnemyCardDeckEntryDefinition[];
+  readonly openingHandSize: number;
+  readonly drawPerTurn: number;
+  readonly maxHandSize: number;
+  readonly maxEnergy: number;
+  readonly energyRefill?: number;
   readonly handSize: number;
   readonly planSlots: number;
   readonly defaultPlanMode: EnemyPlanMode;

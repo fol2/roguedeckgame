@@ -6,7 +6,7 @@ import {
   playerClassModifierId,
   starterRegistry
 } from "../../src/game-core";
-import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
+import { createHandTunedCombatFixture, withPlayerCardActorState } from "../../src/game-core/testing/combat-fixtures";
 
 describe("player class modifiers", () => {
   it("resolves class passive triggers through the trigger queue", () => {
@@ -86,12 +86,12 @@ describe("player class modifiers", () => {
       registry,
       createRng("class-limit-1")
     );
-    const secondState = {
-      ...first.state,
+    const secondState = withPlayerCardActorState(first.state, (actor) => ({
+      ...actor,
       energy: 3,
       hand: [cardInstanceId("strike:2")],
       drawPile: []
-    };
+    }));
     const second = playCard(
       secondState,
       { type: "playCard", cardInstanceId: cardInstanceId("strike:2"), targetId: secondState.monsters[0].id },

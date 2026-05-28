@@ -111,6 +111,53 @@ export type CombatMonsterCardState = {
   readonly exhaustPile: readonly EnemyCardInstanceId[];
 };
 
+export type CardActorKind = "player" | "enemy" | "petActor" | "clone" | "future";
+
+export type CardActorControllerKind = "human" | "heuristicAi" | "leaderHeuristic" | "remoteHumanFuture";
+
+export type CardActorSide = "playerSide" | "enemySide";
+
+export type CardActorUnplayedHandPolicy = "retain";
+
+export type CardActorCardInstanceId = CardInstanceId | EnemyCardInstanceId;
+
+export type CardActorCardInstance = {
+  readonly id: CardActorCardInstanceId;
+  readonly ownerActorId: CombatantId;
+  readonly cardId?: CardId;
+  readonly abilityId?: MonsterAbilityId;
+};
+
+export type CardActorPlanState = {
+  readonly planMode?: EnemyPlanMode;
+  readonly lockedCardInstanceId?: CardActorCardInstanceId;
+  readonly candidateCardInstanceIds: readonly CardActorCardInstanceId[];
+};
+
+export type CardActorState = {
+  readonly actorId: CombatantId;
+  readonly ownerCombatantId: CombatantId;
+  readonly actorKind: CardActorKind;
+  readonly side: CardActorSide;
+  readonly teamId: string;
+  readonly controllerKind: CardActorControllerKind;
+  readonly cardInstances: readonly CardActorCardInstance[];
+  readonly drawPile: readonly CardActorCardInstanceId[];
+  readonly hand: readonly CardActorCardInstanceId[];
+  readonly planned: CardActorPlanState;
+  readonly playArea: readonly CardActorCardInstanceId[];
+  readonly discardPile: readonly CardActorCardInstanceId[];
+  readonly exhaustPile: readonly CardActorCardInstanceId[];
+  readonly removedPile: readonly CardActorCardInstanceId[];
+  readonly openingHandSize: number;
+  readonly drawPerTurn: number;
+  readonly maxHandSize: number;
+  readonly maxEnergy: number;
+  readonly energy: number;
+  readonly energyRefill: number;
+  readonly unplayedHandPolicy: CardActorUnplayedHandPolicy;
+};
+
 export type CombatState = {
   readonly id: RunId;
   readonly runNodeId?: RunNodeId;
@@ -131,6 +178,7 @@ export type CombatState = {
   readonly plannedMonsterAbilities?: readonly PlannedMonsterAbility[];
   readonly monsterCardStates?: readonly CombatMonsterCardState[];
   readonly intentVisibilityOverrides?: readonly CombatIntentVisibilityState[];
+  readonly cardActors: readonly CardActorState[];
   readonly cardInstances: readonly CombatCardInstance[];
   readonly drawPile: readonly CardInstanceId[];
   readonly hand: readonly CardInstanceId[];

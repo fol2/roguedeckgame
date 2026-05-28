@@ -13,7 +13,8 @@ import {
 import {
   createCombatFixture,
   createForcedIntentCombatFixture,
-  createHandTunedCombatFixture
+  createHandTunedCombatFixture,
+  withEnemyCardActorState
 } from "../../src/game-core/testing/combat-fixtures";
 
 describe("enemy turn resolution", () => {
@@ -33,31 +34,27 @@ describe("enemy turn resolution", () => {
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["invalid_phase"]);
   });
 
-  it("rejects with the original state when an alive monster has no selected intent", () => {
+  it("resolves from the enemy Card Actor plan when legacy selected intents are stale", () => {
     const state = { ...createForcedIntentCombatFixture(), monsterIntents: [] };
-    const before = JSON.parse(JSON.stringify(state));
     const result = resolveEnemyTurn(state, starterRegistry, createRng("missing-intent"));
 
-    expect(result.ok).toBe(false);
-    expect(result.state).toBe(state);
-    expect(JSON.parse(JSON.stringify(state))).toEqual(before);
-    expect(result.errors.map((combatError) => combatError.code)).toEqual(["missing_monster_intent"]);
-    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+    expect(result.ok).toBe(true);
+    expect(result.state.player.hp).toBe(64);
+    expect(result.events.map((event) => event.type)).toContain("MonsterAbilityPlayed");
+    expect(result.events.map((event) => event.type)).toContain("MonsterIntentResolved");
   });
 
-  it("rejects with the original state when a registered intent has no planned ability", () => {
+  it("resolves from the enemy Card Actor plan when legacy planned abilities are stale", () => {
     const state = { ...createForcedIntentCombatFixture(), plannedMonsterAbilities: [] };
-    const before = JSON.parse(JSON.stringify(state));
     const result = resolveEnemyTurn(state, starterRegistry, createRng("missing-planned-ability"));
 
-    expect(result.ok).toBe(false);
-    expect(result.state).toBe(state);
-    expect(JSON.parse(JSON.stringify(state))).toEqual(before);
-    expect(result.errors.map((combatError) => combatError.code)).toEqual(["missing_planned_monster_ability"]);
-    expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
+    expect(result.ok).toBe(true);
+    expect(result.state.player.hp).toBe(64);
+    expect(result.events.map((event) => event.type)).toContain("MonsterAbilityPlayed");
+    expect(result.events.map((event) => event.type)).toContain("MonsterIntentResolved");
   });
 
-  it("resolves legacy combat state without planned ability storage", () => {
+  it("resolves Card Actor combat state without planned ability storage", () => {
     const { plannedMonsterAbilities: _plannedMonsterAbilities, ...legacyState } = createForcedIntentCombatFixture();
     const state = legacyState as unknown as ReturnType<typeof createForcedIntentCombatFixture>;
     const result = resolveEnemyTurn(state, starterRegistry, createRng("legacy-missing-planned-ability"));
@@ -124,7 +121,7 @@ describe("enemy turn resolution", () => {
 
   it("Ash Mite burn intent applies burn to the player and the next player turn ticks it", () => {
     const baseState = createCombatFixture({ monsterIds: [monsterId("ash_mite")] });
-    const state = {
+    const state = withEnemyAbilityPlanned({
       ...baseState,
       phase: "enemy_turn" as const,
       hand: [],
@@ -144,7 +141,7 @@ describe("enemy turn resolution", () => {
         }
       ],
       events: []
-    };
+    }, monsterAbilityId("ash_mite_burn"), monsterIntentId("ash_mite_burn"));
 
     const result = resolveEnemyTurn(state, starterRegistry, createRng("ash-burn"));
 
@@ -188,6 +185,8 @@ describe("enemy turn resolution", () => {
       "MonsterAbilityPlayed",
       "MonsterIntentResolved",
       "BlockGained",
+      "EnemyCardResolved",
+      "EnemyCardMoved",
       "StatusTicked",
       "DamageDealt",
       "CombatantDefeated",
@@ -197,3 +196,35 @@ describe("enemy turn resolution", () => {
     expect(result.events.some((event) => event.type === "MonsterIntentSet")).toBe(false);
   });
 });
+
+const withEnemyAbilityPlanned = (
+  state: ReturnType<typeof createHandTunedCombatFixture>,
+  abilityId: ReturnType<typeof monsterAbilityId>,
+  intentId: ReturnType<typeof monsterIntentId>
+) =>
+  withEnemyCardActorState({
+    ...state,
+    monsterIntents: [{ monsterCombatantId: state.monsters[0].id, intentId }],
+    plannedMonsterAbilities: [{ monsterCombatantId: state.monsters[0].id, intentId, abilityId }]
+  }, state.monsters[0].id, (actor) => {
+    const selectedCardInstanceId = actor.cardInstances.find((cardInstance) =>
+      cardInstance.abilityId === abilityId
+    )?.id;
+
+    if (!selectedCardInstanceId) {
+      throw new Error(`Enemy card for ability '${abilityId}' is missing from combat fixture.`);
+    }
+
+    return {
+      ...actor,
+      hand: actor.hand.filter((cardInstanceId) => cardInstanceId !== selectedCardInstanceId),
+      drawPile: actor.drawPile.filter((cardInstanceId) => cardInstanceId !== selectedCardInstanceId),
+      discardPile: actor.discardPile.filter((cardInstanceId) => cardInstanceId !== selectedCardInstanceId),
+      planned: {
+        planMode: actor.planned.planMode,
+        lockedCardInstanceId: selectedCardInstanceId,
+        candidateCardInstanceIds: []
+      },
+      energy: Math.max(0, actor.energyRefill - 1)
+    };
+  });

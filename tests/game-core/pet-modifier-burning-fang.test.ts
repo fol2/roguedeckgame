@@ -18,7 +18,8 @@ import {
 import {
   createHandTunedCombatFixture,
   createMultiPetRunFixture,
-  createSecondEmberFoxInstanceFixture
+  createSecondEmberFoxInstanceFixture,
+  withPlayerCardActorState
 } from "../../src/game-core/testing/combat-fixtures";
 import { createEmberFoxInstanceFixture, createRunFixture } from "../../src/game-core/testing/fixtures";
 
@@ -191,14 +192,15 @@ const createStateWithPets = (
   };
 };
 
-const withFoxFlareInHand = (state: CombatState): CombatState => ({
-  ...state,
-  cardInstances: [
-    ...state.cardInstances,
-    { id: cardInstanceId("fox_flare:1"), cardId: cardId("fox_flare"), ownerId: combatantId("player") }
-  ],
-  hand: [...state.hand, cardInstanceId("fox_flare:1")]
-});
+const withFoxFlareInHand = (state: CombatState): CombatState =>
+  withPlayerCardActorState(state, (actor) => ({
+    ...actor,
+    cardInstances: [
+      ...actor.cardInstances,
+      { id: cardInstanceId("fox_flare:1"), cardId: cardId("fox_flare"), ownerActorId: combatantId("player") }
+    ],
+    hand: [...actor.hand, cardInstanceId("fox_flare:1")]
+  }));
 
 const registryWithBrokenBurningFangStatus = (
   brokenStatusId: ReturnType<typeof statusId>

@@ -2,19 +2,23 @@ import {
   cardInstanceId,
   cardId,
   combatantId,
+  enemyCardInstanceId,
   encounterId,
   monsterAbilityId,
   monsterId,
   monsterIntentId,
   petInstanceId,
   runNodeId,
-  statusId
+  statusId,
+  type CombatantId
 } from "../ids";
 import { starterRegistry } from "../data/registry";
 import type { CombatState } from "../model/combat";
 import type { MonsterIntentDefinition } from "../model/monster";
 import type { PetInstance } from "../model/pet";
 import type { RunState } from "../model/run";
+import type { CardActorState } from "../model/combat";
+import { findCardActor, findPlayerCardActor, projectCombatStateFromCardActors, updateCardActor } from "../systems/card-actors";
 import { createCombat, type CreateCombatInput } from "../systems/combat";
 import { createEmberFoxInstanceFixture, createRunFixture } from "./fixtures";
 
@@ -121,6 +125,84 @@ export const createHandTunedCombatFixture = (): CombatState => ({
       abilityId: monsterAbilityId("training_slime_attack")
     }
   ],
+  cardActors: [
+    {
+      actorId: combatantId("player"),
+      ownerCombatantId: combatantId("player"),
+      actorKind: "player",
+      side: "playerSide",
+      teamId: "player",
+      controllerKind: "human",
+      cardInstances: [
+        { id: cardInstanceId("strike:1"), cardId: cardId("strike"), ownerActorId: combatantId("player") },
+        { id: cardInstanceId("defend:1"), cardId: cardId("defend"), ownerActorId: combatantId("player") },
+        { id: cardInstanceId("focus:1"), cardId: cardId("focus"), ownerActorId: combatantId("player") },
+        { id: cardInstanceId("fox_bite:1"), cardId: cardId("fox_bite"), ownerActorId: combatantId("player") },
+        { id: cardInstanceId("fox_guard:1"), cardId: cardId("fox_guard"), ownerActorId: combatantId("player") },
+        { id: cardInstanceId("fox_fetch:1"), cardId: cardId("fox_fetch"), ownerActorId: combatantId("player") },
+        { id: cardInstanceId("strike:2"), cardId: cardId("strike"), ownerActorId: combatantId("player") }
+      ],
+      drawPile: [cardInstanceId("strike:2")],
+      hand: [
+        cardInstanceId("strike:1"),
+        cardInstanceId("defend:1"),
+        cardInstanceId("focus:1"),
+        cardInstanceId("fox_bite:1"),
+        cardInstanceId("fox_guard:1"),
+        cardInstanceId("fox_fetch:1")
+      ],
+      planned: { candidateCardInstanceIds: [] },
+      playArea: [],
+      discardPile: [],
+      exhaustPile: [],
+      removedPile: [],
+      openingHandSize: 5,
+      drawPerTurn: 3,
+      maxHandSize: 10,
+      maxEnergy: 3,
+      energy: 3,
+      energyRefill: 3,
+      unplayedHandPolicy: "retain"
+    },
+    {
+      actorId: combatantId("monster:training_slime:0"),
+      ownerCombatantId: combatantId("monster:training_slime:0"),
+      actorKind: "enemy",
+      side: "enemySide",
+      teamId: "enemy",
+      controllerKind: "heuristicAi",
+      cardInstances: [
+        {
+          id: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
+          abilityId: monsterAbilityId("training_slime_attack"),
+          ownerActorId: combatantId("monster:training_slime:0")
+        },
+        {
+          id: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0"),
+          abilityId: monsterAbilityId("training_slime_block"),
+          ownerActorId: combatantId("monster:training_slime:0")
+        }
+      ],
+      drawPile: [],
+      hand: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0")],
+      planned: {
+        planMode: "locked",
+        lockedCardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
+        candidateCardInstanceIds: []
+      },
+      playArea: [],
+      discardPile: [],
+      exhaustPile: [],
+      removedPile: [],
+      openingHandSize: 2,
+      drawPerTurn: 1,
+      maxHandSize: 3,
+      maxEnergy: 1,
+      energy: 0,
+      energyRefill: 1,
+      unplayedHandPolicy: "retain"
+    }
+  ],
   cardInstances: [
     { id: cardInstanceId("strike:1"), cardId: cardId("strike"), ownerId: combatantId("player") },
     { id: cardInstanceId("defend:1"), cardId: cardId("defend"), ownerId: combatantId("player") },
@@ -151,6 +233,11 @@ export const createEnemyTurnFixture = (): CombatState => {
   return {
     ...baseState,
     phase: "enemy_turn",
+    cardActors: baseState.cardActors.map((actor) =>
+      actor.actorKind === "player"
+        ? { ...actor, hand: [], discardPile: [...baseState.hand], energy: 0 }
+        : actor
+    ),
     hand: [],
     discardPile: [...baseState.hand],
     energy: 0,
@@ -162,22 +249,48 @@ export const createForcedIntentCombatFixture = (
   intentId = monsterIntentId("training_slime_attack")
 ): CombatState => {
   const baseState = createEnemyTurnFixture();
-  return {
+  const abilityId = monsterAbilityId(intentId);
+  const monsterCombatantId = baseState.monsters[0].id;
+  const updatedState = {
     ...baseState,
+    cardActors: baseState.cardActors.map((actor) => {
+      if (actor.actorId !== monsterCombatantId) {
+        return actor;
+      }
+
+      const selectedCardInstanceId = actor.cardInstances.find((cardInstance) =>
+        cardInstance.abilityId === abilityId
+      )?.id;
+
+      return {
+        ...actor,
+        hand: selectedCardInstanceId
+          ? actor.hand.filter((cardInstanceIdValue) => cardInstanceIdValue !== selectedCardInstanceId)
+          : actor.hand,
+        planned: {
+          planMode: actor.planned.planMode,
+          ...(selectedCardInstanceId ? { lockedCardInstanceId: selectedCardInstanceId } : {}),
+          candidateCardInstanceIds: []
+        },
+        energy: selectedCardInstanceId ? Math.max(0, actor.energyRefill - 1) : actor.energy
+      };
+    }),
     monsterIntents: [
       {
-        monsterCombatantId: baseState.monsters[0].id,
+        monsterCombatantId,
         intentId
       }
     ],
     plannedMonsterAbilities: [
       {
-        monsterCombatantId: baseState.monsters[0].id,
+        monsterCombatantId,
         intentId,
-        abilityId: monsterAbilityId(intentId)
+        abilityId
       }
     ]
   };
+
+  return projectCombatStateFromCardActors(updatedState);
 };
 
 export const createBurningMonsterFixture = (stacks = 2): CombatState => {
@@ -234,6 +347,31 @@ export const createLostCombatFixture = (overrides: Partial<CombatState> = {}): C
     events: [],
     ...overrides
   };
+};
+
+export const withPlayerCardActorState = (
+  state: CombatState,
+  update: (actor: CardActorState) => CardActorState
+): CombatState => {
+  const playerActor = findPlayerCardActor(state);
+  if (!playerActor) {
+    throw new Error("Player Card Actor is missing from combat fixture.");
+  }
+
+  return projectCombatStateFromCardActors(updateCardActor(state, update(playerActor)));
+};
+
+export const withEnemyCardActorState = (
+  state: CombatState,
+  enemyActorId: CombatantId,
+  update: (actor: CardActorState) => CardActorState
+): CombatState => {
+  const enemyActor = findCardActor(state, enemyActorId);
+  if (!enemyActor || enemyActor.actorKind !== "enemy") {
+    throw new Error(`Enemy Card Actor '${enemyActorId}' is missing from combat fixture.`);
+  }
+
+  return projectCombatStateFromCardActors(updateCardActor(state, update(enemyActor)));
 };
 
 export const createRegistryWithForcedTrainingSlimeIntent = (

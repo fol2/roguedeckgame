@@ -20,6 +20,11 @@ import type {
 import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
 import type { CombatStatusState } from "../model/status";
+import {
+  findPlayerCardActor,
+  projectCombatStateFromCardActors,
+  updateCardActor
+} from "./card-actors";
 import { drawCards } from "./draw";
 import { moveCardBetweenPiles } from "./card-piles";
 import { getEffectDescriptor, type EffectResolverKey } from "./effect-descriptors";
@@ -101,16 +106,33 @@ const setPile = (
   pile: "draw" | "hand" | "discard" | "exhaust",
   cards: readonly CardInstanceId[]
 ): CombatState => {
+  const syncPlayerActor = (nextState: CombatState): CombatState => {
+    const playerActor = findPlayerCardActor(nextState);
+    if (!playerActor) {
+      return nextState;
+    }
+
+    const nextActor = {
+      ...playerActor,
+      ...(pile === "draw" ? { drawPile: cards } : {}),
+      ...(pile === "hand" ? { hand: cards } : {}),
+      ...(pile === "discard" ? { discardPile: cards } : {}),
+      ...(pile === "exhaust" ? { exhaustPile: cards } : {})
+    };
+
+    return projectCombatStateFromCardActors(updateCardActor(nextState, nextActor));
+  };
+
   if (pile === "draw") {
-    return { ...state, drawPile: cards };
+    return syncPlayerActor({ ...state, drawPile: cards });
   }
   if (pile === "hand") {
-    return { ...state, hand: cards };
+    return syncPlayerActor({ ...state, hand: cards });
   }
   if (pile === "discard") {
-    return { ...state, discardPile: cards };
+    return syncPlayerActor({ ...state, discardPile: cards });
   }
-  return { ...state, exhaustPile: cards };
+  return syncPlayerActor({ ...state, exhaustPile: cards });
 };
 
 const resolveCombatantTargets = (
@@ -463,13 +485,25 @@ const resolveCreateCardEffect = (
   };
   const nextStateWithCard = {
     ...input.state,
-    cardInstances: [
-      ...input.state.cardInstances,
-      { id: createdInstanceId, cardId: input.effect.cardId, ownerId: input.state.player.id }
-    ]
+    cardActors: input.state.cardActors.map((actor) =>
+      actor.actorKind === "player" && actor.ownerCombatantId === input.state.player.id
+        ? {
+            ...actor,
+            cardInstances: [
+              ...actor.cardInstances,
+              {
+                id: createdInstanceId,
+                ownerActorId: actor.actorId,
+                cardId: input.effect.cardId
+              }
+            ]
+          }
+        : actor
+    )
   };
+  const projectedStateWithCard = projectCombatStateFromCardActors(nextStateWithCard);
   const nextState = appendEvents(
-    setPile(nextStateWithCard, input.effect.to, [...getPile(nextStateWithCard, input.effect.to), createdInstanceId]),
+    setPile(projectedStateWithCard, input.effect.to, [...getPile(projectedStateWithCard, input.effect.to), createdInstanceId]),
     [event]
   );
 
@@ -479,11 +513,16 @@ const resolveCreateCardEffect = (
 const resolveGainEnergyEffect = (
   input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "gainEnergy" }>>
 ): GameActionResult<CombatState> => {
-  const total = input.state.energy + input.effect.amount;
+  const projectedState = projectCombatStateFromCardActors(input.state);
+  const total = projectedState.energy + input.effect.amount;
   const event: GameEvent = { type: "EnergyGained", amount: input.effect.amount, total };
+  const playerActor = findPlayerCardActor(projectedState);
+  const stateWithEnergy = playerActor
+    ? projectCombatStateFromCardActors(updateCardActor(projectedState, { ...playerActor, energy: total }))
+    : { ...projectedState, energy: total };
   return {
     ok: true,
-    state: appendEvents({ ...input.state, energy: total }, [event]),
+    state: appendEvents(stateWithEnergy, [event]),
     events: [event],
     errors: []
   };

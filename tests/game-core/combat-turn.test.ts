@@ -8,7 +8,7 @@ import {
   statusId,
   type GameContentRegistry
 } from "../../src/game-core";
-import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
+import { createHandTunedCombatFixture, withPlayerCardActorState } from "../../src/game-core/testing/combat-fixtures";
 
 const createStatusRegistry = (
   statuses: GameContentRegistry["statuses"]
@@ -26,54 +26,35 @@ const createStatusRegistry = (
 });
 
 describe("combat turn flow", () => {
-  it("ends the player turn by discarding the hand and entering enemy turn", () => {
+  it("ends the player turn by retaining unplayed hand cards and entering enemy turn", () => {
     const state = createHandTunedCombatFixture();
     const result = endPlayerTurn(state);
-    const cardByInstanceId = new Map(state.cardInstances.map((cardInstance) => [cardInstance.id, cardInstance]));
-    const expectedMoveEvents = state.hand.map((cardInstanceId) => ({
-      type: "CardMoved" as const,
-      cardInstanceId,
-      cardId: cardByInstanceId.get(cardInstanceId)!.cardId,
-      from: "hand" as const,
-      to: "discard" as const
-    }));
-    const expectedEvents = [
-      ...expectedMoveEvents,
-      {
-        type: "TurnEnded" as const,
-        turnNumber: state.turnNumber,
-        actorId: state.player.id
-      }
-    ];
+    const expectedEvents = [{
+      type: "TurnEnded" as const,
+      turnNumber: state.turnNumber,
+      actorId: state.player.id
+    }];
 
     expect(result.ok).toBe(true);
     expect(result.state.phase).toBe("enemy_turn");
-    expect(result.state.hand).toEqual([]);
-    expect(result.state.discardPile).toEqual(state.hand);
+    expect(result.state.hand).toEqual(state.hand);
+    expect(result.state.discardPile).toEqual([]);
     expect(result.events).toEqual(expectedEvents);
     expect(result.state.events.slice(-expectedEvents.length)).toEqual(expectedEvents);
   });
 
-  it("discards remaining hand cards one by one before ending the turn", () => {
+  it("keeps a partial unplayed hand intact before ending the turn", () => {
     const baseState = createHandTunedCombatFixture();
-    const state = {
-      ...baseState,
+    const state = withPlayerCardActorState(baseState, (actor) => ({
+      ...actor,
       hand: [cardInstanceId("strike:1"), cardInstanceId("defend:1")]
-    };
+    }));
     const result = endPlayerTurn(state);
 
     expect(result.ok).toBe(true);
-    expect(result.state.hand).toEqual([]);
-    expect(result.state.discardPile).toEqual([cardInstanceId("strike:1"), cardInstanceId("defend:1")]);
-    expect(result.events.map((event) => event.type)).toEqual([
-      "CardMoved",
-      "CardMoved",
-      "TurnEnded"
-    ]);
-    expect(result.events.slice(0, 2)).toMatchObject([
-      { cardInstanceId: cardInstanceId("strike:1"), from: "hand", to: "discard" },
-      { cardInstanceId: cardInstanceId("defend:1"), from: "hand", to: "discard" }
-    ]);
+    expect(result.state.hand).toEqual([cardInstanceId("strike:1"), cardInstanceId("defend:1")]);
+    expect(result.state.discardPile).toEqual([]);
+    expect(result.events.map((event) => event.type)).toEqual(["TurnEnded"]);
   });
 
   it("rejects ending the player turn outside the player turn", () => {
@@ -124,15 +105,17 @@ describe("combat turn flow", () => {
 
   it("starts a new player turn by resetting energy, clearing player block, and drawing", () => {
     const baseState = createHandTunedCombatFixture();
-    const state = {
+    const state = withPlayerCardActorState({
       ...baseState,
       phase: "enemy_turn" as const,
       turnNumber: 1,
-      energy: 0,
       player: { ...baseState.player, block: 7 },
+    }, (actor) => ({
+      ...actor,
+      energy: 0,
       hand: [],
       drawPile: [cardInstanceId("strike:1")]
-    };
+    }));
     const result = startPlayerTurn(state, createRng("next-turn"));
 
     expect(result.ok).toBe(true);
@@ -152,22 +135,22 @@ describe("combat turn flow", () => {
       cardInstanceId("focus:1"),
       cardInstanceId("fox_bite:1")
     ];
-    const state = {
+    const state = withPlayerCardActorState({
       ...baseState,
       phase: "enemy_turn" as const,
+      player: { ...baseState.player, block: 7 }
+    }, (actor) => ({
+      ...actor,
       hand: [],
       drawPile,
-      discardPile: [],
-      player: { ...baseState.player, block: 7 }
-    };
+      discardPile: []
+    }));
     const result = startPlayerTurn(state, createRng("draw-four-start-turn"));
 
     expect(result.ok).toBe(true);
-    expect(result.state.hand).toEqual(drawPile);
+    expect(result.state.hand).toEqual(drawPile.slice(0, 3));
     expect(result.events.map((event) => event.type)).toEqual([
       "TurnStarted",
-      "CardMoved",
-      "CardDrawn",
       "CardMoved",
       "CardDrawn",
       "CardMoved",
@@ -201,16 +184,18 @@ describe("combat turn flow", () => {
       }
     };
     const baseState = createHandTunedCombatFixture();
-    const state = {
+    const state = withPlayerCardActorState({
       ...baseState,
       phase: "enemy_turn" as const,
-      hand: [],
-      drawPile: [cardInstanceId("strike:1")],
       player: {
         ...baseState.player,
         statuses: [{ statusId: statusId("fading_start"), stacks: 1, duration: 1 }]
       }
-    };
+    }, (actor) => ({
+      ...actor,
+      hand: [],
+      drawPile: [cardInstanceId("strike:1")]
+    }));
     const result = startPlayerTurn(
       state,
       createRng("start-status"),

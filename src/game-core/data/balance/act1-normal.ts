@@ -121,7 +121,7 @@ export const act1NormalBalance = {
     emberrootWardenRootSlamDamage: 13,
     emberrootWardenCinderBarkBlock: 11,
     emberrootWardenCinderBarkBurn: 1,
-    emberrootWardenOldFlameBurn: 2,
+    emberrootWardenOldFlameBurn: 1,
     emberrootWardenAncientShelterBlock: 12,
     emberrootWardenAncientShelterCleanse: 2
   }

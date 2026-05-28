@@ -1,14 +1,14 @@
 import { enemyCardInstanceId, type CombatantId, type EnemyCardInstanceId, type MonsterAbilityId } from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
-import type { ActiveMonsterIntent, CombatMonsterCardState, CombatState, MonsterCardZone, PlannedMonsterAbility } from "../model/combat";
+import type { ActiveMonsterIntent, CardActorState, CombatMonsterCardState, CombatState, MonsterCardZone, PlannedMonsterAbility } from "../model/combat";
 import type { GameEvent } from "../model/event";
 import type {
   MonsterAbilityDefinition,
   MonsterDefinition,
-  MonsterIntentDefinition,
-  MonsterIntentScheduleCondition
+  MonsterIntentDefinition
 } from "../model/monster";
 import type { GameContentRegistry } from "../model/registry";
+import { ENEMY_TEAM_ID, findCardActor, getPlannedActorCardInstanceIds, replaceCardActorsAndProject } from "./card-actors";
 import type { Rng } from "./rng";
 
 type IntentSelectionCandidate = {
@@ -27,6 +27,7 @@ type MonsterCardPlanResult = {
   readonly selectedCardInstanceId?: EnemyCardInstanceId;
   readonly planMode?: CombatMonsterCardState["planned"]["planMode"];
   readonly cardState?: CombatMonsterCardState;
+  readonly cardActor?: CardActorState;
   readonly events: readonly GameEvent[];
 };
 
@@ -92,15 +93,63 @@ const createMonsterCardInstances = (
 
 const getExistingCardState = (
   state: CombatState,
-  monsterCombatantId: CombatantId
-): CombatMonsterCardState | undefined =>
-  state.monsterCardStates?.find((cardState) => cardState.monsterCombatantId === monsterCombatantId);
+  monsterCombatantId: CombatantId,
+  monsterDefinition: MonsterDefinition
+): CombatMonsterCardState | undefined => {
+  const actor = findCardActor(state, monsterCombatantId);
+  if (actor?.actorKind === "enemy") {
+    return {
+      monsterCombatantId,
+      handSize: actor.maxHandSize,
+      planSlots: getMonsterCardPlanSlots(monsterDefinition),
+      cardInstances: actor.cardInstances
+        .filter((cardInstance): cardInstance is typeof cardInstance & { readonly abilityId: MonsterAbilityId } =>
+          cardInstance.abilityId !== undefined
+        )
+        .map((cardInstance) => ({
+          id: cardInstance.id as EnemyCardInstanceId,
+          abilityId: cardInstance.abilityId
+        })),
+      drawPile: actor.drawPile as readonly EnemyCardInstanceId[],
+      hand: actor.hand as readonly EnemyCardInstanceId[],
+      planned: {
+        planMode: actor.planned.planMode ?? monsterDefinition.cardGame?.defaultPlanMode ?? "locked",
+        ...(actor.planned.lockedCardInstanceId ? { lockedCardInstanceId: actor.planned.lockedCardInstanceId as EnemyCardInstanceId } : {}),
+        candidateCardInstanceIds: actor.planned.candidateCardInstanceIds as readonly EnemyCardInstanceId[]
+      },
+      discardPile: actor.discardPile as readonly EnemyCardInstanceId[],
+      exhaustPile: actor.exhaustPile as readonly EnemyCardInstanceId[]
+    };
+  }
+
+  return state.monsterCardStates?.find((cardState) => cardState.monsterCombatantId === monsterCombatantId);
+};
 
 const getMonsterCardHandSize = (monsterDefinition: MonsterDefinition): number =>
-  monsterDefinition.cardGame?.handSize ?? 0;
+  monsterDefinition.cardGame?.maxHandSize ?? monsterDefinition.cardGame?.handSize ?? 0;
+
+const getMonsterOpeningHandSize = (monsterDefinition: MonsterDefinition): number =>
+  monsterDefinition.cardGame?.openingHandSize ?? monsterDefinition.cardGame?.handSize ?? 0;
+
+const getMonsterDrawPerTurn = (monsterDefinition: MonsterDefinition): number =>
+  monsterDefinition.cardGame?.drawPerTurn ?? 0;
+
+const getMonsterMaxEnergy = (monsterDefinition: MonsterDefinition): number =>
+  monsterDefinition.cardGame?.maxEnergy ?? monsterDefinition.cardGame?.planSlots ?? 0;
+
+const getMonsterEnergyRefill = (monsterDefinition: MonsterDefinition): number =>
+  monsterDefinition.cardGame?.energyRefill ?? getMonsterMaxEnergy(monsterDefinition);
 
 const getMonsterCardPlanSlots = (monsterDefinition: MonsterDefinition): number =>
   monsterDefinition.cardGame?.planSlots ?? 0;
+
+export const getEnemyCardCost = (
+  monsterDefinition: MonsterDefinition,
+  abilityId: MonsterAbilityId | undefined
+): number =>
+  abilityId
+    ? monsterDefinition.cardGame?.deck.find((entry) => entry.abilityId === abilityId)?.cost ?? 1
+    : 1;
 
 const createMonsterCardState = (
   monsterCombatantId: CombatantId,
@@ -133,6 +182,48 @@ const createMonsterCardState = (
       : []
   };
 };
+
+const createEnemyCardActorFromCardState = (
+  cardState: CombatMonsterCardState,
+  monsterDefinition: MonsterDefinition
+): CardActorState => ({
+  actorId: cardState.monsterCombatantId,
+  ownerCombatantId: cardState.monsterCombatantId,
+  actorKind: "enemy",
+  side: "enemySide",
+  teamId: ENEMY_TEAM_ID,
+  controllerKind: monsterDefinition.tags.includes("elite") || monsterDefinition.tags.includes("boss")
+    ? "leaderHeuristic"
+    : "heuristicAi",
+  cardInstances: cardState.cardInstances.map((cardInstance) => ({
+    id: cardInstance.id,
+    ownerActorId: cardState.monsterCombatantId,
+    abilityId: cardInstance.abilityId
+  })),
+  drawPile: cardState.drawPile,
+  hand: cardState.hand,
+  planned: {
+    planMode: cardState.planned.planMode,
+    ...(cardState.planned.lockedCardInstanceId ? { lockedCardInstanceId: cardState.planned.lockedCardInstanceId } : {}),
+    candidateCardInstanceIds: cardState.planned.candidateCardInstanceIds
+  },
+  playArea: [],
+  discardPile: cardState.discardPile,
+  exhaustPile: cardState.exhaustPile,
+  removedPile: [],
+  openingHandSize: getMonsterOpeningHandSize(monsterDefinition),
+  drawPerTurn: getMonsterDrawPerTurn(monsterDefinition),
+  maxHandSize: getMonsterCardHandSize(monsterDefinition),
+  maxEnergy: getMonsterMaxEnergy(monsterDefinition),
+  energy: Math.max(
+    0,
+    getMonsterEnergyRefill(monsterDefinition) - getPlannedCardInstanceIds(cardState.planned).reduce((total, cardInstanceId) =>
+      total + getEnemyCardCost(monsterDefinition, getCardAbilityId(cardState, cardInstanceId)),
+    0)
+  ),
+  energyRefill: getMonsterEnergyRefill(monsterDefinition),
+  unplayedHandPolicy: "retain"
+});
 
 const getCardAbilityId = (
   cardState: CombatMonsterCardState,
@@ -190,23 +281,29 @@ const createEnemyCardMovedEvent = (
 const drawMonsterCardHand = (
   cardState: CombatMonsterCardState,
   monsterDefinition: MonsterDefinition,
-  rng: Rng
+  rng: Rng,
+  drawCount: number
 ): { readonly cardState: CombatMonsterCardState; readonly events: readonly GameEvent[] } => {
-  const handSize = monsterDefinition.cardGame?.handSize ?? 0;
+  const maxHandSize = getMonsterCardHandSize(monsterDefinition);
   let drawPile = [...cardState.drawPile];
   let hand = [...cardState.hand];
   let discardPile = [...cardState.discardPile];
   const events: GameEvent[] = [];
+  let drawnCount = 0;
 
   for (const plannedCardInstanceId of getPlannedCardInstanceIds(cardState.planned)) {
-    discardPile = [...discardPile, plannedCardInstanceId];
-    const movedEvent = createEnemyCardMovedEvent(cardState, plannedCardInstanceId, "planned", "discard");
+    if (hand.length >= maxHandSize) {
+      break;
+    }
+
+    hand = [...hand, plannedCardInstanceId];
+    const movedEvent = createEnemyCardMovedEvent(cardState, plannedCardInstanceId, "planned", "hand");
     if (movedEvent) {
       events.push(movedEvent);
     }
   }
 
-  while (hand.length < handSize) {
+  while (hand.length < maxHandSize && drawnCount < drawCount) {
     if (drawPile.length === 0) {
       if (discardPile.length === 0) {
         break;
@@ -229,6 +326,7 @@ const drawMonsterCardHand = (
     }
 
     hand = [...hand, drawn];
+    drawnCount += 1;
     drawPile = remainingDrawPile;
     const movedEvent = createEnemyCardMovedEvent(cardState, drawn, "draw", "hand");
     if (movedEvent) {
@@ -252,19 +350,31 @@ const findCardInstanceForAbility = (
   cardState: CombatMonsterCardState,
   abilityId: MonsterAbilityId
 ): EnemyCardInstanceId | undefined =>
-  [...cardState.hand, ...cardState.drawPile, ...cardState.discardPile].find((cardInstanceId) =>
+  cardState.hand.find((cardInstanceId) =>
     getCardAbilityId(cardState, cardInstanceId) === abilityId
   );
 
 const removeCardInstanceFromZones = (
   cardState: CombatMonsterCardState,
   cardInstanceId: EnemyCardInstanceId
-): CombatMonsterCardState => ({
-  ...cardState,
-  hand: removeFirst(cardState.hand, cardInstanceId),
-  drawPile: removeFirst(cardState.drawPile, cardInstanceId),
-  discardPile: removeFirst(cardState.discardPile, cardInstanceId)
-});
+): CombatMonsterCardState => {
+  const remainingPlanned = getPlannedCardInstanceIds(cardState.planned).filter((plannedCardInstanceId) =>
+    plannedCardInstanceId !== cardInstanceId
+  );
+  const [lockedCardInstanceId, ...candidateCardInstanceIds] = remainingPlanned;
+
+  return {
+    ...cardState,
+    hand: removeFirst(cardState.hand, cardInstanceId),
+    drawPile: removeFirst(cardState.drawPile, cardInstanceId),
+    discardPile: removeFirst(cardState.discardPile, cardInstanceId),
+    planned: {
+      planMode: cardState.planned.planMode,
+      ...(lockedCardInstanceId ? { lockedCardInstanceId } : {}),
+      candidateCardInstanceIds
+    }
+  };
+};
 
 const removeCardInstancesFromZones = (
   cardState: CombatMonsterCardState,
@@ -277,14 +387,14 @@ const selectMonsterCardPlan = (
   monster: CombatState["monsters"][number],
   monsterDefinition: MonsterDefinition,
   intentPool: readonly ResolvedIntentSelection[],
-  scheduledIntent: MonsterIntentDefinition | undefined,
-  rng: Rng
+  rng: Rng,
+  opening: boolean
 ): MonsterCardPlanResult => {
   if (!monsterDefinition.cardGame) {
     return { events: [] };
   }
 
-  const existingCardState = getExistingCardState(state, monster.id);
+  const existingCardState = getExistingCardState(state, monster.id, monsterDefinition);
   const created = existingCardState
     ? { cardState: existingCardState, events: [] }
     : createMonsterCardState(monster.id, monsterDefinition, rng);
@@ -293,30 +403,51 @@ const selectMonsterCardPlan = (
     handSize: getMonsterCardHandSize(monsterDefinition),
     planSlots: getMonsterCardPlanSlots(monsterDefinition)
   };
-  const drawn = drawMonsterCardHand(createdCardState, monsterDefinition, rng);
+  const isOpeningDraw = existingCardState === undefined || opening;
+  const drawn = drawMonsterCardHand(
+    createdCardState,
+    monsterDefinition,
+    rng,
+    isOpeningDraw ? getMonsterOpeningHandSize(monsterDefinition) : getMonsterDrawPerTurn(monsterDefinition)
+  );
   const drawnState = drawn.cardState;
-  const scheduledSelection = scheduledIntent
-    ? intentPool.find((candidate) => candidate.intent.id === scheduledIntent.id)
-    : undefined;
-  const selectedCardInstanceId = scheduledSelection
-    ? findCardInstanceForAbility(drawnState, scheduledSelection.ability.id)
-    : rng.choice(drawnState.hand);
+  const selectedCardInstanceId = drawnState.hand.find((cardInstanceId) => {
+    const abilityId = getCardAbilityId(drawnState, cardInstanceId);
+    return intentPool.some((candidate) => candidate.ability.id === abilityId);
+  });
   const selectedAbilityId = selectedCardInstanceId
     ? getCardAbilityId(drawnState, selectedCardInstanceId)
-    : scheduledSelection?.ability.id;
+    : undefined;
   const selected = selectedAbilityId
     ? intentPool.find((candidate) => candidate.ability.id === selectedAbilityId)
-    : scheduledSelection;
+    : undefined;
 
   if (!selected || !selectedCardInstanceId) {
-    return { cardState: drawnState, events: drawn.events };
+    return {
+      cardState: drawnState,
+      cardActor: createEnemyCardActorFromCardState(drawnState, monsterDefinition),
+      events: drawn.events
+    };
   }
   const selectedSourceZone = getCardZone(drawnState, selectedCardInstanceId) ?? "hand";
   const stateWithoutSelected = removeCardInstanceFromZones(drawnState, selectedCardInstanceId);
-  const selectedPlanMode = selected.ability.planMode ?? monsterDefinition.cardGame.defaultPlanMode;
-  const candidateCardInstanceIds = selectedPlanMode === "adaptive" ||
-    selectedPlanMode === "charging"
-    ? stateWithoutSelected.hand.slice(0, Math.max(0, monsterDefinition.cardGame.planSlots - 1))
+  const cardGame = monsterDefinition.cardGame;
+  const selectedPlanMode = selected.ability.planMode ?? cardGame.defaultPlanMode;
+  const remainingEnergy = Math.max(0, getMonsterEnergyRefill(monsterDefinition) - getEnemyCardCost(monsterDefinition, selected.ability.id));
+  const candidateCardInstanceIds = selectedPlanMode === "adaptive" || selectedPlanMode === "charging"
+    ? stateWithoutSelected.hand.reduce<EnemyCardInstanceId[]>((candidateIds, cardInstanceId) => {
+        if (candidateIds.length >= Math.max(0, cardGame.planSlots - 1)) {
+          return candidateIds;
+        }
+
+        const abilityId = getCardAbilityId(stateWithoutSelected, cardInstanceId);
+        const nextCost = getEnemyCardCost(monsterDefinition, abilityId);
+        const spent = candidateIds.reduce((total, candidateId) =>
+          total + getEnemyCardCost(monsterDefinition, getCardAbilityId(stateWithoutSelected, candidateId)),
+        0);
+
+        return spent + nextCost <= remainingEnergy ? [...candidateIds, cardInstanceId] : candidateIds;
+      }, [])
     : [];
   const stateWithoutPlannedCards = removeCardInstancesFromZones(stateWithoutSelected, candidateCardInstanceIds);
   const plannedCardEvents = [selectedCardInstanceId, ...candidateCardInstanceIds]
@@ -340,6 +471,14 @@ const selectMonsterCardPlan = (
         candidateCardInstanceIds
       }
     },
+    cardActor: createEnemyCardActorFromCardState({
+      ...stateWithoutPlannedCards,
+      planned: {
+        planMode: selectedPlanMode,
+        lockedCardInstanceId: selectedCardInstanceId,
+        candidateCardInstanceIds
+      }
+    }, monsterDefinition),
     events: [
       ...created.events,
       ...drawn.events,
@@ -380,9 +519,25 @@ export const resolveDiscardPlannedMonsterCard = (
       discardPile: [...cardState.discardPile, ...getPlannedCardInstanceIds(cardState.planned)]
     };
   });
+  let updatedActor = false;
+  const cardActors = state.cardActors.map((actor) => {
+    if (actor.actorId !== monsterCombatantId) {
+      return actor;
+    }
+
+    updatedActor = true;
+    const plannedCardInstanceIds = getPlannedActorCardInstanceIds(actor.planned);
+    return {
+      ...actor,
+      planned: { planMode: actor.planned.planMode, candidateCardInstanceIds: [] },
+      discardPile: [...actor.discardPile, ...plannedCardInstanceIds]
+    };
+  });
 
   return {
-    state: { ...state, monsterCardStates },
+    state: updatedActor
+      ? replaceCardActorsAndProject({ ...state, monsterCardStates }, cardActors)
+      : { ...state, monsterCardStates },
     events
   };
 };
@@ -391,6 +546,67 @@ export const discardPlannedMonsterCard = (
   state: CombatState,
   monsterCombatantId: CombatantId
 ): CombatState => resolveDiscardPlannedMonsterCard(state, monsterCombatantId).state;
+
+export const resolveDiscardSinglePlannedMonsterCard = (
+  state: CombatState,
+  monsterCombatantId: CombatantId,
+  cardInstanceId: EnemyCardInstanceId
+): { readonly state: CombatState; readonly events: readonly GameEvent[] } => {
+  const events: GameEvent[] = [];
+  const monsterCardStates = (state.monsterCardStates ?? []).map((cardState) => {
+    if (cardState.monsterCombatantId !== monsterCombatantId) {
+      return cardState;
+    }
+
+    const movedEvent = createEnemyCardMovedEvent(cardState, cardInstanceId, "planned", "discard");
+    if (movedEvent) {
+      events.push(movedEvent);
+    }
+
+    const remainingPlanned = getPlannedCardInstanceIds(cardState.planned).filter((plannedCardInstanceId) =>
+      plannedCardInstanceId !== cardInstanceId
+    );
+    const [lockedCardInstanceId, ...candidateCardInstanceIds] = remainingPlanned;
+
+    return {
+      ...cardState,
+      planned: {
+        planMode: cardState.planned.planMode,
+        ...(lockedCardInstanceId ? { lockedCardInstanceId } : {}),
+        candidateCardInstanceIds
+      },
+      discardPile: [...cardState.discardPile, cardInstanceId]
+    };
+  });
+  let updatedActor = false;
+  const cardActors = state.cardActors.map((actor) => {
+    if (actor.actorId !== monsterCombatantId) {
+      return actor;
+    }
+
+    updatedActor = true;
+    const remainingPlanned = getPlannedActorCardInstanceIds(actor.planned).filter((plannedCardInstanceId) =>
+      plannedCardInstanceId !== cardInstanceId
+    );
+    const [lockedCardInstanceId, ...candidateCardInstanceIds] = remainingPlanned;
+    return {
+      ...actor,
+      planned: {
+        ...(actor.planned.planMode ? { planMode: actor.planned.planMode } : {}),
+        ...(lockedCardInstanceId ? { lockedCardInstanceId } : {}),
+        candidateCardInstanceIds
+      },
+      discardPile: [...actor.discardPile, cardInstanceId]
+    };
+  });
+
+  return {
+    state: updatedActor
+      ? replaceCardActorsAndProject({ ...state, monsterCardStates }, cardActors)
+      : { ...state, monsterCardStates },
+    events
+  };
+};
 
 export const findMonsterDefinition = (
   registry: GameContentRegistry,
@@ -479,6 +695,32 @@ type AdaptiveCandidate = {
   readonly ability: MonsterAbilityDefinition;
 };
 
+const projectFinalizedMonsterPlan = (
+  state: CombatState,
+  monsterCombatantId: CombatantId,
+  intent: MonsterIntentDefinition,
+  ability: MonsterAbilityDefinition,
+  cardInstanceId: EnemyCardInstanceId | undefined,
+  planMode: CombatMonsterCardState["planned"]["planMode"] | undefined
+): CombatState =>
+  replaceCardActorsAndProject({
+    ...state,
+    monsterIntents: [
+      ...state.monsterIntents.filter((activeIntent) => activeIntent.monsterCombatantId !== monsterCombatantId),
+      { monsterCombatantId, intentId: intent.id }
+    ],
+    plannedMonsterAbilities: [
+      ...(state.plannedMonsterAbilities ?? []).filter((planned) => planned.monsterCombatantId !== monsterCombatantId),
+      {
+        monsterCombatantId,
+        intentId: intent.id,
+        abilityId: ability.id,
+        ...(cardInstanceId ? { cardInstanceId } : {}),
+        ...(planMode ? { planMode } : {})
+      }
+    ]
+  }, state.cardActors);
+
 const pickCandidateByPredicate = (
   candidates: readonly AdaptiveCandidate[],
   predicate: (candidate: AdaptiveCandidate) => boolean
@@ -538,6 +780,11 @@ export type FinalizedMonsterPlan = {
   readonly ability: MonsterAbilityDefinition;
   readonly cardInstanceId?: EnemyCardInstanceId;
   readonly planMode?: CombatMonsterCardState["planned"]["planMode"];
+  readonly sequence: readonly {
+    readonly intent: MonsterIntentDefinition;
+    readonly ability: MonsterAbilityDefinition;
+    readonly cardInstanceId?: EnemyCardInstanceId;
+  }[];
   readonly events: readonly GameEvent[];
   readonly state: CombatState;
 };
@@ -549,43 +796,24 @@ export const finalizePlannedMonsterAbility = (
   state: CombatState
 ): FinalizedMonsterPlan | GameActionError => {
   const monster = state.monsters.find((candidate) => candidate.id === monsterCombatantId);
-  const planned = findPlannedMonsterAbility(registry, monsterDefinition, monsterCombatantId, state);
-  if ("code" in planned) {
-    return planned;
+  const actor = findCardActor(state, monsterCombatantId);
+  if (!actor || actor.actorKind !== "enemy") {
+    return error(
+      "missing_monster_card_actor",
+      `Monster '${monsterCombatantId}' has no enemy Card Actor plan.`,
+      "cardActors"
+    );
   }
 
-  const cardState = getExistingCardState(state, monsterCombatantId);
-  const storedPlan = state.plannedMonsterAbilities?.find((candidate) =>
-    candidate.monsterCombatantId === monsterCombatantId &&
-    candidate.intentId === planned.intent.id
-  );
-  const planMode = cardState?.planned.planMode ?? storedPlan?.planMode;
-
-  if (!monster || !cardState || planMode !== "adaptive") {
-    const finalizedEvent: GameEvent = {
-      type: "EnemyPlanFinalized",
-      monsterId: monsterCombatantId,
-      abilityId: planned.ability.id,
-      intentId: planned.intent.id,
-      ...(storedPlan?.cardInstanceId ? { cardInstanceId: storedPlan.cardInstanceId } : {}),
-      ...(planMode ? { planMode } : {}),
-      changed: false
-    };
-    const nextState = appendEvents(state, [finalizedEvent]);
-
-    return {
-      ...planned,
-      cardInstanceId: storedPlan?.cardInstanceId,
-      planMode,
-      events: [finalizedEvent],
-      state: nextState
-    };
+  const planMode = actor.planned.planMode;
+  const plannedCardInstanceIds = getPlannedActorCardInstanceIds(actor.planned) as readonly EnemyCardInstanceId[];
+  if (!Array.isArray(monsterDefinition.intentPool)) {
+    return error("missing_monster_intent_pool", `Monster '${monsterDefinition.id}' has no intent pool.`, "intentPool");
   }
 
-  const plannedCardInstanceIds = getPlannedCardInstanceIds(cardState.planned);
   const candidates = plannedCardInstanceIds
     .map<AdaptiveCandidate | undefined>((cardInstanceIdValue) => {
-      const abilityId = getCardInstanceAbility(cardState, cardInstanceIdValue);
+      const abilityId = actor.cardInstances.find((cardInstance) => cardInstance.id === cardInstanceIdValue)?.abilityId;
       const ability = abilityId
         ? registry.monsterAbilities?.find((candidate) => candidate.id === abilityId)
         : undefined;
@@ -598,38 +826,86 @@ export const finalizePlannedMonsterAbility = (
         : undefined;
     })
     .filter((candidate): candidate is AdaptiveCandidate => candidate !== undefined);
-
-  const fallback = candidates.find((candidate) =>
-    candidate.ability.id === planned.ability.id &&
-    candidate.intent.id === planned.intent.id
-  );
+  const fallback = candidates[0];
 
   if (!fallback) {
     return error(
-      "adaptive_plan_outside_candidate_set",
-      `Monster '${monsterCombatantId}' planned adaptive ability '${planned.ability.id}' outside its candidate set.`,
-      "monsterCardStates.planned"
+      "missing_planned_monster_ability",
+      `Monster '${monsterCombatantId}' has no legal planned Card Actor ability.`,
+      "cardActors.planned"
     );
+  }
+
+  const totalPlannedCost = candidates.reduce((total, candidate) =>
+    total + getEnemyCardCost(monsterDefinition, candidate.ability.id),
+  0);
+  if (totalPlannedCost > actor.energyRefill) {
+    return error(
+      "insufficient_enemy_energy",
+      `Monster '${monsterCombatantId}' planned ${totalPlannedCost} energy of cards with only ${actor.energyRefill} available.`,
+      "cardActors.planned"
+    );
+  }
+
+  if (!monster || planMode !== "adaptive") {
+    const finalizedEvent: GameEvent = {
+      type: "EnemyPlanFinalized",
+      monsterId: monsterCombatantId,
+      abilityId: fallback.ability.id,
+      intentId: fallback.intent.id,
+      ...(fallback.cardInstanceId ? { cardInstanceId: fallback.cardInstanceId } : {}),
+      ...(planMode ? { planMode } : {}),
+      changed: false
+    };
+    const projectedState = projectFinalizedMonsterPlan(
+      state,
+      monsterCombatantId,
+      fallback.intent,
+      fallback.ability,
+      fallback.cardInstanceId,
+      planMode
+    );
+    const nextState = appendEvents(projectedState, [finalizedEvent]);
+
+    return {
+      intent: fallback.intent,
+      ability: fallback.ability,
+      cardInstanceId: fallback.cardInstanceId,
+      planMode,
+      sequence: candidates,
+      events: [finalizedEvent],
+      state: nextState
+    };
   }
 
   const resolved = resolveAdaptiveCandidate(state, monster, monsterDefinition, candidates, fallback);
 
-  if (resolved.candidate.ability.id === planned.ability.id && resolved.candidate.intent.id === planned.intent.id) {
+  if (resolved.candidate.ability.id === fallback.ability.id && resolved.candidate.intent.id === fallback.intent.id) {
     const finalizedEvent: GameEvent = {
       type: "EnemyPlanFinalized",
       monsterId: monsterCombatantId,
-      abilityId: planned.ability.id,
-      intentId: planned.intent.id,
+      abilityId: fallback.ability.id,
+      intentId: fallback.intent.id,
       ...(resolved.candidate.cardInstanceId ? { cardInstanceId: resolved.candidate.cardInstanceId } : {}),
       ...(planMode ? { planMode } : {}),
       changed: false
     };
-    const nextState = appendEvents(state, [finalizedEvent]);
+    const projectedState = projectFinalizedMonsterPlan(
+      state,
+      monsterCombatantId,
+      fallback.intent,
+      fallback.ability,
+      fallback.cardInstanceId,
+      planMode
+    );
+    const nextState = appendEvents(projectedState, [finalizedEvent]);
 
     return {
-      ...planned,
+      intent: fallback.intent,
+      ability: fallback.ability,
       cardInstanceId: resolved.candidate.cardInstanceId,
       planMode,
+      sequence: candidates,
       events: [finalizedEvent],
       state: nextState
     };
@@ -638,9 +914,9 @@ export const finalizePlannedMonsterAbility = (
   const changedEvent: GameEvent = {
     type: "EnemyPlanChanged",
     monsterId: monsterCombatantId,
-    fromAbilityId: planned.ability.id,
+    fromAbilityId: fallback.ability.id,
     toAbilityId: resolved.candidate.ability.id,
-    fromIntentId: planned.intent.id,
+    fromIntentId: fallback.intent.id,
     toIntentId: resolved.candidate.intent.id,
     reason: resolved.reason
   };
@@ -653,29 +929,24 @@ export const finalizePlannedMonsterAbility = (
     ...(planMode ? { planMode } : {}),
     changed: true
   };
-  const plannedAbilities = (state.plannedMonsterAbilities ?? []).map((candidate) =>
-    candidate.monsterCombatantId === monsterCombatantId && candidate.intentId === planned.intent.id
-      ? {
-          monsterCombatantId,
-          intentId: resolved.candidate.intent.id,
-          abilityId: resolved.candidate.ability.id,
-          ...(resolved.candidate.cardInstanceId ? { cardInstanceId: resolved.candidate.cardInstanceId } : {}),
-          ...(planMode ? { planMode } : {})
-        }
-      : candidate
-  );
-  const monsterIntents = state.monsterIntents.map((candidate) =>
-    candidate.monsterCombatantId === monsterCombatantId && candidate.intentId === planned.intent.id
-      ? { monsterCombatantId, intentId: resolved.candidate.intent.id }
-      : candidate
-  );
-  const nextState = appendEvents({ ...state, monsterIntents, plannedMonsterAbilities: plannedAbilities }, [changedEvent, finalizedEvent]);
+  const nextState = appendEvents(projectFinalizedMonsterPlan(
+    state,
+    monsterCombatantId,
+    resolved.candidate.intent,
+    resolved.candidate.ability,
+    resolved.candidate.cardInstanceId,
+    planMode
+  ), [changedEvent, finalizedEvent]);
 
   return {
     intent: resolved.candidate.intent,
     ability: resolved.candidate.ability,
     cardInstanceId: resolved.candidate.cardInstanceId,
     planMode,
+    sequence: [
+      resolved.candidate,
+      ...candidates.filter((candidate) => candidate.cardInstanceId !== resolved.candidate.cardInstanceId)
+    ],
     events: [changedEvent, finalizedEvent],
     state: nextState
   };
@@ -731,54 +1002,17 @@ export const findPlannedMonsterAbility = (
   return { intent, ability };
 };
 
-const scheduleConditionMatches = (
-  condition: MonsterIntentScheduleCondition,
-  monster: CombatState["monsters"][number],
-  state: CombatState
-): boolean => {
-  if (condition.type === "hpAtOrBelowRatio") {
-    return monster.maxHp > 0 && monster.hp / monster.maxHp <= condition.ratio;
-  }
-
-  if (condition.type === "turnNumberModulo") {
-    return condition.modulo > 0 && state.turnNumber % condition.modulo === condition.equals;
-  }
-
-  return false;
-};
-
-const chooseScheduledIntent = (
-  monsterDefinition: MonsterDefinition,
-  monster: CombatState["monsters"][number],
-  state: CombatState,
-  scheduledTurnNumber: number
-): MonsterIntentDefinition | undefined => {
-  const schedule = monsterDefinition.intentSchedule;
-  if (!schedule || schedule.length === 0) {
-    return undefined;
-  }
-
-  const conditionalStep = schedule.find((step) =>
-    step.conditions !== undefined &&
-    step.conditions.length > 0 &&
-    step.conditions.every((condition) => scheduleConditionMatches(condition, monster, state))
-  );
-  const scheduleIndex = Math.max(0, scheduledTurnNumber - 1) % schedule.length;
-  const scheduledStep = conditionalStep ?? schedule[scheduleIndex];
-
-  return monsterDefinition.intentPool.find((intent) => intent.id === scheduledStep?.intentId);
-};
-
 export const chooseMonsterIntents = (
   state: CombatState,
   registry: GameContentRegistry,
   rng: Rng,
-  options?: { readonly scheduledTurnNumber?: number }
+  options?: { readonly opening?: boolean }
 ): GameActionResult<CombatState> => {
   const candidates: IntentSelectionCandidate[] = [];
   const activeIntents: ActiveMonsterIntent[] = [];
   const plannedAbilities: PlannedMonsterAbility[] = [];
   const monsterCardStates = [...(state.monsterCardStates ?? [])];
+  const cardActors = [...state.cardActors];
   const events: GameEvent[] = [];
 
   for (const monster of state.monsters) {
@@ -808,6 +1042,17 @@ export const chooseMonsterIntents = (
       );
     }
 
+    if (!monsterDefinition.cardGame) {
+      return reject(
+        state,
+        error(
+          "missing_monster_card_actor",
+          `Monster '${monsterDefinition.id}' must define cardActor/cardGame data for v0.5 combat.`,
+          "registry.monsters.cardGame"
+        )
+      );
+    }
+
     const resolvedIntentPool: ResolvedIntentSelection[] = [];
     for (const intent of monsterDefinition.intentPool) {
       const ability = findMonsterAbility(registry, monsterDefinition, intent);
@@ -826,27 +1071,22 @@ export const chooseMonsterIntents = (
   }
 
   for (const { monster, monsterDefinition, intentPool } of candidates) {
-    const scheduledIntent = chooseScheduledIntent(
-      monsterDefinition,
-      monster,
+    const cardPlan = selectMonsterCardPlan(
       state,
-      options?.scheduledTurnNumber ?? state.turnNumber
+      monster,
+      monsterDefinition,
+      intentPool,
+      rng,
+      options?.opening === true
     );
-    const cardPlan = selectMonsterCardPlan(state, monster, monsterDefinition, intentPool, scheduledIntent, rng);
-    const selected = cardPlan.cardState
-      ? cardPlan.selected
-      : (
-          scheduledIntent
-            ? intentPool.find((candidate) => candidate.intent.id === scheduledIntent.id)
-            : rng.choice(intentPool)
-        );
+    const selected = cardPlan.selected;
     if (!selected) {
       return reject(
         state,
         error(
           "missing_monster_intent",
-          `Scheduled intent '${String(scheduledIntent?.id)}' is not registered for monster '${monsterDefinition.id}'.`,
-          "intentSchedule"
+          `Monster '${monsterDefinition.id}' has no legal card-backed intent to plan.`,
+          "cardActors.hand"
         )
       );
     }
@@ -858,6 +1098,14 @@ export const chooseMonsterIntents = (
         monsterCardStates[existingIndex] = cardPlan.cardState;
       } else {
         monsterCardStates.push(cardPlan.cardState);
+      }
+    }
+    if (cardPlan.cardActor) {
+      const existingActorIndex = cardActors.findIndex((actor) => actor.actorId === cardPlan.cardActor?.actorId);
+      if (existingActorIndex >= 0) {
+        cardActors[existingActorIndex] = cardPlan.cardActor;
+      } else {
+        cardActors.push(cardPlan.cardActor);
       }
     }
 
@@ -898,12 +1146,12 @@ export const chooseMonsterIntents = (
 
     return [];
   });
-  const nextState = appendEvents({
+  const nextState = appendEvents(replaceCardActorsAndProject({
     ...state,
     monsterIntents: activeIntents,
     plannedMonsterAbilities: plannedAbilities,
     monsterCardStates,
     intentVisibilityOverrides: persistentIntentVisibilityOverrides
-  }, events);
+  }, cardActors), events);
   return { ok: true, state: nextState, events, errors: [] };
 };

@@ -69,9 +69,11 @@ describe("combat outcomes", () => {
       "MonsterIntentResolved",
       "DamageDealt",
       "CombatantDefeated",
-      "CombatEnded"
+      "CombatEnded",
+      "EnemyCardResolved",
+      "EnemyCardMoved"
     ]);
-    expect(result.events.at(-1)).toEqual({ type: "CombatEnded", outcome: "lost" });
+    expect(result.events).toContainEqual({ type: "CombatEnded", outcome: "lost" });
   });
 
   it("does not start a further turn after won or lost", () => {

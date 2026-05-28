@@ -13,7 +13,7 @@ import {
   resolveEnemyTurn,
   starterRegistry
 } from "../../src/game-core";
-import { createCombatFixture, createEnemyTurnFixture } from "../../src/game-core/testing/combat-fixtures";
+import { createCombatFixture, createEnemyTurnFixture, withEnemyCardActorState } from "../../src/game-core/testing/combat-fixtures";
 import { createEmberFoxInstanceFixture, createRunFixture } from "../../src/game-core/testing/fixtures";
 
 describe("monster intents", () => {
@@ -63,7 +63,7 @@ describe("monster intents", () => {
     expect(first.events).toEqual(second.events);
   });
 
-  it("can select different intents for different seeds when the monster has multiple intents", () => {
+  it("selects the same held-card plan across seeds when card state is unchanged", () => {
     const state = createEnemyTurnFixture();
     const selectedIntentIds = new Set(
       ["intent-a", "intent-b", "intent-c", "intent-d", "intent-e"].map((seed) => {
@@ -73,29 +73,20 @@ describe("monster intents", () => {
       })
     );
 
-    expect(selectedIntentIds.size).toBeGreaterThan(1);
+    expect(selectedIntentIds).toEqual(new Set([monsterIntentId("training_slime_block")]));
   });
 
   it("plans from the enemy card-game hand rather than uniformly from the intent pool", () => {
-    const state = {
+    const state = withEnemyActorZones({
       ...createEnemyTurnFixture(),
       monsterIntents: [],
-      plannedMonsterAbilities: [],
-      monsterCardStates: [{
-        monsterCombatantId: combatantId("monster:training_slime:0"),
-        handSize: 1,
-        planSlots: 1,
-        cardInstances: [{
-          id: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0"),
-          abilityId: monsterAbilityId("training_slime_block")
-        }],
-        drawPile: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0")],
-        hand: [],
-        planned: { planMode: "locked" as const, candidateCardInstanceIds: [] },
-        discardPile: [],
-        exhaustPile: []
-      }]
-    };
+      plannedMonsterAbilities: []
+    }, {
+      drawPile: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0")],
+      hand: [],
+      planned: { planMode: "locked" as const, candidateCardInstanceIds: [] },
+      discardPile: []
+    });
     const result = chooseMonsterIntents(state, starterRegistry, createRng("enemy-card-hand"));
 
     expect(result.ok).toBe(true);
@@ -113,33 +104,16 @@ describe("monster intents", () => {
   });
 
   it("moves played enemy planned cards to the monster discard pile", () => {
-    const state = {
-      ...createEnemyTurnFixture(),
-      monsterCardStates: [{
-        monsterCombatantId: combatantId("monster:training_slime:0"),
-        handSize: 1,
-        planSlots: 1,
-        cardInstances: [
-          {
-            id: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
-            abilityId: monsterAbilityId("training_slime_attack")
-          },
-          {
-            id: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0"),
-            abilityId: monsterAbilityId("training_slime_block")
-          }
-        ],
-        drawPile: [],
-        hand: [],
-        planned: {
-          planMode: "locked" as const,
-          lockedCardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
-          candidateCardInstanceIds: []
-        },
-        discardPile: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0")],
-        exhaustPile: []
-      }]
-    };
+    const state = withEnemyActorZones(createEnemyTurnFixture(), {
+      drawPile: [],
+      hand: [],
+      planned: {
+        planMode: "locked" as const,
+        lockedCardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
+        candidateCardInstanceIds: []
+      },
+      discardPile: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0")]
+    });
 
     expect(discardPlannedMonsterCard(state, combatantId("monster:training_slime:0")).monsterCardStates?.[0]).toMatchObject({
       planned: { candidateCardInstanceIds: [] },
@@ -151,28 +125,19 @@ describe("monster intents", () => {
     expect(discardPlannedMonsterCard(state, combatantId("monster:training_slime:0")).monsterCardStates?.[0]?.planned.lockedCardInstanceId).toBeUndefined();
   });
 
-  it("removes scheduled enemy card plans from their current card zone", () => {
+  it("plans only from already-held enemy cards and ignores scheduled hidden-zone cards", () => {
     const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
     const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
-    const state = {
+    const state = withEnemyActorZones({
       ...createEnemyTurnFixture(),
       monsterIntents: [],
-      plannedMonsterAbilities: [],
-      monsterCardStates: [{
-        monsterCombatantId: combatantId("monster:training_slime:0"),
-        handSize: 2,
-        planSlots: 1,
-        cardInstances: [
-          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
-          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
-        ],
-        drawPile: [blockInstanceId],
-        hand: [attackInstanceId],
-        planned: { planMode: "locked" as const, candidateCardInstanceIds: [] },
-        discardPile: [],
-        exhaustPile: []
-      }]
-    };
+      plannedMonsterAbilities: []
+    }, {
+      drawPile: [blockInstanceId],
+      hand: [attackInstanceId],
+      planned: { planMode: "locked" as const, candidateCardInstanceIds: [] },
+      discardPile: []
+    });
     const registry = {
       ...starterRegistry,
       monsters: starterRegistry.monsters.map((monster) =>
@@ -189,7 +154,45 @@ describe("monster intents", () => {
     expect(result.ok).toBe(true);
     expect(result.state.monsterCardStates?.[0]).toMatchObject({
       drawPile: [],
+      hand: [blockInstanceId],
+      planned: {
+        lockedCardInstanceId: attackInstanceId,
+        candidateCardInstanceIds: []
+      }
+    });
+  });
+
+  it("uses enemy Card Actors as authority when projected monster card state is stale", () => {
+    const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const authoritativeState = withEnemyActorZones({
+      ...createEnemyTurnFixture(),
+      monsterIntents: [],
+      plannedMonsterAbilities: []
+    }, {
+      drawPile: [],
+      hand: [blockInstanceId],
+      planned: { planMode: "locked" as const, candidateCardInstanceIds: [] },
+      discardPile: [attackInstanceId]
+    });
+    const state = {
+      ...authoritativeState,
+      monsterCardStates: authoritativeState.monsterCardStates?.map((cardState) => ({
+        ...cardState,
+        drawPile: [],
+        hand: [attackInstanceId],
+        planned: { planMode: "locked" as const, candidateCardInstanceIds: [] },
+        discardPile: [blockInstanceId]
+      }))
+    };
+
+    const result = chooseMonsterIntents(state, starterRegistry, createRng("enemy-actor-authority"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterIntents[0].intentId).toBe(monsterIntentId("training_slime_block"));
+    expect(result.state.monsterCardStates?.[0]).toMatchObject({
       hand: [attackInstanceId],
+      discardPile: [],
       planned: {
         lockedCardInstanceId: blockInstanceId,
         candidateCardInstanceIds: []
@@ -200,25 +203,19 @@ describe("monster intents", () => {
   it("uses adaptive plan slots as planned card candidates without duplicating zones", () => {
     const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
     const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
-    const state = {
+    const state = withEnemyActorZones({
       ...createEnemyTurnFixture(),
       monsterIntents: [],
-      plannedMonsterAbilities: [],
-      monsterCardStates: [{
-        monsterCombatantId: combatantId("monster:training_slime:0"),
-        handSize: 2,
-        planSlots: 2,
-        cardInstances: [
-          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
-          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
-        ],
-        drawPile: [],
-        hand: [attackInstanceId, blockInstanceId],
-        planned: { planMode: "adaptive" as const, candidateCardInstanceIds: [] },
-        discardPile: [],
-        exhaustPile: []
-      }]
-    };
+      plannedMonsterAbilities: []
+    }, {
+      drawPile: [],
+      hand: [attackInstanceId, blockInstanceId],
+      planned: { planMode: "adaptive" as const, candidateCardInstanceIds: [] },
+      discardPile: [],
+      maxEnergy: 2,
+      energy: 2,
+      energyRefill: 2
+    });
     const registry = {
       ...starterRegistry,
       monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
@@ -236,6 +233,8 @@ describe("monster intents", () => {
                     ...monster.cardGame,
                     handSize: 2,
                     planSlots: 2,
+                    maxEnergy: 2,
+                    energyRefill: 2,
                     defaultPlanMode: "adaptive" as const
                   }
                 : monster.cardGame
@@ -265,29 +264,23 @@ describe("monster intents", () => {
   it("uses ability-level charging plan mode in the planned enemy card state", () => {
     const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
     const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
-    const state = {
+    const state = withEnemyActorZones({
       ...createEnemyTurnFixture(),
       monsterIntents: [],
-      plannedMonsterAbilities: [],
-      monsterCardStates: [{
-        monsterCombatantId: combatantId("monster:training_slime:0"),
-        handSize: 2,
-        planSlots: 2,
-        cardInstances: [
-          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
-          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
-        ],
-        drawPile: [],
-        hand: [attackInstanceId, blockInstanceId],
-        planned: { planMode: "adaptive" as const, candidateCardInstanceIds: [] },
-        discardPile: [],
-        exhaustPile: []
-      }]
-    };
+      plannedMonsterAbilities: []
+    }, {
+      drawPile: [],
+      hand: [attackInstanceId, blockInstanceId],
+      planned: { planMode: "adaptive" as const, candidateCardInstanceIds: [] },
+      discardPile: [],
+      maxEnergy: 2,
+      energy: 2,
+      energyRefill: 2
+    });
     const registry = {
       ...starterRegistry,
       monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
-        ability.id === monsterAbilityId("training_slime_block")
+        ability.id === monsterAbilityId("training_slime_attack")
           ? { ...ability, planMode: "charging" as const }
           : ability
       ),
@@ -295,12 +288,13 @@ describe("monster intents", () => {
         monster.id === monsterId("training_slime")
           ? {
               ...monster,
-              intentSchedule: [{ intentId: monsterIntentId("training_slime_block") }],
               cardGame: monster.cardGame
                 ? {
                     ...monster.cardGame,
                     handSize: 2,
                     planSlots: 2,
+                    maxEnergy: 2,
+                    energyRefill: 2,
                     defaultPlanMode: "adaptive" as const
                   }
                 : monster.cardGame
@@ -315,20 +309,47 @@ describe("monster intents", () => {
       hand: [],
       planned: {
         planMode: "charging",
-        lockedCardInstanceId: blockInstanceId,
-        candidateCardInstanceIds: [attackInstanceId]
+        lockedCardInstanceId: attackInstanceId,
+        candidateCardInstanceIds: [blockInstanceId]
       }
     });
   });
 
-  it("authored adaptive enemies respect one-slot contract plans", () => {
+  it("draws only drawPerTurn for existing enemy card actors with empty hands", () => {
+    const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const state = withEnemyActorZones({
+      ...createEnemyTurnFixture(),
+      monsterIntents: [],
+      plannedMonsterAbilities: []
+    }, {
+      drawPile: [attackInstanceId, blockInstanceId],
+      hand: [],
+      planned: { planMode: "locked" as const, candidateCardInstanceIds: [] },
+      discardPile: []
+    });
+
+    const result = chooseMonsterIntents(state, starterRegistry, createRng("existing-empty-hand-draw"));
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterCardStates?.[0]).toMatchObject({
+      drawPile: [blockInstanceId],
+      hand: [],
+      planned: {
+        lockedCardInstanceId: attackInstanceId,
+        candidateCardInstanceIds: []
+      }
+    });
+  });
+
+  it("authored adaptive enemies expose multi-card contract plans", () => {
     const state = createCombatFixture({ monsterIds: [monsterId("charred_stag")] });
     const cardState = state.monsterCardStates?.[0];
 
     expect(["adaptive", "charging"]).toContain(cardState?.planned.planMode);
     expect(cardState?.planned.lockedCardInstanceId).toEqual(expect.any(String));
-    expect(cardState?.planned.candidateCardInstanceIds).toHaveLength(0);
-    expect(cardState?.hand).toHaveLength(1);
+    expect(cardState?.planned.candidateCardInstanceIds.length ?? 0).toBeGreaterThan(0);
+    expect(cardState?.hand.length ?? 0).toBeLessThan(4);
   });
 
   it("authored charging enemy abilities enter charging plan state", () => {
@@ -363,7 +384,7 @@ describe("monster intents", () => {
     const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
     const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
     const baseState = createEnemyTurnFixture();
-    const state = {
+    const state = withEnemyActorZones({
       ...baseState,
       player: { ...baseState.player, block: 8 },
       monsterIntents: [{
@@ -376,26 +397,20 @@ describe("monster intents", () => {
         abilityId: monsterAbilityId("training_slime_attack"),
         cardInstanceId: attackInstanceId,
         planMode: "adaptive" as const
-      }],
-      monsterCardStates: [{
-        monsterCombatantId: combatantId("monster:training_slime:0"),
-        handSize: 2,
-        planSlots: 2,
-        cardInstances: [
-          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
-          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
-        ],
-        drawPile: [],
-        hand: [],
-        planned: {
-          planMode: "adaptive" as const,
-          lockedCardInstanceId: attackInstanceId,
-          candidateCardInstanceIds: [blockInstanceId]
-        },
-        discardPile: [],
-        exhaustPile: []
       }]
-    };
+    }, {
+      drawPile: [],
+      hand: [],
+      planned: {
+        planMode: "adaptive" as const,
+        lockedCardInstanceId: attackInstanceId,
+        candidateCardInstanceIds: [blockInstanceId]
+      },
+      discardPile: [],
+      maxEnergy: 2,
+      energy: 0,
+      energyRefill: 2
+    });
     const registry = {
       ...starterRegistry,
       monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
@@ -438,11 +453,11 @@ describe("monster intents", () => {
     );
   });
 
-  it("rejects adaptive enemy plans whose stored action is outside the candidate set", () => {
+  it("executes each planned enemy card in sequence and discards only resolved cards", () => {
     const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
     const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
     const baseState = createEnemyTurnFixture();
-    const state = {
+    const state = withEnemyActorZones({
       ...baseState,
       player: { ...baseState.player, block: 8 },
       monsterIntents: [{
@@ -455,26 +470,129 @@ describe("monster intents", () => {
         abilityId: monsterAbilityId("training_slime_attack"),
         cardInstanceId: attackInstanceId,
         planMode: "adaptive" as const
-      }],
-      monsterCardStates: [{
-        monsterCombatantId: combatantId("monster:training_slime:0"),
-        handSize: 2,
-        planSlots: 1,
-        cardInstances: [
-          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
-          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
-        ],
-        drawPile: [],
-        hand: [],
-        planned: {
-          planMode: "adaptive" as const,
-          lockedCardInstanceId: undefined,
-          candidateCardInstanceIds: [blockInstanceId]
-        },
-        discardPile: [],
-        exhaustPile: []
       }]
+    }, {
+      drawPile: [],
+      hand: [],
+      planned: {
+        planMode: "adaptive" as const,
+        lockedCardInstanceId: attackInstanceId,
+        candidateCardInstanceIds: [blockInstanceId]
+      },
+      discardPile: [],
+      maxEnergy: 2,
+      energy: 0,
+      energyRefill: 2
+    });
+    const registry = {
+      ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === monsterAbilityId("training_slime_attack") ||
+        ability.id === monsterAbilityId("training_slime_block")
+          ? { ...ability, planMode: "adaptive" as const }
+          : ability
+      ),
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              cardGame: monster.cardGame
+                ? {
+                    ...monster.cardGame,
+                    maxEnergy: 2,
+                    energyRefill: 2,
+                    defaultPlanMode: "adaptive" as const,
+                    adaptiveRuleIds: ["prefer_guard_if_player_overblocks"]
+                  }
+                : monster.cardGame
+            }
+          : monster
+      )
     };
+
+    const result = resolveEnemyTurn(state, registry, createRng("sequence-execution"));
+
+    expect(result.ok).toBe(true);
+    expect(result.events.filter((event) => event.type === "MonsterAbilityPlayed").map((event) => event.abilityId)).toEqual([
+      monsterAbilityId("training_slime_block"),
+      monsterAbilityId("training_slime_attack")
+    ]);
+    expect(result.events.filter((event) => event.type === "EnemyCardResolved").map((event) => event.cardInstanceId)).toEqual([
+      blockInstanceId,
+      attackInstanceId
+    ]);
+    expect(result.state.monsterCardStates?.[0]?.planned).toMatchObject({ candidateCardInstanceIds: [] });
+    expect(result.state.monsterCardStates?.[0]?.planned.lockedCardInstanceId).toBeDefined();
+    const discardedEnemyCardIds = result.events.flatMap((event) =>
+      event.type === "EnemyCardMoved" && event.to === "discard" ? [event.cardInstanceId] : []
+    );
+    expect(discardedEnemyCardIds).toEqual([blockInstanceId, attackInstanceId]);
+  });
+
+  it("rejects enemy planned sequences that exceed actor energy refill", () => {
+    const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const baseState = createEnemyTurnFixture();
+    const state = withEnemyActorZones({
+      ...baseState,
+      monsterIntents: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }],
+      plannedMonsterAbilities: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        cardInstanceId: attackInstanceId,
+        planMode: "adaptive" as const
+      }]
+    }, {
+      drawPile: [],
+      hand: [],
+      planned: {
+        planMode: "adaptive" as const,
+        lockedCardInstanceId: attackInstanceId,
+        candidateCardInstanceIds: [blockInstanceId]
+      },
+      discardPile: [],
+      maxEnergy: 1,
+      energy: 0,
+      energyRefill: 1
+    });
+
+    const result = resolveEnemyTurn(state, starterRegistry, createRng("sequence-energy-reject"));
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((combatError) => combatError.code)).toEqual(["insufficient_enemy_energy"]);
+  });
+
+  it("ignores stale legacy adaptive plans outside the Card Actor candidate set", () => {
+    const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const baseState = createEnemyTurnFixture();
+    const state = withEnemyActorZones({
+      ...baseState,
+      player: { ...baseState.player, block: 8 },
+      monsterIntents: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }],
+      plannedMonsterAbilities: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        cardInstanceId: attackInstanceId,
+        planMode: "adaptive" as const
+      }]
+    }, {
+      drawPile: [],
+      hand: [],
+      planned: {
+        planMode: "adaptive" as const,
+        candidateCardInstanceIds: [blockInstanceId]
+      },
+      discardPile: []
+    });
     const registry = {
       ...starterRegistry,
       monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
@@ -501,12 +619,14 @@ describe("monster intents", () => {
 
     const result = resolveEnemyTurn(state, registry, createRng("adaptive-outside-candidates"));
 
-    expect(result.ok).toBe(false);
-    expect(result.errors.map((error) => error.code)).toEqual(["adaptive_plan_outside_candidate_set"]);
-    expect(result.events).toEqual([expect.objectContaining({
-      type: "ActionRejected",
-      code: "adaptive_plan_outside_candidate_set"
-    })]);
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "MonsterAbilityPlayed",
+      abilityId: monsterAbilityId("training_slime_block")
+    }));
+    expect(result.events).not.toContainEqual(expect.objectContaining({
+      type: "ActionRejected"
+    }));
   });
 
   it("runs authored enemy obscure effects and caps current intent visibility", () => {
@@ -518,7 +638,7 @@ describe("monster intents", () => {
 
     expect(smudgeCardId).toBeDefined();
 
-    const state = {
+    const state = withEnemyCardActorState({
       ...combat,
       phase: "enemy_turn" as const,
       activeActorId: scribeId,
@@ -540,19 +660,17 @@ describe("monster intents", () => {
         cardInstanceId: smudgeCardId,
         planMode: "locked" as const
       }],
-      monsterCardStates: combat.monsterCardStates?.map((cardState) =>
-        cardState.monsterCombatantId === scribeId
-          ? {
-              ...cardState,
-              planned: {
-                planMode: "locked" as const,
-                lockedCardInstanceId: smudgeCardId,
-                candidateCardInstanceIds: []
-              }
-            }
-          : cardState
-      )
-    };
+    }, scribeId, (actor) => ({
+      ...actor,
+      drawPile: actor.drawPile.filter((cardInstanceId) => cardInstanceId !== smudgeCardId),
+      hand: actor.hand.filter((cardInstanceId) => cardInstanceId !== smudgeCardId),
+      planned: {
+        planMode: "locked" as const,
+        lockedCardInstanceId: smudgeCardId,
+        candidateCardInstanceIds: []
+      },
+      discardPile: actor.discardPile.filter((cardInstanceId) => cardInstanceId !== smudgeCardId)
+    }));
 
     const result = resolveEnemyTurn(state, starterRegistry, createRng("cinder-obscure-runtime"));
     const monsterDefinition = starterRegistry.monsters.find((monster) => monster.id === monsterId("cinder_scribe"));
@@ -588,7 +706,7 @@ describe("monster intents", () => {
     expect(result.events).toEqual([]);
   });
 
-  it("selects scheduled intents before falling back to random intent pools", () => {
+  it("does not use scheduled intents as the action source", () => {
     const state = { ...createEnemyTurnFixture(), monsterIntents: [], turnNumber: 1 };
     const registry = {
       ...starterRegistry,
@@ -607,10 +725,10 @@ describe("monster intents", () => {
     const result = chooseMonsterIntents(state, registry, createRng("scheduled"));
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsterIntents[0].intentId).toBe(starterRegistry.monsters[0].intentPool[0].id);
+    expect(result.state.monsterIntents[0].intentId).toBe(monsterIntentId("training_slime_block"));
   });
 
-  it("uses conditional scheduled intents when their condition matches", () => {
+  it("does not let conditional scheduled intents override held Card Actor plans", () => {
     const baseState = createEnemyTurnFixture();
     const state = {
       ...baseState,
@@ -637,7 +755,7 @@ describe("monster intents", () => {
     const result = chooseMonsterIntents(state, registry, createRng("conditional-scheduled"));
 
     expect(result.ok).toBe(true);
-    expect(result.state.monsterIntents[0].intentId).toBe(starterRegistry.monsters[0].intentPool[1].id);
+    expect(result.state.monsterIntents[0].intentId).toBe(monsterIntentId("training_slime_block"));
   });
 
   it("returns ok false when a monster definition is missing", () => {
@@ -693,7 +811,7 @@ describe("monster intents", () => {
     expect(result.events.map((event) => event.type)).toEqual(["ActionRejected"]);
   });
 
-  it("returns ok false when a scheduled intent references a missing monster ability", () => {
+  it("returns ok false when a card-backed intent references a missing monster ability", () => {
     const registry = {
       ...starterRegistry,
       monsters: starterRegistry.monsters.map((monster) =>
@@ -849,29 +967,57 @@ describe("monster intents", () => {
 
     expect(result.ok).toBe(true);
     expect(result.events.map((event) => event.type)).toEqual([
-      "EnemyDeckShuffled",
       "EnemyCardMoved",
       "EnemyCardMoved",
       "EnemyPlanCreated",
       "MonsterAbilityPlanned",
       "MonsterIntentSet"
     ]);
-    expect(result.events[3]).toMatchObject({
+    expect(result.events.find((event) => event.type === "EnemyPlanCreated")).toMatchObject({
       type: "EnemyPlanCreated",
       monsterId: result.state.monsterIntents[0].monsterCombatantId,
       abilityId: result.state.plannedMonsterAbilities![0].abilityId,
       intentId: result.state.monsterIntents[0].intentId
     });
-    expect(result.events[4]).toMatchObject({
+    expect(result.events.find((event) => event.type === "MonsterAbilityPlanned")).toMatchObject({
       type: "MonsterAbilityPlanned",
       monsterId: result.state.monsterIntents[0].monsterCombatantId,
       abilityId: result.state.plannedMonsterAbilities![0].abilityId,
       intentId: result.state.monsterIntents[0].intentId
     });
-    expect(result.events[5]).toMatchObject({
+    expect(result.events.find((event) => event.type === "MonsterIntentSet")).toMatchObject({
       type: "MonsterIntentSet",
       monsterId: result.state.monsterIntents[0].monsterCombatantId,
       intentId: result.state.monsterIntents[0].intentId
     });
   });
 });
+
+type EnemyCardFixtureId = ReturnType<typeof enemyCardInstanceId>;
+
+const withEnemyActorZones = (
+  state: ReturnType<typeof createEnemyTurnFixture>,
+  zones: {
+    readonly drawPile?: readonly EnemyCardFixtureId[];
+    readonly hand?: readonly EnemyCardFixtureId[];
+    readonly planned?: {
+      readonly planMode?: "locked" | "adaptive" | "charging";
+      readonly lockedCardInstanceId?: EnemyCardFixtureId;
+      readonly candidateCardInstanceIds: readonly EnemyCardFixtureId[];
+    };
+    readonly discardPile?: readonly EnemyCardFixtureId[];
+    readonly maxEnergy?: number;
+    readonly energy?: number;
+    readonly energyRefill?: number;
+  }
+) =>
+  withEnemyCardActorState(state, state.monsters[0].id, (actor) => ({
+    ...actor,
+    drawPile: zones.drawPile ?? actor.drawPile,
+    hand: zones.hand ?? actor.hand,
+    planned: zones.planned ?? actor.planned,
+    discardPile: zones.discardPile ?? actor.discardPile,
+    maxEnergy: zones.maxEnergy ?? actor.maxEnergy,
+    energy: zones.energy ?? actor.energy,
+    energyRefill: zones.energyRefill ?? actor.energyRefill
+  }));

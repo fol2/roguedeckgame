@@ -11,9 +11,11 @@ import {
   revealIntentEffect,
   resolveEffectiveIntentVisibilityLevel,
   starterRegistry,
-  statusId
+  statusId,
+  type CardDefinition,
+  type CombatState
 } from "../../src/game-core";
-import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
+import { createHandTunedCombatFixture, withPlayerCardActorState } from "../../src/game-core/testing/combat-fixtures";
 
 const targetId = combatantId("monster:training_slime:0");
 
@@ -77,15 +79,7 @@ describe("playCard", () => {
     const readTheAsh = cardInstanceId("read_the_ash:1");
     const fixture = createHandTunedCombatFixture();
     const result = playCard(
-      {
-        ...fixture,
-        cardInstances: [
-          ...fixture.cardInstances,
-          { id: readTheAsh, cardId: cardId("read_the_ash"), ownerId: combatantId("player") }
-        ],
-        hand: [readTheAsh],
-        drawPile: []
-      },
+      withCardInHand(fixture, cardId("read_the_ash"), readTheAsh),
       { type: "playCard", cardInstanceId: readTheAsh, targetId },
       starterRegistry,
       createRng("read-the-ash")
@@ -112,7 +106,7 @@ describe("playCard", () => {
     const cinderScribeId = combatantId("monster:cinder_scribe:0");
     const fixture = createHandTunedCombatFixture();
     const result = playCard(
-      {
+      withCardInHand({
         ...fixture,
         monsters: [{
           ...fixture.monsters[0],
@@ -129,13 +123,7 @@ describe("playCard", () => {
           intentId: monsterIntentId("cinder_scribe_ink_spark"),
           abilityId: monsterAbilityId("cinder_scribe_ink_spark")
         }],
-        cardInstances: [
-          ...fixture.cardInstances,
-          { id: readTheAsh, cardId: cardId("read_the_ash"), ownerId: combatantId("player") }
-        ],
-        hand: [readTheAsh],
-        drawPile: []
-      },
+      }, cardId("read_the_ash"), readTheAsh),
       { type: "playCard", cardInstanceId: readTheAsh, targetId: cinderScribeId },
       starterRegistry,
       createRng("read-the-ash-one-step")
@@ -170,15 +158,7 @@ describe("playCard", () => {
     };
 
     const result = playCard(
-      {
-        ...fixture,
-        cardInstances: [
-          ...fixture.cardInstances,
-          { id: revealCard, cardId: cardId("test_reveal_intent"), ownerId: combatantId("player") }
-        ],
-        hand: [revealCard],
-        drawPile: []
-      },
+      withCardInHand(fixture, cardId("test_reveal_intent"), revealCard),
       { type: "playCard", cardInstanceId: revealCard, targetId },
       registry,
       createRng("test-reveal-intent")
@@ -203,15 +183,7 @@ describe("playCard", () => {
     const fixture = createHandTunedCombatFixture();
     const plannedAbilityId = fixture.plannedMonsterAbilities?.[0]?.abilityId;
     const result = playCard(
-      {
-        ...fixture,
-        cardInstances: [
-          ...fixture.cardInstances,
-          { id: ashRewrite, cardId: cardId("ash_rewrite"), ownerId: combatantId("player") }
-        ],
-        hand: [ashRewrite],
-        drawPile: []
-      },
+      withCardInHand(fixture, cardId("ash_rewrite"), ashRewrite),
       { type: "playCard", cardInstanceId: ashRewrite, targetId },
       starterRegistry,
       createRng("ash-rewrite-scope")
@@ -241,7 +213,7 @@ describe("playCard", () => {
     const fieldSignal = cardInstanceId("field_signal:1");
     const fixture = createHandTunedCombatFixture();
     const result = playCard(
-      {
+      withCardInHand({
         ...fixture,
         intentVisibilityOverrides: [{
           monsterCombatantId: targetId,
@@ -249,13 +221,7 @@ describe("playCard", () => {
           source: "debug",
           expires: "never"
         }],
-        cardInstances: [
-          ...fixture.cardInstances,
-          { id: fieldSignal, cardId: cardId("field_signal"), ownerId: combatantId("player") }
-        ],
-        hand: [fieldSignal],
-        drawPile: []
-      },
+      }, cardId("field_signal"), fieldSignal),
       { type: "playCard", cardInstanceId: fieldSignal, targetId },
       starterRegistry,
       createRng("field-signal-no-downgrade")
@@ -277,7 +243,7 @@ describe("playCard", () => {
     const ashRewrite = cardInstanceId("ash_rewrite:1");
     const fixture = createHandTunedCombatFixture();
     const result = playCard(
-      {
+      withCardInHand({
         ...fixture,
         intentVisibilityOverrides: [{
           monsterCombatantId: targetId,
@@ -285,13 +251,7 @@ describe("playCard", () => {
           source: "debug",
           expires: "never"
         }],
-        cardInstances: [
-          ...fixture.cardInstances,
-          { id: ashRewrite, cardId: cardId("ash_rewrite"), ownerId: combatantId("player") }
-        ],
-        hand: [ashRewrite],
-        drawPile: []
-      },
+      }, cardId("ash_rewrite"), ashRewrite),
       { type: "playCard", cardInstanceId: ashRewrite, targetId },
       starterRegistry,
       createRng("ash-rewrite-no-exact-downgrade")
@@ -343,7 +303,7 @@ describe("playCard", () => {
     const ashRewrite = cardInstanceId("ash_rewrite:1");
     const fixture = createHandTunedCombatFixture();
     const result = playCard(
-      {
+      withCardInHand({
         ...fixture,
         intentVisibilityOverrides: [{
           monsterCombatantId: targetId,
@@ -352,13 +312,7 @@ describe("playCard", () => {
           expires: "currentPlan",
           mode: "ceiling"
         }],
-        cardInstances: [
-          ...fixture.cardInstances,
-          { id: ashRewrite, cardId: cardId("ash_rewrite"), ownerId: combatantId("player") }
-        ],
-        hand: [ashRewrite],
-        drawPile: []
-      },
+      }, cardId("ash_rewrite"), ashRewrite),
       { type: "playCard", cardInstanceId: ashRewrite, targetId },
       starterRegistry,
       createRng("ash-rewrite-capped-event")
@@ -394,7 +348,7 @@ describe("playCard", () => {
   });
 
   it("returns ok false and does not mutate state when energy is insufficient", () => {
-    const state = { ...createHandTunedCombatFixture(), energy: 0 };
+    const state = withPlayerCardActorState(createHandTunedCombatFixture(), (actor) => ({ ...actor, energy: 0 }));
     const before = JSON.parse(JSON.stringify(state));
     const result = playCard(
       state,
@@ -412,10 +366,10 @@ describe("playCard", () => {
 
   it("returns ok false and does not mutate state when the card is not in hand", () => {
     const baseState = createHandTunedCombatFixture();
-    const state = {
-      ...baseState,
-      hand: baseState.hand.filter((cardInstance) => cardInstance !== cardInstanceId("strike:1"))
-    };
+    const state = withPlayerCardActorState(baseState, (actor) => ({
+      ...actor,
+      hand: actor.hand.filter((cardInstance) => cardInstance !== cardInstanceId("strike:1"))
+    }));
     const before = JSON.parse(JSON.stringify(state));
     const result = playCard(
       state,
@@ -483,10 +437,11 @@ describe("playCard", () => {
 
   it("returns ok false with the original state when effect resolution fails after staging events", () => {
     const baseState = createHandTunedCombatFixture();
-    const state = {
-      ...baseState,
-      cardInstances: baseState.cardInstances.filter((cardInstance) => cardInstance.id !== cardInstanceId("strike:2"))
-    };
+    const state = withPlayerCardActorState(baseState, (actor) => ({
+      ...actor,
+      cardInstances: actor.cardInstances.filter((cardInstance) => cardInstance.id !== cardInstanceId("strike:2")),
+      drawPile: [cardInstanceId("strike:2")]
+    }));
     const before = JSON.parse(JSON.stringify(state));
     const result = playCard(
       state,
@@ -658,3 +613,18 @@ describe("playCard", () => {
     ]);
   });
 });
+
+const withCardInHand = (
+  state: CombatState,
+  id: CardDefinition["id"],
+  instanceId: ReturnType<typeof cardInstanceId>
+): CombatState =>
+  withPlayerCardActorState(state, (actor) => ({
+    ...actor,
+    cardInstances: [
+      ...actor.cardInstances,
+      { id: instanceId, cardId: id, ownerActorId: combatantId("player") }
+    ],
+    hand: [instanceId],
+    drawPile: []
+  }));

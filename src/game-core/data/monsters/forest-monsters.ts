@@ -321,13 +321,18 @@ export const trainingSlime: MonsterDefinition = {
     intentFromAbility("training_slime_block", ashSlimeJellyGuardAbility)
   ],
   cardGame: {
+    openingHandSize: 2,
+    drawPerTurn: 1,
+    maxHandSize: 3,
+    maxEnergy: 1,
+    energyRefill: 1,
     handSize: 1,
     planSlots: 1,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "category",
     deck: [
-      { abilityId: ashSlimeTackleAbility.id, copies: 2 },
-      { abilityId: ashSlimeJellyGuardAbility.id, copies: 1 }
+      { abilityId: ashSlimeTackleAbility.id, copies: 2, cost: 1 },
+      { abilityId: ashSlimeJellyGuardAbility.id, copies: 1, cost: 1 }
     ]
   }
 };
@@ -344,14 +349,19 @@ export const ashMite: MonsterDefinition = {
     intentFromAbility("cinder_mite_skitter", cinderMiteSkitterAbility)
   ],
   cardGame: {
+    openingHandSize: 2,
+    drawPerTurn: 1,
+    maxHandSize: 3,
+    maxEnergy: 1,
+    energyRefill: 1,
     handSize: 1,
     planSlots: 1,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "category",
     deck: [
-      { abilityId: cinderMiteBiteAbility.id, copies: 2 },
-      { abilityId: cinderMiteDustAbility.id, copies: 1 },
-      { abilityId: cinderMiteSkitterAbility.id, copies: 1 }
+      { abilityId: cinderMiteBiteAbility.id, copies: 2, cost: 1 },
+      { abilityId: cinderMiteDustAbility.id, copies: 1, cost: 1 },
+      { abilityId: cinderMiteSkitterAbility.id, copies: 1, cost: 1 }
     ]
   }
 };
@@ -368,14 +378,19 @@ export const sootCrow: MonsterDefinition = {
     intentFromAbility("soot_crow_black_caw", sootCrowBlackCawAbility)
   ],
   cardGame: {
+    openingHandSize: 2,
+    drawPerTurn: 1,
+    maxHandSize: 3,
+    maxEnergy: 1,
+    energyRefill: 1,
     handSize: 1,
     planSlots: 1,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "category",
     deck: [
-      { abilityId: sootCrowPeckAbility.id, copies: 2 },
-      { abilityId: sootCrowFlutterAbility.id, copies: 1 },
-      { abilityId: sootCrowBlackCawAbility.id, copies: 1 }
+      { abilityId: sootCrowPeckAbility.id, copies: 2, cost: 1 },
+      { abilityId: sootCrowFlutterAbility.id, copies: 1, cost: 1 },
+      { abilityId: sootCrowBlackCawAbility.id, copies: 1, cost: 1 }
     ]
   }
 };
@@ -392,14 +407,19 @@ export const rootHusk: MonsterDefinition = {
     intentFromAbility("root_husk_ember_sap", rootHuskEmberSapAbility)
   ],
   cardGame: {
+    openingHandSize: 2,
+    drawPerTurn: 1,
+    maxHandSize: 3,
+    maxEnergy: 1,
+    energyRefill: 1,
     handSize: 1,
     planSlots: 1,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "category",
     deck: [
-      { abilityId: rootHuskSwipeAbility.id, copies: 2 },
-      { abilityId: rootHuskBarkOverAbility.id, copies: 2 },
-      { abilityId: rootHuskEmberSapAbility.id, copies: 1 }
+      { abilityId: rootHuskSwipeAbility.id, copies: 2, cost: 1 },
+      { abilityId: rootHuskBarkOverAbility.id, copies: 2, cost: 1 },
+      { abilityId: rootHuskEmberSapAbility.id, copies: 1, cost: 1 }
     ]
   }
 };
@@ -424,17 +444,22 @@ export const charredStag: MonsterDefinition = {
     intentFromAbility("charred_stag_crown_flare", charredStagCrownFlareAbility)
   ],
   cardGame: {
+    openingHandSize: 4,
+    drawPerTurn: 2,
+    maxHandSize: 5,
+    maxEnergy: 2,
+    energyRefill: 2,
     handSize: 2,
-    planSlots: 1,
+    planSlots: 2,
     defaultPlanMode: "adaptive",
     defaultIntentVisibility: "unknown",
     adaptiveRuleIds: ["prefer_attack_if_player_low_block", "prefer_guard_if_player_overblocks"],
     deck: [
-      { abilityId: charredStagAntlerStrikeAbility.id, copies: 2 },
-      { abilityId: charredStagEmberHoovesAbility.id, copies: 1 },
-      { abilityId: charredStagGuardedSnortAbility.id, copies: 1 },
-      { abilityId: charredStagPawTheAshAbility.id, copies: 1 },
-      { abilityId: charredStagCrownFlareAbility.id, copies: 1 }
+      { abilityId: charredStagAntlerStrikeAbility.id, copies: 2, cost: 1 },
+      { abilityId: charredStagEmberHoovesAbility.id, copies: 1, cost: 1 },
+      { abilityId: charredStagGuardedSnortAbility.id, copies: 1, cost: 1 },
+      { abilityId: charredStagPawTheAshAbility.id, copies: 1, cost: 2 },
+      { abilityId: charredStagCrownFlareAbility.id, copies: 1, cost: 2 }
     ]
   }
 };
@@ -451,14 +476,19 @@ export const cinderScribe: MonsterDefinition = {
     intentFromAbility("cinder_scribe_smudge", cinderScribeSmudgeAbility)
   ],
   cardGame: {
+    openingHandSize: 4,
+    drawPerTurn: 2,
+    maxHandSize: 5,
+    maxEnergy: 2,
+    energyRefill: 2,
     handSize: 2,
-    planSlots: 1,
+    planSlots: 2,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "unknown",
     deck: [
-      { abilityId: cinderScribeInkSparkAbility.id, copies: 2 },
-      { abilityId: cinderScribePageShieldAbility.id, copies: 1 },
-      { abilityId: cinderScribeSmudgeAbility.id, copies: 1 }
+      { abilityId: cinderScribeInkSparkAbility.id, copies: 2, cost: 1 },
+      { abilityId: cinderScribePageShieldAbility.id, copies: 1, cost: 1 },
+      { abilityId: cinderScribeSmudgeAbility.id, copies: 1, cost: 2 }
     ]
   }
 };
@@ -483,17 +513,22 @@ export const forestWarden: MonsterDefinition = {
     intentFromAbility("emberroot_warden_ancient_shelter", emberrootWardenAncientShelterAbility)
   ],
   cardGame: {
+    openingHandSize: 5,
+    drawPerTurn: 3,
+    maxHandSize: 7,
+    maxEnergy: 3,
+    energyRefill: 3,
     handSize: 3,
-    planSlots: 1,
+    planSlots: 3,
     defaultPlanMode: "adaptive",
     defaultIntentVisibility: "unknown",
     adaptiveRuleIds: ["phase_after_half_hp", "prefer_charge_when_safe", "prefer_shelter_when_burning"],
     deck: [
-      { abilityId: emberrootWardenRootSlamAbility.id, copies: 2 },
-      { abilityId: emberrootWardenCinderBarkAbility.id, copies: 2 },
-      { abilityId: emberrootWardenOldFlameAbility.id, copies: 1 },
-      { abilityId: emberrootWardenAshBloomAbility.id, copies: 1 },
-      { abilityId: emberrootWardenAncientShelterAbility.id, copies: 1 }
+      { abilityId: emberrootWardenRootSlamAbility.id, copies: 2, cost: 3 },
+      { abilityId: emberrootWardenCinderBarkAbility.id, copies: 2, cost: 3 },
+      { abilityId: emberrootWardenOldFlameAbility.id, copies: 1, cost: 3 },
+      { abilityId: emberrootWardenAshBloomAbility.id, copies: 1, cost: 3 },
+      { abilityId: emberrootWardenAncientShelterAbility.id, copies: 1, cost: 3 }
     ]
   }
 };

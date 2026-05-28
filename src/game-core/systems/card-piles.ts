@@ -2,6 +2,12 @@ import type { CardInstanceId } from "../ids";
 import type { GameActionError } from "../model/action";
 import type { CombatState } from "../model/combat";
 import type { CardPile, GameEvent } from "../model/event";
+import {
+  findPlayerCardActor,
+  moveActorCard,
+  projectCombatStateFromCardActors,
+  updateCardActor
+} from "./card-actors";
 
 export type MoveCardBetweenPilesInput = {
   readonly cardInstanceId: CardInstanceId;
@@ -26,63 +32,19 @@ const error = (code: string, message: string, path?: string): GameActionError =>
   path
 });
 
-const getPile = (state: CombatState, pile: CardPile): readonly CardInstanceId[] => {
-  if (pile === "draw") {
-    return state.drawPile;
-  }
-
-  if (pile === "hand") {
-    return state.hand;
-  }
-
-  if (pile === "discard") {
-    return state.discardPile;
-  }
-
-  return state.exhaustPile;
-};
-
-const setPile = (
-  state: CombatState,
-  pile: CardPile,
-  cards: readonly CardInstanceId[]
-): CombatState => {
-  if (pile === "draw") {
-    return { ...state, drawPile: cards };
-  }
-
-  if (pile === "hand") {
-    return { ...state, hand: cards };
-  }
-
-  if (pile === "discard") {
-    return { ...state, discardPile: cards };
-  }
-
-  return { ...state, exhaustPile: cards };
-};
-
-const removeFirst = (
-  cards: readonly CardInstanceId[],
-  cardInstanceId: CardInstanceId
-): readonly CardInstanceId[] | undefined => {
-  const index = cards.indexOf(cardInstanceId);
-
-  if (index < 0) {
-    return undefined;
-  }
-
-  return [
-    ...cards.slice(0, index),
-    ...cards.slice(index + 1)
-  ];
-};
-
 export const moveCardBetweenPiles = (
   state: CombatState,
   input: MoveCardBetweenPilesInput
 ): MoveCardBetweenPilesResult => {
-  const cardInstance = state.cardInstances.find((candidate) => candidate.id === input.cardInstanceId);
+  const playerActor = findPlayerCardActor(state);
+  if (!playerActor) {
+    return {
+      ok: false,
+      error: error("missing_card_actor", "Player Card Actor is missing.", "cardActors")
+    };
+  }
+
+  const cardInstance = playerActor.cardInstances.find((candidate) => candidate.id === input.cardInstanceId);
   if (!cardInstance) {
     return {
       ok: false,
@@ -90,9 +52,8 @@ export const moveCardBetweenPiles = (
     };
   }
 
-  const fromPile = getPile(state, input.from);
-  const nextFromPile = removeFirst(fromPile, input.cardInstanceId);
-  if (!nextFromPile) {
+  const nextPlayerActor = moveActorCard(playerActor, input.cardInstanceId, input.from, input.to);
+  if (!nextPlayerActor) {
     return {
       ok: false,
       error: error(
@@ -103,16 +64,14 @@ export const moveCardBetweenPiles = (
     };
   }
 
-  const stateWithoutCard = setPile(state, input.from, nextFromPile);
-  const toPile = getPile(stateWithoutCard, input.to);
   const event: Extract<GameEvent, { readonly type: "CardMoved" }> = {
     type: "CardMoved",
     cardInstanceId: input.cardInstanceId,
-    cardId: cardInstance.cardId,
+    cardId: cardInstance.cardId!,
     from: input.from,
     to: input.to
   };
-  const nextState = setPile(stateWithoutCard, input.to, [...toPile, input.cardInstanceId]);
+  const nextState = projectCombatStateFromCardActors(updateCardActor(state, nextPlayerActor));
 
   return {
     ok: true,

@@ -16,7 +16,7 @@ import {
   type CombatState,
   type PetInstance
 } from "../../src/game-core";
-import { createHandTunedCombatFixture } from "../../src/game-core/testing/combat-fixtures";
+import { createHandTunedCombatFixture, withPlayerCardActorState } from "../../src/game-core/testing/combat-fixtures";
 import { createEmberFoxInstanceFixture, createRunFixture } from "../../src/game-core/testing/fixtures";
 
 const targetId = combatantId("monster:training_slime:0");
@@ -50,7 +50,7 @@ describe("Warm Bond pet modifier", () => {
   });
 
   it("exposes the same discounted cost through the shared card action contract", () => {
-    const state = { ...createWarmBondState(), energy: 0 };
+    const state = withPlayerCardActorState(createWarmBondState(), (actor) => ({ ...actor, energy: 0 }));
     const contract = buildCardActionContract(
       state,
       { cardInstanceId: cardInstanceId("fox_bite:1") },
@@ -75,11 +75,11 @@ describe("Warm Bond pet modifier", () => {
       throw new Error("First command should pass.");
     }
 
-    const state = {
-      ...first.state,
+    const state = withPlayerCardActorState(first.state, (actor) => ({
+      ...actor,
       energy: 0,
       hand: [cardInstanceId("fox_guard:1")]
-    };
+    }));
     const contract = buildCardActionContract(
       state,
       { cardInstanceId: cardInstanceId("fox_guard:1") },
@@ -139,7 +139,11 @@ describe("Warm Bond pet modifier", () => {
       throw new Error("First command should pass.");
     }
 
-    const ended = endPlayerTurn({ ...first.state, hand: [], discardPile: first.state.discardPile });
+    const ended = endPlayerTurn(withPlayerCardActorState(first.state, (actor) => ({
+      ...actor,
+      hand: [],
+      discardPile: first.state.discardPile
+    })));
     if (!ended.ok) {
       throw new Error("End turn should pass.");
     }
