@@ -13,11 +13,6 @@ import {
   type CombatParityPresenterSnapshot,
   type CombatParityStage
 } from "../debug/combat-parity";
-import {
-  buildBrowserDebugEventBatchCopyPayload,
-  buildBrowserDebugTrace,
-  serializeBrowserDebugTrace
-} from "../debug/debug-trace-export";
 import { CardPresenter, type CardDragDebugState } from "../presenters/CardPresenter";
 import { CombatHudPresenter } from "../presenters/CombatHudPresenter";
 import { CombatDebugOverlayPresenter } from "../presenters/CombatDebugOverlayPresenter";
@@ -65,20 +60,28 @@ import {
 import { handleCombatKeyboardInput } from "./combat-keyboard-input";
 import { CombatUiRequestTracker } from "./combat-ui-requests";
 import {
+  bindCombatFocusAndResizeSafety,
+  bindCombatNativeContextMenuInspection,
+  resolveCombatIntentDetailAtBrowserPoint
+} from "./combat-scene-browser-bindings";
+import {
+  CombatSceneDebugCoordinator,
+  isCombatDebugOverlayAvailable,
+  readCombatDebugOverlayEnabled,
+  writeCombatDebugOverlayPreference
+} from "./combat-scene-debug-coordinator";
+import {
   COMBAT_BACKGROUND_COLOUR,
   COMBAT_BOARD,
   COMBAT_PANEL_STROKE,
   COMBAT_TEXT,
   CONTINUE_BUTTON,
   ENCOUNTER_LABEL,
-  getMonsterPosition,
   MENU_BUTTON,
-  MONSTER_SLOT,
   OUTCOME_LABEL,
   RESET_RUN_BUTTON
 } from "../layout/combat-layout";
 import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
-import { GAME_HEIGHT, GAME_WIDTH } from "../layout/game-size";
 import { SceneKeys } from "../scenes/SceneKeys";
 
 export class CombatSceneOrchestrator extends Scene {
@@ -118,6 +121,7 @@ export class CombatSceneOrchestrator extends Scene {
   private preservedSelection?: CombatInteractionState;
   private browserFocused = true;
   private readonly requestTracker = new CombatUiRequestTracker();
+  private debugCoordinator?: CombatSceneDebugCoordinator;
   private debugOverlayEnabled = false;
   private debugDragState: DebugInputSnapshot["dragState"] = "idle";
   private parityDiagnostics: readonly CombatParityDiagnostic[] = [];
@@ -155,7 +159,16 @@ export class CombatSceneOrchestrator extends Scene {
     this.requestTracker.reset();
     this.debugDragState = "idle";
     this.parityDiagnostics = [];
-    this.debugOverlayEnabled = this.readDebugOverlayEnabled();
+    this.debugOverlayEnabled = readCombatDebugOverlayEnabled();
+    this.debugCoordinator = new CombatSceneDebugCoordinator({
+      getSandbox: () => this.sandbox,
+      getSelectedCardId: () => this.selectedCardId,
+      getPlaybackObservations: () => this.eventPlayer?.getPlaybackObservations() ?? [],
+      getParityDiagnostics: () => this.parityDiagnostics,
+      getRuntimeMetadata: () => this.sandbox?.getRuntimeMetadata(),
+      setFeedback: (message) => this.setFeedback(message),
+      renderCurrentState: (syncEventLog) => this.renderCurrentState(syncEventLog)
+    });
     this.playbackFinalViewModel = undefined;
     configureFixedResolutionStage(this);
     this.cameras.main.setBackgroundColor(COMBAT_BACKGROUND_COLOUR);
@@ -265,37 +278,6 @@ export class CombatSceneOrchestrator extends Scene {
     });
 
     this.renderCurrentState();
-  }
-
-  private readDebugOverlayEnabled(): boolean {
-    if (!this.isDebugOverlayAvailable() || typeof window === "undefined") {
-      return false;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    return params.get("combatDebug") === "1" ||
-      params.get("debugCombat") === "1" ||
-      this.readDebugOverlayPreference();
-  }
-
-  private readDebugOverlayPreference(): boolean {
-    try {
-      return window.localStorage.getItem("combatDebugOverlay") === "1";
-    } catch {
-      return false;
-    }
-  }
-
-  private writeDebugOverlayPreference(): void {
-    try {
-      window.localStorage.setItem("combatDebugOverlay", this.debugOverlayEnabled ? "1" : "0");
-    } catch {
-      // Storage can be blocked in private or embedded browser contexts.
-    }
-  }
-
-  private isDebugOverlayAvailable(): boolean {
-    return import.meta.env.DEV;
   }
 
   private getInteractionCard(viewModel: CombatViewModel): CombatCardViewModel | undefined {
@@ -447,7 +429,7 @@ export class CombatSceneOrchestrator extends Scene {
   }
 
   private renderDebugOverlay(): void {
-    const debugOverlayVisible = this.isDebugOverlayAvailable() && this.debugOverlayEnabled;
+    const debugOverlayVisible = isCombatDebugOverlayAvailable() && this.debugOverlayEnabled;
     this.debugOverlayPresenter?.render(
       debugOverlayVisible
         ? this.sandbox?.getCombatDebugViewModel(
@@ -543,81 +525,27 @@ export class CombatSceneOrchestrator extends Scene {
 
   private bindFocusAndResizeSafety(): void {
     this.removeFocusHandlers?.();
-
-    const handleBlur = (): void => {
-      this.browserFocused = false;
-      this.renderCurrentState(false);
-    };
-    const handleFocus = (): void => {
-      this.browserFocused = true;
-      this.renderCurrentState();
-    };
-    const handleResize = (): void => {
-      this.renderCurrentState(false);
-    };
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("blur", handleBlur);
-      window.addEventListener("focus", handleFocus);
-      this.removeFocusHandlers = () => {
-        window.removeEventListener("blur", handleBlur);
-        window.removeEventListener("focus", handleFocus);
-      };
-      this.events.once("shutdown", () => this.removeFocusHandlers?.());
-    }
-
-    this.scale.on("resize", handleResize);
-    this.events.once("shutdown", () => {
-      this.scale.off("resize", handleResize);
+    this.removeFocusHandlers = bindCombatFocusAndResizeSafety({
+      scene: this,
+      setBrowserFocused: (focused) => {
+        this.browserFocused = focused;
+      },
+      renderCurrentState: (syncEventLog) => this.renderCurrentState(syncEventLog)
     });
   }
 
   private bindNativeContextMenuInspection(): void {
     this.removeNativeContextMenuInspection?.();
-
-    const canvas = this.game.canvas;
-    const handleContextMenu = (event: MouseEvent): void => {
-      const detail = this.getIntentDetailAtBrowserPoint(event);
-
-      if (!detail) {
-        return;
-      }
-
-      event.preventDefault();
-      this.openDetail(detail);
-    };
-
-    canvas.addEventListener("contextmenu", handleContextMenu);
-    this.removeNativeContextMenuInspection = () => {
-      canvas.removeEventListener("contextmenu", handleContextMenu);
-    };
-    this.events.once("shutdown", () => this.removeNativeContextMenuInspection?.());
-  }
-
-  private getIntentDetailAtBrowserPoint(event: MouseEvent): CombatDetailPanel | undefined {
-    const canvasBounds = this.game.canvas.getBoundingClientRect();
-    const stageX = ((event.clientX - canvasBounds.left) / canvasBounds.width) * GAME_WIDTH;
-    const stageY = ((event.clientY - canvasBounds.top) / canvasBounds.height) * GAME_HEIGHT;
-    const viewModel = this.sandbox?.getCombatViewModel();
-
-    if (!viewModel || this.isModalOpen()) {
-      return undefined;
-    }
-
-    for (let monsterIndex = 0; monsterIndex < viewModel.monsters.length; monsterIndex += 1) {
-      const monster = viewModel.monsters[monsterIndex];
-      const position = getMonsterPosition(monsterIndex, viewModel.monsters.length);
-      const radiusX = MONSTER_SLOT.intentTokenWidth / 2;
-      const radiusY = MONSTER_SLOT.intentTokenHeight / 2;
-      const normalisedX = (stageX - position.x) / radiusX;
-      const normalisedY = (stageY - (position.y + MONSTER_SLOT.intentTokenY)) / radiusY;
-
-      if (normalisedX * normalisedX + normalisedY * normalisedY <= 1) {
-        return viewModel.monsterIntents.find((intent) => intent.monsterId === monster?.id)?.token.detail;
-      }
-    }
-
-    return undefined;
+    this.removeNativeContextMenuInspection = bindCombatNativeContextMenuInspection({
+      scene: this,
+      getDetailAtPoint: (event) => resolveCombatIntentDetailAtBrowserPoint({
+        event,
+        canvas: this.game.canvas,
+        viewModel: this.sandbox?.getCombatViewModel(),
+        modalOpen: this.isModalOpen()
+      }),
+      openDetail: (detail) => this.openDetail(detail)
+    });
   }
 
   private restoreSelectionAfterFailedSubmit(
@@ -1002,7 +930,7 @@ export class CombatSceneOrchestrator extends Scene {
       selectedCardId: this.selectedCardId,
       hoveredCardId: this.hoveredCardId,
       focusedTargetId: this.focusedTargetId,
-      debugOverlayAvailable: this.isDebugOverlayAvailable(),
+      debugOverlayAvailable: isCombatDebugOverlayAvailable(),
       debugOverlayEnabled: this.debugOverlayEnabled,
       inputLocked: this.isGameplayInputLocked() || !this.sandbox,
       getViewModel: () => this.sandbox?.getCombatViewModel(),
@@ -1017,60 +945,12 @@ export class CombatSceneOrchestrator extends Scene {
       setDebugOverlayEnabled: (enabled) => {
         this.debugOverlayEnabled = enabled;
       },
-      writeDebugOverlayPreference: () => this.writeDebugOverlayPreference(),
-      copyDebugEventBatchJson: () => this.copyDebugEventBatchJson(),
-      copyDebugTraceJson: () => this.copyDebugTraceJson(),
+      writeDebugOverlayPreference: () => writeCombatDebugOverlayPreference(this.debugOverlayEnabled),
+      copyDebugEventBatchJson: () => this.debugCoordinator?.copyEventBatchJson() ?? Promise.resolve(),
+      copyDebugTraceJson: () => this.debugCoordinator?.copyTraceJson() ?? Promise.resolve(),
       handleCardSelection: (cardInstanceId) => this.handleCardSelection(cardInstanceId),
       handleMonsterSelection: (monsterId) => this.handleMonsterSelection(monsterId)
     });
-  }
-
-  private async copyDebugEventBatchJson(): Promise<void> {
-    if (!this.sandbox) {
-      return;
-    }
-
-    const payload = JSON.stringify(buildBrowserDebugEventBatchCopyPayload(
-      this.sandbox.getAgentTrace(),
-      this.sandbox.getState()
-    ), null, 2);
-
-    await this.copyDebugJson(payload, "Copied event batch JSON.");
-  }
-
-  private async copyDebugTraceJson(): Promise<void> {
-    if (!this.sandbox) {
-      return;
-    }
-
-    const trace = buildBrowserDebugTrace({
-      trace: this.sandbox.getAgentTrace(),
-      state: this.sandbox.getState(),
-      selectedCardId: this.selectedCardId,
-      playbackObservations: this.eventPlayer?.getPlaybackObservations() ?? [],
-      parityDiagnostics: this.parityDiagnostics,
-      runtimeMetadata: this.sandbox.getRuntimeMetadata()
-    });
-
-    await this.copyDebugJson(serializeBrowserDebugTrace(trace), "Copied debug trace JSON.");
-  }
-
-  private async copyDebugJson(payload: string, successMessage: string): Promise<void> {
-    let copiedToClipboard = false;
-
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(payload);
-        copiedToClipboard = true;
-      } catch {
-        console.info(payload);
-      }
-    } else {
-      console.info(payload);
-    }
-
-    this.setFeedback(copiedToClipboard ? successMessage : "Clipboard unavailable; logged debug JSON.");
-    this.renderCurrentState(false);
   }
 
   private renderCurrentState(syncEventLog = true): void {

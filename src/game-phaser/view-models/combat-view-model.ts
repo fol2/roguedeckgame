@@ -637,21 +637,21 @@ const buildVisibleIntentCopy = (input: {
       abilityId: undefined,
       type: intentType,
       label: `${intentType} scoped`,
-      description: `Scoped ${intentType} intent. Card text remains hidden.`,
+      description: `Scoped ${intentType} intent. Exact action details remain hidden.`,
       targetHint: input.targetHint,
       amount: undefined,
       plannedAction: {
         source,
         revealPolicy: visibilityLevel,
         title: `${intentType} candidate`,
-        subtitle: "Scoped planned card",
+        subtitle: "Scoped enemy intent",
         intentId: intent.intentId,
         intentType,
         tags: [],
         effectLines: [
           `Candidate category: ${intentType}`,
           `Likely target: ${input.targetHint}`,
-          "Specific card name, amount, and effects are hidden."
+          "Specific action name, amount, and effects are hidden."
         ]
       }
     };
@@ -678,11 +678,11 @@ const buildVisibleIntentCopy = (input: {
         source,
         revealPolicy: visibilityLevel,
         title: `${intentType} intent`,
-        subtitle: "Rough planned card",
+        subtitle: "Rough enemy intent",
         intentId: intent.intentId,
         intentType,
         tags: [],
-        effectLines: [`Rough strength: ${roughStrength}`, "Specific card text is hidden."]
+        effectLines: [`Rough strength: ${roughStrength}`, "Specific action details are hidden."]
       }
     };
   }
@@ -698,11 +698,11 @@ const buildVisibleIntentCopy = (input: {
         source,
         revealPolicy: visibilityLevel,
         title: `${intentType} intent`,
-        subtitle: "Category planned card",
+        subtitle: "Category enemy intent",
         intentId: intent.intentId,
         intentType,
         tags: [],
-        effectLines: ["Card name, amount, target, and effects are hidden."]
+        effectLines: ["Action name, amount, target, and effects are hidden."]
       }
     };
   }
@@ -737,7 +737,7 @@ const buildVisibleIntentCopy = (input: {
       source: "unknown",
       revealPolicy: visibilityLevel,
       title: "?",
-      subtitle: "Hidden planned card",
+      subtitle: "Hidden enemy intent",
       intentId: intent.intentId,
       intentType: "unknown",
       tags: [],

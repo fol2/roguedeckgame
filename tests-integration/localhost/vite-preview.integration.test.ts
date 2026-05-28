@@ -67,13 +67,21 @@ afterEach(() => {
 });
 
 const chromeCandidates = [
+  process.env.CHROME_BIN,
+  process.env.CHROME_PATH,
+  process.env.ProgramFiles ? `${process.env.ProgramFiles}\\Google\\Chrome\\Application\\chrome.exe` : undefined,
+  process.env["ProgramFiles(x86)"] ? `${process.env["ProgramFiles(x86)"]}\\Google\\Chrome\\Application\\chrome.exe` : undefined,
+  process.env.ProgramFiles ? `${process.env.ProgramFiles}\\Microsoft\\Edge\\Application\\msedge.exe` : undefined,
+  process.env["ProgramFiles(x86)"] ? `${process.env["ProgramFiles(x86)"]}\\Microsoft\\Edge\\Application\\msedge.exe` : undefined,
+  process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe` : undefined,
+  process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Microsoft\\Edge\\Application\\msedge.exe` : undefined,
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
   "/usr/bin/google-chrome",
   "/usr/bin/google-chrome-stable",
   "/usr/bin/chromium",
   "/usr/bin/chromium-browser"
-];
+].filter((candidate): candidate is string => Boolean(candidate));
 
 const findChromeExecutable = (): string => {
   const executable = chromeCandidates.find((candidate) => existsSync(candidate));
@@ -213,7 +221,7 @@ const waitForRenderedText = async (
 
 describe("Vite preview localhost smoke", () => {
   it("serves the game app and content workbench routes from the built bundle", async () => {
-    const build = spawnSync("npm", ["run", "build", "--silent"], {
+    const build = spawnSync(process.execPath, [join(root, "node_modules/vite/bin/vite.js"), "build", "--logLevel", "silent"], {
       cwd: root,
       encoding: "utf8",
       shell: false

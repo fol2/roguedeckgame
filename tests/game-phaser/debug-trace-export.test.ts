@@ -23,6 +23,9 @@ const startCombat = (controller: ReturnType<typeof createRunSandboxController>):
   controller.selectMapNode(node!.id);
 };
 
+const traceTempPath = (name: string): string =>
+  join(tmpdir(), `roguedeckgame-${name}-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
+
 describe("browser debug trace export", () => {
   it("exports replay-compatible browser trace JSON with runtime metadata and diagnostics", () => {
     const controller = createRunSandboxController("debug-trace-export");
@@ -80,7 +83,7 @@ describe("browser debug trace export", () => {
       before.revision,
       "debug-trace-cli-card"
     );
-    const tracePath = join(tmpdir(), "roguedeckgame-debug-trace-cli-replay.json");
+    const tracePath = traceTempPath("debug-trace-cli-replay");
 
     writeFileSync(tracePath, serializeBrowserDebugTrace(buildBrowserDebugTrace({
       trace: controller.getAgentTrace(),
@@ -112,7 +115,7 @@ describe("browser debug trace export", () => {
   it("rejects unsupported browser debug trace versions through the simulation replay CLI", () => {
     const controller = createRunSandboxController("debug-trace-cli-bad-version");
     startCombat(controller);
-    const tracePath = join(tmpdir(), "roguedeckgame-debug-trace-bad-version.json");
+    const tracePath = traceTempPath("debug-trace-bad-version");
     const serialized = serializeBrowserDebugTrace(buildBrowserDebugTrace({
       trace: controller.getAgentTrace(),
       state: controller.getState()
@@ -144,7 +147,7 @@ describe("browser debug trace export", () => {
   it("rejects unsupported debug trace versions without a trace kind through the simulation replay CLI", () => {
     const controller = createRunSandboxController("debug-trace-cli-bad-version-without-kind");
     startCombat(controller);
-    const tracePath = join(tmpdir(), "roguedeckgame-debug-trace-bad-version-without-kind.json");
+    const tracePath = traceTempPath("debug-trace-bad-version-without-kind");
     const withoutTraceKind = JSON.parse(serializeBrowserDebugTrace(buildBrowserDebugTrace({
       trace: controller.getAgentTrace(),
       state: controller.getState()

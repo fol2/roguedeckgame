@@ -8,6 +8,7 @@ import {
   monsterAbilityId,
   monsterId,
   monsterIntentId,
+  type IntentVisibilityLevel,
   starterRegistry,
   statusId,
   upgradeId
@@ -443,7 +444,7 @@ describe("Combat view model", () => {
     });
   });
 
-  it("shows rough intent category without exact card amount or card text", () => {
+  it("shows rough intent category without exact action amount or details", () => {
     const controller = createCombatSandboxController("view-model-rough-intent");
     const state = controller.getState();
     const monsterCombatantId = state.combat.monsters[0]!.id;
@@ -464,11 +465,11 @@ describe("Combat view model", () => {
     expect(intent.visibilityLevel).toBe("rough");
     expect(intent.abilityId).toBeUndefined();
     expect(intent.amount).toBeUndefined();
-    expect(intent.plannedAction.effectLines).toEqual(expect.arrayContaining(["Specific card text is hidden."]));
+    expect(intent.plannedAction.effectLines).toEqual(expect.arrayContaining(["Specific action details are hidden."]));
     expect(intent.plannedAction.effectLines[0]).toMatch(/^Rough strength: /);
   });
 
-  it("keeps scoped intent visibility from exposing exact card text", () => {
+  it("keeps scoped intent visibility from exposing exact action details", () => {
     const controller = createCombatSandboxController("view-model-scoped-intent");
     const state = controller.getState();
     const scribeId = combatantId("monster:cinder_scribe:0");
@@ -508,7 +509,7 @@ describe("Combat view model", () => {
       amount: undefined,
       plannedAction: {
         title: "special candidate",
-        effectLines: expect.arrayContaining(["Specific card name, amount, and effects are hidden."])
+        effectLines: expect.arrayContaining(["Specific action name, amount, and effects are hidden."])
       }
     });
     expect(intent.description).not.toContain("Deal");
@@ -538,6 +539,44 @@ describe("Combat view model", () => {
         effectLines: ["No useful intent marker."]
       }
     });
+  });
+
+  it("uses player-facing intent wording instead of planned-card copy for partial visibility", () => {
+    const controller = createCombatSandboxController("view-model-intent-copy-polish");
+    const state = controller.getState();
+    const monsterId = state.combat.monsters[0]!.id;
+    const partialLevels: readonly IntentVisibilityLevel[] = ["none", "unknown", "category", "rough", "scoped"];
+
+    for (const level of partialLevels) {
+      const viewModel = buildCombatViewModel({
+        ...state,
+        combat: {
+          ...state.combat,
+          intentVisibilityOverrides: [{
+            monsterCombatantId: monsterId,
+            level,
+            source: "debug",
+            expires: "never"
+          }]
+        }
+      });
+      const intent = viewModel.monsterIntents[0]!;
+      const copy = [
+        intent.description,
+        intent.detail.subtitle,
+        ...intent.detail.lines,
+        intent.plannedAction.title,
+        intent.plannedAction.subtitle,
+        ...intent.plannedAction.effectLines,
+        intent.token.detail.subtitle,
+        ...intent.token.detail.lines,
+        intent.token.tooltip.title,
+        intent.token.tooltip.body
+      ].join("\n");
+
+      expect(copy).not.toMatch(/planned card|card name|card text/i);
+      expect(copy).toMatch(/intent|action|candidate|marker|hidden|useful/i);
+    }
   });
 
   it("redacts hidden enemy planned cards until intent visibility is improved", () => {

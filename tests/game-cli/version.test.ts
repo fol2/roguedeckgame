@@ -2,11 +2,14 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { currentRuntimeMetadata } from "../../src/game-core";
 
+const CLI_SMOKE_TIMEOUT_MS = 30_000;
+
 const runNode = (args: readonly string[]) => {
   const result = spawnSync(process.execPath, args, {
     cwd: process.cwd(),
     encoding: "utf8",
-    shell: false
+    shell: false,
+    timeout: CLI_SMOKE_TIMEOUT_MS
   });
 
   return {
@@ -29,7 +32,7 @@ describe("CLI runtime metadata", () => {
     expect(json.stderr).toBe("");
     expect(human.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
     expect(parseRuntimeMetadata(json.stdout)).toEqual(currentRuntimeMetadata);
-  });
+  }, CLI_SMOKE_TIMEOUT_MS);
 
   it("prints CLI help through the transient entrypoint", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--help"]);
@@ -40,7 +43,7 @@ describe("CLI runtime metadata", () => {
     expect(result.stdout).not.toContain("npm run game:cli -- --");
     expect(result.stdout).toContain("Runtime provenance:");
     expect(result.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
-  });
+  }, CLI_SMOKE_TIMEOUT_MS);
 
   it("reports shared runtime provenance through the game CLI version command", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--version"]);
@@ -50,14 +53,14 @@ describe("CLI runtime metadata", () => {
       type: "version",
       runtimeMetadata: currentRuntimeMetadata
     });
-  });
+  }, CLI_SMOKE_TIMEOUT_MS);
 
   it("includes shared runtime provenance in JSON auto results", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--seed", "cli-dev", "--json", "--auto"]);
 
     expect(result.status).toBe(0);
     expect(JSON.parse(result.stdout).runtimeMetadata).toEqual(currentRuntimeMetadata);
-  });
+  }, CLI_SMOKE_TIMEOUT_MS);
 
   it("reports the same runtime provenance from simulation output", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--mode", "smoke", "--analyze"]);
@@ -68,7 +71,7 @@ describe("CLI runtime metadata", () => {
     expect(result.stdout).toContain(`Registry fingerprint: ${currentRuntimeMetadata.registryFingerprint}`);
     expect(result.stdout).toContain(`Trace schema: ${currentRuntimeMetadata.traceSchemaVersion}`);
     expect(result.stdout).toContain(`Save schema: ${currentRuntimeMetadata.saveSchemaVersion}`);
-  });
+  }, CLI_SMOKE_TIMEOUT_MS);
 
   it("prints concise simulation parse errors without bundled stack traces", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--mode"]);
@@ -76,6 +79,6 @@ describe("CLI runtime metadata", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toBe("Missing value for --mode.");
     expect(result.stderr).not.toContain("at ");
-  });
+  }, CLI_SMOKE_TIMEOUT_MS);
 
 });

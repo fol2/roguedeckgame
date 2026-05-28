@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const scenePath = join(root, "src/game-phaser/scenes/CombatScene.ts");
 const orchestratorPath = join(root, "src/game-phaser/interaction/combat-scene-orchestrator.ts");
+const browserBindingsPath = join(root, "src/game-phaser/interaction/combat-scene-browser-bindings.ts");
+const debugCoordinatorPath = join(root, "src/game-phaser/interaction/combat-scene-debug-coordinator.ts");
 const requestTrackerPath = join(root, "src/game-phaser/interaction/combat-ui-requests.ts");
 const keyboardInputPath = join(root, "src/game-phaser/interaction/combat-keyboard-input.ts");
 const presentersRoot = join(root, "src/game-phaser/presenters");
@@ -17,7 +19,12 @@ const readSource = async (path: string): Promise<string> =>
   normaliseLineEndings(await readFile(path, "utf8"));
 
 const readCombatSceneSource = async (): Promise<string> =>
-  `${await readSource(scenePath)}\n${await readSource(orchestratorPath)}`;
+  [
+    await readSource(scenePath),
+    await readSource(orchestratorPath),
+    await readSource(browserBindingsPath),
+    await readSource(debugCoordinatorPath)
+  ].join("\n");
 
 const forbiddenResolverIdentifiers = [
   "resolveEnemyTurn",
@@ -313,7 +320,7 @@ describe("Combat scene boundary", () => {
     expect(sceneSource).toMatch(/serializeBrowserDebugTrace/);
     expect(sceneSource).toMatch(/getCombatDebugViewModel\(\n\s+this\.getDebugInputSnapshot\(\),\n\s+this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\],\n\s+this\.parityDiagnostics\n\s+\)/);
     expect(sceneSource).toMatch(/combatDebug/);
-    expect(sceneSource).toMatch(/isDebugOverlayAvailable/);
+    expect(sceneSource).toMatch(/isCombatDebugOverlayAvailable/);
     expect(sceneSource).toMatch(/import\.meta\.env\.DEV/);
     expect(keyboardInput).toMatch(/context\.debugOverlayAvailable && \(event\.key === "`" \|\| event\.key === "F2"\)/);
     expect(sceneSource).toMatch(/copyDebugEventBatchJson/);
@@ -324,8 +331,8 @@ describe("Combat scene boundary", () => {
     expect(keyboardInput).toMatch(/event\.key === "F8"[\s\S]*?event\.preventDefault\(\);[\s\S]*?copyDebugTraceJson/);
     expect(sceneSource).toMatch(/navigator\.clipboard\.writeText/);
     expect(sceneSource).toMatch(/try \{[\s\S]*?navigator\.clipboard\.writeText\(payload\);[\s\S]*?\} catch \{[\s\S]*?console\.info\(payload\);[\s\S]*?\}/);
-    expect(sceneSource).toMatch(/this\.sandbox\.getAgentTrace\(\)/);
-    expect(sceneSource).toMatch(/const debugOverlayVisible = this\.isDebugOverlayAvailable\(\) && this\.debugOverlayEnabled/);
+    expect(sceneSource).toMatch(/sandbox\.getAgentTrace\(\)/);
+    expect(sceneSource).toMatch(/const debugOverlayVisible = isCombatDebugOverlayAvailable\(\) && this\.debugOverlayEnabled/);
     expect(sceneSource).toMatch(/debugOverlayVisible\s+\? this\.sandbox\?\.getCombatDebugViewModel\(\n\s+this\.getDebugInputSnapshot\(\),\n\s+this\.eventPlayer\?\.getPlaybackObservations\(\) \?\? \[\],\n\s+this\.parityDiagnostics\n\s+\)\s+: undefined/);
     expect(sceneSource).toMatch(/debugDragState: DebugInputSnapshot\["dragState"\] = "idle"/);
     expect(sceneSource).toMatch(/handleCardDragDebugState\(state: CardDragDebugState\)/);
