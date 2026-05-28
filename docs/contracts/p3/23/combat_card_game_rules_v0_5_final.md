@@ -1,7 +1,7 @@
 # Combat Card Game Rules v0.5 — Shared Actor Card Game
 
-Status: final PoC implementation contract / design rulebook  
-Language: Cantonese with English technical terms  
+Status: final PoC implementation contract / design rulebook
+Language: Cantonese with English technical terms
 Scope: shared combat card rules for player, enemy, future clone/PvP actors, retain-hand flow, deterministic smart planning, team/leader planning, Intent timing, visibility, and first-playable acceptance criteria.
 
 Related documents:
