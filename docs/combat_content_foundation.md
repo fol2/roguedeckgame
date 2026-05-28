@@ -1,7 +1,7 @@
 # Combat Content Foundation v0.5 — Ashwood Trail First Playable Content
 
-Status: final PoC content contract / living content rulebook  
-Language: English technical contract, with Cantonese design notes where useful  
+Status: final PoC content contract / living content rulebook
+Language: English technical contract, with Cantonese design notes where useful
 Scope: first playable class, first pet, starter deck, first map, enemy resource profiles, enemy decks, rare-card bearer, boss, reward pool, and content authoring rules built on `combat_card_game_rules.md` v0.5.
 
 Related documents:

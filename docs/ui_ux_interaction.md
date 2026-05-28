@@ -1,9 +1,9 @@
 # UI/UX Interaction Contract v0.5 — Combat Only
 
-Status: Living draft / implementation contract  
-Version: 0.5  
-Date: 2026-05-28  
-Scope: Combat interaction only  
+Status: Living draft / implementation contract
+Version: 0.5
+Date: 2026-05-28
+Scope: Combat interaction only
 Related docs: `architecture.md`, `design.md`
 
 This document defines the combat-only UI/UX interaction contract for the pet-centered roguelite deckbuilder.

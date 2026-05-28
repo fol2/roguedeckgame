@@ -1,6 +1,6 @@
 # Game Architecture Bible v0.5 — Shared Actor Card Game Hard Cut
 
-Status: final PoC architecture contract / implementation gate  
+Status: final PoC architecture contract / implementation gate
 Scope: repository architecture, source ownership, hard-cut migration rules, and code audit contract for the v0.5 shared Card Actor combat model.
 
 Related documents:
