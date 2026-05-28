@@ -1,4 +1,4 @@
-# Combat Card Game Rules v0.3
+# Combat Card Game Rules v0.4
 
 Status: implementation contract / living design rulebook
 Language: Cantonese / English technical terms
@@ -24,7 +24,7 @@ combat_content_foundation.md
 
 Content may tune numbers, card names, enemy HP, and reward pools. Content must not violate this document's rules unless this document is updated first.
 
-This document defines the game at the card-game level. It does **not** finalize the starter pack yet. The starter pack should be redesigned after the first enemy card problems and information rules are accepted.
+This document defines the game at the card-game level. Starter cards, first-map enemies, balance numbers, and reward pools live in `combat_content_foundation.md`; they may be tuned there as long as they obey this rules contract.
 
 ---
 
@@ -1443,3 +1443,121 @@ Recommended next discussion order：
 ```
 
 The starter pack should be designed only after steps 1–4 are clear.
+
+---
+
+## v0.4 Implementation Update — Reveal / Scope / Obscure Runtime Contract
+
+v0.4 hardens the information layer that sits on top of enemy card holdings.
+
+The accepted rule is now:
+
+```txt
+Enemy plans can exist without being fully known.
+Player information effects can reveal, scope, or lose visibility into those plans.
+```
+
+### v0.4 Effect Families
+
+The combat engine now treats these as first-class data-driven effects:
+
+```txt
+improveIntentVisibility
+= Raise the known detail level by N steps, usually capped by the card.
+
+revealIntent
+= Reveal at least a specific visibility level for the current target.
+
+scopeIntent
+= Show scoped information about an enemy plan, such as candidate cards.
+
+obscureIntent
+= Lower or cap visibility, usually from enemy ash/smoke/confusion actions.
+```
+
+These effects must remain data-driven. Do not implement card-name-specific reveal logic.
+
+### Override Modes
+
+Intent visibility overrides now have a mode:
+
+```txt
+floor
+= show at least this much information.
+
+ceiling
+= show at most this much information.
+
+set
+= force exactly this display level until expiry.
+```
+
+Older overrides without a mode are treated as `floor`.
+
+### Scope Contract
+
+`scopeIntent` is not the same as full reveal.
+
+```txt
+category
+= broad type only.
+
+candidateSet
+= possible enemy card candidates are visible.
+
+conditionHint
+= future advanced mode for explaining adaptive choice conditions.
+
+exactIfLocked
+= exact only if the plan is locked; adaptive plans stay candidate-based.
+```
+
+A scoped adaptive enemy may still change final action inside its legal candidate set. This is fair because the player has learned the possibility space, not a guaranteed final card.
+
+### Obscure Contract
+
+`obscureIntent` is a legitimate enemy action. It should not erase the game into random nonsense.
+
+Rules:
+
+```txt
+Obscure lowers information, not enemy accountability.
+Obscured enemies still obey deck, hand, plan, discard, cooldown, and phase rules.
+Obscure should be shown as ?, weaker category detail, or a scoped/unknown tooltip depending on view-model state.
+```
+
+### Enemy Plan Finalization
+
+v0.4 adds explicit adaptive plan finalization.
+
+When an enemy is adaptive, it may choose among planned candidate cards at resolution time. The selected card must come from the enemy's own candidate set. If the final selected card differs from the currently preferred plan, the engine emits:
+
+```txt
+EnemyPlanChanged
+```
+
+This event is schema v5. Older schema consumers should not receive it.
+
+### Fairness Rule
+
+The player may not always know the enemy's next card, but the enemy may not invent a perfect counter out of nowhere.
+
+```txt
+Unknown means hidden information.
+It does not mean cheating.
+```
+
+### Presentation Contract
+
+Phaser must not calculate reveal, scope, or obscure outcomes. It consumes view-model data:
+
+```txt
+none
+unknown
+category
+rough
+exact
+scoped
+```
+
+Scoped view-models may include candidate names and candidate count, but should not expose exact amounts or effect text unless the visibility level is exact.

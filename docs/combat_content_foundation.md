@@ -1,4 +1,4 @@
-# Combat Content Foundation v0.3
+# Combat Content Foundation v0.4
 
 Status: implementation contract / living content rulebook
 Language: English technical contract, with Cantonese design notes where useful
@@ -1261,3 +1261,145 @@ signaling through cards, and commanding Ember Fox as a co-hero.
 ```
 
 Everything in the first map should support that sentence. If a card, enemy, or reward does not support it, it should be cut, delayed, or rewritten.
+
+---
+
+## v0.4 Implementation Update — Reveal/Scope, Balance, and Intent ViewModel
+
+v0.4 is the first integrated pass across the three systems that should now develop together:
+
+```txt
+A. Reveal / Scope / Obscure system
+B. Ashwood Trail balance pass
+C. Intent view-model and tooltip contract
+```
+
+### A. Reveal / Scope / Obscure Content Rules
+
+Ashbound Keeper and Ember Fox content can now use the runtime information effects defined in `combat_card_game_rules.md`.
+
+Current first-map card responsibilities:
+
+```txt
+Read the Ash
+= starter information card. Draw 1 and improve target Intent visibility by one step, capped at rough.
+
+Field Signal
+= reward information card. Draw and improve Intent visibility.
+
+Ash Rewrite
+= rare Cinder Scribe reward. Draw 1 and scope the target enemy candidate set.
+```
+
+Enemy obscure responsibilities:
+
+```txt
+Soot Crow / Ash Flutter
+= introduces enemy-driven visibility degradation.
+
+Cinder Scribe / Smudge the Future
+= rare-card bearer that demonstrates information manipulation.
+```
+
+These are not flavor-only tags anymore. They affect runtime Intent visibility state.
+
+### B. Ashwood Trail Balance Pass v0.4
+
+The first-map balance target remains:
+
+```txt
+Normal completion target: 45% - 60%
+Sample: 200 deterministic balance runs
+Strict health: enabled
+Strict balance: enabled
+```
+
+v0.4 balance result after the integrated reveal/scope/obscure pass:
+
+```txt
+Seed prefix: balance-normal
+Runs: 200
+Completed: 111
+Lost: 89
+Completion rate: 55.5%
+Result: inside target band
+```
+
+The small boss tuning applied in v0.4:
+
+```txt
+Emberroot Warden HP: 90 -> 94
+Root Slam damage: 12 -> 13
+Cinder Bark block: 10 -> 11
+```
+
+Reason:
+
+```txt
+The first v0.4 balance run completed at 61.0%, slightly above the 60.0% ceiling.
+The boss was the main terminal filter, so the pass tightened boss pressure without making normal enemies harsher.
+```
+
+Do not overcorrect normal fights yet. Normal enemies are still teaching cards, visibility, burn, and pet-command grammar.
+
+### C. Intent ViewModel / Tooltip Contract v0.4
+
+The combat view-model now exposes richer Intent information without making Phaser own rules.
+
+Intent tokens may include:
+
+```txt
+visibility
+kind
+amountLabel
+strengthLabel
+scope
+tooltip
+detail
+debug
+```
+
+Scoped Intent data may include:
+
+```txt
+candidateCount
+candidate card names
+planMode
+unstable flag
+scope explanation lines
+```
+
+Scoped data is allowed to reveal candidate names, because the point of scope is to show possible enemy cards. It should not reveal exact damage/block/effect text unless visibility is exact.
+
+Enemy card holdings may also be exposed as debug/readout view-model data:
+
+```txt
+drawCount
+handCount
+plannedCount
+discardCount
+exhaustCount
+planMode
+candidateCount
+```
+
+This is for presenter/debug/readout support. It does not mean enemy cards should be rendered as battlefield cards.
+
+### Content Version
+
+The runtime content version for this pass is:
+
+```txt
+ashwood-trail-reveal-scope-v4
+```
+
+### v0.4 Non-Negotiables
+
+```txt
+Reveal/scope/obscure effects are data-driven.
+Enemy obscure effects may hide information but may not bypass enemy card holdings.
+Adaptive enemies may change plan only inside authored candidate sets.
+Scoped UI can show candidate names, not exact effect text.
+Balance should use strict-health and strict-balance simulations before claiming success.
+Enemy cards remain internal holdings plus Intent UI, not visible battlefield cards.
+```
