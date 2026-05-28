@@ -204,6 +204,48 @@ describe("starterRegistry", () => {
     expect(result.errors.map((error) => error.code)).toContain("monster_ability_not_owned");
   });
 
+  it("reports malformed monster card game metadata", () => {
+    const result = validateRegistry(
+      cloneRegistry({
+        monsters: starterRegistry.monsters.map((monster) =>
+          monster.id === monsterId("training_slime")
+            ? {
+                ...monster,
+                abilityIds: [monsterAbilityId("training_slime_attack")],
+                cardGame: {
+                  deck: [
+                    { abilityId: monsterAbilityId("missing_card_ability"), copies: 0 },
+                    { abilityId: monsterAbilityId("training_slime_block"), copies: 1 }
+                  ],
+                  handSize: 0,
+                  planSlots: 0,
+                  defaultPlanMode: "loose",
+                  defaultIntentVisibility: "omniscient",
+                  adaptiveRuleIds: ["unknown_adaptive_rule"]
+                }
+              } as unknown as typeof monster
+            : monster
+        )
+      })
+    );
+
+    expect(result.errors.map((error) => error.code)).toEqual(expect.arrayContaining([
+      "invalid_monster_card_game",
+      "missing_monster_ability",
+      "monster_ability_not_owned"
+    ]));
+    expect(result.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "invalid_monster_card_game", path: "monsters[0].cardGame.deck[0].copies" }),
+      expect.objectContaining({ code: "invalid_monster_card_game", path: "monsters[0].cardGame.handSize" }),
+      expect.objectContaining({ code: "invalid_monster_card_game", path: "monsters[0].cardGame.planSlots" }),
+      expect.objectContaining({ code: "invalid_monster_card_game", path: "monsters[0].cardGame.defaultPlanMode" }),
+      expect.objectContaining({ code: "invalid_monster_card_game", path: "monsters[0].cardGame.defaultIntentVisibility" }),
+      expect.objectContaining({ code: "invalid_monster_card_game", path: "monsters[0].cardGame.adaptiveRuleIds[0]" }),
+      expect.objectContaining({ code: "missing_monster_ability", path: "monsters[0].cardGame.deck[0].abilityId" }),
+      expect.objectContaining({ code: "monster_ability_not_owned", path: "monsters[0].cardGame.deck[1].abilityId" })
+    ]));
+  });
+
   it("reports ability-backed monster intent metadata drift", () => {
     const result = validateRegistry(
       cloneRegistry({

@@ -406,6 +406,16 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isString = (value: unknown): value is string => typeof value === "string";
 
+const knownEnemyPlanModes = new Set(["locked", "adaptive", "charging", "scriptedPhase"]);
+const knownIntentVisibilityLevels = new Set(["none", "unknown", "category", "rough", "scoped", "exact"]);
+const knownEnemyAdaptiveRuleIds = new Set([
+  "phase_after_half_hp",
+  "prefer_attack_if_player_low_block",
+  "prefer_charge_when_safe",
+  "prefer_guard_if_player_overblocks",
+  "prefer_shelter_when_burning"
+]);
+
 const storyRequirementTypes = new Set<StoryRequirement["type"]>([
   "petBondAtLeast",
   "hasPetMemory",
@@ -1981,6 +1991,67 @@ export const validateRegistry = (
 
       issues.push(...validateEffects(intent.effects as readonly EffectDefinition[], `monsters[${monsterIndex}].intentPool[${intentIndex}]`, { statusIds: supportedStatusEffectIds }));
     });
+
+    if ("cardGame" in monster && monster.cardGame !== undefined) {
+      const cardGamePath = `monsters[${monsterIndex}].cardGame`;
+      const cardGame = monster.cardGame;
+
+      if (!isRecord(cardGame) || Array.isArray(cardGame)) {
+        issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame must be an object when present.`, cardGamePath));
+      } else {
+        if (!Array.isArray(cardGame.deck) || cardGame.deck.length === 0) {
+          issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame deck must be a non-empty array.`, `${cardGamePath}.deck`));
+        } else {
+          cardGame.deck.forEach((entry, entryIndex) => {
+            const entryPath = `${cardGamePath}.deck[${entryIndex}]`;
+            if (!isRecord(entry) || Array.isArray(entry)) {
+              issues.push(issue("error", "invalid_monster_card_game", "Enemy deck entry must be an object.", entryPath));
+              return;
+            }
+
+            if (typeof entry.abilityId !== "string" || !monsterAbilityIds.has(entry.abilityId)) {
+              issues.push(issue("error", "missing_monster_ability", `Monster cardGame deck entry references missing ability '${String(entry.abilityId)}'.`, `${entryPath}.abilityId`));
+            }
+
+            if (Array.isArray(monster.abilityIds) && typeof entry.abilityId === "string" && !monsterAbilityIdsForDefinition.has(entry.abilityId)) {
+              issues.push(issue("error", "monster_ability_not_owned", `Monster cardGame deck entry references ability '${entry.abilityId}' that is not owned by monster '${String(monster.id)}'.`, `${entryPath}.abilityId`));
+            }
+
+            if (typeof entry.copies !== "number" || !Number.isInteger(entry.copies) || entry.copies <= 0) {
+              issues.push(issue("error", "invalid_monster_card_game", "Enemy deck entry copies must be a positive integer.", `${entryPath}.copies`));
+            }
+          });
+        }
+
+        if (typeof cardGame.handSize !== "number" || !Number.isInteger(cardGame.handSize) || cardGame.handSize <= 0) {
+          issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame handSize must be a positive integer.`, `${cardGamePath}.handSize`));
+        }
+
+        if (typeof cardGame.planSlots !== "number" || !Number.isInteger(cardGame.planSlots) || cardGame.planSlots <= 0) {
+          issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame planSlots must be a positive integer.`, `${cardGamePath}.planSlots`));
+        }
+
+        if (typeof cardGame.defaultPlanMode !== "string" || !knownEnemyPlanModes.has(cardGame.defaultPlanMode)) {
+          issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame defaultPlanMode is unknown.`, `${cardGamePath}.defaultPlanMode`));
+        }
+
+        if (typeof cardGame.defaultIntentVisibility !== "string" || !knownIntentVisibilityLevels.has(cardGame.defaultIntentVisibility)) {
+          issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame defaultIntentVisibility is unknown.`, `${cardGamePath}.defaultIntentVisibility`));
+        }
+
+        if ("adaptiveRuleIds" in cardGame && cardGame.adaptiveRuleIds !== undefined) {
+          if (!Array.isArray(cardGame.adaptiveRuleIds)) {
+            issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame adaptiveRuleIds must be an array when present.`, `${cardGamePath}.adaptiveRuleIds`));
+          } else {
+            cardGame.adaptiveRuleIds.forEach((ruleId, ruleIndex) => {
+              if (typeof ruleId !== "string" || !knownEnemyAdaptiveRuleIds.has(ruleId)) {
+                issues.push(issue("error", "invalid_monster_card_game", `Monster '${String(monster.id)}' cardGame references unknown adaptive rule '${String(ruleId)}'.`, `${cardGamePath}.adaptiveRuleIds[${ruleIndex}]`));
+              }
+            });
+          }
+        }
+      }
+    }
 
     if ("intentSchedule" in monster && monster.intentSchedule !== undefined) {
       if (!Array.isArray(monster.intentSchedule)) {

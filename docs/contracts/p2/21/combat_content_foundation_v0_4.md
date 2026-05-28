@@ -1045,7 +1045,7 @@ Contract:
 ```txt
 ID: forest_warden   # compatibility id
 Display name: Emberroot Warden
-HP: 90
+HP: 94
 Hand size: 3
 Plan slots: 1
 Plan mode: adaptive + charging
@@ -1328,7 +1328,7 @@ Result: inside target band
 The small boss tuning applied in v0.4:
 
 ```txt
-Emberroot Warden HP: 90 -> 94
+Emberroot Warden current HP: 94
 Root Slam damage: 12 -> 13
 Cinder Bark block: 10 -> 11
 ```

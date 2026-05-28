@@ -19,6 +19,7 @@ Base branch: `main`
 - Updated Phaser presentation/view-model code to consume scoped candidate data, enemy holding readouts, and plan-change events without moving game rules into Phaser.
 - Applied the contract balance intent for Emberroot Warden: 94 HP, Root Slam 13 damage, and Cinder Bark 11 block.
 - Bumped the content version to `ashwood-trail-reveal-scope-v4`.
+- Added registry validation for monster `cardGame` metadata, including enemy deck ability references, owned abilities, copy counts, hand size, plan slots, default plan mode, default intent visibility, and adaptive rule ids.
 - Added regression coverage for scoped Ash Rewrite metadata, adaptive plan finalisation, event schema projection, content authoring coverage, Phaser view-model scoped copy, and workbench versioning.
 - Added regression coverage proving stepwise Read the Ash behaviour, explicit reveal effects, effective visibility event levels under obscure ceilings, adaptive finalisation candidate-set rejection, enemy lifecycle events, and authored enemy obscure runtime caps.
 
@@ -49,6 +50,7 @@ Focused test updates:
 tests/game-core/combat-play-card.test.ts
 tests/game-core/combat-intents.test.ts
 tests/game-core/model-shape.test.ts
+tests/game-core/registry.test.ts
 tests/game-core/content-authoring.test.ts
 tests/game-core/content-workbench.test.ts
 tests/game-core/trace-replay.test.ts
@@ -62,11 +64,11 @@ Latest passing gates:
 
 ```txt
 npm run typecheck                          PASS
-npm test -- targeted P2/21 suites          PASS - 8 files / 103 tests
-npm test                                   PASS - 110 files / 859 tests
+npm test -- targeted P2/21 suites          PASS - 5 files / 114 tests
+npm test                                   PASS - 110 files / 860 tests
 npm run build                              PASS
 npm run build:cli                          PASS
-npm run smoke:localhost                    PASS - http://127.0.0.1:52475/health
+npm run smoke:localhost                    PASS - http://127.0.0.1:53245/health
 npm run test:integration                   PASS - 2 files / 4 tests
 npm run sim:smoke -- --trace-output tests/game-core/traces/smoke-complete.json
                                             PASS - 3 runs / 0 failures
@@ -90,5 +92,5 @@ Trace schema: 5
 
 ## Independent Review Status
 
-- Independent code review: GREEN after blocker fixes.
-- Independent contract audit: GREEN after blocker fixes.
+- Independent code review: GREEN after final validation/doc fixes.
+- Independent contract audit: GREEN after final validation/doc fixes.
