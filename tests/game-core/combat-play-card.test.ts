@@ -4,6 +4,7 @@ import {
   cardInstanceId,
   combatantId,
   createRng,
+  enemyCardInstanceId,
   monsterAbilityId,
   monsterId,
   monsterIntentId,
@@ -15,7 +16,7 @@ import {
   type CardDefinition,
   type CombatState
 } from "../../src/game-core";
-import { createHandTunedCombatFixture, withPlayerCardActorState } from "../../src/game-core/testing/combat-fixtures";
+import { createHandTunedCombatFixture, withEnemyCardActorState, withPlayerCardActorState } from "../../src/game-core/testing/combat-fixtures";
 
 const targetId = combatantId("monster:training_slime:0");
 
@@ -52,6 +53,30 @@ describe("playCard", () => {
     expect(result.state.energy).toBe(2);
     expect(result.state.player.block).toBe(5);
     expect(result.events.map((event) => event.type)).toEqual(["CardPlayed", "EnergySpent", "BlockGained", "CardMoved"]);
+  });
+
+  it("replans enemy intent after a player action when the held plan changes", () => {
+    const state = withEnemyCardActorState(createHandTunedCombatFixture(), targetId, (actor) => ({
+      ...actor,
+      hand: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0")]
+    }));
+    const result = playCard(
+      state,
+      { type: "playCard", cardInstanceId: cardInstanceId("defend:1") },
+      starterRegistry,
+      createRng("defend-replan")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterIntents[0]).toMatchObject({
+      monsterCombatantId: targetId,
+      intentId: monsterIntentId("training_slime_block")
+    });
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "MonsterIntentSet",
+      monsterId: targetId,
+      intentId: monsterIntentId("training_slime_block")
+    }));
   });
 
   it("plays Focus for zero energy and draws one", () => {

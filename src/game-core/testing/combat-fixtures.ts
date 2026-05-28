@@ -184,7 +184,7 @@ export const createHandTunedCombatFixture = (): CombatState => ({
         }
       ],
       drawPile: [],
-      hand: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0")],
+      hand: [],
       planned: {
         planMode: "locked",
         lockedCardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),

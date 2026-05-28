@@ -205,6 +205,8 @@ export class CombatEventFxPresenter {
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Card", 0x7dd3fc);
       case "EnemyPlanCreated":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Plan", 0xff9aad);
+      case "EnemyTeamPlanCreated":
+        return this.playPulse(this.getCombatantPoint(event.leaderMonsterId), "Team", 0xff9aad);
       case "EnemyPlanChanged":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Plan", 0xff9aad);
       case "EnemyPlanFinalized":

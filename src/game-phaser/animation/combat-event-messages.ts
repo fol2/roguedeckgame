@@ -36,6 +36,8 @@ export const formatCombatEventMessage = (event: EventLike): string => {
       return `${event.monsterId} enemy card moved ${event.from} -> ${event.to}.`;
     case "EnemyPlanCreated":
       return `${event.monsterId} created an enemy plan.`;
+    case "EnemyTeamPlanCreated":
+      return `${event.leaderMonsterId} set enemy team order.`;
     case "EnemyPlanChanged":
       return `${event.monsterId} changed plan: ${event.fromIntentId} -> ${event.toIntentId} (${event.reason}).`;
     case "EnemyPlanFinalized":

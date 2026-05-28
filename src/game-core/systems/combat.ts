@@ -20,6 +20,7 @@ import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import {
   createPlayerCardActor,
+  findCardActor,
   findPlayerCardActor,
   projectCombatStateFromCardActors,
   updateCardActor
@@ -196,6 +197,35 @@ const appendEvents = (state: CombatState, events: readonly GameEvent[]): CombatS
   ...state,
   events: [...state.events, ...events]
 });
+
+const getEnemyActionOrder = (state: CombatState): readonly CombatantState[] => {
+  const aliveMonsters = state.monsters.filter((monster) => monster.alive);
+  const order = state.enemyPlanOrder ?? [];
+  const ordered = order.flatMap((monsterId) => aliveMonsters.find((monster) => monster.id === monsterId) ?? []);
+  const orderedIds = new Set(ordered.map((monster) => monster.id));
+
+  return [
+    ...ordered,
+    ...aliveMonsters.filter((monster) => !orderedIds.has(monster.id))
+  ];
+};
+
+const enemyPlanSignature = (state: CombatState): string =>
+  JSON.stringify({
+    order: state.enemyPlanOrder ?? state.monsterIntents.map((intent) => intent.monsterCombatantId),
+    intents: state.monsterIntents.map((intent) => [intent.monsterCombatantId, intent.intentId]),
+    planned: (state.plannedMonsterAbilities ?? []).map((planned) => [
+      planned.monsterCombatantId,
+      planned.intentId,
+      planned.abilityId
+    ])
+  });
+
+const canReplanEnemyPlans = (state: CombatState): boolean =>
+  Object.prototype.hasOwnProperty.call(state, "plannedMonsterAbilities") &&
+  state.monsters
+    .filter((monster) => monster.alive)
+    .every((monster) => findCardActor(state, monster.id)?.actorKind === "enemy");
 
 const validateCombatantTarget = (
   state: CombatState,
@@ -761,13 +791,26 @@ export const playCard = (
     return reject(originalState, finalMove.error);
   }
 
+  const replanResult = finalMove.value.state.phase === "player_turn" && canReplanEnemyPlans(finalMove.value.state)
+    ? chooseMonsterIntents(finalMove.value.state, registry, rng, { replanOnly: true })
+    : undefined;
+  if (replanResult && !replanResult.ok) {
+    return reject(originalState, replanResult.errors[0] ?? error("monster_replan_failed", "Enemy plan recompute failed after player action."));
+  }
+  const planChanged = replanResult
+    ? enemyPlanSignature(finalMove.value.state) !== enemyPlanSignature(replanResult.state)
+    : false;
+  const nextState = planChanged && replanResult ? replanResult.state : finalMove.value.state;
+  const replanEvents = planChanged ? replanResult?.events ?? [] : [];
+
   return {
     ok: true,
-    state: finalMove.value.state,
+    state: nextState,
     events: [
       ...openingStage.value.events,
       ...effectStage.value.events,
-      finalMove.value.event
+      finalMove.value.event,
+      ...replanEvents
     ],
     errors: []
   };
@@ -914,11 +957,7 @@ export const resolveEnemyTurn = (
     }
   }
 
-  for (const monster of nextState.monsters) {
-    if (!monster.alive) {
-      continue;
-    }
-
+  for (const monster of getEnemyActionOrder(nextState)) {
     const monsterDefinition = findMonsterDefinition(registry, monster);
     if (!monsterDefinition) {
       return reject(

@@ -52,6 +52,7 @@ export const combatPlaybackPolicies = {
   EnemyPlanChanged: { policy: "animated", visualRoute: "fx" },
   EnemyPlanCreated: { policy: "animated", visualRoute: "fx" },
   EnemyPlanFinalized: { policy: "animated", visualRoute: "fx" },
+  EnemyTeamPlanCreated: { policy: "animated", visualRoute: "fx" },
   MonsterAbilityPlanned: { policy: "animated", visualRoute: "fx" },
   MonsterAbilityPlayed: { policy: "animated", visualRoute: "fx" },
   MonsterIntentResolved: { policy: "animated", visualRoute: "fx" },

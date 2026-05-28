@@ -48,6 +48,8 @@ export type EnemyCardDeckEntryDefinition = {
   readonly cost?: number;
 };
 
+export type EnemyTeamRole = "independent" | "leader" | "support";
+
 export type MonsterCardGameDefinition = {
   readonly deck: readonly EnemyCardDeckEntryDefinition[];
   readonly openingHandSize: number;
@@ -60,6 +62,9 @@ export type MonsterCardGameDefinition = {
   readonly defaultPlanMode: EnemyPlanMode;
   readonly defaultIntentVisibility: IntentVisibilityLevel;
   readonly adaptiveRuleIds?: readonly string[];
+  readonly teamRole?: EnemyTeamRole;
+  readonly canPlanAllies?: boolean;
+  readonly canChooseTeamOrder?: boolean;
 };
 
 export type MonsterDefinition = {

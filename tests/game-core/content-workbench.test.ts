@@ -176,7 +176,7 @@ describe("content workbench view model", () => {
     expect(first.diagnostics.registryErrors).toEqual([]);
     expect(first.diagnostics.levelAuthoringErrors).toEqual([]);
     expect(first.diagnostics.dependencyReferenceCount).toBeGreaterThan(0);
-    expect(first.reports.content.counts.monsterAbilities).toBe(24);
+    expect(first.reports.content.counts.monsterAbilities).toBe(27);
     expect(first.reports.content.counts.decks).toBe(1);
     expect(first.reports.content.counts.petModifiers).toBe(3);
     expect(first.reports.content.dependencyReferenceCount).toBe(first.diagnostics.dependencyReferenceCount);

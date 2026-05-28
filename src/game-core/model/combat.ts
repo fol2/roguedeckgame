@@ -176,6 +176,7 @@ export type CombatState = {
   readonly runPetStates: readonly RunPetState[];
   readonly monsterIntents: readonly ActiveMonsterIntent[];
   readonly plannedMonsterAbilities?: readonly PlannedMonsterAbility[];
+  readonly enemyPlanOrder?: readonly CombatantId[];
   readonly monsterCardStates?: readonly CombatMonsterCardState[];
   readonly intentVisibilityOverrides?: readonly CombatIntentVisibilityState[];
   readonly cardActors: readonly CardActorState[];

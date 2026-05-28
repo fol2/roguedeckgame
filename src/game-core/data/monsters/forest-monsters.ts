@@ -250,6 +250,18 @@ export const cinderScribeSmudgeAbility: MonsterAbilityDefinition = {
   effects: [monsterBlock(act1NormalBalance.monsters.cinderScribeSmudgeBlock), monsterObscureSelf()]
 };
 
+export const cinderScribeBorrowedLineAbility: MonsterAbilityDefinition = {
+  id: monsterAbilityId("cinder_scribe_borrowed_line"),
+  name: "Borrowed Line",
+  intentType: "special",
+  description: "Set up the next line without exposing the script.",
+  tags: ["setup", "rare-bearer", "scribe"],
+  tier: "rareBearer",
+  planMode: "locked",
+  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
+  effects: []
+};
+
 export const emberrootWardenRootSlamAbility: MonsterAbilityDefinition = {
   id: monsterAbilityId("forest_warden_root_slam"),
   name: "Root Slam",
@@ -298,6 +310,18 @@ export const emberrootWardenAshBloomAbility: MonsterAbilityDefinition = {
   effects: []
 };
 
+export const emberrootWardenRootBindAbility: MonsterAbilityDefinition = {
+  id: monsterAbilityId("emberroot_warden_root_bind"),
+  name: "Root Bind",
+  intentType: "debuff",
+  description: "Root Bind: apply 1 Burn as the roots flare.",
+  tags: ["debuff", "burn", "boss", "adaptive"],
+  tier: "boss",
+  planMode: "adaptive",
+  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "keeper" },
+  effects: [monsterBurn(1)]
+};
+
 export const emberrootWardenAncientShelterAbility: MonsterAbilityDefinition = {
   id: monsterAbilityId("emberroot_warden_ancient_shelter"),
   name: "Ancient Shelter",
@@ -308,6 +332,18 @@ export const emberrootWardenAncientShelterAbility: MonsterAbilityDefinition = {
   planMode: "adaptive",
   telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
   effects: [monsterBlock(act1NormalBalance.monsters.emberrootWardenAncientShelterBlock), monsterCleanseBurn(act1NormalBalance.monsters.emberrootWardenAncientShelterCleanse)]
+};
+
+export const emberrootWardenCommandAbility: MonsterAbilityDefinition = {
+  id: monsterAbilityId("emberroot_warden_command"),
+  name: "Warden Command",
+  intentType: "special",
+  description: "Command the enemy team order.",
+  tags: ["leader", "team", "boss", "adaptive"],
+  tier: "boss",
+  planMode: "adaptive",
+  telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "ally" },
+  effects: []
 };
 
 export const trainingSlime: MonsterDefinition = {
@@ -327,11 +363,11 @@ export const trainingSlime: MonsterDefinition = {
     maxEnergy: 1,
     energyRefill: 1,
     handSize: 1,
-    planSlots: 1,
+    planSlots: 2,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "category",
     deck: [
-      { abilityId: ashSlimeTackleAbility.id, copies: 2, cost: 1 },
+      { abilityId: ashSlimeTackleAbility.id, copies: 3, cost: 1 },
       { abilityId: ashSlimeJellyGuardAbility.id, copies: 1, cost: 1 }
     ]
   }
@@ -355,12 +391,12 @@ export const ashMite: MonsterDefinition = {
     maxEnergy: 1,
     energyRefill: 1,
     handSize: 1,
-    planSlots: 1,
+    planSlots: 2,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "category",
     deck: [
       { abilityId: cinderMiteBiteAbility.id, copies: 2, cost: 1 },
-      { abilityId: cinderMiteDustAbility.id, copies: 1, cost: 1 },
+      { abilityId: cinderMiteDustAbility.id, copies: 2, cost: 1 },
       { abilityId: cinderMiteSkitterAbility.id, copies: 1, cost: 1 }
     ]
   }
@@ -454,6 +490,9 @@ export const charredStag: MonsterDefinition = {
     defaultPlanMode: "adaptive",
     defaultIntentVisibility: "unknown",
     adaptiveRuleIds: ["prefer_attack_if_player_low_block", "prefer_guard_if_player_overblocks"],
+    teamRole: "leader",
+    canChooseTeamOrder: true,
+    canPlanAllies: true,
     deck: [
       { abilityId: charredStagAntlerStrikeAbility.id, copies: 2, cost: 1 },
       { abilityId: charredStagEmberHoovesAbility.id, copies: 1, cost: 1 },
@@ -469,11 +508,17 @@ export const cinderScribe: MonsterDefinition = {
   name: "Cinder Scribe",
   maxHp: act1NormalBalance.monsters.cinderScribeHp,
   tags: ["forest", "rare-bearer", "scribe", "information"],
-  abilityIds: [cinderScribeInkSparkAbility.id, cinderScribePageShieldAbility.id, cinderScribeSmudgeAbility.id],
+  abilityIds: [
+    cinderScribeInkSparkAbility.id,
+    cinderScribePageShieldAbility.id,
+    cinderScribeSmudgeAbility.id,
+    cinderScribeBorrowedLineAbility.id
+  ],
   intentPool: [
     intentFromAbility("cinder_scribe_ink_spark", cinderScribeInkSparkAbility),
     intentFromAbility("cinder_scribe_page_shield", cinderScribePageShieldAbility),
-    intentFromAbility("cinder_scribe_smudge", cinderScribeSmudgeAbility)
+    intentFromAbility("cinder_scribe_smudge", cinderScribeSmudgeAbility),
+    intentFromAbility("cinder_scribe_borrowed_line", cinderScribeBorrowedLineAbility)
   ],
   cardGame: {
     openingHandSize: 4,
@@ -485,10 +530,12 @@ export const cinderScribe: MonsterDefinition = {
     planSlots: 2,
     defaultPlanMode: "locked",
     defaultIntentVisibility: "unknown",
+    teamRole: "independent",
     deck: [
       { abilityId: cinderScribeInkSparkAbility.id, copies: 2, cost: 1 },
       { abilityId: cinderScribePageShieldAbility.id, copies: 1, cost: 1 },
-      { abilityId: cinderScribeSmudgeAbility.id, copies: 1, cost: 2 }
+      { abilityId: cinderScribeSmudgeAbility.id, copies: 2, cost: 1 },
+      { abilityId: cinderScribeBorrowedLineAbility.id, copies: 1, cost: 1 }
     ]
   }
 };
@@ -503,14 +550,18 @@ export const forestWarden: MonsterDefinition = {
     emberrootWardenCinderBarkAbility.id,
     emberrootWardenOldFlameAbility.id,
     emberrootWardenAshBloomAbility.id,
-    emberrootWardenAncientShelterAbility.id
+    emberrootWardenRootBindAbility.id,
+    emberrootWardenAncientShelterAbility.id,
+    emberrootWardenCommandAbility.id
   ],
   intentPool: [
     intentFromAbility("forest_warden_root_slam", emberrootWardenRootSlamAbility),
     intentFromAbility("forest_warden_cinder_bark", emberrootWardenCinderBarkAbility),
     intentFromAbility("forest_warden_old_flame", emberrootWardenOldFlameAbility),
     intentFromAbility("emberroot_warden_ash_bloom", emberrootWardenAshBloomAbility),
-    intentFromAbility("emberroot_warden_ancient_shelter", emberrootWardenAncientShelterAbility)
+    intentFromAbility("emberroot_warden_root_bind", emberrootWardenRootBindAbility),
+    intentFromAbility("emberroot_warden_ancient_shelter", emberrootWardenAncientShelterAbility),
+    intentFromAbility("emberroot_warden_command", emberrootWardenCommandAbility)
   ],
   cardGame: {
     openingHandSize: 5,
@@ -519,16 +570,21 @@ export const forestWarden: MonsterDefinition = {
     maxEnergy: 3,
     energyRefill: 3,
     handSize: 3,
-    planSlots: 3,
+    planSlots: 2,
     defaultPlanMode: "adaptive",
     defaultIntentVisibility: "unknown",
     adaptiveRuleIds: ["phase_after_half_hp", "prefer_charge_when_safe", "prefer_shelter_when_burning"],
+    teamRole: "leader",
+    canChooseTeamOrder: true,
+    canPlanAllies: true,
     deck: [
-      { abilityId: emberrootWardenRootSlamAbility.id, copies: 2, cost: 3 },
-      { abilityId: emberrootWardenCinderBarkAbility.id, copies: 2, cost: 3 },
-      { abilityId: emberrootWardenOldFlameAbility.id, copies: 1, cost: 3 },
-      { abilityId: emberrootWardenAshBloomAbility.id, copies: 1, cost: 3 },
-      { abilityId: emberrootWardenAncientShelterAbility.id, copies: 1, cost: 3 }
+      { abilityId: emberrootWardenRootSlamAbility.id, copies: 2, cost: 1 },
+      { abilityId: emberrootWardenCinderBarkAbility.id, copies: 2, cost: 1 },
+      { abilityId: emberrootWardenOldFlameAbility.id, copies: 2, cost: 1 },
+      { abilityId: emberrootWardenAshBloomAbility.id, copies: 1, cost: 1 },
+      { abilityId: emberrootWardenRootBindAbility.id, copies: 1, cost: 1 },
+      { abilityId: emberrootWardenAncientShelterAbility.id, copies: 1, cost: 1 },
+      { abilityId: emberrootWardenCommandAbility.id, copies: 1, cost: 1 }
     ]
   }
 };
@@ -553,11 +609,14 @@ export const forestMonsterAbilities = [
   cinderScribeInkSparkAbility,
   cinderScribePageShieldAbility,
   cinderScribeSmudgeAbility,
+  cinderScribeBorrowedLineAbility,
   emberrootWardenRootSlamAbility,
   emberrootWardenCinderBarkAbility,
   emberrootWardenOldFlameAbility,
   emberrootWardenAshBloomAbility,
-  emberrootWardenAncientShelterAbility
+  emberrootWardenRootBindAbility,
+  emberrootWardenAncientShelterAbility,
+  emberrootWardenCommandAbility
 ] as const;
 
 export const forestMonsters = [trainingSlime, ashMite, sootCrow, rootHusk, charredStag, cinderScribe, forestWarden] as const;

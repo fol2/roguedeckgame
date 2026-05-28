@@ -126,6 +126,12 @@ export type GameEvent =
       readonly planMode: EnemyPlanMode;
     }
   | {
+      readonly type: "EnemyTeamPlanCreated";
+      readonly leaderMonsterId: CombatantId;
+      readonly monsterOrder: readonly CombatantId[];
+      readonly reason: string;
+    }
+  | {
       readonly type: "EnemyIntentVisibilityChanged";
       readonly monsterId: CombatantId;
       readonly level: IntentVisibilityLevel;
@@ -333,6 +339,7 @@ export const projectGameEventsForSchema = (
       event.type !== "EnemyDeckShuffled" &&
       event.type !== "EnemyCardMoved" &&
       event.type !== "EnemyPlanCreated" &&
+      event.type !== "EnemyTeamPlanCreated" &&
       event.type !== "EnemyPlanChanged" &&
       event.type !== "EnemyPlanFinalized" &&
       event.type !== "EnemyCardResolved"

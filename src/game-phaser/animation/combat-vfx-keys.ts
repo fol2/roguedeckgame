@@ -173,6 +173,13 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
     notes: "Pulse at the enemy intent token anchor when a card plan is created."
   },
   {
+    eventType: "EnemyTeamPlanCreated",
+    fallback: "code-pulse",
+    timingMs: { min: 120, max: 220 },
+    inputLocked: true,
+    notes: "Pulse at the leader when enemy team order is created."
+  },
+  {
     eventType: "EnemyPlanChanged",
     fallback: "code-pulse",
     timingMs: { min: 120, max: 220 },

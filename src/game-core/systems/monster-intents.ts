@@ -31,6 +31,19 @@ type MonsterCardPlanResult = {
   readonly events: readonly GameEvent[];
 };
 
+type MonsterIntentPlanningOptions = {
+  readonly opening?: boolean;
+  readonly replanOnly?: boolean;
+};
+
+type PlannedMonsterSelection = {
+  readonly monster: CombatState["monsters"][number];
+  readonly monsterDefinition: MonsterDefinition;
+  readonly intent: MonsterIntentDefinition;
+  readonly ability: MonsterAbilityDefinition;
+  readonly cardPlan: MonsterCardPlanResult;
+};
+
 const error = (code: string, message: string, path?: string): GameActionError => ({
   code,
   message,
@@ -192,7 +205,9 @@ const createEnemyCardActorFromCardState = (
   actorKind: "enemy",
   side: "enemySide",
   teamId: ENEMY_TEAM_ID,
-  controllerKind: monsterDefinition.tags.includes("elite") || monsterDefinition.tags.includes("boss")
+  controllerKind: monsterDefinition.cardGame?.teamRole === "leader" ||
+    monsterDefinition.cardGame?.canPlanAllies === true ||
+    monsterDefinition.cardGame?.canChooseTeamOrder === true
     ? "leaderHeuristic"
     : "heuristicAi",
   cardInstances: cardState.cardInstances.map((cardInstance) => ({
@@ -382,13 +397,107 @@ const removeCardInstancesFromZones = (
 ): CombatMonsterCardState =>
   cardInstanceIds.reduce(removeCardInstanceFromZones, cardState);
 
+const releasePlannedCardsToHand = (
+  cardState: CombatMonsterCardState
+): { readonly cardState: CombatMonsterCardState; readonly events: readonly GameEvent[] } => {
+  const plannedCardInstanceIds = getPlannedCardInstanceIds(cardState.planned);
+  if (plannedCardInstanceIds.length === 0) {
+    return { cardState, events: [] };
+  }
+
+  const hand = [
+    ...cardState.hand,
+    ...plannedCardInstanceIds.filter((cardInstanceId) => !cardState.hand.includes(cardInstanceId))
+  ];
+  const events = plannedCardInstanceIds
+    .map((cardInstanceId) => createEnemyCardMovedEvent(cardState, cardInstanceId, "planned", "hand"))
+    .filter((event): event is GameEvent => event !== undefined);
+
+  return {
+    cardState: {
+      ...cardState,
+      hand,
+      planned: emptyPlanForMode(cardState.planned.planMode)
+    },
+    events
+  };
+};
+
+const getTeamLeaderCandidate = (
+  candidates: readonly IntentSelectionCandidate[]
+): IntentSelectionCandidate | undefined =>
+  candidates.find(({ monsterDefinition }) =>
+    monsterDefinition.cardGame?.teamRole === "leader" ||
+    monsterDefinition.cardGame?.canPlanAllies === true ||
+    monsterDefinition.cardGame?.canChooseTeamOrder === true
+  );
+
+const intentPriority = (ability: MonsterAbilityDefinition): number => {
+  if (ability.intentType === "debuff") {
+    return 0;
+  }
+
+  if (ability.intentType === "attack" || ability.tags.includes("attack")) {
+    return 1;
+  }
+
+  if (ability.intentType === "special") {
+    return 2;
+  }
+
+  if (ability.intentType === "charge") {
+    return 3;
+  }
+
+  if (ability.intentType === "block" || ability.intentType === "buff") {
+    return 4;
+  }
+
+  return 5;
+};
+
+const planTeamOrder = (
+  plannedSelections: readonly PlannedMonsterSelection[],
+  leader?: IntentSelectionCandidate
+): { readonly order: readonly CombatantId[]; readonly events: readonly GameEvent[] } => {
+  if (!leader?.monsterDefinition.cardGame?.canChooseTeamOrder) {
+    return { order: plannedSelections.map((selection) => selection.monster.id), events: [] };
+  }
+
+  const orderedSelections = [...plannedSelections].sort((left, right) => {
+    const priorityDelta = intentPriority(left.ability) - intentPriority(right.ability);
+    if (priorityDelta !== 0) {
+      return priorityDelta;
+    }
+
+    const leftIsLeader = left.monster.id === leader.monster.id ? 1 : 0;
+    const rightIsLeader = right.monster.id === leader.monster.id ? 1 : 0;
+    if (leftIsLeader !== rightIsLeader) {
+      return leftIsLeader - rightIsLeader;
+    }
+
+    return left.monster.id.localeCompare(right.monster.id);
+  });
+  const order = orderedSelections.map((selection) => selection.monster.id);
+
+  return {
+    order,
+    events: [{
+      type: "EnemyTeamPlanCreated",
+      leaderMonsterId: leader.monster.id,
+      monsterOrder: order,
+      reason: "leader_team_order"
+    }]
+  };
+};
+
 const selectMonsterCardPlan = (
   state: CombatState,
   monster: CombatState["monsters"][number],
   monsterDefinition: MonsterDefinition,
   intentPool: readonly ResolvedIntentSelection[],
   rng: Rng,
-  opening: boolean
+  options: MonsterIntentPlanningOptions
 ): MonsterCardPlanResult => {
   if (!monsterDefinition.cardGame) {
     return { events: [] };
@@ -403,12 +512,17 @@ const selectMonsterCardPlan = (
     handSize: getMonsterCardHandSize(monsterDefinition),
     planSlots: getMonsterCardPlanSlots(monsterDefinition)
   };
-  const isOpeningDraw = existingCardState === undefined || opening;
+  const replanned = options.replanOnly === true
+    ? releasePlannedCardsToHand(createdCardState)
+    : { cardState: createdCardState, events: [] };
+  const isOpeningDraw = existingCardState === undefined || options.opening === true;
   const drawn = drawMonsterCardHand(
-    createdCardState,
+    replanned.cardState,
     monsterDefinition,
     rng,
-    isOpeningDraw ? getMonsterOpeningHandSize(monsterDefinition) : getMonsterDrawPerTurn(monsterDefinition)
+    options.replanOnly === true
+      ? 0
+      : isOpeningDraw ? getMonsterOpeningHandSize(monsterDefinition) : getMonsterDrawPerTurn(monsterDefinition)
   );
   const drawnState = drawn.cardState;
   const selectedCardInstanceId = drawnState.hand.find((cardInstanceId) => {
@@ -426,7 +540,7 @@ const selectMonsterCardPlan = (
     return {
       cardState: drawnState,
       cardActor: createEnemyCardActorFromCardState(drawnState, monsterDefinition),
-      events: drawn.events
+      events: [...created.events, ...replanned.events, ...drawn.events]
     };
   }
   const selectedSourceZone = getCardZone(drawnState, selectedCardInstanceId) ?? "hand";
@@ -481,6 +595,7 @@ const selectMonsterCardPlan = (
     }, monsterDefinition),
     events: [
       ...created.events,
+      ...replanned.events,
       ...drawn.events,
       ...plannedCardEvents,
       {
@@ -1006,7 +1121,7 @@ export const chooseMonsterIntents = (
   state: CombatState,
   registry: GameContentRegistry,
   rng: Rng,
-  options?: { readonly opening?: boolean }
+  options: MonsterIntentPlanningOptions = {}
 ): GameActionResult<CombatState> => {
   const candidates: IntentSelectionCandidate[] = [];
   const activeIntents: ActiveMonsterIntent[] = [];
@@ -1014,6 +1129,7 @@ export const chooseMonsterIntents = (
   const monsterCardStates = [...(state.monsterCardStates ?? [])];
   const cardActors = [...state.cardActors];
   const events: GameEvent[] = [];
+  const plannedSelections: PlannedMonsterSelection[] = [];
 
   for (const monster of state.monsters) {
     if (!monster.alive) {
@@ -1077,7 +1193,7 @@ export const chooseMonsterIntents = (
       monsterDefinition,
       intentPool,
       rng,
-      options?.opening === true
+      options
     );
     const selected = cardPlan.selected;
     if (!selected) {
@@ -1117,6 +1233,7 @@ export const chooseMonsterIntents = (
       ...(cardPlan.selectedCardInstanceId ? { cardInstanceId: cardPlan.selectedCardInstanceId } : {}),
       ...(cardPlan.planMode ? { planMode: cardPlan.planMode } : {})
     });
+    plannedSelections.push({ monster, monsterDefinition, intent, ability, cardPlan });
     events.push(...cardPlan.events);
     events.push({
       type: "MonsterAbilityPlanned",
@@ -1135,6 +1252,10 @@ export const chooseMonsterIntents = (
     });
   }
 
+  const leader = getTeamLeaderCandidate(candidates);
+  const teamPlan = planTeamOrder(plannedSelections, leader);
+  events.push(...teamPlan.events);
+
   const persistentIntentVisibilityOverrides = (state.intentVisibilityOverrides ?? []).flatMap((override) => {
     if (override.expires === "combat" || override.expires === "never" || override.expires === "afterEnemyAction") {
       return [override];
@@ -1150,6 +1271,7 @@ export const chooseMonsterIntents = (
     ...state,
     monsterIntents: activeIntents,
     plannedMonsterAbilities: plannedAbilities,
+    enemyPlanOrder: teamPlan.order,
     monsterCardStates,
     intentVisibilityOverrides: persistentIntentVisibilityOverrides
   }, cardActors), events);
