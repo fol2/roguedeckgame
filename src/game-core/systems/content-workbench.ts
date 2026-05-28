@@ -2,6 +2,7 @@ import type { AbilityDescriptor } from "./ability-descriptors";
 import { getCardAbilityDescriptor, getMonsterAbilityDescriptor } from "./ability-descriptors";
 import { mapDeckWorkbenchItem, type ContentWorkbenchDeckItem } from "./content-workbench-decks";
 import { mapRunMapWorkbenchItem, type ContentWorkbenchRunMapItem } from "./content-workbench-run-maps";
+import { defaultStatusDefinitions } from "./status-behaviours";
 import { getStatusDescriptor } from "./status-descriptors";
 import { createContentSchemaFromRegistry } from "./content-schema";
 import { validateLevelAuthoringRegistry, validateRegistry, type ValidationIssue } from "./validation";
@@ -12,7 +13,7 @@ import type { PetDefinition, PetModifierDefinition, PetUpgradeDefinition } from 
 import type { PlayerClassDefinition, PlayerClassModifierDefinition } from "../model/player";
 import type { GameContentRegistry } from "../model/registry";
 import type { RewardPoolDefinition } from "../model/reward";
-import { burnStatusDefinition, type StatusDefinition } from "../model/status";
+import type { StatusDefinition } from "../model/status";
 import type { PetSideStoryDefinition, StoryEventDefinition } from "../model/story";
 import { buildContentDependencyReport, formatContentDependencyIssue, type ContentDependencyIssue } from "../testing/content-dependencies";
 import { buildContentReport } from "../testing/content-report";
@@ -553,7 +554,7 @@ export const buildContentWorkbenchViewModel = (registry: GameContentRegistry): C
   const dependencyReport = buildContentDependencyReport(registry);
   const registryValidation = validateRegistry(registry);
   const levelAuthoringValidation = validateLevelAuthoringRegistry(registry);
-  const statuses = registry.statuses ?? [burnStatusDefinition];
+  const statuses = registry.statuses ?? defaultStatusDefinitions;
 
   return {
     contentVersion: registry.contentVersion,

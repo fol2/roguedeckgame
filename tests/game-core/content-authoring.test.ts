@@ -5,6 +5,8 @@ import {
   cardId,
   damageEffect,
   drawEffect,
+  monsterAbilityId,
+  monsterId,
   petModifierId,
   petCommandCard,
   petDefinitionId,
@@ -63,7 +65,7 @@ describe("content authoring helpers", () => {
     expect(report).toMatchObject({
       counts: {
         cards: 25,
-        statuses: 1,
+        statuses: 2,
         pets: 1,
         monsterAbilities: 27,
         monsters: 7,
@@ -109,8 +111,8 @@ describe("content authoring helpers", () => {
         "petReact",
         "scopeIntent"
       ],
-      statusIds: ["burn"],
-      runtimeSupportedStatusIds: ["burn"],
+      statusIds: ["burn", "next_attack_boost"],
+      runtimeSupportedStatusIds: ["burn", "next_attack_boost"],
       metadataOnlyStatusIds: [],
       statusBehaviourTypes: ["duration", "startOfTurnDamage", "statusImmunity"],
       petModifierRuleTypes: [
@@ -133,6 +135,45 @@ describe("content authoring helpers", () => {
     expect(report.dependencyMissingReferenceCount).toBe(0);
     expect(report.unusedCardIds).toEqual([]);
     expect(report.unusedStatusIds).toEqual([]);
+  });
+
+  it("keeps p3/23 Ashwood Trail enemy deck counts and costs aligned", () => {
+    const monsterById = new Map(starterRegistry.monsters.map((monster) => [monster.id, monster]));
+    const deckEntry = (monsterKey: ReturnType<typeof monsterId>, abilityKey: ReturnType<typeof monsterAbilityId>) =>
+      monsterById.get(monsterKey)?.cardGame?.deck.find((entry) => entry.abilityId === abilityKey);
+
+    expect(deckEntry(monsterId("training_slime"), monsterAbilityId("training_slime_attack"))).toMatchObject({ copies: 3, cost: 1 });
+    expect(deckEntry(monsterId("ash_mite"), monsterAbilityId("ash_mite_burn"))).toMatchObject({ copies: 2, cost: 1 });
+    expect(deckEntry(monsterId("soot_crow"), monsterAbilityId("soot_crow_flutter"))).toMatchObject({ copies: 2, cost: 1 });
+    expect(deckEntry(monsterId("charred_stag"), monsterAbilityId("charred_stag_guarded_snort"))).toMatchObject({ copies: 2, cost: 1 });
+    expect(deckEntry(monsterId("charred_stag"), monsterAbilityId("charred_stag_paw_the_ash"))).toMatchObject({ copies: 1, cost: 1 });
+    expect(deckEntry(monsterId("charred_stag"), monsterAbilityId("charred_stag_crown_flare"))).toMatchObject({ copies: 1, cost: 1 });
+    expect(deckEntry(monsterId("cinder_scribe"), monsterAbilityId("cinder_scribe_smudge"))).toMatchObject({ copies: 2, cost: 1 });
+    expect(deckEntry(monsterId("cinder_scribe"), monsterAbilityId("cinder_scribe_borrowed_line"))).toMatchObject({ copies: 1, cost: 1 });
+    expect(deckEntry(monsterId("forest_warden"), monsterAbilityId("forest_warden_old_flame"))).toMatchObject({ copies: 2, cost: 1 });
+    expect(deckEntry(monsterId("forest_warden"), monsterAbilityId("emberroot_warden_root_bind"))).toMatchObject({ copies: 1, cost: 1 });
+    expect(deckEntry(monsterId("forest_warden"), monsterAbilityId("emberroot_warden_command"))).toMatchObject({ copies: 1, cost: 1 });
+  });
+
+  it("keeps p3/23 setup enemy abilities backed by runtime effects", () => {
+    const abilityById = new Map((starterRegistry.monsterAbilities ?? []).map((ability) => [ability.id, ability]));
+    const effects = (abilityKey: ReturnType<typeof monsterAbilityId>) => abilityById.get(abilityKey)?.effects ?? [];
+
+    expect(effects(monsterAbilityId("root_husk_ember_sap"))).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "applyStatus", statusId: "next_attack_boost", stacks: 3, target: { type: "self" } })
+    ]));
+    expect(effects(monsterAbilityId("charred_stag_paw_the_ash"))).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "applyStatus", statusId: "next_attack_boost", stacks: 5, target: { type: "self" } })
+    ]));
+    expect(effects(monsterAbilityId("cinder_scribe_borrowed_line"))).toEqual([
+      { type: "draw", amount: 1 }
+    ]);
+    expect(effects(monsterAbilityId("emberroot_warden_ash_bloom"))).toEqual([
+      { type: "applyStatus", statusId: "next_attack_boost", stacks: 3, target: { type: "self" } }
+    ]);
+    expect(effects(monsterAbilityId("emberroot_warden_command"))).toEqual([
+      { type: "block", amount: 2, target: { type: "allAllies" } }
+    ]);
   });
 
   it("includes standalone pet modifiers in content report rule and effect coverage", () => {

@@ -2,8 +2,8 @@ import type { CardDefinition } from "../model/card";
 import type { EffectDefinition } from "../model/effect";
 import type { GameContentRegistry } from "../model/registry";
 import type { StoryOutcome, StoryRequirement } from "../model/story";
-import { burnStatusDefinition } from "../model/status";
 import { buildContentIndex, type IndexedContentCollection } from "../systems/content-index";
+import { defaultStatusDefinitions } from "../systems/status-behaviours";
 
 export type ContentDependencyCollection =
   | IndexedContentCollection
@@ -257,7 +257,7 @@ const collectEffectReferences = (
 };
 
 const collectStatusReferences = (collector: ReferenceCollector, registry: GameContentRegistry): void => {
-  (registry.statuses ?? [burnStatusDefinition]).forEach((status, statusIndex) => {
+  (registry.statuses ?? defaultStatusDefinitions).forEach((status, statusIndex) => {
     const refSource = source("statuses", status.id, `statuses[${statusIndex}]`);
     if (status.behaviour?.type === "statusImmunity") {
       (status.behaviour.blocksStatusIds ?? []).forEach((blockedStatusId, blockedIndex) => {
@@ -631,7 +631,7 @@ const collectUnusedIssues = (
     }
   });
 
-  (registry.statuses ?? [burnStatusDefinition]).forEach((status, statusIndex) => {
+  (registry.statuses ?? defaultStatusDefinitions).forEach((status, statusIndex) => {
     if (!referencedStatuses.has(status.id)) {
       issues.push(unusedIssue("statuses", status, `statuses[${statusIndex}]`));
     }

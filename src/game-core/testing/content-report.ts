@@ -1,9 +1,8 @@
 import type { EffectDefinition } from "../model/effect";
 import type { PetModifierDefinition } from "../model/pet";
 import type { GameContentRegistry } from "../model/registry";
-import { burnStatusDefinition } from "../model/status";
 import { knownPlayerClassModifierRuleTypeValues } from "../systems/class-modifiers";
-import { getRuntimeSupportedStatusIds, supportedStatusBehaviourTypes } from "../systems/status-behaviours";
+import { defaultStatusDefinitions, getRuntimeSupportedStatusIds, supportedStatusBehaviourTypes } from "../systems/status-behaviours";
 import { buildContentDependencyReport } from "./content-dependencies";
 
 export type ContentReport = {
@@ -79,7 +78,7 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
     counts: {
       cards: registry.cards.length,
       decks: registry.decks?.length ?? 0,
-      statuses: (registry.statuses ?? [burnStatusDefinition]).length,
+      statuses: (registry.statuses ?? defaultStatusDefinitions).length,
       pets: registry.pets.length,
       monsterAbilities: registry.monsterAbilities?.length ?? 0,
       monsters: registry.monsters.length,
@@ -93,10 +92,10 @@ export const buildContentReport = (registry: GameContentRegistry): ContentReport
     cardRarities: sorted(new Set(registry.cards.map((card) => card.rarity ?? "unknown"))),
     cardTags: sorted(new Set(registry.cards.flatMap((card) => card.tags))),
     effectTypes: collectEffectTypes(registry),
-    statusIds: sorted(new Set((registry.statuses ?? [burnStatusDefinition]).map((status) => status.id))),
+    statusIds: sorted(new Set((registry.statuses ?? defaultStatusDefinitions).map((status) => status.id))),
     runtimeSupportedStatusIds: sorted(getRuntimeSupportedStatusIds(registry)),
     metadataOnlyStatusIds: sorted(
-      (registry.statuses ?? [burnStatusDefinition])
+      (registry.statuses ?? defaultStatusDefinitions)
         .map((status) => status.id)
         .filter((statusId) => !getRuntimeSupportedStatusIds(registry).has(statusId))
     ),

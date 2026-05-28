@@ -259,7 +259,7 @@ describe("content dependency report", () => {
       expect.objectContaining({
         severity: "warning",
         code: "unused_content",
-        path: "statuses[1]"
+        path: "statuses[2]"
       })
     ]));
   });
@@ -303,7 +303,7 @@ describe("content dependency report", () => {
     expect(result.issues).toEqual(expect.arrayContaining([
       expect.objectContaining({
         code: "missing_dependency",
-        path: "statuses[1].behaviour.blocksStatusIds[0]",
+        path: "statuses[2].behaviour.blocksStatusIds[0]",
         target: expect.objectContaining({ collection: "statuses", id: "missing_status" })
       }),
       expect.objectContaining({

@@ -1,5 +1,6 @@
 import {
   cardInstanceId,
+  statusId,
   type CardId,
   type CardInstanceId,
   type CombatantId,
@@ -11,6 +12,7 @@ import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatantTarget, EffectDefinition } from "../model/effect";
 import type {
   CombatantState,
+  CardActorState,
   CombatIntentVisibilityState,
   CombatMonsterCardState,
   CombatState,
@@ -21,8 +23,10 @@ import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
 import type { CombatStatusState } from "../model/status";
 import {
+  findCardActor,
   findPlayerCardActor,
   projectCombatStateFromCardActors,
+  replaceCardActorsAndProject,
   updateCardActor
 } from "./card-actors";
 import { drawCards } from "./draw";
@@ -189,6 +193,8 @@ const isActionError = (
   value: readonly CombatantState[] | GameActionError
 ): value is GameActionError => "code" in value;
 
+const nextAttackBoostStatusId = statusId("next_attack_boost");
+
 export const applyDamage = (
   state: CombatState,
   sourceId: CombatantId,
@@ -201,27 +207,119 @@ export const applyDamage = (
     return { state, events: [] };
   }
 
-  const blocked = options.ignoreBlock ? 0 : Math.min(target.block, amount);
-  const damage = Math.max(0, amount - blocked);
-  const nextHp = Math.max(0, target.hp - damage);
-  const wasAlive = target.alive;
+  const source = getCombatant(state, sourceId);
+  const boostStacks = options.ignoreBlock === true
+    ? 0
+    : source?.statuses.find((status) => status.statusId === nextAttackBoostStatusId)?.stacks ?? 0;
+  const boostResult = boostStacks > 0
+    ? consumeStatus(state, sourceId, { type: "consumeStatus", statusId: nextAttackBoostStatusId, target: { type: "self" } })
+    : { state, events: [] };
+  const boostedState = boostResult.state;
+  const boostedTarget = getCombatant(boostedState, targetId);
+  if (!boostedTarget || !boostedTarget.alive) {
+    return { state: boostedState, events: boostResult.events };
+  }
+
+  const boostedAmount = amount + boostStacks;
+  const blocked = options.ignoreBlock ? 0 : Math.min(boostedTarget.block, boostedAmount);
+  const damage = Math.max(0, boostedAmount - blocked);
+  const nextHp = Math.max(0, boostedTarget.hp - damage);
+  const wasAlive = boostedTarget.alive;
   const isAlive = nextHp > 0;
-  const events: GameEvent[] = [
+  const damageEvents: GameEvent[] = [
     { type: "DamageDealt", sourceId, targetId, amount: damage, blocked }
   ];
 
   if (wasAlive && !isAlive) {
-    events.push({ type: "CombatantDefeated", combatantId: targetId });
+    damageEvents.push({ type: "CombatantDefeated", combatantId: targetId });
   }
 
-  const nextState = updateCombatant(state, targetId, (combatant) => ({
+  const nextState = updateCombatant(boostedState, targetId, (combatant) => ({
     ...combatant,
     hp: nextHp,
     block: Math.max(0, combatant.block - blocked),
     alive: isAlive
   }));
+  const events: GameEvent[] = [...boostResult.events, ...damageEvents];
 
-  return { state: appendEvents(nextState, events), events };
+  return { state: appendEvents(nextState, damageEvents), events };
+};
+
+const createEnemyCardMovedEvent = (
+  actor: CardActorState,
+  cardInstanceId: EnemyCardInstanceId,
+  from: "draw" | "discard",
+  to: "hand"
+): GameEvent | undefined => {
+  const abilityId = actor.cardInstances.find((candidate) => candidate.id === cardInstanceId)?.abilityId;
+
+  return abilityId
+    ? {
+        type: "EnemyCardMoved",
+        monsterId: actor.ownerCombatantId,
+        cardInstanceId,
+        abilityId,
+        from,
+        to
+      }
+    : undefined;
+};
+
+const drawActorCards = (
+  state: CombatState,
+  actor: CardActorState,
+  amount: number,
+  rng: Rng
+): GameActionResult<CombatState> => {
+  let drawPile = [...actor.drawPile];
+  let hand = [...actor.hand];
+  let discardPile = [...actor.discardPile];
+  const events: GameEvent[] = [];
+  let drawnCount = 0;
+
+  while (hand.length < actor.maxHandSize && drawnCount < amount) {
+    if (drawPile.length === 0) {
+      if (discardPile.length === 0) {
+        break;
+      }
+
+      events.push({
+        type: "EnemyDeckShuffled",
+        monsterId: actor.ownerCombatantId,
+        from: "discard",
+        to: "draw",
+        count: discardPile.length
+      });
+      drawPile = rng.shuffle(discardPile);
+      discardPile = [];
+    }
+
+    const [drawn, ...remainingDrawPile] = drawPile;
+    if (!drawn) {
+      break;
+    }
+
+    hand = [...hand, drawn];
+    drawnCount += 1;
+    drawPile = remainingDrawPile;
+    const movedEvent = createEnemyCardMovedEvent(actor, drawn as EnemyCardInstanceId, "draw", "hand");
+    if (movedEvent) {
+      events.push(movedEvent);
+    }
+  }
+
+  const nextActor = {
+    ...actor,
+    drawPile,
+    hand,
+    discardPile
+  };
+  const nextState = replaceCardActorsAndProject(
+    state,
+    state.cardActors.map((candidate) => candidate.actorId === actor.actorId ? nextActor : candidate)
+  );
+
+  return { ok: true, state: appendEvents(nextState, events), events, errors: [] };
 };
 
 const applyBlock = (
@@ -413,7 +511,14 @@ type EffectHandler = <T extends EffectDefinition>(
 
 const resolveDrawEffect = (
   input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "draw" }>>
-): GameActionResult<CombatState> => drawCards(input.state, input.effect.amount, input.rng);
+): GameActionResult<CombatState> => {
+  const sourceActor = findCardActor(input.state, input.context.sourceId);
+  if (sourceActor?.actorKind === "enemy") {
+    return drawActorCards(input.state, sourceActor, input.effect.amount, input.rng);
+  }
+
+  return drawCards(input.state, input.effect.amount, input.rng);
+};
 
 const resolvePileMoveEffect = (
   input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "discard" | "exhaust" }>>

@@ -227,6 +227,38 @@ const canReplanEnemyPlans = (state: CombatState): boolean =>
     .filter((monster) => monster.alive)
     .every((monster) => findCardActor(state, monster.id)?.actorKind === "enemy");
 
+const finalizeEnemyPlansForReadout = (
+  state: CombatState,
+  registry: GameContentRegistry
+): GameActionResult<CombatState> => {
+  let nextState = state;
+  const events: GameEvent[] = [];
+
+  for (const monster of state.monsters) {
+    if (!monster.alive) {
+      continue;
+    }
+
+    const monsterDefinition = findMonsterDefinition(registry, monster);
+    if (!monsterDefinition) {
+      return reject(
+        state,
+        error("missing_monster_definition", `Monster combatant '${monster.id}' has no registered definition.`, "registry.monsters")
+      );
+    }
+
+    const finalized = finalizePlannedMonsterAbility(registry, monsterDefinition, monster.id, nextState);
+    if ("code" in finalized) {
+      return reject(state, finalized);
+    }
+
+    nextState = finalized.state;
+    events.push(...finalized.events);
+  }
+
+  return { ok: true, state: nextState, events, errors: [] };
+};
+
 const validateCombatantTarget = (
   state: CombatState,
   target: CombatantTarget,
@@ -791,17 +823,27 @@ export const playCard = (
     return reject(originalState, finalMove.error);
   }
 
-  const replanResult = finalMove.value.state.phase === "player_turn" && canReplanEnemyPlans(finalMove.value.state)
+  const rawReplanResult = finalMove.value.state.phase === "player_turn" && canReplanEnemyPlans(finalMove.value.state)
     ? chooseMonsterIntents(finalMove.value.state, registry, rng, { replanOnly: true })
     : undefined;
-  if (replanResult && !replanResult.ok) {
-    return reject(originalState, replanResult.errors[0] ?? error("monster_replan_failed", "Enemy plan recompute failed after player action."));
+  if (rawReplanResult && !rawReplanResult.ok) {
+    return reject(originalState, rawReplanResult.errors[0] ?? error("monster_replan_failed", "Enemy plan recompute failed after player action."));
   }
-  const planChanged = replanResult
-    ? enemyPlanSignature(finalMove.value.state) !== enemyPlanSignature(replanResult.state)
+
+  const finalizedReplanResult = rawReplanResult?.ok
+    ? finalizeEnemyPlansForReadout(rawReplanResult.state, registry)
+    : undefined;
+  if (finalizedReplanResult && !finalizedReplanResult.ok) {
+    return reject(originalState, finalizedReplanResult.errors[0] ?? error("monster_replan_failed", "Enemy plan finalisation failed after player action."));
+  }
+  const replanState = finalizedReplanResult?.state ?? rawReplanResult?.state;
+  const planChanged = replanState
+    ? enemyPlanSignature(finalMove.value.state) !== enemyPlanSignature(replanState)
     : false;
-  const nextState = planChanged && replanResult ? replanResult.state : finalMove.value.state;
-  const replanEvents = planChanged ? replanResult?.events ?? [] : [];
+  const nextState = planChanged && replanState ? replanState : finalMove.value.state;
+  const replanEvents = planChanged
+    ? [...(rawReplanResult?.events ?? []), ...(finalizedReplanResult?.events ?? [])]
+    : [];
 
   return {
     ok: true,
@@ -1057,7 +1099,12 @@ export const resolveEnemyTurn = (
     return { ok: true, state: nextState, events, errors: [] };
   }
 
-  const intentResult = chooseMonsterIntents(nextState, registry, rng);
+  const turnResult = startPlayerTurnAfterStatusTicks(nextState, rng, [], originalState);
+  if (!turnResult.ok) {
+    return reject(originalState, turnResult.errors[0] ?? error("turn_start_failed", "Player turn start failed."));
+  }
+
+  const intentResult = chooseMonsterIntents(turnResult.state, registry, rng);
   if (!intentResult.ok) {
     return reject(
       originalState,
@@ -1065,15 +1112,10 @@ export const resolveEnemyTurn = (
     );
   }
 
-  const turnResult = startPlayerTurnAfterStatusTicks(intentResult.state, rng, [], originalState);
-  if (!turnResult.ok) {
-    return reject(originalState, turnResult.errors[0] ?? error("turn_start_failed", "Player turn start failed."));
-  }
-
   return {
     ok: true,
-    state: turnResult.state,
-    events: [...events, ...intentResult.events, ...turnResult.events],
+    state: intentResult.state,
+    events: [...events, ...turnResult.events, ...intentResult.events],
     errors: []
   };
 };

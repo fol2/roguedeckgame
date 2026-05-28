@@ -67,14 +67,17 @@ describe("monster intents", () => {
       const cinderDust = actor.cardInstances.find((cardInstance) =>
         cardInstance.abilityId === monsterAbilityId("ash_mite_burn")
       );
-      if (!cinderDust) {
-        throw new Error("Expected Cinder Dust enemy card.");
+      const skitter = actor.cardInstances.find((cardInstance) =>
+        cardInstance.abilityId === monsterAbilityId("cinder_mite_skitter")
+      );
+      if (!cinderDust || !skitter) {
+        throw new Error("Expected Cinder Dust and Skitter enemy cards.");
       }
 
       return {
         ...actor,
         drawPile: [],
-        hand: [cinderDust.id],
+        hand: [skitter.id, cinderDust.id],
         planned: { planMode: "locked", candidateCardInstanceIds: [] },
         discardPile: [],
         energy: actor.energyRefill
@@ -90,6 +93,9 @@ describe("monster intents", () => {
 
     expect(planned.ok).toBe(true);
     expect(planned.state.enemyPlanOrder).toEqual([allyId, leaderId]);
+    expect(planned.state.plannedMonsterAbilities?.find((plannedAbility) =>
+      plannedAbility.monsterCombatantId === allyId
+    )?.abilityId).toBe(monsterAbilityId("ash_mite_burn"));
     expect(planned.events).toContainEqual(expect.objectContaining({
       type: "EnemyTeamPlanCreated",
       leaderMonsterId: leaderId,

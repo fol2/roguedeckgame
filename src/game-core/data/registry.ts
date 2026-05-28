@@ -12,13 +12,13 @@ import { rewardPools as rewardPoolDefinitions } from "./rewards/reward-pools";
 import { emberFoxPetSideStories, emberFoxStoryEvents } from "./story/ember-fox-story";
 import { emberFoxUpgrades } from "./upgrades/ember-fox-upgrades";
 import type { GameContentRegistry } from "../model/registry";
-import { burnStatusDefinition } from "../model/status";
+import { burnStatusDefinition, nextAttackBoostStatusDefinition } from "../model/status";
 
 export const starterRegistry: GameContentRegistry = {
   contentVersion: "ashwood-trail-reveal-scope-v4",
   cards: [...starterCards, ...emberFoxCards, ...rewardCards],
   decks: deckDefinitions,
-  statuses: [burnStatusDefinition],
+  statuses: [burnStatusDefinition, nextAttackBoostStatusDefinition],
   pets: petDefinitions,
   players: playerDefinitions,
   monsterAbilities: forestMonsterAbilities,

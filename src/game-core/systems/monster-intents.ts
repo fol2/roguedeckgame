@@ -34,6 +34,7 @@ type MonsterCardPlanResult = {
 type MonsterIntentPlanningOptions = {
   readonly opening?: boolean;
   readonly replanOnly?: boolean;
+  readonly plannedByLeader?: boolean;
 };
 
 type PlannedMonsterSelection = {
@@ -456,6 +457,31 @@ const intentPriority = (ability: MonsterAbilityDefinition): number => {
   return 5;
 };
 
+const selectHeldCardPlan = (
+  cardState: CombatMonsterCardState,
+  intentPool: readonly ResolvedIntentSelection[],
+  plannedByLeader: boolean
+): { readonly cardInstanceId: EnemyCardInstanceId; readonly selected: ResolvedIntentSelection } | undefined => {
+  const candidates = cardState.hand.flatMap((cardInstanceId) => {
+    const abilityId = getCardAbilityId(cardState, cardInstanceId);
+    const selected = intentPool.find((candidate) => candidate.ability.id === abilityId);
+    return selected ? [{ cardInstanceId, selected }] : [];
+  });
+
+  if (!plannedByLeader) {
+    return candidates[0];
+  }
+
+  return [...candidates].sort((left, right) => {
+    const priorityDelta = intentPriority(left.selected.ability) - intentPriority(right.selected.ability);
+    if (priorityDelta !== 0) {
+      return priorityDelta;
+    }
+
+    return left.cardInstanceId.localeCompare(right.cardInstanceId);
+  })[0];
+};
+
 const planTeamOrder = (
   plannedSelections: readonly PlannedMonsterSelection[],
   leader?: IntentSelectionCandidate
@@ -525,16 +551,9 @@ const selectMonsterCardPlan = (
       : isOpeningDraw ? getMonsterOpeningHandSize(monsterDefinition) : getMonsterDrawPerTurn(monsterDefinition)
   );
   const drawnState = drawn.cardState;
-  const selectedCardInstanceId = drawnState.hand.find((cardInstanceId) => {
-    const abilityId = getCardAbilityId(drawnState, cardInstanceId);
-    return intentPool.some((candidate) => candidate.ability.id === abilityId);
-  });
-  const selectedAbilityId = selectedCardInstanceId
-    ? getCardAbilityId(drawnState, selectedCardInstanceId)
-    : undefined;
-  const selected = selectedAbilityId
-    ? intentPool.find((candidate) => candidate.ability.id === selectedAbilityId)
-    : undefined;
+  const heldPlan = selectHeldCardPlan(drawnState, intentPool, options.plannedByLeader === true);
+  const selectedCardInstanceId = heldPlan?.cardInstanceId;
+  const selected = heldPlan?.selected;
 
   if (!selected || !selectedCardInstanceId) {
     return {
@@ -872,7 +891,7 @@ const resolveAdaptiveCandidate = (
       }
     }
 
-    if (ruleId === "prefer_guard_if_player_overblocks" && state.player.block >= 8) {
+    if (ruleId === "prefer_guard_if_player_overblocks" && state.player.block >= 5) {
       const candidate = pickCandidateByPredicate(candidates, (item) => item.ability.intentType === "block" || hasTag(item.ability, "block"));
       if (candidate) {
         return { candidate, reason: ruleId };
@@ -1186,6 +1205,9 @@ export const chooseMonsterIntents = (
     });
   }
 
+  const leader = getTeamLeaderCandidate(candidates);
+  const plannedByLeader = leader?.monsterDefinition.cardGame?.canPlanAllies === true;
+
   for (const { monster, monsterDefinition, intentPool } of candidates) {
     const cardPlan = selectMonsterCardPlan(
       state,
@@ -1193,7 +1215,7 @@ export const chooseMonsterIntents = (
       monsterDefinition,
       intentPool,
       rng,
-      options
+      { ...options, plannedByLeader }
     );
     const selected = cardPlan.selected;
     if (!selected) {
@@ -1252,7 +1274,6 @@ export const chooseMonsterIntents = (
     });
   }
 
-  const leader = getTeamLeaderCandidate(candidates);
   const teamPlan = planTeamOrder(plannedSelections, leader);
   events.push(...teamPlan.events);
 

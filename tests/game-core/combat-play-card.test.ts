@@ -79,6 +79,68 @@ describe("playCard", () => {
     }));
   });
 
+  it("finalises adaptive replan readouts after player block changes public state", () => {
+    const attackCardId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockCardId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const state = withEnemyCardActorState(createHandTunedCombatFixture(), targetId, (actor) => ({
+      ...actor,
+      hand: [],
+      planned: {
+        planMode: "adaptive",
+        lockedCardInstanceId: attackCardId,
+        candidateCardInstanceIds: [blockCardId]
+      },
+      maxEnergy: 2,
+      energy: 0,
+      energyRefill: 2
+    }));
+    const registry = {
+      ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === monsterAbilityId("training_slime_attack") ||
+        ability.id === monsterAbilityId("training_slime_block")
+          ? { ...ability, planMode: "adaptive" as const }
+          : ability
+      ),
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              cardGame: monster.cardGame
+                ? {
+                    ...monster.cardGame,
+                    maxEnergy: 2,
+                    energyRefill: 2,
+                    planSlots: 2,
+                    defaultPlanMode: "adaptive" as const,
+                    adaptiveRuleIds: ["prefer_guard_if_player_overblocks"]
+                  }
+                : monster.cardGame
+            }
+          : monster
+      )
+    };
+    const result = playCard(
+      state,
+      { type: "playCard", cardInstanceId: cardInstanceId("defend:1") },
+      registry,
+      createRng("defend-adaptive-replan")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsterIntents[0]).toMatchObject({
+      monsterCombatantId: targetId,
+      intentId: monsterIntentId("training_slime_block")
+    });
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "EnemyPlanChanged",
+      monsterId: targetId,
+      fromAbilityId: monsterAbilityId("training_slime_attack"),
+      toAbilityId: monsterAbilityId("training_slime_block"),
+      reason: "prefer_guard_if_player_overblocks"
+    }));
+  });
+
   it("plays Focus for zero energy and draws one", () => {
     const result = playCard(
       createHandTunedCombatFixture(),

@@ -68,3 +68,14 @@ export const burnStatusDefinition: StatusDefinition = {
     expiresAtZero: true
   }
 };
+
+export const nextAttackBoostStatusDefinition: StatusDefinition = {
+  id: statusId("next_attack_boost"),
+  name: "Next Attack Boost",
+  tags: ["buff", "attack", "temporary"],
+  description: "The next direct attack from this unit gains damage equal to this status, then consumes the status.",
+  stacking: {
+    type: "additive",
+    durationPolicy: "max"
+  }
+};

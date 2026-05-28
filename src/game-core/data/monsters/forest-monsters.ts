@@ -4,7 +4,14 @@ import type { MonsterAbilityDefinition, MonsterDefinition, MonsterIntentDefiniti
 
 const monsterAttack = (amount: number) => ({ type: "damage" as const, amount, target: { type: "target" as const } });
 const monsterBlock = (amount: number) => ({ type: "block" as const, amount, target: { type: "self" as const } });
+const monsterTeamBlock = (amount: number) => ({ type: "block" as const, amount, target: { type: "allAllies" as const } });
 const monsterBurn = (stacks: number) => ({ type: "applyStatus" as const, statusId: statusId("burn"), stacks, target: { type: "target" as const } });
+const monsterNextAttackBoost = (stacks: number) => ({
+  type: "applyStatus" as const,
+  statusId: statusId("next_attack_boost"),
+  stacks,
+  target: { type: "self" as const }
+});
 const monsterCleanseBurn = (stacks: number) => ({ type: "cleanseStatus" as const, statusId: statusId("burn"), stacks, target: { type: "self" as const } });
 const monsterObscureSelf = () => ({
   type: "obscureIntent" as const,
@@ -146,12 +153,12 @@ export const rootHuskEmberSapAbility: MonsterAbilityDefinition = {
   id: monsterAbilityId("root_husk_ember_sap"),
   name: "Ember Sap",
   intentType: "special",
-  description: `Gain ${act1NormalBalance.monsters.rootHuskSapBlock} Block and prepare pressure.`,
+  description: `Gain ${act1NormalBalance.monsters.rootHuskSapBlock} Block and give the next attack +3 damage.`,
   tags: ["block", "special", "root", "guardian"],
   tier: "advanced",
   planMode: "locked",
   telegraph: { defaultVisibility: "category", amountLabelMode: "hidden", targetHint: "self" },
-  effects: [monsterBlock(act1NormalBalance.monsters.rootHuskSapBlock)]
+  effects: [monsterBlock(act1NormalBalance.monsters.rootHuskSapBlock), monsterNextAttackBoost(3)]
 };
 
 export const charredStagAntlerStrikeAbility: MonsterAbilityDefinition = {
@@ -194,12 +201,12 @@ export const charredStagPawTheAshAbility: MonsterAbilityDefinition = {
   id: monsterAbilityId("charred_stag_paw_the_ash"),
   name: "Paw the Ash",
   intentType: "charge",
-  description: `Charge: gain ${act1NormalBalance.monsters.charredStagPawTheAshBlock} Block and prepare a stronger line.`,
+  description: `Charge: gain ${act1NormalBalance.monsters.charredStagPawTheAshBlock} Block and give the next attack +5 damage.`,
   tags: ["charge", "elite", "adaptive"],
   tier: "elite",
   planMode: "charging",
   telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
-  effects: [monsterBlock(act1NormalBalance.monsters.charredStagPawTheAshBlock)]
+  effects: [monsterBlock(act1NormalBalance.monsters.charredStagPawTheAshBlock), monsterNextAttackBoost(5)]
 };
 
 export const charredStagCrownFlareAbility: MonsterAbilityDefinition = {
@@ -259,7 +266,7 @@ export const cinderScribeBorrowedLineAbility: MonsterAbilityDefinition = {
   tier: "rareBearer",
   planMode: "locked",
   telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
-  effects: []
+  effects: [{ type: "draw" as const, amount: 1 }]
 };
 
 export const emberrootWardenRootSlamAbility: MonsterAbilityDefinition = {
@@ -302,12 +309,12 @@ export const emberrootWardenAshBloomAbility: MonsterAbilityDefinition = {
   id: monsterAbilityId("emberroot_warden_ash_bloom"),
   name: "Ash Bloom",
   intentType: "charge",
-  description: "Charge: prepare an unstable boss branch.",
+  description: "Charge: give the next attack +3 damage.",
   tags: ["charge", "boss", "phase", "adaptive"],
   tier: "boss",
   planMode: "charging",
   telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "unknown" },
-  effects: []
+  effects: [monsterNextAttackBoost(3)]
 };
 
 export const emberrootWardenRootBindAbility: MonsterAbilityDefinition = {
@@ -338,12 +345,12 @@ export const emberrootWardenCommandAbility: MonsterAbilityDefinition = {
   id: monsterAbilityId("emberroot_warden_command"),
   name: "Warden Command",
   intentType: "special",
-  description: "Command the enemy team order.",
+  description: "Command the enemy team order and grant each ally 2 Block.",
   tags: ["leader", "team", "boss", "adaptive"],
   tier: "boss",
   planMode: "adaptive",
   telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "ally" },
-  effects: []
+  effects: [monsterTeamBlock(2)]
 };
 
 export const trainingSlime: MonsterDefinition = {
@@ -425,7 +432,7 @@ export const sootCrow: MonsterDefinition = {
     defaultIntentVisibility: "category",
     deck: [
       { abilityId: sootCrowPeckAbility.id, copies: 2, cost: 1 },
-      { abilityId: sootCrowFlutterAbility.id, copies: 1, cost: 1 },
+      { abilityId: sootCrowFlutterAbility.id, copies: 2, cost: 1 },
       { abilityId: sootCrowBlackCawAbility.id, copies: 1, cost: 1 }
     ]
   }
@@ -496,9 +503,9 @@ export const charredStag: MonsterDefinition = {
     deck: [
       { abilityId: charredStagAntlerStrikeAbility.id, copies: 2, cost: 1 },
       { abilityId: charredStagEmberHoovesAbility.id, copies: 1, cost: 1 },
-      { abilityId: charredStagGuardedSnortAbility.id, copies: 1, cost: 1 },
-      { abilityId: charredStagPawTheAshAbility.id, copies: 1, cost: 2 },
-      { abilityId: charredStagCrownFlareAbility.id, copies: 1, cost: 2 }
+      { abilityId: charredStagGuardedSnortAbility.id, copies: 2, cost: 1 },
+      { abilityId: charredStagPawTheAshAbility.id, copies: 1, cost: 1 },
+      { abilityId: charredStagCrownFlareAbility.id, copies: 1, cost: 1 }
     ]
   }
 };

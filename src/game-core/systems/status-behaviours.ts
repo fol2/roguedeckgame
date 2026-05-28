@@ -1,5 +1,11 @@
 import type { GameContentRegistry } from "../model/registry";
-import { burnStatusDefinition, type StatusBehaviourDefinition, type StatusDefinition, type StatusStackingDefinition } from "../model/status";
+import {
+  burnStatusDefinition,
+  nextAttackBoostStatusDefinition,
+  type StatusBehaviourDefinition,
+  type StatusDefinition,
+  type StatusStackingDefinition
+} from "../model/status";
 
 export const supportedStatusBehaviourTypes = [
   "startOfTurnDamage",
@@ -7,7 +13,7 @@ export const supportedStatusBehaviourTypes = [
   "statusImmunity"
 ] as const satisfies readonly StatusBehaviourDefinition["type"][];
 
-export const defaultStatusDefinitions = [burnStatusDefinition] as const;
+export const defaultStatusDefinitions = [burnStatusDefinition, nextAttackBoostStatusDefinition] as const;
 
 export const getStatusDefinitions = (
   registry?: Pick<GameContentRegistry, "statuses">
@@ -82,12 +88,14 @@ export const hasSupportedRuntimeStatusBehaviour = (status: StatusDefinition): bo
   supportedStatusBehaviourTypes.includes(status.behaviour.type) &&
   validateStatusBehaviourDefinition(status.behaviour);
 
+const runtimeHandledStatusIds = new Set<string>([nextAttackBoostStatusDefinition.id]);
+
 export const getRuntimeSupportedStatusIds = (
   registry?: Pick<GameContentRegistry, "statuses">
 ): ReadonlySet<string> =>
   new Set(
     getStatusDefinitions(registry)
-      .filter(hasSupportedRuntimeStatusBehaviour)
+      .filter((status) => hasSupportedRuntimeStatusBehaviour(status) || runtimeHandledStatusIds.has(status.id))
       .map((status) => status.id)
   );
 

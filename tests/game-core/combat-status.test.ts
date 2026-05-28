@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   burnStatusDefinition,
   combatantId,
+  createCombat,
   createRng,
   getStatusDescriptor,
+  monsterId,
+  nextAttackBoostStatusDefinition,
   processEndOfTurnStatuses,
   processStartOfTurnStatuses,
   resolveEffects,
+  starterRegistry,
   statusId,
   type GameContentRegistry
 } from "../../src/game-core";
@@ -14,6 +18,7 @@ import {
   createBurningMonsterFixture,
   createEnemyTurnFixture
 } from "../../src/game-core/testing/combat-fixtures";
+import { createEmberFoxInstanceFixture, createRunFixture } from "../../src/game-core/testing/fixtures";
 
 const createStatusRegistry = (
   statuses: GameContentRegistry["statuses"]
@@ -299,6 +304,82 @@ describe("combat statuses", () => {
       stacksConsumed: 2,
       remainingStacks: 1
     });
+  });
+
+  it("adds and consumes Next Attack Boost on the next direct attack", () => {
+    const baseState = createBurningMonsterFixture(1);
+    const monster = baseState.monsters[0];
+    const state = {
+      ...baseState,
+      monsters: [{
+        ...monster,
+        statuses: [{ statusId: statusId("next_attack_boost"), stacks: 3 }]
+      }],
+      player: { ...baseState.player, block: 0 }
+    };
+    const result = resolveEffects(
+      state,
+      [{ type: "damage", amount: 4, target: { type: "target", combatantId: state.player.id } }],
+      { sourceId: monster.id },
+      createStatusRegistry([burnStatusDefinition, nextAttackBoostStatusDefinition]),
+      createRng("next-attack-boost")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.monsters[0].statuses).toEqual([]);
+    expect(result.events.map((event) => event.type)).toEqual(["StatusConsumed", "DamageDealt"]);
+    expect(result.events[1]).toMatchObject({
+      type: "DamageDealt",
+      amount: 7
+    });
+  });
+
+  it("draw effects use the source enemy Card Actor when an enemy card resolves", () => {
+    const created = createCombat({
+      run: createRunFixture(),
+      registry: starterRegistry,
+      petInstances: [createEmberFoxInstanceFixture()],
+      monsterIds: [monsterId("cinder_scribe")],
+      seed: "enemy-draw-effect"
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok || !created.state) {
+      throw new Error("Expected combat creation to succeed.");
+    }
+
+    const monster = created.state.monsters[0];
+    const actor = created.state.cardActors.find((candidate) => candidate.actorId === monster.id);
+    const drawnCardId = actor?.drawPile[0];
+    expect(actor?.actorKind).toBe("enemy");
+    expect(drawnCardId).toBeDefined();
+    if (!actor || !drawnCardId) {
+      throw new Error("Expected cinder scribe to have an enemy draw pile.");
+    }
+
+    const result = resolveEffects(
+      {
+        ...created.state,
+        cardActors: created.state.cardActors.map((candidate) =>
+          candidate.actorId === monster.id
+            ? { ...actor, hand: [], drawPile: [drawnCardId], discardPile: [] }
+            : candidate
+        )
+      },
+      [{ type: "draw", amount: 1 }],
+      { sourceId: monster.id },
+      starterRegistry,
+      createRng("enemy-draw-effect")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toEqual([expect.objectContaining({
+      type: "EnemyCardMoved",
+      monsterId: monster.id,
+      cardInstanceId: drawnCardId,
+      from: "draw",
+      to: "hand"
+    })]);
+    expect(result.state.monsterCardStates?.find((cardState) => cardState.monsterCombatantId === monster.id)?.hand).toEqual([drawnCardId]);
   });
 
   it("describes status stacking, timing, expiry, cleanse, and consume lifecycle copy", () => {

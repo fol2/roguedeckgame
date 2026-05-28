@@ -5,11 +5,11 @@ import type { PlayerClassModifierRule } from "../model/player";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunState } from "../model/run";
 import type { RunNodeType } from "../model/run-map";
-import { burnStatusDefinition } from "../model/status";
 import type { StoryOutcome, StoryRequirement, StoryTrigger } from "../model/story";
 import { buildContentIndex } from "./content-index";
 import {
   getRuntimeSupportedStatusIds,
+  defaultStatusDefinitions,
   validateStatusBehaviourDefinition,
   validateStatusStackingDefinition
 } from "./status-behaviours";
@@ -1170,7 +1170,7 @@ export const validateRegistry = (
     contentVersion: typeof registryRecord.contentVersion === "string" ? registryRecord.contentVersion : "",
     cards: Array.isArray(registryRecord.cards) ? registryRecord.cards : [],
     decks: Array.isArray(registryRecord.decks) ? registryRecord.decks : [],
-    statuses: Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition],
+    statuses: Array.isArray(registryRecord.statuses) ? registryRecord.statuses : defaultStatusDefinitions,
     pets: Array.isArray(registryRecord.pets) ? registryRecord.pets : [],
     players: Array.isArray(registryRecord.players) ? registryRecord.players : [],
     monsterAbilities: Array.isArray(registryRecord.monsterAbilities) ? registryRecord.monsterAbilities : [],
@@ -1255,7 +1255,7 @@ export const validateRegistry = (
 
   const cardDefinitions = Array.isArray(registryRecord.cards) ? registryRecord.cards : [];
   const deckDefinitions = Array.isArray(registryRecord.decks) ? registryRecord.decks : [];
-  const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : [burnStatusDefinition];
+  const statusDefinitions = Array.isArray(registryRecord.statuses) ? registryRecord.statuses : defaultStatusDefinitions;
   const playerDefinitions = Array.isArray(registryRecord.players) ? registryRecord.players : [];
   const monsterAbilityDefinitions = Array.isArray(registryRecord.monsterAbilities) ? registryRecord.monsterAbilities : [];
   const monsterDefinitions = Array.isArray(registryRecord.monsters) ? registryRecord.monsters : [];

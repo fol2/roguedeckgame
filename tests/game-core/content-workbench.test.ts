@@ -108,7 +108,7 @@ describe("content workbench view model", () => {
         usesDefaultTarget: true
       }
     });
-    expect(first.sections.statuses).toEqual([expect.objectContaining({
+    expect(first.sections.statuses).toEqual(expect.arrayContaining([expect.objectContaining({
       id: "burn",
       behaviourType: "startOfTurnDamage",
       runtimeSupported: true,
@@ -116,7 +116,11 @@ describe("content workbench view model", () => {
         "Burn 1",
         "Cleanse emits StatusCleansed; consume emits StatusConsumed."
       ])
-    })]);
+    }), expect.objectContaining({
+      id: "next_attack_boost",
+      behaviourType: undefined,
+      runtimeSupported: true
+    })]));
     expect(first.sections.runMapTemplates).toEqual([expect.objectContaining({
       id: "act1_forest",
       nodeCount: 11,

@@ -161,7 +161,16 @@ describe("enemy turn resolution", () => {
     expect(result.state.hand.length).toBeGreaterThan(0);
     expect(result.state.monsterIntents).toHaveLength(1);
     expect(result.state.plannedMonsterAbilities).toHaveLength(1);
-    expect(result.events.map((event) => event.type)).toEqual(expect.arrayContaining(["MonsterAbilityPlanned", "MonsterIntentSet", "TurnStarted", "CardDrawn"]));
+    const eventTypes = result.events.map((event) => event.type);
+    const turnStartedIndex = eventTypes.indexOf("TurnStarted");
+    const cardDrawnIndex = eventTypes.indexOf("CardDrawn");
+    const abilityPlannedIndex = eventTypes.indexOf("MonsterAbilityPlanned");
+    const intentSetIndex = eventTypes.indexOf("MonsterIntentSet");
+
+    expect(turnStartedIndex).toBeGreaterThanOrEqual(0);
+    expect(cardDrawnIndex).toBeGreaterThan(turnStartedIndex);
+    expect(abilityPlannedIndex).toBeGreaterThan(cardDrawnIndex);
+    expect(intentSetIndex).toBeGreaterThan(abilityPlannedIndex);
   });
 
   it("does not select next monster intents when player start-turn Burn ends combat", () => {

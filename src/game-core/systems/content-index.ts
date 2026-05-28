@@ -23,7 +23,8 @@ import type { PlayerClassDefinition, PlayerClassModifierDefinition } from "../mo
 import type { RewardPoolDefinition } from "../model/reward";
 import type { GameContentRegistry } from "../model/registry";
 import type { RunMapTemplateDefinition } from "../model/run-map";
-import { burnStatusDefinition, type StatusDefinition } from "../model/status";
+import type { StatusDefinition } from "../model/status";
+import { defaultStatusDefinitions } from "./status-behaviours";
 import type { PetSideStoryDefinition, StoryEventDefinition } from "../model/story";
 
 export type IndexedContentCollection =
@@ -125,7 +126,7 @@ const collect = <Id extends string, Definition extends DefinitionWithId>(
 export const buildContentIndex = (registry: GameContentRegistry): ContentIndex => {
   const cards = collect<CardId, CardDefinition>("cards", registry.cards);
   const decks = collect<DeckId, DeckDefinition>("decks", registry.decks ?? []);
-  const statuses = collect<StatusId, StatusDefinition>("statuses", registry.statuses ?? [burnStatusDefinition]);
+  const statuses = collect<StatusId, StatusDefinition>("statuses", registry.statuses ?? defaultStatusDefinitions);
   const pets = collect<PetDefinitionId, PetDefinition>("pets", registry.pets);
   const players = collect<PlayerClassId, PlayerClassDefinition>("players", registry.players);
   const monsterAbilities = collect<MonsterAbilityId, MonsterAbilityDefinition>("monsterAbilities", registry.monsterAbilities ?? []);
