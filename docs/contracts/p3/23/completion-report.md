@@ -38,7 +38,7 @@ Scope: v0.5 first playable combat slice hard cut.
 - `npm run sim:smoke -- --max-steps 500`: 3 runs, 0 failures, passed.
 - `npm run sim:smoke -- --max-steps 500 --trace-output tests/game-core/traces/smoke-complete.json`: passed and regenerated committed trace.
 - `npm run sim:balance`: 200 runs, 0 failures, completion 59.0%, loss 41.0%, strict health passed.
-- `npm run smoke:localhost`: 1 file / 1 test passed, health URL `http://127.0.0.1:55014/health`.
+- `npm run smoke:localhost`: 1 file / 1 test passed, health URL `http://127.0.0.1:55881/health`.
 
 ## Localhost Preview Evidence
 
