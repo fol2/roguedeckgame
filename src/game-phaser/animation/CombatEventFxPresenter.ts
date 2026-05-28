@@ -199,8 +199,18 @@ export class CombatEventFxPresenter {
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Intent", 0xff9aad);
       case "EnemyIntentVisibilityChanged":
         return this.playPulse(this.getCombatantPoint(event.monsterId), event.level, 0x7dd3fc);
+      case "EnemyDeckShuffled":
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Shuffle", 0x7dd3fc);
+      case "EnemyCardMoved":
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Card", 0x7dd3fc);
+      case "EnemyPlanCreated":
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Plan", 0xff9aad);
       case "EnemyPlanChanged":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Plan", 0xff9aad);
+      case "EnemyPlanFinalized":
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Ready", 0xff9aad);
+      case "EnemyCardResolved":
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", COMBAT_PLACEHOLDER_COLOURS.status);
       case "CombatantDefeated":
         return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", COMBAT_PLACEHOLDER_COLOURS.status);
       case "CombatEnded":

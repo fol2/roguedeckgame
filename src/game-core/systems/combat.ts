@@ -24,7 +24,7 @@ import { moveCardBetweenPiles } from "./card-piles";
 import { drawCards } from "./draw";
 import { resolveCardEffects, resolveEffects } from "./effects";
 import { checkCombatOutcome } from "./outcome";
-import { chooseMonsterIntents, discardPlannedMonsterCard, finalizePlannedMonsterAbility, findMonsterDefinition } from "./monster-intents";
+import { chooseMonsterIntents, finalizePlannedMonsterAbility, findMonsterDefinition, resolveDiscardPlannedMonsterCard } from "./monster-intents";
 import {
   applyPetCommandCostModifiers,
   applyPetCommandEffectModifiers,
@@ -905,8 +905,9 @@ export const resolveEnemyTurn = (
       monsterId: monster.id,
       intentId: planned.intent.id
     };
-    nextState = appendEvents({ ...nextState, activeActorId: monster.id }, [abilityPlayedEvent, resolvedEvent]);
-    events.push(abilityPlayedEvent, resolvedEvent);
+    const resolutionEvents = [abilityPlayedEvent, resolvedEvent];
+    nextState = appendEvents({ ...nextState, activeActorId: monster.id }, resolutionEvents);
+    events.push(...resolutionEvents);
 
     const effectResult = resolveEffects(
       nextState,
@@ -926,14 +927,27 @@ export const resolveEnemyTurn = (
       );
     }
 
-    nextState = discardPlannedMonsterCard(effectResult.state, monster.id);
+    const enemyCardResolvedEvent: GameEvent | undefined = planned.cardInstanceId
+      ? {
+          type: "EnemyCardResolved",
+          monsterId: monster.id,
+          cardInstanceId: planned.cardInstanceId,
+          abilityId: planned.ability.id,
+          intentId: planned.intent.id
+        }
+      : undefined;
+    const stateAfterResolutionEvent = enemyCardResolvedEvent
+      ? appendEvents(effectResult.state, [enemyCardResolvedEvent])
+      : effectResult.state;
+    const discardResult = resolveDiscardPlannedMonsterCard(stateAfterResolutionEvent, monster.id);
+    nextState = appendEvents(discardResult.state, discardResult.events);
     nextState = {
       ...nextState,
       intentVisibilityOverrides: (nextState.intentVisibilityOverrides ?? []).filter((override) =>
         !(override.expires === "afterEnemyAction" && override.monsterCombatantId === monster.id)
       )
     };
-    events.push(...effectResult.events);
+    events.push(...effectResult.events, ...(enemyCardResolvedEvent ? [enemyCardResolvedEvent] : []), ...discardResult.events);
 
     const outcomeResult = checkCombatOutcome(nextState);
     nextState = outcomeResult.state;

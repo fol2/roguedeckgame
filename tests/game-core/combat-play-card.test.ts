@@ -5,7 +5,10 @@ import {
   combatantId,
   createRng,
   monsterAbilityId,
+  monsterId,
+  monsterIntentId,
   playCard,
+  revealIntentEffect,
   resolveEffectiveIntentVisibilityLevel,
   starterRegistry,
   statusId
@@ -102,6 +105,97 @@ describe("playCard", () => {
         level: "rough"
       })
     );
+  });
+
+  it("uses Read the Ash as one-step visibility improvement capped at rough", () => {
+    const readTheAsh = cardInstanceId("read_the_ash:1");
+    const cinderScribeId = combatantId("monster:cinder_scribe:0");
+    const fixture = createHandTunedCombatFixture();
+    const result = playCard(
+      {
+        ...fixture,
+        monsters: [{
+          ...fixture.monsters[0],
+          id: cinderScribeId,
+          definitionId: monsterId("cinder_scribe"),
+          name: "Cinder Scribe"
+        }],
+        monsterIntents: [{
+          monsterCombatantId: cinderScribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark")
+        }],
+        plannedMonsterAbilities: [{
+          monsterCombatantId: cinderScribeId,
+          intentId: monsterIntentId("cinder_scribe_ink_spark"),
+          abilityId: monsterAbilityId("cinder_scribe_ink_spark")
+        }],
+        cardInstances: [
+          ...fixture.cardInstances,
+          { id: readTheAsh, cardId: cardId("read_the_ash"), ownerId: combatantId("player") }
+        ],
+        hand: [readTheAsh],
+        drawPile: []
+      },
+      { type: "playCard", cardInstanceId: readTheAsh, targetId: cinderScribeId },
+      starterRegistry,
+      createRng("read-the-ash-one-step")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "EnemyIntentVisibilityChanged",
+      monsterId: cinderScribeId,
+      previousLevel: "unknown",
+      level: "category"
+    }));
+  });
+
+  it("supports explicit reveal intent effects without using them for stepwise Read the Ash", () => {
+    const revealCard = cardInstanceId("test_reveal_intent:1");
+    const fixture = createHandTunedCombatFixture();
+    const registry = {
+      ...starterRegistry,
+      cards: [
+        ...starterRegistry.cards,
+        {
+          id: cardId("test_reveal_intent"),
+          name: "Test Reveal Intent",
+          description: "Reveal target enemy intent exactly.",
+          type: "skill" as const,
+          cost: 0,
+          tags: ["test", "reveal"],
+          effects: [revealIntentEffect({ type: "target" }, "exact", { source: "card", expires: "currentPlan" })]
+        }
+      ]
+    };
+
+    const result = playCard(
+      {
+        ...fixture,
+        cardInstances: [
+          ...fixture.cardInstances,
+          { id: revealCard, cardId: cardId("test_reveal_intent"), ownerId: combatantId("player") }
+        ],
+        hand: [revealCard],
+        drawPile: []
+      },
+      { type: "playCard", cardInstanceId: revealCard, targetId },
+      registry,
+      createRng("test-reveal-intent")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.intentVisibilityOverrides).toContainEqual(expect.objectContaining({
+      monsterCombatantId: targetId,
+      level: "exact",
+      mode: "floor"
+    }));
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "EnemyIntentVisibilityChanged",
+      monsterId: targetId,
+      previousLevel: "category",
+      level: "exact"
+    }));
   });
 
   it("scopes enemy candidate cards without exposing exact intent text", () => {
@@ -243,6 +337,43 @@ describe("playCard", () => {
       monsterCombatantId: targetId,
       monsterDefinition
     })).toBe("category");
+  });
+
+  it("does not emit uncapped visibility events while an obscure ceiling still applies", () => {
+    const ashRewrite = cardInstanceId("ash_rewrite:1");
+    const fixture = createHandTunedCombatFixture();
+    const result = playCard(
+      {
+        ...fixture,
+        intentVisibilityOverrides: [{
+          monsterCombatantId: targetId,
+          level: "category",
+          source: "enemyObscure",
+          expires: "currentPlan",
+          mode: "ceiling"
+        }],
+        cardInstances: [
+          ...fixture.cardInstances,
+          { id: ashRewrite, cardId: cardId("ash_rewrite"), ownerId: combatantId("player") }
+        ],
+        hand: [ashRewrite],
+        drawPile: []
+      },
+      { type: "playCard", cardInstanceId: ashRewrite, targetId },
+      starterRegistry,
+      createRng("ash-rewrite-capped-event")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.intentVisibilityOverrides).toContainEqual(expect.objectContaining({
+      monsterCombatantId: targetId,
+      level: "scoped",
+      scopeDepth: "candidateSet"
+    }));
+    expect(result.events).not.toContainEqual(expect.objectContaining({
+      type: "EnemyIntentVisibilityChanged",
+      level: "scoped"
+    }));
   });
 
   it("rejects target ids on targetless cards", () => {

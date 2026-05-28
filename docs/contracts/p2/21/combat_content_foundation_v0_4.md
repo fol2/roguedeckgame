@@ -1314,14 +1314,14 @@ Strict health: enabled
 Strict balance: enabled
 ```
 
-v0.4 balance result after the integrated reveal/scope/obscure pass:
+Final v0.4 implementation balance result after the integrated reveal/scope/obscure pass:
 
 ```txt
 Seed prefix: balance-normal
 Runs: 200
-Completed: 111
-Lost: 89
-Completion rate: 55.5%
+Completed: 90
+Lost: 110
+Completion rate: 45.0%
 Result: inside target band
 ```
 

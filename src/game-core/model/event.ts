@@ -22,7 +22,15 @@ import type {
   StoryFlagId,
   UpgradeId
 } from "../ids";
-import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilityOverrideMode, IntentVisibilitySource, ScopeIntentDepth } from "./combat";
+import type {
+  IntentVisibilityExpiry,
+  IntentVisibilityLevel,
+  IntentVisibilityOverrideMode,
+  IntentVisibilitySource,
+  MonsterCardZone,
+  ScopeIntentDepth
+} from "./combat";
+import type { EnemyPlanMode } from "./monster";
 import type { MonsterIntentType } from "./monster";
 import type { RewardOption } from "./reward";
 
@@ -94,6 +102,30 @@ export type GameEvent =
       readonly description: string;
     }
   | {
+      readonly type: "EnemyDeckShuffled";
+      readonly monsterId: CombatantId;
+      readonly from: Extract<MonsterCardZone, "discard">;
+      readonly to: Extract<MonsterCardZone, "draw">;
+      readonly count: number;
+    }
+  | {
+      readonly type: "EnemyCardMoved";
+      readonly monsterId: CombatantId;
+      readonly cardInstanceId: EnemyCardInstanceId;
+      readonly abilityId: MonsterAbilityId;
+      readonly from: MonsterCardZone;
+      readonly to: MonsterCardZone;
+    }
+  | {
+      readonly type: "EnemyPlanCreated";
+      readonly monsterId: CombatantId;
+      readonly abilityId: MonsterAbilityId;
+      readonly intentId: MonsterIntentId;
+      readonly cardInstanceId: EnemyCardInstanceId;
+      readonly candidateCardInstanceIds: readonly EnemyCardInstanceId[];
+      readonly planMode: EnemyPlanMode;
+    }
+  | {
       readonly type: "EnemyIntentVisibilityChanged";
       readonly monsterId: CombatantId;
       readonly level: IntentVisibilityLevel;
@@ -113,6 +145,22 @@ export type GameEvent =
       readonly fromIntentId: MonsterIntentId;
       readonly toIntentId: MonsterIntentId;
       readonly reason: string;
+    }
+  | {
+      readonly type: "EnemyPlanFinalized";
+      readonly monsterId: CombatantId;
+      readonly abilityId: MonsterAbilityId;
+      readonly intentId: MonsterIntentId;
+      readonly cardInstanceId?: EnemyCardInstanceId;
+      readonly planMode?: EnemyPlanMode;
+      readonly changed: boolean;
+    }
+  | {
+      readonly type: "EnemyCardResolved";
+      readonly monsterId: CombatantId;
+      readonly cardInstanceId: EnemyCardInstanceId;
+      readonly abilityId: MonsterAbilityId;
+      readonly intentId: MonsterIntentId;
     }
   | {
       readonly type: "MonsterAbilityPlayed";
@@ -281,7 +329,14 @@ export const projectGameEventsForSchema = (
   }
 
   const withoutV5Events = events
-    .filter((event) => event.type !== "EnemyPlanChanged")
+    .filter((event) =>
+      event.type !== "EnemyDeckShuffled" &&
+      event.type !== "EnemyCardMoved" &&
+      event.type !== "EnemyPlanCreated" &&
+      event.type !== "EnemyPlanChanged" &&
+      event.type !== "EnemyPlanFinalized" &&
+      event.type !== "EnemyCardResolved"
+    )
     .map((event): GameEvent => {
       if (event.type !== "EnemyIntentVisibilityChanged") {
         return event;

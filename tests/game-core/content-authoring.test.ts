@@ -107,7 +107,6 @@ describe("content authoring helpers", () => {
         "petAttack",
         "petBlock",
         "petReact",
-        "revealIntent",
         "scopeIntent"
       ],
       statusIds: ["burn"],

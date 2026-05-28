@@ -101,6 +101,8 @@ export type CombatMonsterCardPlanState = {
 
 export type CombatMonsterCardState = {
   readonly monsterCombatantId: CombatantId;
+  readonly handSize: number;
+  readonly planSlots: number;
   readonly cardInstances: readonly CombatMonsterCardInstance[];
   readonly drawPile: readonly EnemyCardInstanceId[];
   readonly hand: readonly EnemyCardInstanceId[];

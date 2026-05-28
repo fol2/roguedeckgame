@@ -240,6 +240,8 @@ describe("agent run driver", () => {
             }],
             monsterCardStates: [{
               monsterCombatantId: monster!.id,
+              handSize: 1,
+              planSlots: 1,
               drawPile: [],
               hand: [],
               discardPile: [],

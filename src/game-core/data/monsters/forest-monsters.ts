@@ -425,7 +425,7 @@ export const charredStag: MonsterDefinition = {
   ],
   cardGame: {
     handSize: 2,
-    planSlots: 2,
+    planSlots: 1,
     defaultPlanMode: "adaptive",
     defaultIntentVisibility: "unknown",
     adaptiveRuleIds: ["prefer_attack_if_player_low_block", "prefer_guard_if_player_overblocks"],
@@ -484,7 +484,7 @@ export const forestWarden: MonsterDefinition = {
   ],
   cardGame: {
     handSize: 3,
-    planSlots: 2,
+    planSlots: 1,
     defaultPlanMode: "adaptive",
     defaultIntentVisibility: "unknown",
     adaptiveRuleIds: ["phase_after_half_hp", "prefer_charge_when_safe", "prefer_shelter_when_burning"],

@@ -893,18 +893,32 @@ const resolveIntentVisibilityEffect = (
       ...(scopedCandidateAbilityIds ? { scopedCandidateAbilityIds } : {})
     };
 
-    overrides = addVisibilityOverride(overrides, nextOverride);
+    const nextOverrides = addVisibilityOverride(overrides, nextOverride);
+    const effectiveNextLevel = resolveEffectiveIntentVisibilityLevel({
+      state: { ...input.state, intentVisibilityOverrides: nextOverrides },
+      registry: input.registry,
+      monsterCombatantId: target.id,
+      monsterDefinition,
+      ability
+    });
+
+    overrides = nextOverrides;
+
+    if (effectiveNextLevel === currentLevel) {
+      continue;
+    }
+
     events.push({
       type: "EnemyIntentVisibilityChanged",
       monsterId: target.id,
       previousLevel: currentLevel,
-      level: nextLevel,
+      level: effectiveNextLevel,
       source,
       expires,
       mode,
-      ...(scopeDepth ? { scopeDepth } : {}),
-      ...(scopedCandidateCardInstanceIds ? { scopedCandidateCardInstanceIds } : {}),
-      ...(scopedCandidateAbilityIds ? { scopedCandidateAbilityIds } : {})
+      ...(scopeDepth && effectiveNextLevel === "scoped" ? { scopeDepth } : {}),
+      ...(scopedCandidateCardInstanceIds && effectiveNextLevel === "scoped" ? { scopedCandidateCardInstanceIds } : {}),
+      ...(scopedCandidateAbilityIds && effectiveNextLevel === "scoped" ? { scopedCandidateAbilityIds } : {})
     });
   }
 

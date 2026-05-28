@@ -7,17 +7,20 @@ Base branch: `main`
 ## Completed Scope
 
 - Implemented data-driven `revealIntent`, `scopeIntent`, and `obscureIntent` effect definitions, builders, descriptors, validation, and combat resolution.
-- Updated Read the Ash to use the formal `revealIntent` content path for rough current-plan reads.
+- Kept Read the Ash as a one-step current-plan visibility improvement capped at rough, per the v0.4 content contract.
+- Added runtime coverage for explicit `revealIntent` effects without changing Read the Ash semantics.
 - Added intent visibility override modes for reveal floors, obscure ceilings, and scoped intent metadata.
 - Updated Ash Rewrite to scope the current enemy candidate set instead of improving to exact card text.
 - Added enemy obscure intent behaviour to Soot Crow and Cinder Scribe content.
 - Added enemy card plan metadata and adaptive finalisation so enemies may change plans inside their planned candidate set at enemy-turn resolution.
+- Added enemy card lifecycle events: `EnemyDeckShuffled`, `EnemyCardMoved`, `EnemyPlanCreated`, `EnemyPlanFinalized`, and `EnemyCardResolved`.
+- Added runtime `handSize` and `planSlots` fields to enemy card holding state.
 - Added `EnemyPlanChanged` events and advanced the game event and trace state hash schemas to version 5.
 - Updated Phaser presentation/view-model code to consume scoped candidate data, enemy holding readouts, and plan-change events without moving game rules into Phaser.
 - Applied the contract balance intent for Emberroot Warden: 94 HP, Root Slam 13 damage, and Cinder Bark 11 block.
 - Bumped the content version to `ashwood-trail-reveal-scope-v4`.
 - Added regression coverage for scoped Ash Rewrite metadata, adaptive plan finalisation, event schema projection, content authoring coverage, Phaser view-model scoped copy, and workbench versioning.
-- Added regression coverage proving adaptive finalisation rejects actions outside the planned candidate set and that authored enemy obscure effects cap visibility at runtime.
+- Added regression coverage proving stepwise Read the Ash behaviour, explicit reveal effects, effective visibility event levels under obscure ceilings, adaptive finalisation candidate-set rejection, enemy lifecycle events, and authored enemy obscure runtime caps.
 
 The supplied `reveal_scope_balance_intent_v0_4.patch` could not be applied directly because it targets older root documents and already-diverged files. I treated the patch and the two v0.4 contract documents as the requirements source and implemented the scope manually against the current codebase.
 
@@ -59,24 +62,24 @@ Latest passing gates:
 
 ```txt
 npm run typecheck                          PASS
-npm test -- targeted P2/21 suites          PASS - 6 files / 104 tests
-npm test                                   PASS - 110 files / 856 tests
+npm test -- targeted P2/21 suites          PASS - 8 files / 103 tests
+npm test                                   PASS - 110 files / 859 tests
 npm run build                              PASS
 npm run build:cli                          PASS
-npm run smoke:localhost                    PASS - http://127.0.0.1:50981/health
+npm run smoke:localhost                    PASS - http://127.0.0.1:52475/health
 npm run test:integration                   PASS - 2 files / 4 tests
 npm run sim:smoke -- --trace-output tests/game-core/traces/smoke-complete.json
                                             PASS - 3 runs / 0 failures
-npm run sim:balance                        PASS - 200 fuzz runs / 0 failures / 55.5% completion
+npm run sim:balance                        PASS - 200 fuzz runs / 0 failures / 45.0% completion
 ```
 
 Balance target:
 
 ```txt
 Target completion range: 45.0% - 60.0%
-Observed completion rate: 55.5%
+Observed completion rate: 45.0%
 Content version: ashwood-trail-reveal-scope-v4
-Registry fingerprint: fnv1a32:fa7f9782
+Registry fingerprint: fnv1a32:76f97442
 Event schema: 5
 Trace schema: 5
 ```

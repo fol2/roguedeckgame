@@ -83,6 +83,8 @@ describe("monster intents", () => {
       plannedMonsterAbilities: [],
       monsterCardStates: [{
         monsterCombatantId: combatantId("monster:training_slime:0"),
+        handSize: 1,
+        planSlots: 1,
         cardInstances: [{
           id: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0"),
           abilityId: monsterAbilityId("training_slime_block")
@@ -115,6 +117,8 @@ describe("monster intents", () => {
       ...createEnemyTurnFixture(),
       monsterCardStates: [{
         monsterCombatantId: combatantId("monster:training_slime:0"),
+        handSize: 1,
+        planSlots: 1,
         cardInstances: [
           {
             id: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
@@ -156,6 +160,8 @@ describe("monster intents", () => {
       plannedMonsterAbilities: [],
       monsterCardStates: [{
         monsterCombatantId: combatantId("monster:training_slime:0"),
+        handSize: 2,
+        planSlots: 1,
         cardInstances: [
           { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
           { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
@@ -200,6 +206,8 @@ describe("monster intents", () => {
       plannedMonsterAbilities: [],
       monsterCardStates: [{
         monsterCombatantId: combatantId("monster:training_slime:0"),
+        handSize: 2,
+        planSlots: 2,
         cardInstances: [
           { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
           { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
@@ -263,6 +271,8 @@ describe("monster intents", () => {
       plannedMonsterAbilities: [],
       monsterCardStates: [{
         monsterCombatantId: combatantId("monster:training_slime:0"),
+        handSize: 2,
+        planSlots: 2,
         cardInstances: [
           { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
           { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
@@ -311,14 +321,14 @@ describe("monster intents", () => {
     });
   });
 
-  it("authored adaptive enemies expose candidate card plans", () => {
+  it("authored adaptive enemies respect one-slot contract plans", () => {
     const state = createCombatFixture({ monsterIds: [monsterId("charred_stag")] });
     const cardState = state.monsterCardStates?.[0];
 
     expect(["adaptive", "charging"]).toContain(cardState?.planned.planMode);
     expect(cardState?.planned.lockedCardInstanceId).toEqual(expect.any(String));
-    expect(cardState?.planned.candidateCardInstanceIds).toHaveLength(1);
-    expect(cardState?.hand).toHaveLength(0);
+    expect(cardState?.planned.candidateCardInstanceIds).toHaveLength(0);
+    expect(cardState?.hand).toHaveLength(1);
   });
 
   it("authored charging enemy abilities enter charging plan state", () => {
@@ -345,7 +355,7 @@ describe("monster intents", () => {
     expect(result.state.monsterCardStates?.[0]?.planned).toMatchObject({
       planMode: "charging",
       lockedCardInstanceId: expect.any(String),
-      candidateCardInstanceIds: [expect.any(String)]
+      candidateCardInstanceIds: []
     });
   });
 
@@ -369,6 +379,8 @@ describe("monster intents", () => {
       }],
       monsterCardStates: [{
         monsterCombatantId: combatantId("monster:training_slime:0"),
+        handSize: 2,
+        planSlots: 2,
         cardInstances: [
           { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
           { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
@@ -446,6 +458,8 @@ describe("monster intents", () => {
       }],
       monsterCardStates: [{
         monsterCombatantId: combatantId("monster:training_slime:0"),
+        handSize: 2,
+        planSlots: 1,
         cardInstances: [
           { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
           { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
@@ -770,7 +784,7 @@ describe("monster intents", () => {
     expect(result.errors.map((combatError) => combatError.code)).toEqual(["empty_monster_intent_pool"]);
   });
 
-  it("emits planned ability events before MonsterIntentSet during combat creation", () => {
+  it("emits enemy card lifecycle events before MonsterIntentSet during combat creation", () => {
     const result = createCombat({
       run: createRunFixture(),
       registry: starterRegistry,
@@ -780,15 +794,16 @@ describe("monster intents", () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(result.events.some((event) => event.type === "EnemyCardMoved")).toBe(true);
+    expect(result.events.some((event) => event.type === "EnemyPlanCreated")).toBe(true);
     expect(result.events.some((event) => event.type === "MonsterAbilityPlanned")).toBe(true);
     expect(result.events.some((event) => event.type === "MonsterIntentSet")).toBe(true);
-    expect(result.events.map((event) => event.type).slice(0, 5)).toEqual([
-      "CombatStarted",
-      "DeckShuffled",
-      "MonsterAbilityPlanned",
-      "MonsterIntentSet",
-      "TurnStarted"
-    ]);
+    expect(result.events.map((event) => event.type).indexOf("EnemyPlanCreated")).toBeLessThan(
+      result.events.map((event) => event.type).indexOf("MonsterAbilityPlanned")
+    );
+    expect(result.events.map((event) => event.type).indexOf("MonsterAbilityPlanned")).toBeLessThan(
+      result.events.map((event) => event.type).indexOf("MonsterIntentSet")
+    );
   });
 
   it("keeps selected intents serializable and tied to combatant ids", () => {
@@ -810,40 +825,50 @@ describe("monster intents", () => {
         planMode: expect.any(String)
       })
     ]);
-    expect(result.events[0]).toMatchObject({
+    expect(result.events).toContainEqual(expect.objectContaining({
       type: "MonsterAbilityPlanned",
       monsterId: combatantId("monster:training_slime:0"),
       abilityId: expect.any(String),
       intentId: expect.any(String),
       intentType: expect.any(String),
       description: expect.any(String)
-    });
-    expect(result.events[1]).toMatchObject({
+    }));
+    expect(result.events).toContainEqual(expect.objectContaining({
       type: "MonsterIntentSet",
       monsterId: combatantId("monster:training_slime:0"),
       intentId: expect.any(String),
       intentType: expect.any(String),
       description: expect.any(String)
-    });
+    }));
     expect(result.state.monsterIntents[0].intentId).not.toBe(monsterIntentId("missing"));
   });
 
-  it("keeps planned monster ability event order stable for planned-card UI playback", () => {
+  it("keeps planned enemy card lifecycle order stable for planned-card UI playback", () => {
     const state = createEnemyTurnFixture();
     const result = chooseMonsterIntents({ ...state, monsterIntents: [] }, starterRegistry, createRng("planned-card-order"));
 
     expect(result.ok).toBe(true);
     expect(result.events.map((event) => event.type)).toEqual([
+      "EnemyDeckShuffled",
+      "EnemyCardMoved",
+      "EnemyCardMoved",
+      "EnemyPlanCreated",
       "MonsterAbilityPlanned",
       "MonsterIntentSet"
     ]);
-    expect(result.events[0]).toMatchObject({
+    expect(result.events[3]).toMatchObject({
+      type: "EnemyPlanCreated",
+      monsterId: result.state.monsterIntents[0].monsterCombatantId,
+      abilityId: result.state.plannedMonsterAbilities![0].abilityId,
+      intentId: result.state.monsterIntents[0].intentId
+    });
+    expect(result.events[4]).toMatchObject({
       type: "MonsterAbilityPlanned",
       monsterId: result.state.monsterIntents[0].monsterCombatantId,
       abilityId: result.state.plannedMonsterAbilities![0].abilityId,
       intentId: result.state.monsterIntents[0].intentId
     });
-    expect(result.events[1]).toMatchObject({
+    expect(result.events[5]).toMatchObject({
       type: "MonsterIntentSet",
       monsterId: result.state.monsterIntents[0].monsterCombatantId,
       intentId: result.state.monsterIntents[0].intentId

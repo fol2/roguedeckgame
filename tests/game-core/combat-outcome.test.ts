@@ -64,6 +64,7 @@ describe("combat outcomes", () => {
     expect(result.state.phase).toBe("lost");
     expect(result.state.player.alive).toBe(false);
     expect(result.events.map((event) => event.type)).toEqual([
+      "EnemyPlanFinalized",
       "MonsterAbilityPlayed",
       "MonsterIntentResolved",
       "DamageDealt",

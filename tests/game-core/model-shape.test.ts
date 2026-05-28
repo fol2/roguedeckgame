@@ -271,8 +271,48 @@ describe("model shape", () => {
         description: "Deal 6 damage."
       },
       {
+        type: "EnemyDeckShuffled",
+        monsterId: combatantId("monster:training_slime:0"),
+        from: "discard",
+        to: "draw",
+        count: 2
+      },
+      {
+        type: "EnemyCardMoved",
+        monsterId: combatantId("monster:training_slime:0"),
+        cardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        from: "draw",
+        to: "hand"
+      },
+      {
+        type: "EnemyPlanCreated",
+        monsterId: combatantId("monster:training_slime:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        intentId: monsterIntentId("training_slime_attack"),
+        cardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
+        candidateCardInstanceIds: [],
+        planMode: "locked"
+      },
+      {
         type: "MonsterAbilityPlayed",
         monsterId: combatantId("monster:training_slime:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        intentId: monsterIntentId("training_slime_attack")
+      },
+      {
+        type: "EnemyPlanFinalized",
+        monsterId: combatantId("monster:training_slime:0"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        intentId: monsterIntentId("training_slime_attack"),
+        cardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
+        planMode: "locked",
+        changed: false
+      },
+      {
+        type: "EnemyCardResolved",
+        monsterId: combatantId("monster:training_slime:0"),
+        cardInstanceId: enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0"),
         abilityId: monsterAbilityId("training_slime_attack"),
         intentId: monsterIntentId("training_slime_attack")
       },
@@ -353,8 +393,32 @@ describe("model shape", () => {
     ]);
   });
 
-  it("projects v5 adaptive plan-change events away from schema 4 consumers", () => {
+  it("projects v5 enemy card lifecycle events away from schema 4 consumers", () => {
     const events: readonly GameEvent[] = [
+      {
+        type: "EnemyDeckShuffled",
+        monsterId: combatantId("monster:charred_stag:0"),
+        from: "discard",
+        to: "draw",
+        count: 2
+      },
+      {
+        type: "EnemyCardMoved",
+        monsterId: combatantId("monster:charred_stag:0"),
+        cardInstanceId: enemyCardInstanceId("monster:charred_stag:0:enemy-card:charred_stag_antler_strike:0"),
+        abilityId: monsterAbilityId("charred_stag_antler_strike"),
+        from: "draw",
+        to: "hand"
+      },
+      {
+        type: "EnemyPlanCreated",
+        monsterId: combatantId("monster:charred_stag:0"),
+        abilityId: monsterAbilityId("charred_stag_antler_strike"),
+        intentId: monsterIntentId("charred_stag_antler_strike"),
+        cardInstanceId: enemyCardInstanceId("monster:charred_stag:0:enemy-card:charred_stag_antler_strike:0"),
+        candidateCardInstanceIds: [],
+        planMode: "adaptive"
+      },
       {
         type: "EnemyPlanChanged",
         monsterId: combatantId("monster:charred_stag:0"),
@@ -363,6 +427,21 @@ describe("model shape", () => {
         fromIntentId: monsterIntentId("charred_stag_antler_strike"),
         toIntentId: monsterIntentId("charred_stag_guarded_snort"),
         reason: "prefer_guard_if_player_overblocks"
+      },
+      {
+        type: "EnemyPlanFinalized",
+        monsterId: combatantId("monster:charred_stag:0"),
+        abilityId: monsterAbilityId("charred_stag_guarded_snort"),
+        intentId: monsterIntentId("charred_stag_guarded_snort"),
+        planMode: "adaptive",
+        changed: true
+      },
+      {
+        type: "EnemyCardResolved",
+        monsterId: combatantId("monster:charred_stag:0"),
+        cardInstanceId: enemyCardInstanceId("monster:charred_stag:0:enemy-card:charred_stag_guarded_snort:0"),
+        abilityId: monsterAbilityId("charred_stag_guarded_snort"),
+        intentId: monsterIntentId("charred_stag_guarded_snort")
       },
       {
         type: "MonsterIntentResolved",

@@ -184,6 +184,7 @@ describe("enemy turn resolution", () => {
     expect(result.state.monsterIntents).toEqual([]);
     expect(result.state.plannedMonsterAbilities).toEqual([]);
     expect(result.events.map((event) => event.type)).toEqual([
+      "EnemyPlanFinalized",
       "MonsterAbilityPlayed",
       "MonsterIntentResolved",
       "BlockGained",

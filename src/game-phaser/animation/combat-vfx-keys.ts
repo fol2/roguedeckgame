@@ -152,11 +152,46 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
     notes: "Pulse at the enemy intent token anchor when visibility changes."
   },
   {
+    eventType: "EnemyDeckShuffled",
+    fallback: "code-pulse",
+    timingMs: { min: 120, max: 220 },
+    inputLocked: true,
+    notes: "Pulse at the enemy actor when its deck reshuffles."
+  },
+  {
+    eventType: "EnemyCardMoved",
+    fallback: "code-pulse",
+    timingMs: { min: 120, max: 220 },
+    inputLocked: true,
+    notes: "State-sync enemy card movement; no hidden card text is shown."
+  },
+  {
+    eventType: "EnemyPlanCreated",
+    fallback: "code-pulse",
+    timingMs: { min: 120, max: 220 },
+    inputLocked: true,
+    notes: "Pulse at the enemy intent token anchor when a card plan is created."
+  },
+  {
     eventType: "EnemyPlanChanged",
     fallback: "code-pulse",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,
     notes: "Pulse at the enemy intent token anchor when an adaptive plan changes."
+  },
+  {
+    eventType: "EnemyPlanFinalized",
+    fallback: "code-pulse",
+    timingMs: { min: 120, max: 220 },
+    inputLocked: true,
+    notes: "Pulse at the enemy actor when a plan is finalised for resolution."
+  },
+  {
+    eventType: "EnemyCardResolved",
+    fallback: "code-pulse",
+    timingMs: { min: 120, max: 220 },
+    inputLocked: true,
+    notes: "Pulse at the enemy actor when an enemy card resolves."
   },
   {
     eventType: "MonsterIntentResolved",
