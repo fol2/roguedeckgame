@@ -22,12 +22,13 @@
     "typecheck": "tsc --noEmit",
     "zip:review": "node scripts/create-review-zip.mjs",
     "smoke:localhost": "vitest run tests/game-core/localhost-smoke.test.js --reporter=verbose",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts --pool=threads --maxWorkers=4 --testTimeout=20000 --teardownTimeout=5000",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
-    "test:core": "vitest run tests/game-core --reporter=dot",
-    "test:phaser": "vitest run tests/game-phaser --reporter=dot",
-    "test:cli": "vitest run tests/game-cli tests/scripts --reporter=dot"
+    "test:core": "vitest run --config vitest.config.ts --pool=threads --maxWorkers=4 --testTimeout=20000 tests/game-core --reporter=dot",
+    "test:phaser": "vitest run --config vitest.config.ts --pool=threads --maxWorkers=4 --testTimeout=20000 tests/game-phaser --reporter=dot",
+    "test:cli": "vitest run --config vitest.config.ts --pool=threads --maxWorkers=2 --testTimeout=20000 tests/game-cli --reporter=dot",
+    "test:scripts": "vitest run --config vitest.config.ts --pool=threads --maxWorkers=2 --testTimeout=20000 tests/scripts --reporter=dot"
   },
   "devDependencies": {
     "@types/node": "^22.19.19",

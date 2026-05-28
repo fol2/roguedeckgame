@@ -68,7 +68,7 @@ describe("vertical slice view models", () => {
     const combatNode = controller.getRunViewModel().nodes.find((node) => node.status === "available" && node.type === "combat");
 
     expect(combatNode).toBeDefined();
-    controller.selectMapNode(combatNode!.id);
+    controller.selectMapNode(combatNode!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
     const viewModel = controller.getCombatViewModel();
 
     expect(viewModel).toMatchObject({
@@ -86,7 +86,7 @@ describe("vertical slice view models", () => {
     const combatNode = controller.getRunViewModel().nodes.find((node) => node.status === "available" && node.type === "combat");
 
     expect(combatNode).toBeDefined();
-    controller.selectMapNode(combatNode!.id);
+    controller.selectMapNode(combatNode!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
     const state = controller.getState();
     const viewModel = buildCombatViewModel({
       run: state.run,

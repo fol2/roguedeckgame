@@ -1,6 +1,10 @@
 import type { GameActionError, GameActionResult } from "../../game-core";
 
 export type RunSandboxRequestGuard<TState> = {
+  readonly rejectIfInvalidRunRevision: (
+    expectedRevision: number | undefined,
+    path: string
+  ) => GameActionResult<TState> | undefined;
   readonly rejectIfStaleCombatRevision: (
     expectedRevision: number | undefined,
     path: string
@@ -30,6 +34,21 @@ export const createRunSandboxRequestGuard = <TState>(
   seenGameplayRequestIds: Set<string>,
   reject: (error: GameActionError) => GameActionResult<TState>
 ): RunSandboxRequestGuard<TState> => {
+  const rejectIfMissingRevision = (
+    expectedRevision: number | undefined,
+    path: string
+  ): GameActionResult<TState> | undefined => {
+    if (expectedRevision !== undefined) {
+      return undefined;
+    }
+
+    return reject(createError(
+      "missing_revision",
+      "Gameplay requests must include the latest view revision.",
+      path
+    ));
+  };
+
   const rejectIfStaleCombatRevision = (
     expectedRevision: number | undefined,
     path: string
@@ -88,6 +107,8 @@ export const createRunSandboxRequestGuard = <TState>(
   };
 
   return {
+    rejectIfInvalidRunRevision: (expectedRevision, path) =>
+      rejectIfMissingRevision(expectedRevision, path) ?? rejectIfStaleRunRevision(expectedRevision, path),
     rejectIfStaleCombatRevision,
     rejectIfStaleRunRevision,
     rejectIfInvalidRequest,

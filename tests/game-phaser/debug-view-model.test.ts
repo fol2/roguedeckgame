@@ -19,7 +19,7 @@ describe("Combat debug view model", () => {
     const combatNode = controller.getState().run.map?.nodes.find((node) => node.type === "combat" && node.status === "available");
 
     expect(combatNode).toBeDefined();
-    controller.selectMapNode(combatNode!.id);
+    controller.selectMapNode(combatNode!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
     const before = JSON.stringify(controller.getState());
     const viewModel = controller.getCombatDebugViewModel({
       selectedCardId: cardInstanceId("debug-card"),
@@ -109,7 +109,7 @@ describe("Combat debug view model", () => {
   it("updates revision, latest events, and pending request diagnostics after card play", () => {
     const controller = createRunSandboxController("debug-view-model-actions");
     const combatNode = controller.getState().run.map?.nodes.find((node) => node.type === "combat" && node.status === "available");
-    controller.selectMapNode(combatNode!.id);
+    controller.selectMapNode(combatNode!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
     const before = controller.getCombatDebugViewModel();
     const card = controller.getCombatViewModel()!.hand.find((candidate) => candidate.playable)!;
     const targetId = card.requiresManualTarget ? card.validTargetIds[0] : undefined;
@@ -136,7 +136,7 @@ describe("Combat debug view model", () => {
     });
     const combatNode = controller.getState().run.map?.nodes.find((node) => node.type === "combat" && node.status === "available");
 
-    controller.selectMapNode(combatNode!.id);
+    controller.selectMapNode(combatNode!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
 
     const combat = controller.getCombatViewModel()!;
     const debug = controller.getCombatDebugViewModel();
@@ -174,7 +174,7 @@ describe("Combat debug view model", () => {
       registry
     });
     const combatNode = controller.getState().run.map?.nodes.find((node) => node.type === "combat" && node.status === "available");
-    controller.selectMapNode(combatNode!.id);
+    controller.selectMapNode(combatNode!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
     const viewModel = controller.getCombatViewModel()!;
     const focus = viewModel.hand.find((card) => card.requiresManualTarget);
 
@@ -190,7 +190,7 @@ describe("Combat debug view model", () => {
   it("surfaces stale and duplicate request rejections for the debug overlay", () => {
     const controller = createRunSandboxController("debug-view-model-rejection");
     const combatNode = controller.getState().run.map?.nodes.find((node) => node.type === "combat" && node.status === "available");
-    controller.selectMapNode(combatNode!.id);
+    controller.selectMapNode(combatNode!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
     const staleRevision = controller.getCombatViewModel()!.revision;
 
     controller.endTurn(staleRevision, "debug-stale-first");

@@ -12,8 +12,13 @@ const runNode = (args: readonly string[]) => {
     timeout: CLI_SMOKE_TIMEOUT_MS
   });
 
+  if (result.error) {
+    throw result.error;
+  }
+
   return {
     status: result.status,
+    signal: result.signal,
     stdout: result.stdout.trim(),
     stderr: result.stderr.trim()
   };
@@ -28,6 +33,8 @@ describe("CLI runtime metadata", () => {
 
     expect(human.status).toBe(0);
     expect(json.status).toBe(0);
+    expect(human.signal).toBeNull();
+    expect(json.signal).toBeNull();
     expect(human.stderr).toBe("");
     expect(json.stderr).toBe("");
     expect(human.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
@@ -38,6 +45,7 @@ describe("CLI runtime metadata", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--help"]);
 
     expect(result.status).toBe(0);
+    expect(result.signal).toBeNull();
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("Pet Roguelite CLI");
     expect(result.stdout).not.toContain("npm run game:cli -- --");
@@ -49,6 +57,7 @@ describe("CLI runtime metadata", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--version"]);
 
     expect(result.status).toBe(0);
+    expect(result.signal).toBeNull();
     expect(JSON.parse(result.stdout)).toEqual({
       type: "version",
       runtimeMetadata: currentRuntimeMetadata
@@ -59,6 +68,7 @@ describe("CLI runtime metadata", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--seed", "cli-dev", "--json", "--auto"]);
 
     expect(result.status).toBe(0);
+    expect(result.signal).toBeNull();
     expect(JSON.parse(result.stdout).runtimeMetadata).toEqual(currentRuntimeMetadata);
   }, CLI_SMOKE_TIMEOUT_MS);
 
@@ -66,6 +76,7 @@ describe("CLI runtime metadata", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--mode", "smoke", "--analyze"]);
 
     expect(result.status).toBe(0);
+    expect(result.signal).toBeNull();
     expect(result.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
     expect(result.stdout).toContain(`Content version: ${currentRuntimeMetadata.contentVersion}`);
     expect(result.stdout).toContain(`Registry fingerprint: ${currentRuntimeMetadata.registryFingerprint}`);
@@ -77,6 +88,7 @@ describe("CLI runtime metadata", () => {
     const result = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--mode"]);
 
     expect(result.status).toBe(1);
+    expect(result.signal).toBeNull();
     expect(result.stderr).toBe("Missing value for --mode.");
     expect(result.stderr).not.toContain("at ");
   }, CLI_SMOKE_TIMEOUT_MS);

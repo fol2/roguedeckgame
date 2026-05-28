@@ -62,7 +62,7 @@ const startFirstCombat = (controller: RunSandboxController): void => {
   const node = firstAvailableCombatNode(controller.getState().run.map?.nodes);
 
   if (node) {
-    controller.selectMapNode(node.id);
+    controller.selectMapNode(node.id, controller.getRevision(), "combat-sandbox-start-combat");
   }
 };
 

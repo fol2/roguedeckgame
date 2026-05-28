@@ -12,6 +12,66 @@ let previewProcess: ChildProcessWithoutNullStreams | undefined;
 let browserProcess: ChildProcessWithoutNullStreams | undefined;
 let browserUserDataDir: string | undefined;
 
+const sleep = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const waitForProcessExit = async (
+  processToStop: ChildProcessWithoutNullStreams,
+  timeoutMs: number
+): Promise<boolean> => {
+  if (processToStop.exitCode !== null || processToStop.signalCode !== null) {
+    return true;
+  }
+
+  return await Promise.race([
+    new Promise<boolean>((resolve) => processToStop.once("exit", () => resolve(true))),
+    sleep(timeoutMs).then(() => false)
+  ]);
+};
+
+const stopProcess = async (processToStop: ChildProcessWithoutNullStreams | undefined): Promise<void> => {
+  if (!processToStop) {
+    return;
+  }
+
+  if (processToStop.exitCode !== null || processToStop.signalCode !== null) {
+    return;
+  }
+
+  processToStop.kill("SIGTERM");
+  if (await waitForProcessExit(processToStop, 1_000)) {
+    return;
+  }
+
+  processToStop.kill("SIGKILL");
+  if (await waitForProcessExit(processToStop, 1_000)) {
+    return;
+  }
+
+  throw new Error(`Unable to stop child process ${processToStop.pid ?? "unknown"}.`);
+};
+
+const removeBrowserUserDataDir = async (): Promise<void> => {
+  if (!browserUserDataDir) {
+    return;
+  }
+
+  const userDataDir = browserUserDataDir;
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    try {
+      rmSync(userDataDir, { force: true, maxRetries: 5, recursive: true, retryDelay: 100 });
+      browserUserDataDir = undefined;
+      return;
+    } catch (error) {
+      if (attempt === 9) {
+        throw error;
+      }
+      await sleep(150);
+    }
+  }
+};
+
 type CdpMessage = {
   readonly id?: number;
   readonly method?: string;
@@ -49,21 +109,18 @@ const fetchWithRetry = async (url: string): Promise<Response> => {
       lastError = error;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await sleep(100);
   }
 
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 };
 
-afterEach(() => {
-  previewProcess?.kill();
+afterEach(async () => {
+  await stopProcess(previewProcess);
   previewProcess = undefined;
-  browserProcess?.kill();
+  await stopProcess(browserProcess);
   browserProcess = undefined;
-  if (browserUserDataDir) {
-    rmSync(browserUserDataDir, { force: true, maxRetries: 5, recursive: true, retryDelay: 100 });
-    browserUserDataDir = undefined;
-  }
+  await removeBrowserUserDataDir();
 });
 
 const chromeCandidates = [
@@ -93,11 +150,47 @@ const findChromeExecutable = (): string => {
   return executable;
 };
 
+const getChromeSandboxArgs = (): readonly string[] =>
+  process.platform === "linux" && process.getuid?.() === 0
+    ? ["--no-sandbox", "--disable-setuid-sandbox"]
+    : [];
+
+const findPageWebsocketUrl = async (debugBaseUrl: string): Promise<string> => {
+  let lastTargets = "";
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      const targets = await (await fetchWithRetry(`${debugBaseUrl}/json/list`)).json() as readonly {
+        readonly type?: string;
+        readonly url?: string;
+        readonly webSocketDebuggerUrl?: string;
+      }[];
+      lastTargets = JSON.stringify(targets);
+      const pageTarget = targets.find((target) => target.type === "page" && target.webSocketDebuggerUrl) ??
+        targets.find((target) => target.webSocketDebuggerUrl);
+
+      if (pageTarget?.webSocketDebuggerUrl) {
+        return pageTarget.webSocketDebuggerUrl;
+      }
+    } catch (error) {
+      lastTargets = error instanceof Error ? error.message : String(error);
+    }
+
+    await sleep(100);
+  }
+
+  throw new Error(`Chrome page DevTools endpoint not found. Last targets: ${lastTargets}`);
+};
+
 const launchBrowser = async (url: string): Promise<WebSocket> => {
   browserUserDataDir = mkdtempSync(join(tmpdir(), "roguedeckgame-chrome-"));
   browserProcess = spawn(findChromeExecutable(), [
     "--headless=new",
+    ...getChromeSandboxArgs(),
     "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--disable-background-networking",
+    "--remote-allow-origins=*",
     "--no-first-run",
     "--no-default-browser-check",
     "--remote-debugging-port=0",
@@ -123,15 +216,7 @@ const launchBrowser = async (url: string): Promise<WebSocket> => {
   });
 
   const debugBaseUrl = websocketUrl.replace(/^ws:\/\/([^/]+).*$/, "http://$1");
-  const targets = await (await fetchWithRetry(`${debugBaseUrl}/json/list`)).json() as readonly {
-    readonly type?: string;
-    readonly webSocketDebuggerUrl?: string;
-  }[];
-  const pageWebsocketUrl = targets.find((target) => target.type === "page")?.webSocketDebuggerUrl;
-
-  if (!pageWebsocketUrl) {
-    throw new Error("Chrome page DevTools endpoint not found.");
-  }
+  const pageWebsocketUrl = await findPageWebsocketUrl(debugBaseUrl);
 
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(pageWebsocketUrl);
@@ -177,7 +262,7 @@ const createCdpClient = (socket: WebSocket) => {
       if (eventIndex >= 0) {
         return events.splice(eventIndex, 1)[0];
       }
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await sleep(100);
     }
 
     throw new Error(`Timed out waiting for CDP event ${method}.`);
@@ -213,11 +298,14 @@ const waitForRenderedText = async (
       return lastText;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await sleep(100);
   }
 
   return lastText;
 };
+
+const isBrowserPolicyBlockPage = (text: string): boolean =>
+  text.includes(" is blocked") && text.includes("Your organization") && text.includes("allow you to view this site");
 
 describe("Vite preview localhost smoke", () => {
   it("serves the game app and content workbench routes from the built bundle", async () => {
@@ -245,6 +333,7 @@ describe("Vite preview localhost smoke", () => {
 
     const appUrl = `http://${host}:${port}/`;
     const workbenchUrl = `http://${host}:${port}/workbench/content`;
+    const browserWorkbenchUrl = `http://localhost:${port}/workbench/content`;
     const appResponse = await fetchWithRetry(appUrl);
     const workbenchResponse = await fetchWithRetry(workbenchUrl);
     const appHtml = await appResponse.text();
@@ -263,14 +352,18 @@ describe("Vite preview localhost smoke", () => {
       expect(assetResponse.ok).toBe(true);
     }
 
-    const socket = await launchBrowser(workbenchUrl);
+    const socket = await launchBrowser(browserWorkbenchUrl);
     const browser = createCdpClient(socket);
     await browser.send("Page.enable");
     await browser.send("Runtime.enable");
     await browser.send("Log.enable");
-    await browser.send("Page.navigate", { url: workbenchUrl });
+    await browser.send("Page.navigate", { url: browserWorkbenchUrl });
     await browser.waitForEvent("Page.loadEventFired");
     const renderedText = await waitForRenderedText(browser.evaluateText, "Content Workbench");
+
+    if (!renderedText.includes("Content Workbench") && isBrowserPolicyBlockPage(renderedText)) {
+      socket.close();
+    }
 
     expect(renderedText).toContain("Content Workbench");
     await browser.evaluateText("document.querySelector('[data-testid=\"workbench-collection-decks\"]')?.click(); document.body.innerText");

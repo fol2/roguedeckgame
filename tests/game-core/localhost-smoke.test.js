@@ -42,6 +42,7 @@ const closeServer = async () => {
   server = undefined;
 
   await new Promise((resolve, reject) => {
+    serverToClose.closeIdleConnections?.();
     serverToClose.close((error) => {
       if (error) {
         reject(error);
@@ -50,6 +51,7 @@ const closeServer = async () => {
 
       resolve();
     });
+    serverToClose.closeAllConnections?.();
   });
 };
 

@@ -47,7 +47,11 @@ export const prepareRunSandboxCombatPreview = (
   );
 
   if (combatNode) {
-    controller.selectMapNode(combatNode.id);
+    controller.selectMapNode(
+      combatNode.id,
+      controller.getRevision(),
+      `combat-preview-select-${controller.getRevision()}`
+    );
   }
 
   return controller;

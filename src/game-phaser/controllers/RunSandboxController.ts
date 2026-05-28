@@ -88,8 +88,8 @@ export type RunSandboxController = {
   readonly getRevision: () => number;
   readonly selectMapNode: (
     nodeId: RunNodeId,
-    expectedRevision?: number,
-    requestId?: string
+    expectedRevision: number,
+    requestId: string
   ) => GameActionResult<RunSandboxState>;
   readonly playHandCard: (
     cardInstanceId: CardInstanceId,
@@ -101,11 +101,11 @@ export type RunSandboxController = {
   readonly completeCombatIfEnded: (expectedRevision: number | undefined, requestId: string) => GameActionResult<RunSandboxState>;
   readonly claimRewardOption: (
     rewardOptionId: RewardOptionId,
-    expectedRevision?: number,
-    requestId?: string
+    expectedRevision: number,
+    requestId: string
   ) => GameActionResult<RunSandboxState>;
-  readonly skipReward: (expectedRevision?: number, requestId?: string) => GameActionResult<RunSandboxState>;
-  readonly completeNonCombatNode: (expectedRevision?: number, requestId?: string) => GameActionResult<RunSandboxState>;
+  readonly skipReward: (expectedRevision: number, requestId: string) => GameActionResult<RunSandboxState>;
+  readonly completeNonCombatNode: (expectedRevision: number, requestId: string) => GameActionResult<RunSandboxState>;
   readonly reset: () => GameActionResult<RunSandboxState>;
 };
 
@@ -324,12 +324,12 @@ export const createRunSandboxController = (
       : undefined,
     getRevision: () => revision,
     selectMapNode: (nodeId, expectedRevision, requestId) => {
-      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfInvalidRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -495,12 +495,12 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "completeCombatIfEnded" }, result);
     },
     claimRewardOption: (rewardOptionId, expectedRevision, requestId) => {
-      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfInvalidRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -544,12 +544,12 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "claimReward", rewardOptionId }, result);
     },
     skipReward: (expectedRevision, requestId) => {
-      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfInvalidRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }
@@ -591,12 +591,12 @@ export const createRunSandboxController = (
       return recordAgentAction({ type: "skipReward" }, result);
     },
     completeNonCombatNode: (expectedRevision, requestId) => {
-      const invalidRequest = requestGuard.rejectIfProvidedRequestInvalid(requestId, "requestId");
+      const invalidRequest = requestGuard.rejectIfInvalidRequest(requestId, "requestId");
       if (invalidRequest) {
         return invalidRequest;
       }
 
-      const staleRevision = requestGuard.rejectIfStaleRunRevision(expectedRevision, "run.revision");
+      const staleRevision = requestGuard.rejectIfInvalidRunRevision(expectedRevision, "run.revision");
       if (staleRevision) {
         return staleRevision;
       }

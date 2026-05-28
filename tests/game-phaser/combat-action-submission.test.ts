@@ -11,7 +11,7 @@ const startCombat = (controller: ReturnType<typeof createRunSandboxController>):
   const node = controller.getRunViewModel().nodes.find((candidate) => candidate.status === "available" && candidate.type === "combat");
 
   expect(node).toBeDefined();
-  controller.selectMapNode(node!.id);
+  controller.selectMapNode(node!.id, controller.getRevision(), `test-map-select-${controller.getRevision()}`);
 };
 
 const inputLock = (

@@ -44,7 +44,7 @@ const selectNode = (
   const node = firstAvailableNode(controller, type);
 
   expect(node).toBeDefined();
-  const result = controller.selectMapNode(node!.id);
+  const result = controller.selectMapNode(node!.id, controller.getRevision(), nextControllerRequestId("map-select"));
 
   expect(result.ok).toBe(true);
   return result;
@@ -63,7 +63,7 @@ const winCurrentCombat = (
 const skipCurrentReward = (
   controller: ReturnType<typeof createRunSandboxController>
 ) => {
-  const result = controller.skipReward();
+  const result = controller.skipReward(controller.getRevision(), nextControllerRequestId("reward-skip"));
 
   expect(result.ok).toBe(true);
   return result;
@@ -97,7 +97,7 @@ describe("vertical slice controller flow", () => {
     const rewardOption = controller.getRewardViewModel()?.options[0];
 
     expect(rewardOption).toBeDefined();
-    const claimed = controller.claimRewardOption(rewardOption!.id);
+    const claimed = controller.claimRewardOption(rewardOption!.id, controller.getRevision(), nextControllerRequestId("reward-claim"));
 
     expect(claimed.ok).toBe(true);
     expect(claimed.state.run.status).toBe("map_select");
@@ -115,13 +115,13 @@ describe("vertical slice controller flow", () => {
     skipCurrentReward(controller);
 
     selectNode(controller, "event");
-    const eventCompleted = controller.completeNonCombatNode();
+    const eventCompleted = controller.completeNonCombatNode(controller.getRevision(), nextControllerRequestId("event-complete"));
 
     expect(eventCompleted.ok).toBe(true);
     expect(eventCompleted.state.run.status).toBe("map_select");
 
     selectNode(controller, "rest");
-    const restCompleted = controller.completeNonCombatNode();
+    const restCompleted = controller.completeNonCombatNode(controller.getRevision(), nextControllerRequestId("rest-complete"));
 
     expect(restCompleted.ok).toBe(true);
     expect(restCompleted.state.run.status).toBe("map_select");
@@ -134,9 +134,9 @@ describe("vertical slice controller flow", () => {
     winCurrentCombat(controller);
     skipCurrentReward(controller);
     selectNode(controller, "event");
-    controller.completeNonCombatNode();
+    controller.completeNonCombatNode(controller.getRevision(), nextControllerRequestId("non-combat-complete"));
     selectNode(controller, "rest");
-    controller.completeNonCombatNode();
+    controller.completeNonCombatNode(controller.getRevision(), nextControllerRequestId("non-combat-complete"));
 
     selectNode(controller, "elite");
     expect(controller.getCombatViewModel()).toMatchObject({

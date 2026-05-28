@@ -27,7 +27,7 @@ const startFirstCombat = (controller: ReturnType<typeof createRunSandboxControll
   const node = firstAvailableNode(controller, (type) => type === "combat" || type === "elite" || type === "boss");
 
   expect(node).toBeDefined();
-  return controller.selectMapNode(node!.id);
+  return controller.selectMapNode(node!.id, controller.getRevision(), nextControllerRequestId("map-select"));
 };
 
 const finishCombat = (controller: ReturnType<typeof createRunSandboxController>): void => {
@@ -109,7 +109,7 @@ describe("Run sandbox controller", () => {
   it("rejects missing nodes and preserves useful event messages", () => {
     const controller = createRunSandboxController("run-controller-reject");
     const before = controller.getState().run;
-    const result = controller.selectMapNode(runNodeId("missing-node"));
+    const result = controller.selectMapNode(runNodeId("missing-node"), controller.getRevision(), nextControllerRequestId("map-missing"));
 
     expect(result.ok).toBe(false);
     expect(result.state.run).toBe(before);
@@ -122,7 +122,7 @@ describe("Run sandbox controller", () => {
     const lockedNode = controller.getRunViewModel().nodes.find((node) => node.status === "locked");
 
     expect(lockedNode).toBeDefined();
-    const result = controller.selectMapNode(lockedNode!.id);
+    const result = controller.selectMapNode(lockedNode!.id, controller.getRevision(), nextControllerRequestId("map-locked"));
 
     expect(result.ok).toBe(false);
     expect(result.events[0]).toMatchObject({
@@ -290,7 +290,7 @@ describe("Run sandbox controller", () => {
     finishCombat(controller);
     expect(controller.getCombatViewModel()?.phase).toBe("won");
     expect(controller.completeCombatIfEnded(controller.getRevision(), "combat-complete-1").ok).toBe(true);
-    expect(controller.skipReward(undefined, "reward-skip-after-first-combat").ok).toBe(true);
+    expect(controller.skipReward(controller.getRevision(), "reward-skip-after-first-combat").ok).toBe(true);
 
     startFirstCombat(controller);
     const secondCombatView = controller.getCombatViewModel()!;
@@ -328,6 +328,103 @@ describe("Run sandbox controller", () => {
     });
   });
 
+  it("rejects missing run-level request ids before applying run actions", () => {
+    const controller = createRunSandboxController("run-controller-missing-run-request");
+    const node = firstAvailableNode(controller, (type) => type === "combat");
+
+    expect(node).toBeDefined();
+    const beforeMap = controller.getState();
+    const missingMapRequest = controller.selectMapNode(node!.id, controller.getRevision(), "");
+
+    expect(missingMapRequest.ok).toBe(false);
+    expect(missingMapRequest.state.run).toBe(beforeMap.run);
+    expect(missingMapRequest.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_request_id",
+      path: "requestId"
+    });
+
+    startFirstCombat(controller);
+    finishCombat(controller);
+    completeCombat(controller);
+    const rewardOption = controller.getRewardViewModel()?.options[0];
+
+    expect(rewardOption).toBeDefined();
+    const beforeReward = controller.getState();
+    const missingClaimRequest = controller.claimRewardOption(rewardOption!.id, controller.getRevision(), "");
+    const missingSkipRequest = controller.skipReward(controller.getRevision(), "");
+
+    expect(missingClaimRequest.state.run).toBe(beforeReward.run);
+    expect(missingClaimRequest.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_request_id",
+      path: "requestId"
+    });
+    expect(missingSkipRequest.state.run).toBe(beforeReward.run);
+    expect(missingSkipRequest.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_request_id",
+      path: "requestId"
+    });
+
+    controller.skipReward(controller.getRevision(), nextControllerRequestId("reward-skip"));
+    const eventNode = firstAvailableNode(controller, (type) => type === "event");
+
+    expect(eventNode).toBeDefined();
+    controller.selectMapNode(eventNode!.id, controller.getRevision(), nextControllerRequestId("event-select"));
+    const beforeNonCombat = controller.getState();
+    const missingNonCombatRequest = controller.completeNonCombatNode(controller.getRevision(), "");
+
+    expect(missingNonCombatRequest.state.run).toBe(beforeNonCombat.run);
+    expect(missingNonCombatRequest.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_request_id",
+      path: "requestId"
+    });
+  });
+
+  it("rejects missing run revisions before applying run-level actions", () => {
+    const controller = createRunSandboxController("run-controller-missing-run-revision");
+    const node = firstAvailableNode(controller, (type) => type === "combat");
+
+    expect(node).toBeDefined();
+    const before = controller.getState();
+    const missingMapRevision = controller.selectMapNode(
+      node!.id,
+      undefined as unknown as number,
+      "map-missing-revision"
+    );
+
+    expect(missingMapRevision.ok).toBe(false);
+    expect(missingMapRevision.state.run).toBe(before.run);
+    expect(missingMapRevision.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_revision",
+      path: "run.revision"
+    });
+
+    startFirstCombat(controller);
+    const missingRewardRevision = controller.skipReward(
+      undefined as unknown as number,
+      "reward-missing-revision"
+    );
+    const missingNonCombatRevision = controller.completeNonCombatNode(
+      undefined as unknown as number,
+      "non-combat-missing-revision"
+    );
+
+    expect(missingRewardRevision.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_revision",
+      path: "run.revision"
+    });
+    expect(missingNonCombatRevision.events[0]).toMatchObject({
+      type: "ActionRejected",
+      code: "missing_revision",
+      path: "run.revision"
+    });
+  });
+
   it("completes won combat into a pending reward, then claims the reward back to map selection", () => {
     const controller = createRunSandboxController("run-controller-claim");
 
@@ -344,7 +441,7 @@ describe("Run sandbox controller", () => {
     const rewardOption = controller.getRewardViewModel()?.options[0];
 
     expect(rewardOption).toBeDefined();
-    const claimResult = controller.claimRewardOption(rewardOption!.id);
+    const claimResult = controller.claimRewardOption(rewardOption!.id, controller.getRevision(), nextControllerRequestId("reward-claim"));
 
     expect(claimResult.ok).toBe(true);
     expect(claimResult.state.run.status).toBe("map_select");
@@ -390,7 +487,7 @@ describe("Run sandbox controller", () => {
     expect(controller.getCombatViewModel()?.phase).toBe("won");
     completeCombat(controller);
 
-    const skipResult = controller.skipReward();
+    const skipResult = controller.skipReward(controller.getRevision(), nextControllerRequestId("reward-skip"));
 
     expect(skipResult.ok).toBe(true);
     expect(skipResult.state.run.status).toBe("map_select");
@@ -430,7 +527,7 @@ describe("Run sandbox controller", () => {
     startFirstCombat(controller);
     finishCombat(controller);
     completeCombat(controller);
-    controller.skipReward();
+    controller.skipReward(controller.getRevision(), nextControllerRequestId("reward-skip"));
     const eventNode = firstAvailableNode(controller, (type) => type === "event");
 
     expect(eventNode).toBeDefined();
@@ -457,14 +554,14 @@ describe("Run sandbox controller", () => {
     const beforeCombat = controller.getState().combat;
 
     expect(beforeCombat).toBeDefined();
-    const rewardResult = controller.skipReward();
+    const rewardResult = controller.skipReward(controller.getRevision(), nextControllerRequestId("reward-skip"));
 
     expect(rewardResult.ok).toBe(false);
     expect(rewardResult.state.combat).toBe(beforeCombat);
     expect(controller.getState().combat).toBe(beforeCombat);
     expect(controller.getCombatViewModel()?.eventMessages[0]).toContain("Rejected:");
 
-    const nonCombatResult = controller.completeNonCombatNode();
+    const nonCombatResult = controller.completeNonCombatNode(controller.getRevision(), nextControllerRequestId("non-combat-invalid"));
 
     expect(nonCombatResult.ok).toBe(false);
     expect(nonCombatResult.state.combat).toBe(beforeCombat);
@@ -477,13 +574,13 @@ describe("Run sandbox controller", () => {
     startFirstCombat(controller);
     finishCombat(controller);
     completeCombat(controller);
-    controller.skipReward();
+    controller.skipReward(controller.getRevision(), nextControllerRequestId("reward-skip"));
 
     const eventNode = firstAvailableNode(controller, (type) => type === "event");
 
     expect(eventNode).toBeDefined();
-    const selected = controller.selectMapNode(eventNode!.id);
-    const completed = controller.completeNonCombatNode();
+    const selected = controller.selectMapNode(eventNode!.id, controller.getRevision(), nextControllerRequestId("event-select"));
+    const completed = controller.completeNonCombatNode(controller.getRevision(), nextControllerRequestId("event-complete"));
 
     expect(selected.ok).toBe(true);
     expect(completed.ok).toBe(true);
@@ -496,8 +593,8 @@ describe("Run sandbox controller", () => {
     const restNode = firstAvailableNode(controller, (type) => type === "rest");
 
     expect(restNode).toBeDefined();
-    const selectedRest = controller.selectMapNode(restNode!.id);
-    const completedRest = controller.completeNonCombatNode();
+    const selectedRest = controller.selectMapNode(restNode!.id, controller.getRevision(), nextControllerRequestId("rest-select"));
+    const completedRest = controller.completeNonCombatNode(controller.getRevision(), nextControllerRequestId("rest-complete"));
 
     expect(selectedRest.ok).toBe(true);
     expect(completedRest.ok).toBe(true);

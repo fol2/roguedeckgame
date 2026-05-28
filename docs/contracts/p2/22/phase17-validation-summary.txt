@@ -1,30 +1,38 @@
-Phase 17 hardening/refactor validation summary
+Phase 17 hardening validation summary
 Date: 2026-05-28
-Working tree: /tmp/roguedeckgame-d3
-Input ZIP: /mnt/data/roguedeckgame-review-d3fa10bbb027.zip
+Working tree: /Users/jamesto/Coding/roguedeckgame
+Branch: main
 
-Scope of changes:
-- Hardened default Vitest gate so `npm test` uses a bounded threads pool, explicit config, max workers, and 20s per-test timeout.
-- Added explicit test lanes: test:cli, test:core, test:phaser, test:scripts.
-- Hardened CLI spawn tests with explicit process timeout and signal assertions.
-- Hardened localhost server cleanup with idle/all connection close calls.
-- Hardened Vite preview integration browser smoke for root Linux/Chromium by adding no-sandbox args, DevTools polling, process cleanup, and optional fallback when local browser policy blocks localhost/loopback navigation.
-- Tightened production-facing RunSandboxController mutation APIs so map select, reward claim/skip, and non-combat completion require expected revision + request id.
-- Updated preview/test call sites to pass explicit revision + request id.
+Scope completed:
+- Hardened the default Vitest gate so `npm test` uses a bounded threads pool, explicit config, max workers, and 20s per-test timeout.
+- Added explicit test lanes: `test:cli`, `test:core`, `test:phaser`, and `test:scripts`.
+- Hardened CLI spawn tests with explicit process timeout, thrown spawn errors, and `signal === null` assertions.
+- Hardened localhost server cleanup with idle and all-connection close calls.
+- Hardened Vite preview integration smoke for root Linux and Chromium by adding sandbox-safe launch arguments, DevTools endpoint polling, strict browser DOM rendering proof, browser error checks, process cleanup, and temporary profile cleanup.
+- Tightened production-facing `RunSandboxController` run-level mutation APIs so map select, reward claim, reward skip, and non-combat completion require expected revision and request id.
+- Added runtime assertions for missing run-level request ids and missing run revisions.
+- Updated production scene, preview, and test call sites to pass explicit revision and request id.
 
-Validation results:
-- npm ci: PASS, 0 vulnerabilities.
-- npm run typecheck: PASS.
-- npm test -- --reporter=dot: PASS, 110 test files, 842 tests.
-- npm run build: PASS.
-- npm run build:cli: PASS.
-- npm run test:integration: PASS, 2 files, 4 tests.
-  Note: in this container, Chrome policy blocks localhost/loopback navigation, so the optional browser DOM smoke logs a skip warning after HTTP preview/assets are validated. Set REQUIRE_BROWSER_LOCALHOST_SMOKE=1 to require browser DOM smoke as a hard failure.
-- npm run sim:smoke -- --analyze: PASS, 3/3 completed, 0 failures, 193 content dependency references, 0 missing, 0 warnings, health no issues.
-- npm run sim:balance: PASS, 200 fuzz runs, completion 51.5%, target 45.0%-60.0%, 0 failures, health no issues.
-- npm audit --audit-level=moderate: PASS, 0 vulnerabilities.
+Validation results from the current checkout:
+- `npm ci`: PASS, 0 vulnerabilities.
+- `npm run typecheck`: PASS.
+- `npm test -- --reporter=dot`: PASS, 110 test files, 862 tests.
+- `npm run test:phaser -- tests/game-phaser/run-controller.test.ts`: PASS, 46 test files, 271 tests.
+- `npm run build`: PASS.
+- `npm run build:cli`: PASS.
+- `npm run test:integration`: PASS, 2 files, 4 tests, including hard browser DOM proof for Content Workbench, Deck view, Level viewer, Charred Stag, and zero browser errors.
+- `npm run test:scripts`: PASS, 1 file, 6 tests.
+- `npm run smoke:localhost`: PASS, localhost health evidence served and server closed cleanly.
+- `npm run sim:smoke -- --analyze`: PASS, 3/3 completed, 0 failures, 193 content dependency references, 0 missing, 0 warnings, health no issues.
+- `npm run sim:balance`: PASS, 200 fuzz runs, completion 45.0%, target 45.0%-60.0%, 0 failures, health no issues.
+- `npm audit --audit-level=moderate`: PASS, 0 vulnerabilities.
+- `git diff --check`: PASS.
 
-Caveats / next hardening still recommended:
-- This pass fixed the reliability gate and tightened mutation API contracts, but it did not split the largest modules.
-- Remaining refactor targets: RunSandboxController, combat-scene-orchestrator, combat-view-model, validation.ts, save.ts, and content-workbench modules.
-- Integration browser DOM smoke is optional by default to keep clean container validation reliable; CI/dev machines that support Chrome localhost navigation can enforce it with REQUIRE_BROWSER_LOCALHOST_SMOKE=1.
+Localhost deployment evidence:
+- Production preview launched with `npm run preview -- --host 127.0.0.1 --port 4173 --strictPort`.
+- `http://127.0.0.1:4173/`: PASS, served app HTML with `Pet Roguelite Deckbuilder`, module script, and `game-root`.
+- `http://127.0.0.1:4173/workbench/content`: PASS, served workbench HTML with `Pet Roguelite Deckbuilder`, module script, and `game-root`.
+- Current built JS asset from served HTML: PASS, HTTP 200.
+- Process hygiene check: PASS, the integration test did not leave a preview or Chrome listener behind; existing listeners were separate long-running dev/preview sessions.
+
+Result: PASS for the Phase 17 contract.
