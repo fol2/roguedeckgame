@@ -15,6 +15,7 @@ import type {
 import type { PetInstance, RunPetState } from "./pet";
 import type { GameEvent } from "./event";
 import type { CombatStatusState } from "./status";
+import type { EnemyPlanMode } from "./monster";
 
 export type CombatPhase = "not_started" | "player_turn" | "enemy_turn" | "won" | "lost";
 
@@ -55,23 +56,34 @@ export type IntentVisibilitySource =
 
 export type IntentVisibilityExpiry =
   | "currentPlan"
+  | "nextPlan"
   | "endOfPlayerTurn"
   | "afterEnemyAction"
   | "combat"
   | "never";
+
+export type IntentVisibilityOverrideMode = "floor" | "ceiling" | "set";
+
+export type ScopeIntentDepth = "category" | "candidateSet" | "conditionHint" | "exactIfLocked";
 
 export type CombatIntentVisibilityState = {
   readonly monsterCombatantId: CombatantId;
   readonly level: IntentVisibilityLevel;
   readonly source: IntentVisibilitySource;
   readonly expires: IntentVisibilityExpiry;
+  readonly mode?: IntentVisibilityOverrideMode;
   readonly sourceCardInstanceId?: CardInstanceId;
+  readonly scopeDepth?: ScopeIntentDepth;
+  readonly scopedCandidateCardInstanceIds?: readonly EnemyCardInstanceId[];
+  readonly scopedCandidateAbilityIds?: readonly MonsterAbilityId[];
 };
 
 export type PlannedMonsterAbility = {
   readonly monsterCombatantId: CombatantId;
   readonly intentId: MonsterIntentId;
   readonly abilityId: MonsterAbilityId;
+  readonly cardInstanceId?: EnemyCardInstanceId;
+  readonly planMode?: EnemyPlanMode;
 };
 
 export type MonsterCardZone = "draw" | "hand" | "planned" | "discard" | "exhaust";
@@ -82,7 +94,7 @@ export type CombatMonsterCardInstance = {
 };
 
 export type CombatMonsterCardPlanState = {
-  readonly planMode: "locked" | "adaptive" | "charging" | "scriptedPhase";
+  readonly planMode: EnemyPlanMode;
   readonly lockedCardInstanceId?: EnemyCardInstanceId;
   readonly candidateCardInstanceIds: readonly EnemyCardInstanceId[];
 };

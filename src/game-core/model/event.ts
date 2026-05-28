@@ -2,6 +2,7 @@ import type {
   CardId,
   CardInstanceId,
   CombatantId,
+  EnemyCardInstanceId,
   EvolutionNodeId,
   MonsterAbilityId,
   MonsterIntentId,
@@ -21,15 +22,15 @@ import type {
   StoryFlagId,
   UpgradeId
 } from "../ids";
-import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "./combat";
+import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilityOverrideMode, IntentVisibilitySource, ScopeIntentDepth } from "./combat";
 import type { MonsterIntentType } from "./monster";
 import type { RewardOption } from "./reward";
 
 export type CardPile = "draw" | "hand" | "discard" | "exhaust";
 
 export const GAME_EVENT_LEGACY_SCHEMA_VERSION = 1;
-export const GAME_EVENT_PREVIOUS_SCHEMA_VERSION = 3;
-export const GAME_EVENT_SCHEMA_VERSION = 4;
+export const GAME_EVENT_PREVIOUS_SCHEMA_VERSION = 4;
+export const GAME_EVENT_SCHEMA_VERSION = 5;
 
 export type GameEventSchemaVersion =
   | typeof GAME_EVENT_LEGACY_SCHEMA_VERSION
@@ -98,6 +99,20 @@ export type GameEvent =
       readonly level: IntentVisibilityLevel;
       readonly source: IntentVisibilitySource;
       readonly expires: IntentVisibilityExpiry;
+      readonly previousLevel?: IntentVisibilityLevel;
+      readonly mode?: IntentVisibilityOverrideMode;
+      readonly scopeDepth?: ScopeIntentDepth;
+      readonly scopedCandidateCardInstanceIds?: readonly EnemyCardInstanceId[];
+      readonly scopedCandidateAbilityIds?: readonly MonsterAbilityId[];
+    }
+  | {
+      readonly type: "EnemyPlanChanged";
+      readonly monsterId: CombatantId;
+      readonly fromAbilityId: MonsterAbilityId;
+      readonly toAbilityId: MonsterAbilityId;
+      readonly fromIntentId: MonsterIntentId;
+      readonly toIntentId: MonsterIntentId;
+      readonly reason: string;
     }
   | {
       readonly type: "MonsterAbilityPlayed";
@@ -265,14 +280,30 @@ export const projectGameEventsForSchema = (
     return events;
   }
 
-  const withoutV4Events = events.filter((event) =>
+  const withoutV5Events = events
+    .filter((event) => event.type !== "EnemyPlanChanged")
+    .map((event): GameEvent => {
+      if (event.type !== "EnemyIntentVisibilityChanged") {
+        return event;
+      }
+
+      return {
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: event.monsterId,
+        level: event.level,
+        source: event.source,
+        expires: event.expires
+      };
+    });
+
+  if (schemaVersion >= GAME_EVENT_PREVIOUS_SCHEMA_VERSION) {
+    return withoutV5Events;
+  }
+
+  const withoutV4Events = withoutV5Events.filter((event) =>
     event.type !== "StatusConsumed" &&
     event.type !== "EnemyIntentVisibilityChanged"
   );
-
-  if (schemaVersion >= GAME_EVENT_PREVIOUS_SCHEMA_VERSION) {
-    return withoutV4Events;
-  }
 
   return withoutV4Events.filter((event) =>
     event.type !== "MonsterAbilityPlanned" &&

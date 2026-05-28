@@ -137,6 +137,7 @@ const createCombatViewModel = (): CombatViewModel => ({
       effectLines: ["Damage 6 to target."]
     }
   }],
+  enemyCardHoldings: [],
   hand: [],
   drawPile: { label: "Draw", count: 4, tooltip: { title: "Draw", body: "" }, detail: { title: "Draw", lines: [] } },
   discardPile: { label: "Discard", count: 1, tooltip: { title: "Discard", body: "" }, detail: { title: "Discard", lines: [] } },

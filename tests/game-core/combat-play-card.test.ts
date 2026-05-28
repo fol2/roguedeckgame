@@ -4,7 +4,9 @@ import {
   cardInstanceId,
   combatantId,
   createRng,
+  monsterAbilityId,
   playCard,
+  resolveEffectiveIntentVisibilityLevel,
   starterRegistry,
   statusId
 } from "../../src/game-core";
@@ -102,6 +104,45 @@ describe("playCard", () => {
     );
   });
 
+  it("scopes enemy candidate cards without exposing exact intent text", () => {
+    const ashRewrite = cardInstanceId("ash_rewrite:1");
+    const fixture = createHandTunedCombatFixture();
+    const plannedAbilityId = fixture.plannedMonsterAbilities?.[0]?.abilityId;
+    const result = playCard(
+      {
+        ...fixture,
+        cardInstances: [
+          ...fixture.cardInstances,
+          { id: ashRewrite, cardId: cardId("ash_rewrite"), ownerId: combatantId("player") }
+        ],
+        hand: [ashRewrite],
+        drawPile: []
+      },
+      { type: "playCard", cardInstanceId: ashRewrite, targetId },
+      starterRegistry,
+      createRng("ash-rewrite-scope")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.intentVisibilityOverrides).toContainEqual(
+      expect.objectContaining({
+        monsterCombatantId: targetId,
+        level: "scoped",
+        mode: "floor",
+        scopeDepth: "candidateSet",
+        scopedCandidateAbilityIds: plannedAbilityId ? [plannedAbilityId] : [monsterAbilityId("training_slime_attack")]
+      })
+    );
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: targetId,
+        level: "scoped",
+        scopeDepth: "candidateSet"
+      })
+    );
+  });
+
   it("does not downgrade a stronger persistent intent visibility override", () => {
     const fieldSignal = cardInstanceId("field_signal:1");
     const fixture = createHandTunedCombatFixture();
@@ -136,6 +177,72 @@ describe("playCard", () => {
     expect(result.events).not.toContainEqual(
       expect.objectContaining({ type: "EnemyIntentVisibilityChanged" })
     );
+  });
+
+  it("does not let scoped intent downgrade exact visibility", () => {
+    const ashRewrite = cardInstanceId("ash_rewrite:1");
+    const fixture = createHandTunedCombatFixture();
+    const result = playCard(
+      {
+        ...fixture,
+        intentVisibilityOverrides: [{
+          monsterCombatantId: targetId,
+          level: "exact",
+          source: "debug",
+          expires: "never"
+        }],
+        cardInstances: [
+          ...fixture.cardInstances,
+          { id: ashRewrite, cardId: cardId("ash_rewrite"), ownerId: combatantId("player") }
+        ],
+        hand: [ashRewrite],
+        drawPile: []
+      },
+      { type: "playCard", cardInstanceId: ashRewrite, targetId },
+      starterRegistry,
+      createRng("ash-rewrite-no-exact-downgrade")
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.state.intentVisibilityOverrides).toEqual([{
+      monsterCombatantId: targetId,
+      level: "exact",
+      source: "debug",
+      expires: "never"
+    }]);
+    expect(result.events).not.toContainEqual(
+      expect.objectContaining({ type: "EnemyIntentVisibilityChanged" })
+    );
+  });
+
+  it("caps floor reveals when an obscure ceiling is active", () => {
+    const fixture = createHandTunedCombatFixture();
+    const monsterDefinition = starterRegistry.monsters.find((monster) => monster.id === fixture.monsters[0].definitionId);
+
+    expect(resolveEffectiveIntentVisibilityLevel({
+      state: {
+        ...fixture,
+        intentVisibilityOverrides: [
+          {
+            monsterCombatantId: targetId,
+            level: "exact",
+            source: "debug",
+            expires: "never",
+            mode: "floor"
+          },
+          {
+            monsterCombatantId: targetId,
+            level: "category",
+            source: "enemyObscure",
+            expires: "nextPlan",
+            mode: "ceiling"
+          }
+        ]
+      },
+      registry: starterRegistry,
+      monsterCombatantId: targetId,
+      monsterDefinition
+    })).toBe("category");
   });
 
   it("rejects target ids on targetless cards", () => {

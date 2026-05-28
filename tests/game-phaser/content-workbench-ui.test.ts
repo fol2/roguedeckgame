@@ -140,7 +140,7 @@ const findByTestId = (rootElement: FakeElement, testId: string): FakeElement => 
 
 const fakeBalanceDashboard = (): BalanceDashboardViewModel => ({
   runtimeMetadata: currentRuntimeMetadata,
-  contentVersion: "ashwood-trail-content-foundation-v2",
+  contentVersion: "ashwood-trail-reveal-scope-v4",
   summary: [
     { label: "Runs", value: "2" },
     { label: "Completion rate", value: "50.0%" },
@@ -282,7 +282,7 @@ describe("content workbench UI", () => {
     const dashboard = fakeBalanceDashboard();
 
     expect(dashboard.runtimeMetadata.packageName).toBe("roguedeckgame");
-    expect(dashboard.contentVersion).toBe("ashwood-trail-content-foundation-v2");
+    expect(dashboard.contentVersion).toBe("ashwood-trail-reveal-scope-v4");
     expect(dashboard.summary.map((metric) => metric.label)).toEqual(expect.arrayContaining([
       "Runs",
       "Completion rate",

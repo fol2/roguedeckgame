@@ -12,6 +12,7 @@ import {
   petBlockEffect,
   petCommandCard,
   petReactEffect,
+  scopeIntentEffect,
   skillCard
 } from "../builders";
 
@@ -202,7 +203,7 @@ export const returnSignal: CardDefinition = petCommandCard({
 export const ashRewrite: CardDefinition = skillCard({
   id: cardId("ash_rewrite"),
   name: "Ash Rewrite",
-  description: `Draw ${act1NormalBalance.cards.ashRewriteDraw}. Scope target enemy by improving Intent visibility by ${act1NormalBalance.cards.ashRewriteVisibilitySteps} levels.`,
+  description: `Draw ${act1NormalBalance.cards.ashRewriteDraw}. Scope target enemy candidate plans for the current plan.`,
   cost: act1NormalBalance.cards.ashRewriteCost,
   rarity: "rare",
   source: "encounterReward",
@@ -212,10 +213,10 @@ export const ashRewrite: CardDefinition = skillCard({
   tags: ["keeper", "signal", "scope", "rare", "draw"],
   effects: [
     drawEffect(act1NormalBalance.cards.ashRewriteDraw),
-    improveIntentVisibilityEffect(
+    scopeIntentEffect(
       { type: "target" },
-      act1NormalBalance.cards.ashRewriteVisibilitySteps,
-      { maxLevel: "scoped", source: "card", expires: "currentPlan" }
+      "candidateSet",
+      { source: "card", expires: "currentPlan" }
     )
   ]
 });

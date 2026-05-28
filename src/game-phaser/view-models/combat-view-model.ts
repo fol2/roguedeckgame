@@ -1,28 +1,33 @@
 import {
   starterRegistry,
   createContentContext,
-  type ContentContext,
-  type CardId,
-  type CardInstanceId,
-  type CombatantId,
-  type CombatantState,
-  type CombatPhase,
-  type CombatState,
-  type GameContentRegistry,
+	  type ContentContext,
+	  type CardId,
+	  type CardInstanceId,
+	  type CombatantId,
+	  type CombatantState,
+	  type CombatPhase,
+	  type CombatState,
+	  type EffectDefinition,
+	  type GameContentRegistry,
   type GameEvent,
   type EncounterId,
   type MonsterAbilityId,
   type IntentVisibilityLevel,
+  type ScopeIntentDepth,
   type MonsterId,
   type MonsterIntentId,
   type PetInstance,
   type PetInstanceId,
   type RunState,
   type RunNodeType,
-  type StatusDefinition,
-  type StatusId,
-  resolveEffectiveIntentVisibilityLevel
-} from "../../game-core";
+	  type StatusDefinition,
+	  type StatusId,
+	  buildEnemyCardHoldingReadouts,
+	  resolveMonsterIntentPresentation,
+	  type CoreIntentScopeReadout,
+	  type CoreResolvedMonsterAbilityDisplay
+	} from "../../game-core";
 import {
   buildCardActionContract,
   getStatusDescriptor,
@@ -30,8 +35,7 @@ import {
   type CardTargetKind
 } from "../../game-core";
 import type { CardType } from "../../game-core/model/card";
-import type { EffectDefinition } from "../../game-core/model/effect";
-import type { MonsterAbilityDefinition, MonsterDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
+import type { MonsterDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
 import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
 import { COMBAT_UI_CAPS } from "../layout/combat-ui-caps";
@@ -123,6 +127,23 @@ export type IntentVisibilityDisplayLevel =
 
 export type CombatIntentTargetHint = "keeper" | "self" | "ally" | "allEnemies" | "pet" | "unknown";
 
+export type CombatIntentScopeCandidateViewModel = {
+  readonly abilityId: MonsterAbilityId;
+  readonly title: string;
+  readonly kind: MonsterIntentType | "intent";
+  readonly targetHint: CombatIntentTargetHint;
+  readonly tags: readonly string[];
+};
+
+export type CombatIntentScopeViewModel = {
+  readonly depth: ScopeIntentDepth;
+  readonly planMode: "locked" | "adaptive" | "charging" | "scriptedPhase" | "unknown";
+  readonly candidateCount: number;
+  readonly candidates: readonly CombatIntentScopeCandidateViewModel[];
+  readonly lines: readonly string[];
+  readonly unstable: boolean;
+};
+
 export type CombatIntentTokenViewModel = {
   readonly monsterId: CombatantId;
   readonly visibility: IntentVisibilityDisplayLevel;
@@ -131,6 +152,7 @@ export type CombatIntentTokenViewModel = {
   readonly amountLabel?: string;
   readonly strengthLabel?: "Low" | "Med" | "High";
   readonly targetHint?: CombatIntentTargetHint;
+  readonly scope?: CombatIntentScopeViewModel;
   readonly tooltip: CombatTooltipCopyViewModel;
   readonly detail: CombatDetailCopyViewModel;
   readonly debug?: {
@@ -154,6 +176,7 @@ export type MonsterIntentViewModel = {
   readonly tooltip: CombatTooltipCopyViewModel;
   readonly detail: CombatDetailCopyViewModel;
   readonly token: CombatIntentTokenViewModel;
+  readonly scope?: CombatIntentScopeViewModel;
   readonly plannedAction: MonsterPlannedActionViewModel;
 };
 
@@ -166,6 +189,8 @@ export type MonsterPlannedActionViewModel = {
   readonly intentId: MonsterIntentId;
   readonly intentType: MonsterIntentType | "intent";
   readonly tags: readonly string[];
+  readonly planMode?: "locked" | "adaptive" | "charging" | "scriptedPhase" | "unknown";
+  readonly scope?: CombatIntentScopeViewModel;
   readonly effectLines: readonly string[];
 };
 
@@ -204,6 +229,19 @@ export type PetStatusTooltipViewModel = {
   readonly body: string;
 };
 
+export type EnemyCardHoldingViewModel = {
+  readonly monsterId: CombatantId;
+  readonly drawCount: number;
+  readonly handCount: number;
+  readonly plannedCount: number;
+  readonly discardCount: number;
+  readonly exhaustCount: number;
+  readonly planMode: "locked" | "adaptive" | "charging" | "scriptedPhase" | "unknown";
+  readonly candidateCount: number;
+  readonly tooltip: CombatTooltipCopyViewModel;
+  readonly detail: CombatDetailCopyViewModel;
+};
+
 export type CombatViewModel = {
   readonly revision: number;
   readonly phase: CombatPhase;
@@ -217,6 +255,7 @@ export type CombatViewModel = {
   readonly pets: readonly PetViewModel[];
   readonly monsters: readonly CombatantViewModel[];
   readonly monsterIntents: readonly MonsterIntentViewModel[];
+  readonly enemyCardHoldings: readonly EnemyCardHoldingViewModel[];
   readonly hand: readonly CombatCardViewModel[];
   readonly drawPile: CombatPileViewModel;
   readonly discardPile: CombatPileViewModel;
@@ -403,83 +442,73 @@ const toCombatantViewModel = (combatant: CombatantState, content: ContentContext
   };
 };
 
-const getIntentAmount = (
-  intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined,
-  intentType: MonsterIntentType | "intent"
-): number | undefined => {
-  const amountTypes: readonly EffectDefinition["type"][] =
-    intentType === "block" ? ["block", "petBlock"] :
-      intentType === "attack" ? ["damage", "petAttack"] :
-        [];
-  const amounts = intentDefinition?.effects
-    .filter((effect): effect is Extract<EffectDefinition, { readonly amount: number }> =>
-      amountTypes.includes(effect.type) && "amount" in effect
-    )
-    .map((effect) => effect.amount) ?? [];
+const toPlanModeViewModel = (
+  planMode: string | undefined
+): "locked" | "adaptive" | "charging" | "scriptedPhase" | "unknown" =>
+  planMode === "locked" ||
+  planMode === "adaptive" ||
+  planMode === "charging" ||
+  planMode === "scriptedPhase"
+    ? planMode
+    : "unknown";
 
-  if (amounts.length === 0) {
+const buildIntentScopeViewModel = (
+  scopeReadout: CoreIntentScopeReadout | undefined
+): CombatIntentScopeViewModel | undefined => {
+  if (!scopeReadout) {
     return undefined;
   }
 
-  return amounts.reduce((sum, amount) => sum + amount, 0);
+  const depth = scopeReadout.depth;
+  const planMode = toPlanModeViewModel(scopeReadout.planMode);
+
+  return {
+    depth,
+    planMode,
+    candidateCount: scopeReadout.candidateCount,
+    candidates: scopeReadout.candidates,
+    lines: scopeReadout.lines,
+    unstable: scopeReadout.unstable
+  };
 };
 
-const getIntentTargetHint = (
-  intentDefinition: { readonly effects: readonly EffectDefinition[] } | undefined
-): MonsterIntentViewModel["targetHint"] => {
-  const firstTargetedEffect = intentDefinition?.effects.find((effect) => "target" in effect);
+const buildEnemyCardHoldingViewModels = (
+  state: CombatState
+): readonly EnemyCardHoldingViewModel[] => buildEnemyCardHoldingReadouts(state).map((readout) => {
+  const monster = state.monsters.find((candidate) => candidate.id === readout.monsterId);
+  const planMode = toPlanModeViewModel(readout.planMode);
+  const title = `${monster?.name ?? readout.monsterId} enemy deck`;
+  const lines = [
+    `Draw pile: ${readout.drawCount}`,
+    `Hand: ${readout.handCount}`,
+    `Planned cards: ${readout.plannedCount}`,
+    `Candidates: ${readout.candidateCount}`,
+    `Discard pile: ${readout.discardCount}`,
+    `Exhaust pile: ${readout.exhaustCount}`,
+    `Plan mode: ${planMode}`
+  ];
 
-  if (!firstTargetedEffect || !("target" in firstTargetedEffect)) {
-    return "unknown";
-  }
-
-  if (firstTargetedEffect.target.type === "self") {
-    return "self";
-  }
-
-  if (firstTargetedEffect.target.type === "allEnemies") {
-    return "allEnemies";
-  }
-
-  return "keeper";
-};
-
-type ResolvedMonsterAbilityDisplay = {
-  readonly ability: MonsterAbilityDefinition;
-  readonly source: MonsterPlannedActionViewModel["source"];
-};
-
-const getPlannedMonsterAbility = (
-  state: CombatState,
-  monsterCombatantId: CombatantId,
-  intentId: MonsterIntentId,
-  content: ContentContext
-): ResolvedMonsterAbilityDisplay | undefined => {
-  const plannedAbility = state.plannedMonsterAbilities?.find((planned) =>
-    planned.monsterCombatantId === monsterCombatantId &&
-    planned.intentId === intentId
-  );
-  const ability = plannedAbility
-    ? content.index.monsterAbilitiesById?.get(plannedAbility.abilityId)
-    : undefined;
-
-  return ability
-    ? { ability, source: "plannedAbility" }
-    : undefined;
-};
-
-const getFallbackMonsterAbility = (
-  intentDefinition: MonsterIntentDefinition | undefined,
-  content: ContentContext
-): ResolvedMonsterAbilityDisplay | undefined => {
-  const ability = intentDefinition?.abilityId
-    ? content.index.monsterAbilitiesById?.get(intentDefinition.abilityId)
-    : undefined;
-
-  return ability
-    ? { ability, source: "fallbackMetadata" }
-    : undefined;
-};
+  return {
+    monsterId: readout.monsterId,
+    drawCount: readout.drawCount,
+    handCount: readout.handCount,
+    plannedCount: readout.plannedCount,
+    discardCount: readout.discardCount,
+    exhaustCount: readout.exhaustCount,
+    planMode,
+    candidateCount: readout.candidateCount,
+    tooltip: {
+      title,
+      body: lines.join("\n")
+    },
+    detail: {
+      title,
+      subtitle: "Enemy card holdings",
+      lines,
+      footer: "Debug/readout only. Enemy cards are still presented through Intent UI."
+    }
+  };
+});
 
 const getCombatantTargetLabel = (target: { readonly type: string }): string => {
   if (target.type === "self") {
@@ -529,18 +558,28 @@ const describeMonsterEffect = (effect: EffectDefinition): string => {
       return `Pet reaction: ${effect.reaction}.`;
     case "improveIntentVisibility":
       return `Improve Intent visibility by ${effect.amount}.`;
+    case "revealIntent":
+      return `Reveal Intent to ${effect.level}.`;
+    case "scopeIntent":
+      return `Scope Intent (${effect.depth}).`;
+    case "obscureIntent":
+      return effect.level
+        ? `Obscure Intent to ${effect.level}.`
+        : `Obscure Intent by ${effect.amount ?? 1}.`;
     case "setStoryFlag":
       return `Set story flag ${effect.flagId}.`;
   }
 };
 
 const buildPlannedActionViewModel = (
-  intent: { readonly intentId: MonsterIntentId },
-  intentDefinition: MonsterIntentDefinition | undefined,
-  resolvedAbility: ResolvedMonsterAbilityDisplay | undefined,
+	  intent: { readonly intentId: MonsterIntentId },
+	  intentDefinition: MonsterIntentDefinition | undefined,
+	  resolvedAbility: CoreResolvedMonsterAbilityDisplay | undefined,
   targetHint: MonsterIntentViewModel["targetHint"],
   amount: number | undefined,
-  visibilityLevel: IntentVisibilityLevel
+  visibilityLevel: IntentVisibilityLevel,
+  planMode?: MonsterPlannedActionViewModel["planMode"],
+  scope?: CombatIntentScopeViewModel
 ): MonsterPlannedActionViewModel => {
   if (resolvedAbility) {
     return {
@@ -552,6 +591,8 @@ const buildPlannedActionViewModel = (
       intentId: intent.intentId,
       intentType: resolvedAbility.ability.intentType,
       tags: resolvedAbility.ability.tags,
+      planMode,
+      scope,
       effectLines: resolvedAbility.ability.effects.map(describeMonsterEffect)
     };
   }
@@ -564,30 +605,14 @@ const buildPlannedActionViewModel = (
     intentId: intent.intentId,
     intentType: intentDefinition?.type ?? "intent",
     tags: [],
+    planMode,
+    scope,
     effectLines: [
       intentDefinition?.description ?? "No planned action metadata available.",
       `Target: ${targetHint}`,
       amount !== undefined ? `Amount: ${amount}` : "Amount: not shown"
     ]
   };
-};
-
-const resolveIntentVisibilityLevel = (
-  state: CombatState,
-  content: ContentContext,
-  monster: CombatantState | undefined,
-  monsterDefinition: MonsterDefinition | undefined,
-  ability: MonsterAbilityDefinition | undefined
-): IntentVisibilityLevel => {
-  return monster
-    ? resolveEffectiveIntentVisibilityLevel({
-        state,
-        registry: content.registry,
-        monsterCombatantId: monster.id,
-        monsterDefinition,
-        ability
-      })
-    : "unknown";
 };
 
 type VisibleIntentCopy = {
@@ -597,18 +622,38 @@ type VisibleIntentCopy = {
   readonly description: string;
   readonly targetHint: MonsterIntentViewModel["targetHint"];
   readonly amount?: number;
+  readonly strengthLabel?: "Low" | "Med" | "High";
+  readonly scope?: CombatIntentScopeViewModel;
   readonly plannedAction: MonsterPlannedActionViewModel;
+};
+
+const getRoughStrengthLabel = (amount: number | undefined): "Low" | "Med" | "High" | undefined => {
+  if (amount === undefined) {
+    return undefined;
+  }
+
+  if (amount <= 4) {
+    return "Low";
+  }
+
+  if (amount <= 8) {
+    return "Med";
+  }
+
+  return "High";
 };
 
 const buildVisibleIntentCopy = (input: {
   readonly intent: { readonly intentId: MonsterIntentId };
   readonly intentDefinition: MonsterIntentDefinition | undefined;
-  readonly resolvedAbility: ResolvedMonsterAbilityDisplay | undefined;
+	  readonly resolvedAbility: CoreResolvedMonsterAbilityDisplay | undefined;
   readonly targetHint: MonsterIntentViewModel["targetHint"];
   readonly amount: number | undefined;
   readonly visibilityLevel: IntentVisibilityLevel;
+  readonly planMode?: MonsterPlannedActionViewModel["planMode"];
+  readonly scope?: CombatIntentScopeViewModel;
 }): VisibleIntentCopy => {
-  const { intent, intentDefinition, resolvedAbility, visibilityLevel } = input;
+  const { intent, intentDefinition, resolvedAbility, visibilityLevel, planMode, scope } = input;
   const ability = resolvedAbility?.ability;
   const intentType = ability?.intentType ?? intentDefinition?.type ?? "intent";
   const source = resolvedAbility?.source ?? (intentDefinition ? "fallbackMetadata" : "unknown");
@@ -621,59 +666,65 @@ const buildVisibleIntentCopy = (input: {
       description: (ability ?? intentDefinition)?.description ?? "Preparing an action.",
       targetHint: input.targetHint,
       amount: input.amount,
+      scope,
       plannedAction: buildPlannedActionViewModel(
         intent,
         intentDefinition,
         resolvedAbility,
         input.targetHint,
         input.amount,
-        visibilityLevel
+        visibilityLevel,
+        planMode,
+        scope
       )
     };
   }
 
   if (visibilityLevel === "scoped") {
+    const scopeLines = scope?.lines ?? [
+      `Candidate category: ${intentType}`,
+      `Likely target: ${input.targetHint}`,
+      "Specific card name, amount, and effects are hidden."
+    ];
+
     return {
       abilityId: undefined,
       type: intentType,
-      label: `${intentType} scoped`,
-      description: `Scoped ${intentType} intent. Exact action details remain hidden.`,
+      label: scope?.candidateCount ? `${intentType} scoped (${scope.candidateCount})` : `${intentType} scoped`,
+      description: scope?.unstable
+        ? `Scoped ${intentType} intent. This plan may adapt inside its candidate set.`
+        : `Scoped ${intentType} intent. Candidate cards are visible, but exact resolution may still be hidden.`,
       targetHint: input.targetHint,
       amount: undefined,
+      scope,
       plannedAction: {
         source,
         revealPolicy: visibilityLevel,
-        title: `${intentType} candidate`,
+        title: scope?.candidateCount ? "Scoped candidate set" : `${intentType} candidate`,
         subtitle: "Scoped enemy intent",
         intentId: intent.intentId,
         intentType,
         tags: [],
-        effectLines: [
-          `Candidate category: ${intentType}`,
-          `Likely target: ${input.targetHint}`,
-          "Specific action name, amount, and effects are hidden."
-        ]
+        planMode,
+        scope,
+        effectLines: scopeLines
       }
     };
   }
 
   if (visibilityLevel === "rough") {
     const roughTarget = ability?.telegraph?.targetHint ?? input.targetHint;
-    const roughStrength = input.amount === undefined
-      ? "unknown"
-      : input.amount <= 4
-        ? "light"
-        : input.amount <= 8
-          ? "moderate"
-          : "heavy";
+    const strengthLabel = getRoughStrengthLabel(input.amount);
+    const strengthCopy = strengthLabel ?? "Unknown";
 
     return {
       abilityId: undefined,
       type: intentType,
       label: `${intentType} intent`,
-      description: `Rough ${intentType} intent with ${roughStrength} strength.`,
+      description: `Rough ${intentType} intent. Strength: ${strengthCopy}.`,
       targetHint: roughTarget,
       amount: undefined,
+      strengthLabel,
       plannedAction: {
         source,
         revealPolicy: visibilityLevel,
@@ -682,7 +733,8 @@ const buildVisibleIntentCopy = (input: {
         intentId: intent.intentId,
         intentType,
         tags: [],
-        effectLines: [`Rough strength: ${roughStrength}`, "Specific action details are hidden."]
+        planMode,
+        effectLines: [`Rough strength: ${strengthCopy}`, "Specific action details are hidden."]
       }
     };
   }
@@ -702,6 +754,7 @@ const buildVisibleIntentCopy = (input: {
         intentId: intent.intentId,
         intentType,
         tags: [],
+        planMode,
         effectLines: ["Action name, amount, target, and effects are hidden."]
       }
     };
@@ -722,6 +775,7 @@ const buildVisibleIntentCopy = (input: {
         intentId: intent.intentId,
         intentType: "unknown",
         tags: [],
+        planMode,
         effectLines: ["No useful intent marker."]
       }
     };
@@ -741,6 +795,7 @@ const buildVisibleIntentCopy = (input: {
       intentId: intent.intentId,
       intentType: "unknown",
       tags: [],
+      planMode,
       effectLines: ["Intent hidden."]
     }
   };
@@ -917,20 +972,28 @@ const buildIntentTokenViewModel = ({
   intentType,
   targetHint,
   amount,
+  strengthLabel,
   description,
-  visibilityLevel
+  visibilityLevel,
+  scope
 }: {
   readonly monsterId: CombatantId;
   readonly plannedAction: MonsterPlannedActionViewModel;
   readonly intentType: MonsterIntentType | "intent";
   readonly targetHint: CombatIntentTargetHint;
   readonly amount: number | undefined;
+  readonly strengthLabel?: "Low" | "Med" | "High";
   readonly description: string;
   readonly visibilityLevel: IntentVisibilityLevel;
+  readonly scope?: CombatIntentScopeViewModel;
 }): CombatIntentTokenViewModel => {
   const kind = getIntentTokenKind(intentType);
   const title = getIntentTitle(kind);
   const amountLine = getIntentAmountLine(kind, amount);
+  const strengthLine = strengthLabel ? `Strength: ${strengthLabel}` : undefined;
+  const scopeLine = scope
+    ? `Scoped candidates: ${scope.candidateCount}${scope.unstable ? " (adaptive)" : ""}`
+    : undefined;
   const explanation = getIntentExplanation(kind, targetHint);
   const visibility = getTokenVisibility(visibilityLevel, kind);
 
@@ -940,12 +1003,16 @@ const buildIntentTokenViewModel = ({
     kind,
     iconKey: getIntentIconKey(kind),
     amountLabel: amount !== undefined ? String(amount) : undefined,
+    strengthLabel,
     targetHint,
+    scope,
     tooltip: {
       title,
       body: [
         explanation,
         amountLine,
+        strengthLine,
+        scopeLine,
         `Target: ${getIntentTargetCopy(targetHint)}`
       ].filter((line): line is string => Boolean(line)).join("\n")
     },
@@ -956,8 +1023,10 @@ const buildIntentTokenViewModel = ({
         description,
         explanation,
         amountLine,
+        strengthLine,
         `Target: ${getIntentTargetCopy(targetHint)}`,
-        `Known detail: ${describeKnownIntentDetail(visibility)}`
+        `Known detail: ${describeKnownIntentDetail(visibility)}`,
+        ...(scope?.lines ?? [])
       ].filter((line): line is string => Boolean(line)),
       footer: "Intent detail."
     },
@@ -1066,27 +1135,37 @@ export const buildCombatViewModel = (
       };
     }),
     monsters: state.combat.monsters.map((monster) => toCombatantViewModel(monster, content)),
-    monsterIntents: state.combat.monsterIntents.map((intent) => {
-      const monster = state.combat.monsters.find((candidate) => candidate.id === intent.monsterCombatantId);
-      const monsterDefinition = monster?.definitionId && monster.type === "monster"
-        ? content.index.monstersById.get(monster.definitionId as MonsterId)
-        : undefined;
-      const intentDefinition = monsterDefinition?.intentPool.find((candidate) => candidate.id === intent.intentId);
-      const resolvedAbility = getPlannedMonsterAbility(state.combat, intent.monsterCombatantId, intent.intentId, content) ??
-        getFallbackMonsterAbility(intentDefinition, content);
-      const ability = resolvedAbility?.ability;
-      const displaySource = ability ?? intentDefinition;
-      const targetHint = getIntentTargetHint(displaySource);
-      const intentType = ability?.intentType ?? intentDefinition?.type ?? "intent";
-      const amount = getIntentAmount(displaySource, intentType);
-      const visibilityLevel = resolveIntentVisibilityLevel(state.combat, content, monster, monsterDefinition, ability);
-      const visibleIntent = buildVisibleIntentCopy({
-        intent,
-        intentDefinition,
+	    monsterIntents: state.combat.monsterIntents.map((intent) => {
+	      const monster = state.combat.monsters.find((candidate) => candidate.id === intent.monsterCombatantId);
+	      const monsterDefinition = monster?.definitionId && monster.type === "monster"
+	        ? content.index.monstersById.get(monster.definitionId as MonsterId)
+	        : undefined;
+	      const presentation = monster
+	        ? resolveMonsterIntentPresentation({
+	            state: state.combat,
+	            monsterCombatantId: intent.monsterCombatantId,
+	            intentId: intent.intentId,
+	            monsterDefinition,
+		            registry: content.registry
+	          })
+	        : undefined;
+	      const intentDefinition = presentation?.intentDefinition;
+	      const resolvedAbility = presentation?.resolvedAbility;
+	      const targetHint = presentation?.targetHint ?? "unknown";
+	      const intentType = presentation?.intentType ?? "intent";
+	      const amount = presentation?.amount;
+	      const visibilityLevel = presentation?.visibilityLevel ?? "unknown";
+	      const planMode = toPlanModeViewModel(presentation?.planMode);
+	      const scope = buildIntentScopeViewModel(presentation?.scope);
+	      const visibleIntent = buildVisibleIntentCopy({
+	        intent,
+	        intentDefinition,
         resolvedAbility,
         targetHint,
         amount,
-        visibilityLevel
+        visibilityLevel,
+        planMode,
+        scope
       });
       const token = buildIntentTokenViewModel({
         monsterId: intent.monsterCombatantId,
@@ -1094,8 +1173,10 @@ export const buildCombatViewModel = (
         intentType: visibleIntent.type,
         targetHint: visibleIntent.targetHint,
         amount: visibleIntent.amount,
+        strengthLabel: visibleIntent.strengthLabel,
         description: visibleIntent.description,
-        visibilityLevel
+        visibilityLevel,
+        scope: visibleIntent.scope
       });
 
       return {
@@ -1111,9 +1192,11 @@ export const buildCombatViewModel = (
         tooltip: token.tooltip,
         detail: token.detail,
         token,
+        scope: visibleIntent.scope,
         plannedAction: visibleIntent.plannedAction
       };
     }),
+    enemyCardHoldings: buildEnemyCardHoldingViewModels(state.combat),
     hand: state.combat.hand.map((cardInstanceId) => {
       const cardInstance = cardInstancesById.get(cardInstanceId);
       const cardDefinition = cardInstance ? findCard(content, cardInstance.cardId) : undefined;

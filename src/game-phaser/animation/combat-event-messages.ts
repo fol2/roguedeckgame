@@ -30,6 +30,8 @@ export const formatCombatEventMessage = (event: EventLike): string => {
       return `Spent ${event.amount} energy (${event.remaining} remaining).`;
     case "EnemyIntentVisibilityChanged":
       return `${event.monsterId} intent visibility is now ${event.level}.`;
+    case "EnemyPlanChanged":
+      return `${event.monsterId} changed plan: ${event.fromIntentId} -> ${event.toIntentId} (${event.reason}).`;
     case "MonsterAbilityPlanned":
       return `${event.monsterId} planned a monster card.`;
     case "MonsterAbilityPlayed":

@@ -103,9 +103,12 @@ describe("content authoring helpers", () => {
         "damage",
         "draw",
         "improveIntentVisibility",
+        "obscureIntent",
         "petAttack",
         "petBlock",
-        "petReact"
+        "petReact",
+        "revealIntent",
+        "scopeIntent"
       ],
       statusIds: ["burn"],
       runtimeSupportedStatusIds: ["burn"],

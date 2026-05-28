@@ -89,15 +89,17 @@ const validateAmountPayload = (
     return [];
   }
 
-  if (!("amount" in effectDefinition)) {
+  const amount = "amount" in effectDefinition ? effectDefinition.amount : undefined;
+
+  if (amount === undefined) {
     return [issue("error", "missing_effect_amount", "Effect is missing an amount.", `${path}.amount`)];
   }
 
-  if (!Number.isFinite(effectDefinition.amount) || effectDefinition.amount < 0) {
+  if (!Number.isFinite(amount) || amount < 0) {
     return [issue("error", "invalid_effect_amount", "Effect amount must be a non-negative finite number.", `${path}.amount`)];
   }
 
-  if (descriptor.amount === "nonNegativeInteger" && !Number.isInteger(effectDefinition.amount)) {
+  if (descriptor.amount === "nonNegativeInteger" && !Number.isInteger(amount)) {
     return [issue("error", "invalid_effect_amount", "Draw effect amount must be an integer.", `${path}.amount`)];
   }
 
@@ -186,6 +188,28 @@ const validateEffectPayload = (
     (!Number.isInteger(effectDefinition.stacks) || effectDefinition.stacks <= 0)
   ) {
     issues.push(issue("error", "invalid_effect_stacks", "Consume status stacks must be a positive integer when present.", `${path}.stacks`));
+  }
+
+  if (effectDefinition.type === "revealIntent") {
+    if (!["none", "unknown", "category", "rough", "exact", "scoped"].includes(effectDefinition.level)) {
+      issues.push(issue("error", "invalid_intent_visibility_level", "Reveal intent level is unknown.", `${path}.level`));
+    }
+  }
+
+  if (effectDefinition.type === "scopeIntent") {
+    if (!["category", "candidateSet", "conditionHint", "exactIfLocked"].includes(effectDefinition.depth)) {
+      issues.push(issue("error", "invalid_scope_intent_depth", "Scope intent depth is unknown.", `${path}.depth`));
+    }
+  }
+
+  if (effectDefinition.type === "obscureIntent") {
+    if (effectDefinition.amount !== undefined && (!Number.isInteger(effectDefinition.amount) || effectDefinition.amount < 0)) {
+      issues.push(issue("error", "invalid_effect_amount", "Obscure intent amount must be a non-negative integer when present.", `${path}.amount`));
+    }
+
+    if (effectDefinition.level !== undefined && !["none", "unknown", "category", "rough", "exact", "scoped"].includes(effectDefinition.level)) {
+      issues.push(issue("error", "invalid_intent_visibility_level", "Obscure intent level is unknown.", `${path}.level`));
+    }
   }
 
   if (effectDefinition.type === "createCard") {

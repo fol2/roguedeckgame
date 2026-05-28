@@ -1,6 +1,6 @@
 import type { AgentRunDriverSnapshot } from "./agent-actions";
 
-export type AgentStateHashSchemaVersion = 1 | 2 | 3 | 4;
+export type AgentStateHashSchemaVersion = 1 | 2 | 3 | 4 | 5;
 
 export type AgentStateHashOptions = {
   readonly schemaVersion?: AgentStateHashSchemaVersion;
@@ -35,6 +35,10 @@ export const createAgentStateHash = (
   const includePlannedAbilities = schemaVersion >= 2;
   const includeStoryAndPetProgression = schemaVersion >= 3;
   const includeIntentVisibility = schemaVersion >= 4;
+  const includeRevealScopeIntentFields = schemaVersion >= 5;
+  const plannedAbilities = combat?.plannedMonsterAbilities ?? [];
+  const intentVisibilityOverrides = combat?.intentVisibilityOverrides ?? [];
+  const monsterCardStates = combat?.monsterCardStates ?? [];
   const value = {
     run: {
       status: snapshot.run.status,
@@ -96,14 +100,48 @@ export const createAgentStateHash = (
             intents: combat.monsterIntents.filter((intent) => intent.monsterCombatantId === monster.id),
             ...(includePlannedAbilities
               ? {
-                  plannedAbilities: (combat.plannedMonsterAbilities ?? []).filter((planned) => planned.monsterCombatantId === monster.id)
+                  plannedAbilities: plannedAbilities
+                    .filter((planned) => planned.monsterCombatantId === monster.id)
+                    .map((planned) => includeRevealScopeIntentFields
+                      ? planned
+                      : {
+                          monsterCombatantId: planned.monsterCombatantId,
+                          abilityId: planned.abilityId,
+                          intentId: planned.intentId
+                        })
                 }
               : {})
           })),
           energy: combat.energy,
           maxEnergy: combat.maxEnergy,
-          intentVisibilityOverrides: includeIntentVisibility ? combat.intentVisibilityOverrides : undefined,
-          monsterCardStates: includeIntentVisibility ? combat.monsterCardStates : undefined,
+          intentVisibilityOverrides: includeIntentVisibility
+            ? intentVisibilityOverrides.map((override) => includeRevealScopeIntentFields
+              ? override
+              : {
+                  monsterCombatantId: override.monsterCombatantId,
+                  level: override.level,
+                  source: override.source,
+                  expires: override.expires,
+                  sourceCardInstanceId: override.sourceCardInstanceId
+                })
+            : undefined,
+          monsterCardStates: includeIntentVisibility
+            ? monsterCardStates.map((cardState) => includeRevealScopeIntentFields
+              ? cardState
+              : {
+                  monsterCombatantId: cardState.monsterCombatantId,
+                  drawPile: cardState.drawPile,
+                  hand: cardState.hand,
+                  discardPile: cardState.discardPile,
+                  exhaustPile: cardState.exhaustPile,
+                  cardInstances: cardState.cardInstances,
+                  planned: {
+                    lockedCardInstanceId: cardState.planned.lockedCardInstanceId,
+                    candidateCardInstanceIds: cardState.planned.candidateCardInstanceIds,
+                    planMode: cardState.planned.planMode
+                  }
+                })
+            : undefined,
           hand: combat.hand.map((id) => cardIdentity(snapshot, id)),
           drawPile: combat.drawPile.map((id) => cardIdentity(snapshot, id)),
           discardPile: combat.discardPile.map((id) => cardIdentity(snapshot, id)),

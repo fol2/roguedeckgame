@@ -1,14 +1,29 @@
-import { cardInstanceId, type CardId, type CardInstanceId, type CombatantId, type MonsterIntentId } from "../ids";
+import {
+  cardInstanceId,
+  type CardId,
+  type CardInstanceId,
+  type CombatantId,
+  type EnemyCardInstanceId,
+  type MonsterAbilityId,
+  type MonsterIntentId
+} from "../ids";
 import type { GameActionError, GameActionResult } from "../model/action";
 import type { CombatantTarget, EffectDefinition } from "../model/effect";
-import type { CombatantState, CombatState, IntentVisibilityLevel } from "../model/combat";
+import type {
+  CombatantState,
+  CombatIntentVisibilityState,
+  CombatMonsterCardState,
+  CombatState,
+  IntentVisibilityLevel,
+  ScopeIntentDepth
+} from "../model/combat";
 import type { GameEvent } from "../model/event";
 import type { GameContentRegistry } from "../model/registry";
 import type { CombatStatusState } from "../model/status";
 import { drawCards } from "./draw";
 import { moveCardBetweenPiles } from "./card-piles";
 import { getEffectDescriptor, type EffectResolverKey } from "./effect-descriptors";
-import { resolveEffectiveIntentVisibilityLevel } from "./intent-visibility";
+import { getIntentVisibilityRank, resolveEffectiveIntentVisibilityLevel, shiftIntentVisibilityLevel } from "./intent-visibility";
 import { checkCombatOutcome } from "./outcome";
 import { resolvePetTargets } from "./pet-targets";
 import type { Rng } from "./rng";
@@ -676,29 +691,114 @@ const resolveConsumeStatusEffect = (
   return { ok: true, state: nextState, events, errors: [] };
 };
 
-const intentVisibilityLevels = ["none", "unknown", "category", "rough", "exact", "scoped"] as const satisfies readonly IntentVisibilityLevel[];
-
-const getIntentVisibilityRank = (level: IntentVisibilityLevel): number =>
-  intentVisibilityLevels.indexOf(level);
+type IntentVisibilityEffect = Extract<EffectDefinition, { readonly type: "improveIntentVisibility" | "revealIntent" | "scopeIntent" | "obscureIntent" }>;
 
 const improveIntentVisibilityLevel = (
   current: IntentVisibilityLevel,
   amount: number,
   maxLevel: IntentVisibilityLevel | undefined
 ): IntentVisibilityLevel => {
-  const maxRank = maxLevel === undefined
-    ? intentVisibilityLevels.length - 1
-    : getIntentVisibilityRank(maxLevel);
-  const currentRank = getIntentVisibilityRank(current);
-  const nextRank = currentRank > maxRank
-    ? currentRank
-    : Math.min(Math.max(0, currentRank + amount), maxRank);
+  if (maxLevel !== undefined && getIntentVisibilityRank(current) > getIntentVisibilityRank(maxLevel)) {
+    return current;
+  }
 
-  return intentVisibilityLevels[nextRank] ?? current;
+  return shiftIntentVisibilityLevel(current, amount, { maxLevel });
+};
+
+const getMonsterCardState = (
+  state: CombatState,
+  monsterCombatantId: CombatantId
+): CombatMonsterCardState | undefined =>
+  state.monsterCardStates?.find((cardState) => cardState.monsterCombatantId === monsterCombatantId);
+
+const getPlannedEnemyCardInstanceIds = (
+  cardState: CombatMonsterCardState | undefined
+): readonly EnemyCardInstanceId[] => {
+  if (!cardState) {
+    return [];
+  }
+
+  return [
+    ...(cardState.planned.lockedCardInstanceId ? [cardState.planned.lockedCardInstanceId] : []),
+    ...cardState.planned.candidateCardInstanceIds
+  ];
+};
+
+const getEnemyAbilityIdsForCardInstances = (
+  cardState: CombatMonsterCardState | undefined,
+  cardInstanceIds: readonly EnemyCardInstanceId[]
+): readonly MonsterAbilityId[] => {
+  if (!cardState) {
+    return [];
+  }
+
+  const abilityIds = cardInstanceIds
+    .map((cardInstanceIdValue) => cardState.cardInstances.find((cardInstance) => cardInstance.id === cardInstanceIdValue)?.abilityId)
+    .filter((abilityId): abilityId is MonsterAbilityId => abilityId !== undefined);
+
+  return [...new Set(abilityIds)];
+};
+
+const resolveScopeLevel = (
+  depth: ScopeIntentDepth,
+  cardState: CombatMonsterCardState | undefined
+): IntentVisibilityLevel => {
+  if (depth === "category") {
+    return "category";
+  }
+
+  if (
+    depth === "exactIfLocked" &&
+    cardState?.planned.planMode === "locked" &&
+    cardState.planned.lockedCardInstanceId !== undefined &&
+    cardState.planned.candidateCardInstanceIds.length === 0
+  ) {
+    return "exact";
+  }
+
+  return "scoped";
+};
+
+const addVisibilityOverride = (
+  overrides: readonly CombatIntentVisibilityState[],
+  override: CombatIntentVisibilityState
+): readonly CombatIntentVisibilityState[] => {
+  if (override.mode === "ceiling") {
+    return [
+      ...overrides.filter((candidate) => !(
+        candidate.monsterCombatantId === override.monsterCombatantId &&
+        candidate.mode === "ceiling" &&
+        candidate.source === override.source &&
+        candidate.expires === override.expires
+      )),
+      override
+    ];
+  }
+
+  if (override.mode === "set") {
+    return [
+      ...overrides.filter((candidate) => !(
+        candidate.monsterCombatantId === override.monsterCombatantId &&
+        candidate.mode === "set"
+      )),
+      override
+    ];
+  }
+
+  return [
+    ...overrides.filter((candidate) => !(
+      candidate.monsterCombatantId === override.monsterCombatantId &&
+      (candidate.mode === undefined || candidate.mode === "floor") &&
+      candidate.source === override.source &&
+      candidate.expires === override.expires &&
+      candidate.sourceCardInstanceId === override.sourceCardInstanceId
+    )),
+    override
+  ];
 };
 
 const resolveIntentVisibilityEffect = (
-  input: EffectHandlerInput<Extract<EffectDefinition, { readonly type: "improveIntentVisibility" }>>
+  input: EffectHandlerInput<IntentVisibilityEffect>
 ): GameActionResult<CombatState> => {
   const targets = resolveCombatantTargets(
     input.state,
@@ -710,10 +810,8 @@ const resolveIntentVisibilityEffect = (
     return reject(input.originalState, targets);
   }
 
-  let overrides = [...(input.state.intentVisibilityOverrides ?? [])];
+  let overrides: readonly CombatIntentVisibilityState[] = [...(input.state.intentVisibilityOverrides ?? [])];
   const events: GameEvent[] = [];
-  const source = input.effect.source ?? "card";
-  const expires = input.effect.expires ?? "currentPlan";
 
   for (const target of targets) {
     if (target.type !== "monster" || !target.alive) {
@@ -744,35 +842,69 @@ const resolveIntentVisibilityEffect = (
       monsterDefinition,
       ability
     });
-    const nextLevel = improveIntentVisibilityLevel(currentLevel, input.effect.amount, input.effect.maxLevel);
-    const existing = overrides.find((override) => override.monsterCombatantId === target.id);
+    const cardState = getMonsterCardState(input.state, target.id);
+    const source = input.effect.source ?? (input.effect.type === "obscureIntent" ? "enemyObscure" : "card");
+    const expires = input.effect.expires ?? (input.effect.type === "obscureIntent" ? "nextPlan" : "currentPlan");
+    const plannedCandidateCardInstanceIds = getPlannedEnemyCardInstanceIds(cardState);
 
-    if (existing && getIntentVisibilityRank(existing.level) >= getIntentVisibilityRank(nextLevel)) {
+    let nextLevel: IntentVisibilityLevel;
+    let mode: CombatIntentVisibilityState["mode"] = "floor";
+    let scopeDepth: ScopeIntentDepth | undefined;
+    let scopedCandidateCardInstanceIds: readonly EnemyCardInstanceId[] | undefined;
+    let scopedCandidateAbilityIds: readonly MonsterAbilityId[] | undefined;
+
+    if (input.effect.type === "improveIntentVisibility") {
+      nextLevel = improveIntentVisibilityLevel(currentLevel, input.effect.amount, input.effect.maxLevel);
+    } else if (input.effect.type === "revealIntent") {
+      nextLevel = input.effect.level;
+    } else if (input.effect.type === "scopeIntent") {
+      scopeDepth = input.effect.depth;
+      nextLevel = resolveScopeLevel(input.effect.depth, cardState);
+      if (input.effect.depth !== "category") {
+        scopedCandidateCardInstanceIds = plannedCandidateCardInstanceIds;
+        const candidateAbilityIds = getEnemyAbilityIdsForCardInstances(cardState, plannedCandidateCardInstanceIds);
+        scopedCandidateAbilityIds = candidateAbilityIds.length > 0
+          ? candidateAbilityIds
+          : abilityId ? [abilityId] : [];
+      }
+    } else {
+      mode = "ceiling";
+      nextLevel = input.effect.level ?? shiftIntentVisibilityLevel(currentLevel, -(input.effect.amount ?? 1));
+    }
+
+    const wouldImprove = mode === "floor" && getIntentVisibilityRank(nextLevel) > getIntentVisibilityRank(currentLevel);
+    const wouldObscure = mode === "ceiling" && getIntentVisibilityRank(nextLevel) < getIntentVisibilityRank(currentLevel);
+    const wouldScope = scopeDepth !== undefined &&
+      (scopedCandidateAbilityIds?.length ?? 0) > 0 &&
+      getIntentVisibilityRank(nextLevel) > getIntentVisibilityRank(currentLevel);
+    if (!wouldImprove && !wouldObscure && !wouldScope) {
       continue;
     }
 
-    if (!existing && getIntentVisibilityRank(nextLevel) <= getIntentVisibilityRank(currentLevel)) {
-      continue;
-    }
-
-    const nextOverride = {
+    const nextOverride: CombatIntentVisibilityState = {
       monsterCombatantId: target.id,
       level: nextLevel,
       source,
       expires,
-      ...(input.context.cardInstanceId ? { sourceCardInstanceId: input.context.cardInstanceId } : {})
+      mode,
+      ...(input.context.cardInstanceId ? { sourceCardInstanceId: input.context.cardInstanceId } : {}),
+      ...(scopeDepth ? { scopeDepth } : {}),
+      ...(scopedCandidateCardInstanceIds ? { scopedCandidateCardInstanceIds } : {}),
+      ...(scopedCandidateAbilityIds ? { scopedCandidateAbilityIds } : {})
     };
 
-    overrides = [
-      ...overrides.filter((override) => override.monsterCombatantId !== target.id),
-      nextOverride
-    ];
+    overrides = addVisibilityOverride(overrides, nextOverride);
     events.push({
       type: "EnemyIntentVisibilityChanged",
       monsterId: target.id,
+      previousLevel: currentLevel,
       level: nextLevel,
       source,
-      expires
+      expires,
+      mode,
+      ...(scopeDepth ? { scopeDepth } : {}),
+      ...(scopedCandidateCardInstanceIds ? { scopedCandidateCardInstanceIds } : {}),
+      ...(scopedCandidateAbilityIds ? { scopedCandidateAbilityIds } : {})
     });
   }
 

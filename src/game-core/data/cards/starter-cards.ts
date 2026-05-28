@@ -1,7 +1,7 @@
 import { cardId } from "../../ids";
 import { act1NormalBalance } from "../balance/act1-normal";
 import type { CardDefinition } from "../../model/card";
-import { attackCard, blockEffect, damageEffect, drawEffect, improveIntentVisibilityEffect, skillCard } from "../builders";
+import { attackCard, blockEffect, damageEffect, drawEffect, revealIntentEffect, skillCard } from "../builders";
 
 export const keepersTap: CardDefinition = attackCard({
   id: cardId("keepers_tap"),
@@ -30,7 +30,7 @@ export const fieldBrace: CardDefinition = skillCard({
 export const readTheAsh: CardDefinition = skillCard({
   id: cardId("read_the_ash"),
   name: "Read the Ash",
-  description: `Draw ${act1NormalBalance.cards.readTheAshDraw}. Improve target enemy Intent visibility by ${act1NormalBalance.cards.readTheAshVisibilitySteps} level for the current plan.`,
+  description: `Draw ${act1NormalBalance.cards.readTheAshDraw}. Reveal target enemy Intent to a rough read for the current plan.`,
   cost: act1NormalBalance.cards.readTheAshCost,
   tags: ["keeper", "signal", "scout", "draw", "reveal"],
   rarity: "starter",
@@ -38,10 +38,10 @@ export const readTheAsh: CardDefinition = skillCard({
   duplicatePolicy: { maxCopiesInRunDeck: 2 },
   effects: [
     drawEffect(act1NormalBalance.cards.readTheAshDraw),
-    improveIntentVisibilityEffect(
+    revealIntentEffect(
       { type: "target" },
-      act1NormalBalance.cards.readTheAshVisibilitySteps,
-      { maxLevel: "rough", source: "card", expires: "currentPlan" }
+      "rough",
+      { source: "card", expires: "currentPlan" }
     )
   ]
 });

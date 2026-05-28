@@ -12,7 +12,7 @@ describe("content workbench view model", () => {
     const second = buildContentWorkbenchViewModel(starterRegistry);
 
     expect(first).toEqual(second);
-    expect(first.contentVersion).toBe("ashwood-trail-content-foundation-v2");
+    expect(first.contentVersion).toBe("ashwood-trail-reveal-scope-v4");
     expect(first.schema.collectionCount).toBe(15);
     expect(Object.keys(first.sections).sort()).toEqual(
       first.schema.collections.map((collection) => collection.id).sort()

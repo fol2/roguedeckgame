@@ -36,6 +36,7 @@ export * from "./systems/draw";
 export * from "./systems/effect-descriptors";
 export * from "./systems/effects";
 export * from "./systems/intent-visibility";
+export * from "./systems/intent-presentation";
 export * from "./systems/monster-intents";
 export * from "./systems/multi-pet-proof";
 export * from "./systems/outcome";

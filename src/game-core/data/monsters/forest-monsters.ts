@@ -6,6 +6,13 @@ const monsterAttack = (amount: number) => ({ type: "damage" as const, amount, ta
 const monsterBlock = (amount: number) => ({ type: "block" as const, amount, target: { type: "self" as const } });
 const monsterBurn = (stacks: number) => ({ type: "applyStatus" as const, statusId: statusId("burn"), stacks, target: { type: "target" as const } });
 const monsterCleanseBurn = (stacks: number) => ({ type: "cleanseStatus" as const, statusId: statusId("burn"), stacks, target: { type: "self" as const } });
+const monsterObscureSelf = () => ({
+  type: "obscureIntent" as const,
+  target: { type: "self" as const },
+  amount: 1,
+  source: "enemyObscure" as const,
+  expires: "nextPlan" as const
+});
 
 const intentFromAbility = (id: string, ability: MonsterAbilityDefinition): MonsterIntentDefinition => ({
   id: monsterIntentId(id),
@@ -96,7 +103,7 @@ export const sootCrowFlutterAbility: MonsterAbilityDefinition = {
   tier: "advanced",
   planMode: "locked",
   telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
-  effects: [monsterBlock(act1NormalBalance.monsters.sootCrowBlock)]
+  effects: [monsterBlock(act1NormalBalance.monsters.sootCrowBlock), monsterObscureSelf()]
 };
 
 export const sootCrowBlackCawAbility: MonsterAbilityDefinition = {
@@ -240,7 +247,7 @@ export const cinderScribeSmudgeAbility: MonsterAbilityDefinition = {
   tier: "rareBearer",
   planMode: "locked",
   telegraph: { defaultVisibility: "unknown", amountLabelMode: "hidden", targetHint: "self" },
-  effects: [monsterBlock(act1NormalBalance.monsters.cinderScribeSmudgeBlock)]
+  effects: [monsterBlock(act1NormalBalance.monsters.cinderScribeSmudgeBlock), monsterObscureSelf()]
 };
 
 export const emberrootWardenRootSlamAbility: MonsterAbilityDefinition = {

@@ -24,6 +24,8 @@ type ResolvedIntentSelection = {
 
 type MonsterCardPlanResult = {
   readonly selected?: ResolvedIntentSelection;
+  readonly selectedCardInstanceId?: EnemyCardInstanceId;
+  readonly planMode?: CombatMonsterCardState["planned"]["planMode"];
   readonly cardState?: CombatMonsterCardState;
 };
 
@@ -220,6 +222,8 @@ const selectMonsterCardPlan = (
 
   return {
     selected,
+    selectedCardInstanceId,
+    planMode: selectedPlanMode,
     cardState: {
       ...stateWithoutPlannedCards,
       planned: {
@@ -313,6 +317,196 @@ export const findMonsterAbility = (
   }
 
   return ability;
+};
+
+const getCardInstanceAbility = (
+  cardState: CombatMonsterCardState | undefined,
+  cardInstanceId: EnemyCardInstanceId | undefined
+): MonsterAbilityId | undefined =>
+  cardInstanceId && cardState
+    ? cardState.cardInstances.find((cardInstance) => cardInstance.id === cardInstanceId)?.abilityId
+    : undefined;
+
+const hasTag = (ability: MonsterAbilityDefinition, tag: string): boolean => ability.tags.includes(tag);
+
+const getMonsterStatusStacks = (monster: CombatState["monsters"][number], statusId: string): number =>
+  monster.statuses.find((status) => status.statusId === statusId)?.stacks ?? 0;
+
+type AdaptiveCandidate = {
+  readonly cardInstanceId?: EnemyCardInstanceId;
+  readonly intent: MonsterIntentDefinition;
+  readonly ability: MonsterAbilityDefinition;
+};
+
+const pickCandidateByPredicate = (
+  candidates: readonly AdaptiveCandidate[],
+  predicate: (candidate: AdaptiveCandidate) => boolean
+): AdaptiveCandidate | undefined => candidates.find(predicate);
+
+const resolveAdaptiveCandidate = (
+  state: CombatState,
+  monster: CombatState["monsters"][number],
+  monsterDefinition: MonsterDefinition,
+  candidates: readonly AdaptiveCandidate[],
+  fallback: AdaptiveCandidate
+): { readonly candidate: AdaptiveCandidate; readonly reason: string } => {
+  const adaptiveRuleIds = monsterDefinition.cardGame?.adaptiveRuleIds ?? [];
+
+  for (const ruleId of adaptiveRuleIds) {
+    if (ruleId === "prefer_shelter_when_burning" && getMonsterStatusStacks(monster, "burn") >= 2) {
+      const candidate = pickCandidateByPredicate(candidates, (item) => hasTag(item.ability, "cleanse") || item.ability.intentType === "block");
+      if (candidate) {
+        return { candidate, reason: ruleId };
+      }
+    }
+
+    if (ruleId === "phase_after_half_hp" && monster.maxHp > 0 && monster.hp / monster.maxHp <= 0.5) {
+      const candidate = pickCandidateByPredicate(candidates, (item) => hasTag(item.ability, "phase") || item.ability.intentType === "charge" || item.ability.intentType === "special");
+      if (candidate) {
+        return { candidate, reason: ruleId };
+      }
+    }
+
+    if (ruleId === "prefer_charge_when_safe" && state.player.block >= 8) {
+      const candidate = pickCandidateByPredicate(candidates, (item) => item.ability.intentType === "charge");
+      if (candidate) {
+        return { candidate, reason: ruleId };
+      }
+    }
+
+    if (ruleId === "prefer_guard_if_player_overblocks" && state.player.block >= 8) {
+      const candidate = pickCandidateByPredicate(candidates, (item) => item.ability.intentType === "block" || hasTag(item.ability, "block"));
+      if (candidate) {
+        return { candidate, reason: ruleId };
+      }
+    }
+
+    if (ruleId === "prefer_attack_if_player_low_block" && state.player.block <= 4) {
+      const candidate = pickCandidateByPredicate(candidates, (item) => item.ability.intentType === "attack" || hasTag(item.ability, "attack"));
+      if (candidate) {
+        return { candidate, reason: ruleId };
+      }
+    }
+  }
+
+  return { candidate: fallback, reason: "locked_or_fallback" };
+};
+
+export type FinalizedMonsterPlan = {
+  readonly intent: MonsterIntentDefinition;
+  readonly ability: MonsterAbilityDefinition;
+  readonly cardInstanceId?: EnemyCardInstanceId;
+  readonly planMode?: CombatMonsterCardState["planned"]["planMode"];
+  readonly events: readonly GameEvent[];
+  readonly state: CombatState;
+};
+
+export const finalizePlannedMonsterAbility = (
+  registry: GameContentRegistry,
+  monsterDefinition: MonsterDefinition,
+  monsterCombatantId: CombatState["monsters"][number]["id"],
+  state: CombatState
+): FinalizedMonsterPlan | GameActionError => {
+  const monster = state.monsters.find((candidate) => candidate.id === monsterCombatantId);
+  const planned = findPlannedMonsterAbility(registry, monsterDefinition, monsterCombatantId, state);
+  if ("code" in planned) {
+    return planned;
+  }
+
+  const cardState = getExistingCardState(state, monsterCombatantId);
+  const storedPlan = state.plannedMonsterAbilities?.find((candidate) =>
+    candidate.monsterCombatantId === monsterCombatantId &&
+    candidate.intentId === planned.intent.id
+  );
+  const planMode = cardState?.planned.planMode ?? storedPlan?.planMode;
+
+  if (!monster || !cardState || planMode !== "adaptive") {
+    return {
+      ...planned,
+      cardInstanceId: storedPlan?.cardInstanceId,
+      planMode,
+      events: [],
+      state
+    };
+  }
+
+  const plannedCardInstanceIds = getPlannedCardInstanceIds(cardState.planned);
+  const candidates = plannedCardInstanceIds
+    .map<AdaptiveCandidate | undefined>((cardInstanceIdValue) => {
+      const abilityId = getCardInstanceAbility(cardState, cardInstanceIdValue);
+      const ability = abilityId
+        ? registry.monsterAbilities?.find((candidate) => candidate.id === abilityId)
+        : undefined;
+      const intent = ability
+        ? monsterDefinition.intentPool.find((candidate) => candidate.abilityId === ability.id)
+        : undefined;
+
+      return ability && intent
+        ? { cardInstanceId: cardInstanceIdValue, intent, ability }
+        : undefined;
+    })
+    .filter((candidate): candidate is AdaptiveCandidate => candidate !== undefined);
+
+  const fallback = candidates.find((candidate) =>
+    candidate.ability.id === planned.ability.id &&
+    candidate.intent.id === planned.intent.id
+  );
+
+  if (!fallback) {
+    return error(
+      "adaptive_plan_outside_candidate_set",
+      `Monster '${monsterCombatantId}' planned adaptive ability '${planned.ability.id}' outside its candidate set.`,
+      "monsterCardStates.planned"
+    );
+  }
+
+  const resolved = resolveAdaptiveCandidate(state, monster, monsterDefinition, candidates, fallback);
+
+  if (resolved.candidate.ability.id === planned.ability.id && resolved.candidate.intent.id === planned.intent.id) {
+    return {
+      ...planned,
+      cardInstanceId: resolved.candidate.cardInstanceId,
+      planMode,
+      events: [],
+      state
+    };
+  }
+
+  const changedEvent: GameEvent = {
+    type: "EnemyPlanChanged",
+    monsterId: monsterCombatantId,
+    fromAbilityId: planned.ability.id,
+    toAbilityId: resolved.candidate.ability.id,
+    fromIntentId: planned.intent.id,
+    toIntentId: resolved.candidate.intent.id,
+    reason: resolved.reason
+  };
+  const plannedAbilities = (state.plannedMonsterAbilities ?? []).map((candidate) =>
+    candidate.monsterCombatantId === monsterCombatantId && candidate.intentId === planned.intent.id
+      ? {
+          monsterCombatantId,
+          intentId: resolved.candidate.intent.id,
+          abilityId: resolved.candidate.ability.id,
+          ...(resolved.candidate.cardInstanceId ? { cardInstanceId: resolved.candidate.cardInstanceId } : {}),
+          ...(planMode ? { planMode } : {})
+        }
+      : candidate
+  );
+  const monsterIntents = state.monsterIntents.map((candidate) =>
+    candidate.monsterCombatantId === monsterCombatantId && candidate.intentId === planned.intent.id
+      ? { monsterCombatantId, intentId: resolved.candidate.intent.id }
+      : candidate
+  );
+  const nextState = appendEvents({ ...state, monsterIntents, plannedMonsterAbilities: plannedAbilities }, [changedEvent]);
+
+  return {
+    intent: resolved.candidate.intent,
+    ability: resolved.candidate.ability,
+    cardInstanceId: resolved.candidate.cardInstanceId,
+    planMode,
+    events: [changedEvent],
+    state: nextState
+  };
 };
 
 export const findPlannedMonsterAbility = (
@@ -496,7 +690,13 @@ export const chooseMonsterIntents = (
     }
 
     activeIntents.push({ monsterCombatantId: monster.id, intentId: intent.id });
-    plannedAbilities.push({ monsterCombatantId: monster.id, intentId: intent.id, abilityId: ability.id });
+    plannedAbilities.push({
+      monsterCombatantId: monster.id,
+      intentId: intent.id,
+      abilityId: ability.id,
+      ...(cardPlan.selectedCardInstanceId ? { cardInstanceId: cardPlan.selectedCardInstanceId } : {}),
+      ...(cardPlan.planMode ? { planMode: cardPlan.planMode } : {})
+    });
     events.push({
       type: "MonsterAbilityPlanned",
       monsterId: monster.id,
@@ -514,9 +714,17 @@ export const chooseMonsterIntents = (
     });
   }
 
-  const persistentIntentVisibilityOverrides = (state.intentVisibilityOverrides ?? []).filter((override) =>
-    override.expires === "combat" || override.expires === "never"
-  );
+  const persistentIntentVisibilityOverrides = (state.intentVisibilityOverrides ?? []).flatMap((override) => {
+    if (override.expires === "combat" || override.expires === "never" || override.expires === "afterEnemyAction") {
+      return [override];
+    }
+
+    if (override.expires === "nextPlan") {
+      return [{ ...override, expires: "currentPlan" as const }];
+    }
+
+    return [];
+  });
   const nextState = appendEvents({
     ...state,
     monsterIntents: activeIntents,

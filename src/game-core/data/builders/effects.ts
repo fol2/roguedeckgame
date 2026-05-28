@@ -1,5 +1,5 @@
 import type { CombatantTarget, PetTarget } from "../../model/effect";
-import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "../../model/combat";
+import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource, ScopeIntentDepth } from "../../model/combat";
 import type { StatusId, StoryFlagId } from "../../ids";
 import type {
   ApplyStatusEffect,
@@ -7,9 +7,12 @@ import type {
   DamageEffect,
   DrawEffect,
   ImproveIntentVisibilityEffect,
+  ObscureIntentEffect,
   PetAttackEffect,
   PetBlockEffect,
   PetReactEffect,
+  RevealIntentEffect,
+  ScopeIntentEffect,
   SetStoryFlagEffect
 } from "../../model/effect";
 
@@ -53,6 +56,48 @@ export const improveIntentVisibilityEffect = (
   type: "improveIntentVisibility",
   target,
   amount,
+  ...options
+});
+
+export const revealIntentEffect = (
+  target: CombatantTarget,
+  level: IntentVisibilityLevel,
+  options: {
+    readonly source?: IntentVisibilitySource;
+    readonly expires?: IntentVisibilityExpiry;
+  } = {}
+): RevealIntentEffect => ({
+  type: "revealIntent",
+  target,
+  level,
+  ...options
+});
+
+export const scopeIntentEffect = (
+  target: CombatantTarget,
+  depth: ScopeIntentDepth,
+  options: {
+    readonly source?: IntentVisibilitySource;
+    readonly expires?: IntentVisibilityExpiry;
+  } = {}
+): ScopeIntentEffect => ({
+  type: "scopeIntent",
+  target,
+  depth,
+  ...options
+});
+
+export const obscureIntentEffect = (
+  target: CombatantTarget,
+  options: {
+    readonly amount?: number;
+    readonly level?: IntentVisibilityLevel;
+    readonly source?: IntentVisibilitySource;
+    readonly expires?: IntentVisibilityExpiry;
+  } = {}
+): ObscureIntentEffect => ({
+  type: "obscureIntent",
+  target,
   ...options
 });
 

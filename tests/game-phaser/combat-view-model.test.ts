@@ -280,6 +280,24 @@ describe("Combat view model", () => {
     expect(viewModel.monsterIntents[0]?.targetHint).toEqual(expect.any(String));
   });
 
+  it("exposes enemy card holding readouts without rendering enemy cards as battlefield cards", () => {
+    const viewModel = createCombatSandboxController("view-model-enemy-holdings").getViewModel();
+    const holding = viewModel.enemyCardHoldings[0]!;
+
+    expect(holding).toMatchObject({
+      monsterId: viewModel.monsters[0]?.id,
+      drawCount: expect.any(Number),
+      handCount: expect.any(Number),
+      plannedCount: expect.any(Number),
+      discardCount: expect.any(Number),
+      exhaustCount: expect.any(Number),
+      planMode: expect.any(String),
+      candidateCount: expect.any(Number)
+    });
+    expect(holding.candidateCount).toBe(holding.plannedCount);
+    expect(holding.detail.footer).toContain("Enemy cards are still presented through Intent UI");
+  });
+
   it("uses planned monster ability effects for intent display metadata", () => {
     const controller = createCombatSandboxController("view-model-planned-ability-intent");
     const state = controller.getState();
@@ -505,15 +523,27 @@ describe("Combat view model", () => {
     expect(intent).toMatchObject({
       visibilityLevel: "scoped",
       abilityId: undefined,
-      label: "special scoped",
+      label: "special scoped (1)",
       amount: undefined,
+      scope: {
+        depth: "candidateSet",
+        candidateCount: 1,
+        candidates: [expect.objectContaining({
+          abilityId: monsterAbilityId("cinder_scribe_ink_spark"),
+          title: "Ink Spark"
+        })]
+      },
       plannedAction: {
-        title: "special candidate",
-        effectLines: expect.arrayContaining(["Specific action name, amount, and effects are hidden."])
+        title: "Scoped candidate set",
+        effectLines: expect.arrayContaining([
+          expect.stringContaining("Candidates: Ink Spark"),
+          "Candidate scope exposes possible enemy cards, not guaranteed final order."
+        ])
       }
     });
     expect(intent.description).not.toContain("Deal");
     expect(intent.plannedAction.title).not.toBe("Ink Spark");
+    expect(intent.detail.lines.join("\n")).not.toContain("Deal 5");
   });
 
   it("renders none visibility as no useful intent instead of an unknown intent", () => {

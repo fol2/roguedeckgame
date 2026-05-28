@@ -149,7 +149,14 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
     fallback: "code-pulse",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,
-    notes: "Pulse at the enemy intent token anchor when visibility improves."
+    notes: "Pulse at the enemy intent token anchor when visibility changes."
+  },
+  {
+    eventType: "EnemyPlanChanged",
+    fallback: "code-pulse",
+    timingMs: { min: 120, max: 220 },
+    inputLocked: true,
+    notes: "Pulse at the enemy intent token anchor when an adaptive plan changes."
   },
   {
     eventType: "MonsterIntentResolved",

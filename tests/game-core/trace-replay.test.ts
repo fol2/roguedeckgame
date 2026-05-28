@@ -119,7 +119,7 @@ describe("agent trace replay", () => {
     expect(trace.seed).toBe(0);
   });
 
-  it("projects new status lifecycle events out of previous v2 traces", () => {
+  it("projects new status lifecycle events out of legacy traces", () => {
     const events = [
       {
         type: "StatusConsumed" as const,
@@ -130,7 +130,8 @@ describe("agent trace replay", () => {
       }
     ];
 
-    expect(projectAgentTraceEventsForSchema(events, AGENT_TRACE_PREVIOUS_SCHEMA_VERSION)).toEqual([]);
+    expect(projectAgentTraceEventsForSchema(events, AGENT_TRACE_LEGACY_SCHEMA_VERSION)).toEqual([]);
+    expect(projectAgentTraceEventsForSchema(events, AGENT_TRACE_PREVIOUS_SCHEMA_VERSION)).toEqual(events);
     expect(projectAgentTraceEventsForSchema(events, AGENT_TRACE_SCHEMA_VERSION)).toEqual(events);
   });
 

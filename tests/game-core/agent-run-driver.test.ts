@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  enemyCardInstanceId,
+  monsterAbilityId,
+  monsterIntentId,
   petMemoryId,
   petInstanceId,
   starterRegistry,
@@ -204,6 +207,79 @@ describe("agent run driver", () => {
 
     expect(createAgentStateHash(changed, { schemaVersion: 3 })).toBe(createAgentStateHash(snapshot, { schemaVersion: 3 }));
     expect(createAgentStateHash(changed, { schemaVersion: 4 })).not.toBe(createAgentStateHash(snapshot, { schemaVersion: 4 }));
+  });
+
+  it("keeps reveal-scope intent metadata out of v4 trace hashes", () => {
+    const driver = createAgentRunDriver({ seed: "driver-hash-reveal-scope-v5" });
+    driver.applyAction(driver.getLegalActions()[0], "legal");
+    const snapshot = driver.getSnapshot();
+    const monster = snapshot.combat?.monsters[0];
+    expect(monster).toBeDefined();
+
+    const changed: AgentRunDriverSnapshot = {
+      ...snapshot,
+      combat: snapshot.combat
+        ? {
+            ...snapshot.combat,
+            plannedMonsterAbilities: [{
+              monsterCombatantId: monster!.id,
+              abilityId: monsterAbilityId("training_slime_attack"),
+              intentId: monsterIntentId("training_slime_attack"),
+              cardInstanceId: enemyCardInstanceId("enemy:training_slime:attack:1"),
+              planMode: "adaptive"
+            }],
+            intentVisibilityOverrides: [{
+              monsterCombatantId: monster!.id,
+              level: "scoped",
+              source: "debug",
+              expires: "never",
+              mode: "floor",
+              scopeDepth: "candidateSet",
+              scopedCandidateCardInstanceIds: [enemyCardInstanceId("enemy:training_slime:attack:1")],
+              scopedCandidateAbilityIds: [monsterAbilityId("training_slime_attack")]
+            }],
+            monsterCardStates: [{
+              monsterCombatantId: monster!.id,
+              drawPile: [],
+              hand: [],
+              discardPile: [],
+              exhaustPile: [],
+              cardInstances: [{
+                id: enemyCardInstanceId("enemy:training_slime:attack:1"),
+                abilityId: monsterAbilityId("training_slime_attack")
+              }],
+              planned: {
+                lockedCardInstanceId: enemyCardInstanceId("enemy:training_slime:attack:1"),
+                candidateCardInstanceIds: [],
+                planMode: "adaptive"
+              }
+            }]
+          }
+        : snapshot.combat
+    };
+    const sameV4DifferentV5: AgentRunDriverSnapshot = {
+      ...changed,
+      combat: changed.combat
+        ? {
+            ...changed.combat,
+            plannedMonsterAbilities: changed.combat.plannedMonsterAbilities?.map((planned) => ({
+              ...planned,
+              cardInstanceId: enemyCardInstanceId("enemy:training_slime:attack:2"),
+              planMode: "locked"
+            })),
+            intentVisibilityOverrides: changed.combat.intentVisibilityOverrides?.map((override) => ({
+              ...override,
+              mode: "set",
+              scopeDepth: "conditionHint",
+              scopedCandidateCardInstanceIds: [enemyCardInstanceId("enemy:training_slime:attack:2")],
+              scopedCandidateAbilityIds: [monsterAbilityId("training_slime_attack")]
+            }))
+          }
+        : changed.combat
+    };
+
+    expect(createAgentStateHash(changed, { schemaVersion: 4 })).toBe(createAgentStateHash(sameV4DifferentV5, { schemaVersion: 4 }));
+    expect(createAgentStateHash(changed, { schemaVersion: 5 })).not.toBe(createAgentStateHash(sameV4DifferentV5, { schemaVersion: 5 }));
   });
 
   it("rejects target ids on targetless card actions", () => {

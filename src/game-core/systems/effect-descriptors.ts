@@ -247,6 +247,39 @@ export const effectDescriptors = {
     requiresStoryFlagId: false,
     requiresPetReaction: false
   },
+  revealIntent: {
+    type: "revealIntent",
+    resolverKey: "intentVisibility",
+    combatantTarget: "required",
+    petTarget: "none",
+    amount: "none",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  scopeIntent: {
+    type: "scopeIntent",
+    resolverKey: "intentVisibility",
+    combatantTarget: "required",
+    petTarget: "none",
+    amount: "none",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
+  obscureIntent: {
+    type: "obscureIntent",
+    resolverKey: "intentVisibility",
+    combatantTarget: "required",
+    petTarget: "none",
+    amount: "none",
+    requiresStatusId: false,
+    requiresStacks: false,
+    requiresStoryFlagId: false,
+    requiresPetReaction: false
+  },
   setStoryFlag: {
     type: "setStoryFlag",
     resolverKey: "storyFlag",

@@ -15,7 +15,7 @@ import type { GameContentRegistry } from "../model/registry";
 import { burnStatusDefinition } from "../model/status";
 
 export const starterRegistry: GameContentRegistry = {
-  contentVersion: "ashwood-trail-content-foundation-v2",
+  contentVersion: "ashwood-trail-reveal-scope-v4",
   cards: [...starterCards, ...emberFoxCards, ...rewardCards],
   decks: deckDefinitions,
   statuses: [burnStatusDefinition],

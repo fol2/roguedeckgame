@@ -3,14 +3,18 @@ import type { CombatState, IntentVisibilityLevel } from "../model/combat";
 import type { MonsterAbilityDefinition, MonsterDefinition } from "../model/monster";
 import type { GameContentRegistry } from "../model/registry";
 
+export const intentVisibilityLevels = ["none", "unknown", "category", "rough", "scoped", "exact"] as const satisfies readonly IntentVisibilityLevel[];
+
 const visibilityRank: Readonly<Record<IntentVisibilityLevel, number>> = {
   none: 0,
   unknown: 1,
   category: 2,
   rough: 3,
-  exact: 4,
-  scoped: 5
+  scoped: 4,
+  exact: 5
 };
+
+export const getIntentVisibilityRank = (level: IntentVisibilityLevel): number => visibilityRank[level];
 
 export const maxIntentVisibilityLevel = (
   a: IntentVisibilityLevel,
@@ -18,11 +22,24 @@ export const maxIntentVisibilityLevel = (
 ): IntentVisibilityLevel =>
   visibilityRank[a] >= visibilityRank[b] ? a : b;
 
-const minIntentVisibilityLevel = (
+export const minIntentVisibilityLevel = (
   a: IntentVisibilityLevel,
   b: IntentVisibilityLevel
 ): IntentVisibilityLevel =>
   visibilityRank[a] <= visibilityRank[b] ? a : b;
+
+export const shiftIntentVisibilityLevel = (
+  current: IntentVisibilityLevel,
+  amount: number,
+  bounds: { readonly minLevel?: IntentVisibilityLevel; readonly maxLevel?: IntentVisibilityLevel } = {}
+): IntentVisibilityLevel => {
+  const currentRank = getIntentVisibilityRank(current);
+  const minRank = bounds.minLevel === undefined ? 0 : getIntentVisibilityRank(bounds.minLevel);
+  const maxRank = bounds.maxLevel === undefined ? intentVisibilityLevels.length - 1 : getIntentVisibilityRank(bounds.maxLevel);
+  const nextRank = Math.min(maxRank, Math.max(minRank, currentRank + amount));
+
+  return intentVisibilityLevels[nextRank] ?? current;
+};
 
 const isAdvancedEnemy = (monsterDefinition: MonsterDefinition | undefined): boolean =>
   monsterDefinition?.tags.some((tag) =>
@@ -60,6 +77,19 @@ const resolvePassiveBaseLevel = (
   return passiveLevel;
 };
 
+export const resolveBaseIntentVisibilityLevel = (input: {
+  readonly state: CombatState;
+  readonly registry: GameContentRegistry;
+  readonly monsterDefinition?: MonsterDefinition;
+  readonly ability?: MonsterAbilityDefinition;
+}): IntentVisibilityLevel => {
+  const baseLevel = resolvePassiveBaseLevel(input.state, input.registry, input.monsterDefinition);
+
+  return input.ability?.telegraph?.defaultVisibility
+    ? minIntentVisibilityLevel(baseLevel, input.ability.telegraph.defaultVisibility)
+    : baseLevel;
+};
+
 export const resolveEffectiveIntentVisibilityLevel = (input: {
   readonly state: CombatState;
   readonly registry: GameContentRegistry;
@@ -67,13 +97,25 @@ export const resolveEffectiveIntentVisibilityLevel = (input: {
   readonly monsterDefinition?: MonsterDefinition;
   readonly ability?: MonsterAbilityDefinition;
 }): IntentVisibilityLevel => {
-  const baseLevel = resolvePassiveBaseLevel(input.state, input.registry, input.monsterDefinition);
-  const telegraphBase = input.ability?.telegraph?.defaultVisibility
-    ? minIntentVisibilityLevel(baseLevel, input.ability.telegraph.defaultVisibility)
-    : baseLevel;
-  const override = input.state.intentVisibilityOverrides?.find((candidate) =>
+  const telegraphBase = resolveBaseIntentVisibilityLevel(input);
+  const overrides = input.state.intentVisibilityOverrides?.filter((candidate) =>
     candidate.monsterCombatantId === input.monsterCombatantId
-  );
+  ) ?? [];
+  const setOverride = overrides.find((override) => override.mode === "set");
+  if (setOverride) {
+    return setOverride.level;
+  }
 
-  return override ? maxIntentVisibilityLevel(telegraphBase, override.level) : telegraphBase;
+  const ceilingLevel = overrides
+    .filter((override) => override.mode === "ceiling")
+    .reduce<IntentVisibilityLevel | undefined>((current, override) =>
+      current === undefined ? override.level : minIntentVisibilityLevel(current, override.level),
+    undefined);
+  const afterFloor = overrides
+    .filter((override) => override.mode === undefined || override.mode === "floor")
+    .reduce<IntentVisibilityLevel>((current, override) => maxIntentVisibilityLevel(current, override.level), telegraphBase);
+
+  return ceilingLevel === undefined
+    ? afterFloor
+    : minIntentVisibilityLevel(afterFloor, ceilingLevel);
 };

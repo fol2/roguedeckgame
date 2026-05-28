@@ -9,6 +9,8 @@ import {
   monsterAbilityId,
   monsterId,
   monsterIntentId,
+  resolveEffectiveIntentVisibilityLevel,
+  resolveEnemyTurn,
   starterRegistry
 } from "../../src/game-core";
 import { createCombatFixture, createEnemyTurnFixture } from "../../src/game-core/testing/combat-fixtures";
@@ -347,6 +349,216 @@ describe("monster intents", () => {
     });
   });
 
+  it("finalises adaptive enemy plans only inside authored candidate cards", () => {
+    const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const baseState = createEnemyTurnFixture();
+    const state = {
+      ...baseState,
+      player: { ...baseState.player, block: 8 },
+      monsterIntents: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }],
+      plannedMonsterAbilities: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        cardInstanceId: attackInstanceId,
+        planMode: "adaptive" as const
+      }],
+      monsterCardStates: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        cardInstances: [
+          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
+          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
+        ],
+        drawPile: [],
+        hand: [],
+        planned: {
+          planMode: "adaptive" as const,
+          lockedCardInstanceId: attackInstanceId,
+          candidateCardInstanceIds: [blockInstanceId]
+        },
+        discardPile: [],
+        exhaustPile: []
+      }]
+    };
+    const registry = {
+      ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === monsterAbilityId("training_slime_attack") ||
+        ability.id === monsterAbilityId("training_slime_block")
+          ? { ...ability, planMode: "adaptive" as const }
+          : ability
+      ),
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              cardGame: monster.cardGame
+                ? {
+                    ...monster.cardGame,
+                    defaultPlanMode: "adaptive" as const,
+                    adaptiveRuleIds: ["prefer_guard_if_player_overblocks"]
+                  }
+                : monster.cardGame
+            }
+          : monster
+      )
+    };
+
+    const result = resolveEnemyTurn(state, registry, createRng("adaptive-finalise"));
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "EnemyPlanChanged",
+      fromAbilityId: monsterAbilityId("training_slime_attack"),
+      toAbilityId: monsterAbilityId("training_slime_block"),
+      reason: "prefer_guard_if_player_overblocks"
+    }));
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "MonsterAbilityPlayed",
+      abilityId: monsterAbilityId("training_slime_block")
+    }));
+    expect([monsterAbilityId("training_slime_attack"), monsterAbilityId("training_slime_block")]).toContain(
+      (result.events.find((event) => event.type === "MonsterAbilityPlayed") as { abilityId?: unknown } | undefined)?.abilityId
+    );
+  });
+
+  it("rejects adaptive enemy plans whose stored action is outside the candidate set", () => {
+    const attackInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0");
+    const blockInstanceId = enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_block:0");
+    const baseState = createEnemyTurnFixture();
+    const state = {
+      ...baseState,
+      player: { ...baseState.player, block: 8 },
+      monsterIntents: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }],
+      plannedMonsterAbilities: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack"),
+        abilityId: monsterAbilityId("training_slime_attack"),
+        cardInstanceId: attackInstanceId,
+        planMode: "adaptive" as const
+      }],
+      monsterCardStates: [{
+        monsterCombatantId: combatantId("monster:training_slime:0"),
+        cardInstances: [
+          { id: attackInstanceId, abilityId: monsterAbilityId("training_slime_attack") },
+          { id: blockInstanceId, abilityId: monsterAbilityId("training_slime_block") }
+        ],
+        drawPile: [],
+        hand: [],
+        planned: {
+          planMode: "adaptive" as const,
+          lockedCardInstanceId: undefined,
+          candidateCardInstanceIds: [blockInstanceId]
+        },
+        discardPile: [],
+        exhaustPile: []
+      }]
+    };
+    const registry = {
+      ...starterRegistry,
+      monsterAbilities: (starterRegistry.monsterAbilities ?? []).map((ability) =>
+        ability.id === monsterAbilityId("training_slime_attack") ||
+        ability.id === monsterAbilityId("training_slime_block")
+          ? { ...ability, planMode: "adaptive" as const }
+          : ability
+      ),
+      monsters: starterRegistry.monsters.map((monster) =>
+        monster.id === monsterId("training_slime")
+          ? {
+              ...monster,
+              cardGame: monster.cardGame
+                ? {
+                    ...monster.cardGame,
+                    defaultPlanMode: "adaptive" as const,
+                    adaptiveRuleIds: ["prefer_guard_if_player_overblocks"]
+                  }
+                : monster.cardGame
+            }
+          : monster
+      )
+    };
+
+    const result = resolveEnemyTurn(state, registry, createRng("adaptive-outside-candidates"));
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((error) => error.code)).toEqual(["adaptive_plan_outside_candidate_set"]);
+    expect(result.events).toEqual([expect.objectContaining({
+      type: "ActionRejected",
+      code: "adaptive_plan_outside_candidate_set"
+    })]);
+  });
+
+  it("runs authored enemy obscure effects and caps current intent visibility", () => {
+    const combat = createCombatFixture({ monsterIds: [monsterId("cinder_scribe")], seed: "cinder-obscure-runtime" });
+    const scribeId = combatantId("monster:cinder_scribe:0");
+    const smudgeCardId = combat.monsterCardStates?.[0]?.cardInstances.find((cardInstance) =>
+      cardInstance.abilityId === monsterAbilityId("cinder_scribe_smudge")
+    )?.id;
+
+    expect(smudgeCardId).toBeDefined();
+
+    const state = {
+      ...combat,
+      phase: "enemy_turn" as const,
+      activeActorId: scribeId,
+      intentVisibilityOverrides: [{
+        monsterCombatantId: scribeId,
+        level: "exact" as const,
+        source: "debug" as const,
+        expires: "never" as const,
+        mode: "floor" as const
+      }],
+      monsterIntents: [{
+        monsterCombatantId: scribeId,
+        intentId: monsterIntentId("cinder_scribe_smudge")
+      }],
+      plannedMonsterAbilities: [{
+        monsterCombatantId: scribeId,
+        intentId: monsterIntentId("cinder_scribe_smudge"),
+        abilityId: monsterAbilityId("cinder_scribe_smudge"),
+        cardInstanceId: smudgeCardId,
+        planMode: "locked" as const
+      }],
+      monsterCardStates: combat.monsterCardStates?.map((cardState) =>
+        cardState.monsterCombatantId === scribeId
+          ? {
+              ...cardState,
+              planned: {
+                planMode: "locked" as const,
+                lockedCardInstanceId: smudgeCardId,
+                candidateCardInstanceIds: []
+              }
+            }
+          : cardState
+      )
+    };
+
+    const result = resolveEnemyTurn(state, starterRegistry, createRng("cinder-obscure-runtime"));
+    const monsterDefinition = starterRegistry.monsters.find((monster) => monster.id === monsterId("cinder_scribe"));
+
+    expect(result.ok).toBe(true);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      type: "EnemyIntentVisibilityChanged",
+      monsterId: scribeId,
+      level: "scoped",
+      source: "enemyObscure",
+      mode: "ceiling"
+    }));
+    expect(resolveEffectiveIntentVisibilityLevel({
+      state: result.state,
+      registry: starterRegistry,
+      monsterCombatantId: scribeId,
+      monsterDefinition
+    })).toBe("scoped");
+  });
+
   it("does not select intents for defeated monsters", () => {
     const baseState = createEnemyTurnFixture();
     const state = {
@@ -590,11 +802,13 @@ describe("monster intents", () => {
       }
     ]);
     expect(result.state.plannedMonsterAbilities).toEqual([
-      {
+      expect.objectContaining({
         monsterCombatantId: combatantId("monster:training_slime:0"),
         intentId: result.state.monsterIntents[0].intentId,
-        abilityId: expect.any(String)
-      }
+        abilityId: expect.any(String),
+        cardInstanceId: expect.any(String),
+        planMode: expect.any(String)
+      })
     ]);
     expect(result.events[0]).toMatchObject({
       type: "MonsterAbilityPlanned",

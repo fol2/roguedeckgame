@@ -14,6 +14,7 @@ import {
   evolutionNodeId,
   storyEventId,
   monsterAbilityId,
+  enemyCardInstanceId,
   monsterIntentId,
   GAME_EVENT_LEGACY_SCHEMA_VERSION,
   GAME_EVENT_PREVIOUS_SCHEMA_VERSION,
@@ -288,12 +289,32 @@ describe("model shape", () => {
     ]);
   });
 
-  it("projects v4 intent visibility events away from schema 3 consumers", () => {
+  it("keeps v4 intent visibility events for schema 4 consumers", () => {
     const events: readonly GameEvent[] = [
       {
         type: "EnemyIntentVisibilityChanged",
         monsterId: combatantId("monster:training_slime:0"),
-        level: "rough",
+        previousLevel: "unknown",
+        level: "scoped",
+        source: "card",
+        expires: "currentPlan",
+        mode: "floor",
+        scopeDepth: "candidateSet",
+        scopedCandidateCardInstanceIds: [enemyCardInstanceId("monster:training_slime:0:enemy-card:training_slime_attack:0")],
+        scopedCandidateAbilityIds: [monsterAbilityId("training_slime_attack")]
+      },
+      {
+        type: "MonsterIntentResolved",
+        monsterId: combatantId("monster:training_slime:0"),
+        intentId: monsterIntentId("training_slime_attack")
+      }
+    ];
+
+    expect(projectGameEventsForSchema(events, GAME_EVENT_PREVIOUS_SCHEMA_VERSION)).toEqual([
+      {
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: combatantId("monster:training_slime:0"),
+        level: "scoped",
         source: "card",
         expires: "currentPlan"
       },
@@ -301,6 +322,52 @@ describe("model shape", () => {
         type: "MonsterIntentResolved",
         monsterId: combatantId("monster:training_slime:0"),
         intentId: monsterIntentId("training_slime_attack")
+      }
+    ]);
+  });
+
+  it("strips v5 intent visibility payload fields for schema 4 consumers", () => {
+    const events: readonly GameEvent[] = [
+      {
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: combatantId("monster:training_slime:0"),
+        previousLevel: "unknown",
+        level: "scoped",
+        source: "card",
+        expires: "currentPlan",
+        mode: "floor",
+        scopeDepth: "candidateSet",
+        scopedCandidateCardInstanceIds: [],
+        scopedCandidateAbilityIds: [monsterAbilityId("training_slime_attack")]
+      }
+    ];
+
+    expect(projectGameEventsForSchema(events, GAME_EVENT_PREVIOUS_SCHEMA_VERSION)).toEqual([
+      {
+        type: "EnemyIntentVisibilityChanged",
+        monsterId: combatantId("monster:training_slime:0"),
+        level: "scoped",
+        source: "card",
+        expires: "currentPlan"
+      }
+    ]);
+  });
+
+  it("projects v5 adaptive plan-change events away from schema 4 consumers", () => {
+    const events: readonly GameEvent[] = [
+      {
+        type: "EnemyPlanChanged",
+        monsterId: combatantId("monster:charred_stag:0"),
+        fromAbilityId: monsterAbilityId("charred_stag_antler_strike"),
+        toAbilityId: monsterAbilityId("charred_stag_guarded_snort"),
+        fromIntentId: monsterIntentId("charred_stag_antler_strike"),
+        toIntentId: monsterIntentId("charred_stag_guarded_snort"),
+        reason: "prefer_guard_if_player_overblocks"
+      },
+      {
+        type: "MonsterIntentResolved",
+        monsterId: combatantId("monster:charred_stag:0"),
+        intentId: monsterIntentId("charred_stag_guarded_snort")
       }
     ];
 
@@ -365,7 +432,7 @@ describe("model shape", () => {
     expect(result.state.lastEvents.map((event) => event.type)).toEqual(["MonsterIntentSet"]);
   });
 
-  it("does not project v4 intent visibility events to v3 consumers", () => {
+  it("keeps v4 intent visibility events when projecting to previous schema", () => {
     const events: readonly GameEvent[] = [
       {
         type: "EnemyIntentVisibilityChanged",
@@ -382,6 +449,7 @@ describe("model shape", () => {
     ];
 
     expect(projectGameEventsForSchema(events, GAME_EVENT_PREVIOUS_SCHEMA_VERSION).map((event) => event.type)).toEqual([
+      "EnemyIntentVisibilityChanged",
       "MonsterIntentResolved"
     ]);
   });

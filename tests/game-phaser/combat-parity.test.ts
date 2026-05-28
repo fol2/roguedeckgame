@@ -39,6 +39,7 @@ const createViewModel = (): CombatViewModel => ({
     detail: { title: "Slime", lines: [] }
   }],
   monsterIntents: [],
+  enemyCardHoldings: [],
   hand: [{
     cardInstanceId: cardInstanceId("strike:1"),
     cardId: cardId("strike"),

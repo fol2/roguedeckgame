@@ -5,7 +5,7 @@ import type {
   StatusId,
   StoryFlagId
 } from "../ids";
-import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource } from "./combat";
+import type { IntentVisibilityExpiry, IntentVisibilityLevel, IntentVisibilitySource, ScopeIntentDepth } from "./combat";
 import type { CardPile } from "./event";
 
 export type CombatantTarget =
@@ -116,6 +116,31 @@ export type ImproveIntentVisibilityEffect = {
   readonly expires?: IntentVisibilityExpiry;
 };
 
+export type RevealIntentEffect = {
+  readonly type: "revealIntent";
+  readonly target: CombatantTarget;
+  readonly level: IntentVisibilityLevel;
+  readonly source?: IntentVisibilitySource;
+  readonly expires?: IntentVisibilityExpiry;
+};
+
+export type ScopeIntentEffect = {
+  readonly type: "scopeIntent";
+  readonly target: CombatantTarget;
+  readonly depth: ScopeIntentDepth;
+  readonly source?: IntentVisibilitySource;
+  readonly expires?: IntentVisibilityExpiry;
+};
+
+export type ObscureIntentEffect = {
+  readonly type: "obscureIntent";
+  readonly target: CombatantTarget;
+  readonly amount?: number;
+  readonly level?: IntentVisibilityLevel;
+  readonly source?: IntentVisibilitySource;
+  readonly expires?: IntentVisibilityExpiry;
+};
+
 export type SetStoryFlagEffect = {
   readonly type: "setStoryFlag";
   readonly flagId: StoryFlagId;
@@ -137,6 +162,9 @@ export type EffectDefinition =
   | PetBlockEffect
   | PetReactEffect
   | ImproveIntentVisibilityEffect
+  | RevealIntentEffect
+  | ScopeIntentEffect
+  | ObscureIntentEffect
   | SetStoryFlagEffect;
 
 export const knownEffectTypes = [
@@ -155,5 +183,8 @@ export const knownEffectTypes = [
   "petBlock",
   "petReact",
   "improveIntentVisibility",
+  "revealIntent",
+  "scopeIntent",
+  "obscureIntent",
   "setStoryFlag"
 ] as const satisfies readonly EffectDefinition["type"][];

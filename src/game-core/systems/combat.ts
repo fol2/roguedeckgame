@@ -24,7 +24,7 @@ import { moveCardBetweenPiles } from "./card-piles";
 import { drawCards } from "./draw";
 import { resolveCardEffects, resolveEffects } from "./effects";
 import { checkCombatOutcome } from "./outcome";
-import { chooseMonsterIntents, discardPlannedMonsterCard, findMonsterDefinition, findPlannedMonsterAbility } from "./monster-intents";
+import { chooseMonsterIntents, discardPlannedMonsterCard, finalizePlannedMonsterAbility, findMonsterDefinition } from "./monster-intents";
 import {
   applyPetCommandCostModifiers,
   applyPetCommandEffectModifiers,
@@ -769,7 +769,10 @@ export const endPlayerTurn = (
     {
       ...statusResult.state,
       phase: "enemy_turn",
-      retainedCardInstanceIds: []
+      retainedCardInstanceIds: [],
+      intentVisibilityOverrides: (statusResult.state.intentVisibilityOverrides ?? []).filter((override) =>
+        override.expires !== "endOfPlayerTurn"
+      )
     },
     [turnEnded]
   );
@@ -884,10 +887,12 @@ export const resolveEnemyTurn = (
       );
     }
 
-    const planned = findPlannedMonsterAbility(registry, monsterDefinition, monster.id, nextState);
+    const planned = finalizePlannedMonsterAbility(registry, monsterDefinition, monster.id, nextState);
     if ("code" in planned) {
       return reject(originalState, planned);
     }
+    nextState = planned.state;
+    events.push(...planned.events);
 
     const abilityPlayedEvent: GameEvent = {
       type: "MonsterAbilityPlayed",
@@ -922,6 +927,12 @@ export const resolveEnemyTurn = (
     }
 
     nextState = discardPlannedMonsterCard(effectResult.state, monster.id);
+    nextState = {
+      ...nextState,
+      intentVisibilityOverrides: (nextState.intentVisibilityOverrides ?? []).filter((override) =>
+        !(override.expires === "afterEnemyAction" && override.monsterCombatantId === monster.id)
+      )
+    };
     events.push(...effectResult.events);
 
     const outcomeResult = checkCombatOutcome(nextState);
