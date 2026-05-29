@@ -9,7 +9,7 @@ import {
   type CombatPlaybackOutcome
 } from "./combat-playback-policy";
 
-const EVENT_DELAY_MS = 70;
+const ANIMATED_EVENT_DELAY_MS = 35;
 const PLAYBACK_TIMEOUT_MS = 5000;
 const MAX_PLAYBACK_OBSERVATIONS = 24;
 
@@ -105,12 +105,17 @@ export class CombatEventPlayer {
         resolve();
       };
 
-      const scheduleNext = (callback: () => void): void => {
+      const scheduleNext = (delayMs: number, callback: () => void): void => {
+        if (delayMs <= 0) {
+          globalThis.queueMicrotask(callback);
+          return;
+        }
+
         try {
-          this.scene.time.delayedCall(EVENT_DELAY_MS, callback);
+          this.scene.time.delayedCall(delayMs, callback);
         } catch (error) {
           console.warn("CombatEventPlayer timer fallback used.", error);
-          globalThis.setTimeout(callback, EVENT_DELAY_MS);
+          globalThis.setTimeout(callback, delayMs);
         }
       };
 
@@ -150,6 +155,7 @@ export class CombatEventPlayer {
           }
 
           const policy = getCombatPlaybackPolicy(event.type);
+          const nextDelayMs = policy?.policy === "animated" ? ANIMATED_EVENT_DELAY_MS : 0;
           const observation = this.createObservation(event.type, Date.now());
           activeObservation = observation;
           if (!policy) {
@@ -205,7 +211,7 @@ export class CombatEventPlayer {
             return;
           }
 
-          scheduleNext(() => {
+          scheduleNext(nextDelayMs, () => {
             void appendNext();
           });
         } catch (error) {

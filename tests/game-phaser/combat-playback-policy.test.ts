@@ -14,6 +14,8 @@ describe("combat playback policy", () => {
     expect(completePolicyMap.CardMoved).toEqual({ policy: "stateSyncOnly", visualRoute: "cardMovement" });
     expect(completePolicyMap.DeckShuffled).toEqual({ policy: "animated", visualRoute: "fx" });
     expect(completePolicyMap.DamageDealt).toEqual({ policy: "animated", visualRoute: "fx" });
+    expect(completePolicyMap.EnemyPlanCreated).toEqual({ policy: "logOnly", visualRoute: "log" });
+    expect(completePolicyMap.MonsterIntentSet).toEqual({ policy: "logOnly", visualRoute: "log" });
     expect(completePolicyMap.RunCreated).toEqual({ policy: "logOnly", visualRoute: "log" });
   });
 
