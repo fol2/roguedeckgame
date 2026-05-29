@@ -1,0 +1,621 @@
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/package.json rgd_validate/roguedeckgame-3b2b837452f1/package.json
+--- rgd_original/roguedeckgame-3b2b837452f1/package.json	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/package.json	2026-05-27 23:20:52.233950257 +0000
+@@ -24,7 +24,10 @@
+     "smoke:localhost": "vitest run tests/game-core/localhost-smoke.test.js --reporter=verbose",
+     "test": "vitest run",
+     "test:integration": "vitest run --config vitest.integration.config.ts",
+-    "test:watch": "vitest"
++    "test:watch": "vitest",
++    "test:core": "vitest run tests/game-core --reporter=dot",
++    "test:phaser": "vitest run tests/game-phaser --reporter=dot",
++    "test:cli": "vitest run tests/game-cli tests/scripts --reporter=dot"
+   },
+   "devDependencies": {
+     "@types/node": "^22.19.19",
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/scripts/create-review-zip.mjs rgd_validate/roguedeckgame-3b2b837452f1/scripts/create-review-zip.mjs
+--- rgd_original/roguedeckgame-3b2b837452f1/scripts/create-review-zip.mjs	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/scripts/create-review-zip.mjs	2026-05-27 23:24:18.569062682 +0000
+@@ -1,4 +1,4 @@
+-import { readdirSync, statSync, unlinkSync } from 'node:fs';
++import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs';
+ import { dirname, basename, resolve } from 'node:path';
+ import { spawnSync } from 'node:child_process';
+ import { pathToFileURL } from 'node:url';
+@@ -7,6 +7,16 @@
+ const allowDirty = args.includes('--allow-dirty');
+ const helpRequested = args.includes('--help') || args.includes('-h');
+ const excludedPaths = ['archive', 'docs/evidence', 'docs/contracts/p1', 'docs/contracts/p1.5', 'docs/contracts/p2'];
++const filesystemFallbackExcludedRoots = [
++  '.git',
++  'node_modules',
++  'dist',
++  'dist-cli',
++  'coverage',
++  '.vite',
++  '.vitest'
++];
++const filesystemFallbackExcludedFiles = new Set(['.DS_Store']);
+ const contractFolderNames = ['p1', 'p1.5', 'p2'];
+ const nestedRepoArchivePatterns = [
+   /(?:^|\/)docs\/contracts\/.+\/(?:src|tests|\.github)\//,
+@@ -16,7 +26,7 @@
+ function printHelp() {
+   console.log(`Usage: npm run zip:review [-- --allow-dirty]
+ 
+-Creates a code review ZIP from the current Git commit.
++Creates a code review ZIP from the current Git commit. If Git metadata is unavailable, archives the current working tree with dependency/build folders excluded.
+ 
+ By default the archive is written to the parent folder:
+   ../<repo-name>-review-<short-sha>.zip
+@@ -50,6 +60,81 @@
+   return result.stdout?.trim() ?? '';
+ }
+ 
++
++function normalizeArchivePath(path) {
++  return path.replaceAll('\\', '/').replace(/^\.\//, '').replace(/\/$/, '');
++}
++
++export function shouldExcludeFilesystemReviewPath(path) {
++  const normalizedPath = normalizeArchivePath(path);
++
++  if (!normalizedPath || normalizedPath === '.') {
++    return false;
++  }
++
++  const segments = normalizedPath.split('/');
++  const fileName = segments[segments.length - 1];
++
++  if (filesystemFallbackExcludedFiles.has(fileName)) {
++    return true;
++  }
++
++  if (fileName.endsWith('.zip')) {
++    return true;
++  }
++
++  if (filesystemFallbackExcludedRoots.some((root) => segments.includes(root))) {
++    return true;
++  }
++
++  return excludedPaths.some((excludedPath) => {
++    const normalizedExcludedPath = normalizeArchivePath(excludedPath);
++    return normalizedPath === normalizedExcludedPath || normalizedPath.startsWith(`${normalizedExcludedPath}/`);
++  });
++}
++
++function copyReviewFilesystemTree(sourceRoot, targetRoot, currentRelativePath = '') {
++  const sourcePath = currentRelativePath ? resolve(sourceRoot, currentRelativePath) : sourceRoot;
++  const entries = readdirSync(sourcePath, { withFileTypes: true });
++
++  for (const entry of entries) {
++    const relativePath = currentRelativePath ? `${currentRelativePath}/${entry.name}` : entry.name;
++
++    if (shouldExcludeFilesystemReviewPath(relativePath)) {
++      continue;
++    }
++
++    const from = resolve(sourceRoot, relativePath);
++    const to = resolve(targetRoot, relativePath);
++
++    if (entry.isDirectory()) {
++      mkdirSync(to, { recursive: true });
++      copyReviewFilesystemTree(sourceRoot, targetRoot, relativePath);
++      continue;
++    }
++
++    if (entry.isFile()) {
++      mkdirSync(dirname(to), { recursive: true });
++      cpSync(from, to);
++    }
++  }
++}
++
++function createFilesystemReviewArchive(repoRoot, outputPath, archivePrefix) {
++  const parentDir = dirname(repoRoot);
++  const stagingRoot = resolve(parentDir, `.review-zip-staging-${process.pid}-${Date.now()}`);
++  const archiveRootName = archivePrefix.replace(/\/$/, '');
++  const stagedRepoRoot = resolve(stagingRoot, archiveRootName);
++
++  try {
++    mkdirSync(stagedRepoRoot, { recursive: true });
++    copyReviewFilesystemTree(repoRoot, stagedRepoRoot);
++    run('zip', ['-qr', outputPath, archiveRootName], { cwd: stagingRoot });
++  } finally {
++    rmSync(stagingRoot, { recursive: true, force: true });
++  }
++}
++
+ function removeOldReviewZips(parentDir, repoName, currentOutputPath) {
+   const currentOutputName = basename(currentOutputPath);
+   const reviewZipPrefix = `${repoName}-review-`;
+@@ -108,40 +193,61 @@
+     return;
+   }
+ 
+-  const repoRoot = run('git', ['rev-parse', '--show-toplevel']);
++  let repoRoot = process.cwd();
++  let shortSha = 'working-tree';
++  let useGitArchive = false;
++
++  try {
++    repoRoot = run('git', ['rev-parse', '--show-toplevel']);
++    shortSha = run('git', ['rev-parse', '--short=12', 'HEAD'], { cwd: repoRoot });
++    useGitArchive = true;
++  } catch {
++    console.warn('No Git repository metadata found; archiving the current working tree with filesystem fallback.');
++  }
++
+   const repoName = basename(repoRoot);
+   const parentDir = dirname(repoRoot);
+-  const shortSha = run('git', ['rev-parse', '--short=12', 'HEAD'], { cwd: repoRoot });
+-  const dirtyStatus = run('git', ['status', '--porcelain'], { cwd: repoRoot });
+ 
+-  if (dirtyStatus && !allowDirty) {
+-    throw new Error(
+-      'Working tree has uncommitted changes. Commit them before building a review ZIP, or pass --allow-dirty to archive HEAD anyway.',
+-    );
+-  }
++  if (useGitArchive) {
++    const dirtyStatus = run('git', ['status', '--porcelain'], { cwd: repoRoot });
++
++    if (dirtyStatus && !allowDirty) {
++      throw new Error(
++        'Working tree has uncommitted changes. Commit them before building a review ZIP, or pass --allow-dirty to archive HEAD anyway.',
++      );
++    }
+ 
+-  if (dirtyStatus && allowDirty) {
+-    console.warn('Working tree is dirty; archiving HEAD only. Uncommitted changes will not be included.');
++    if (dirtyStatus && allowDirty) {
++      console.warn('Working tree is dirty; archiving HEAD only. Uncommitted changes will not be included.');
++    }
+   }
+ 
+   const outputPath = resolve(parentDir, `${repoName}-review-${shortSha}.zip`);
+   const archivePrefix = `${repoName}-${shortSha}/`;
+ 
+-  run(
+-    'git',
+-    [
+-      'archive',
+-      '--format=zip',
+-      `--prefix=${archivePrefix}`,
+-      '-o',
+-      outputPath,
+-      'HEAD',
+-      '--',
+-      '.',
+-      ...excludedPaths.map((path) => `:(exclude)${path}`),
+-    ],
+-    { cwd: repoRoot },
+-  );
++  if (useGitArchive) {
++    run(
++      'git',
++      [
++        'archive',
++        '--format=zip',
++        `--prefix=${archivePrefix}`,
++        '-o',
++        outputPath,
++        'HEAD',
++        '--',
++        '.',
++        ...excludedPaths.map((path) => `:(exclude)${path}`),
++      ],
++      { cwd: repoRoot },
++    );
++  } else {
++    if (existsSync(outputPath)) {
++      unlinkSync(outputPath);
++    }
++
++    createFilesystemReviewArchive(repoRoot, outputPath, archivePrefix);
++  }
+   removeContractArchives(outputPath, repoRoot);
+   assertNoNestedRepoArchiveEntries(outputPath, repoRoot);
+ 
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/scripts/run-cli-entry.mjs rgd_validate/roguedeckgame-3b2b837452f1/scripts/run-cli-entry.mjs
+--- rgd_original/roguedeckgame-3b2b837452f1/scripts/run-cli-entry.mjs	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/scripts/run-cli-entry.mjs	2026-05-27 23:11:03.278851201 +0000
+@@ -1,7 +1,16 @@
+-import { mkdtempSync, rmSync } from "node:fs";
+-import { tmpdir } from "node:os";
+-import { join, resolve } from "node:path";
++import {
++  existsSync,
++  mkdirSync,
++  readdirSync,
++  readFileSync,
++  renameSync,
++  rmSync,
++  statSync,
++  writeFileSync
++} from "node:fs";
++import { dirname, join, relative, resolve } from "node:path";
+ import { spawnSync } from "node:child_process";
++import { createHash } from "node:crypto";
+ 
+ const entry = process.argv[2];
+ const forwardedArgs = process.argv.slice(3);
+@@ -12,25 +21,155 @@
+   process.exit(1);
+ }
+ 
+-const outDir = mkdtempSync(join(tmpdir(), `roguedeckgame-${entry}-`));
+ const viteBin = resolve("node_modules", "vite", "bin", "vite.js");
+-
+-const build = spawnSync(
+-  process.execPath,
+-  [viteBin, "build", "--config", "vite.cli.config.ts", "--logLevel", "silent", "--outDir", outDir],
+-  { stdio: "inherit", shell: false }
+-);
+-
+-if (build.status !== 0) {
+-  rmSync(outDir, { recursive: true, force: true });
+-  process.exit(build.status ?? 1);
++const cacheRoot = resolve("node_modules", ".cache", "roguedeckgame-cli-entry");
++const lockPollMs = 50;
++const staleLockMs = 60_000;
++
++const sleepSync = (ms) => {
++  const buffer = new SharedArrayBuffer(4);
++  Atomics.wait(new Int32Array(buffer), 0, 0, ms);
++};
++
++const collectFiles = (root, files = []) => {
++  if (!existsSync(root)) {
++    return files;
++  }
++
++  const stat = statSync(root);
++  if (stat.isFile()) {
++    files.push(root);
++    return files;
++  }
++
++  for (const name of readdirSync(root).sort()) {
++    const path = join(root, name);
++    const childStat = statSync(path);
++    if (childStat.isDirectory()) {
++      if (name === "node_modules" || name === "dist" || name === "dist-cli" || name === ".git") {
++        continue;
++      }
++      collectFiles(path, files);
++    } else if (/\.(ts|js|json|mjs|cjs)$/.test(name)) {
++      files.push(path);
++    }
++  }
++
++  return files;
++};
++
++const hashCliInputs = () => {
++  const hash = createHash("sha256");
++  const roots = [
++    "package.json",
++    "package-lock.json",
++    "tsconfig.json",
++    "vite.cli.config.ts",
++    "src/game-cli",
++    "src/game-core"
++  ];
++  const files = roots.flatMap((root) => collectFiles(resolve(root))).sort();
++
++  for (const file of files) {
++    hash.update(relative(process.cwd(), file));
++    hash.update("\0");
++    hash.update(readFileSync(file));
++    hash.update("\0");
++  }
++
++  return hash.digest("hex").slice(0, 16);
++};
++
++const cacheKey = hashCliInputs();
++const outDir = join(cacheRoot, cacheKey);
++const lockDir = `${outDir}.lock`;
++const markerPath = join(outDir, ".complete.json");
++
++const isCacheReady = () =>
++  existsSync(markerPath) &&
++  existsSync(join(outDir, "game-cli.mjs")) &&
++  existsSync(join(outDir, "simulate-runs.mjs"));
++
++const removeStaleLock = () => {
++  if (!existsSync(lockDir)) {
++    return false;
++  }
++
++  const ageMs = Date.now() - statSync(lockDir).mtimeMs;
++  if (ageMs < staleLockMs) {
++    return false;
++  }
++
++  rmSync(lockDir, { recursive: true, force: true });
++  return true;
++};
++
++const acquireBuildLock = () => {
++  mkdirSync(cacheRoot, { recursive: true });
++
++  while (true) {
++    if (isCacheReady()) {
++      return false;
++    }
++
++    try {
++      mkdirSync(lockDir);
++      return true;
++    } catch (error) {
++      if (!error || error.code !== "EEXIST") {
++        throw error;
++      }
++      removeStaleLock();
++      if (isCacheReady()) {
++        return false;
++      }
++      sleepSync(lockPollMs);
++    }
++  }
++};
++
++const ensureCachedCliBuild = () => {
++  const hasLock = acquireBuildLock();
++  if (!hasLock) {
++    return 0;
++  }
++
++  const tmpOutDir = `${outDir}.tmp-${process.pid}-${Date.now()}`;
++  try {
++    if (isCacheReady()) {
++      return 0;
++    }
++
++    rmSync(tmpOutDir, { recursive: true, force: true });
++    const build = spawnSync(
++      process.execPath,
++      [viteBin, "build", "--config", "vite.cli.config.ts", "--logLevel", "silent", "--outDir", tmpOutDir],
++      { stdio: "inherit", shell: false }
++    );
++
++    if (build.status !== 0) {
++      return build.status ?? 1;
++    }
++
++    rmSync(outDir, { recursive: true, force: true });
++    mkdirSync(dirname(outDir), { recursive: true });
++    renameSync(tmpOutDir, outDir);
++    writeFileSync(markerPath, JSON.stringify({ cacheKey, createdAt: new Date().toISOString() }, null, 2));
++    return 0;
++  } finally {
++    rmSync(tmpOutDir, { recursive: true, force: true });
++    rmSync(lockDir, { recursive: true, force: true });
++  }
++};
++
++const buildStatus = ensureCachedCliBuild();
++if (buildStatus !== 0) {
++  process.exit(buildStatus);
+ }
+ 
+-const run = spawnSync(
+-  process.execPath,
+-  [join(outDir, `${entry}.mjs`), ...forwardedArgs],
+-  { stdio: "inherit", shell: false }
+-);
++const run = spawnSync(process.execPath, [join(outDir, `${entry}.mjs`), ...forwardedArgs], {
++  stdio: "inherit",
++  shell: false
++});
+ 
+-rmSync(outDir, { recursive: true, force: true });
+ process.exit(run.status ?? 1);
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/src/game-phaser/view-models/combat-view-model.ts rgd_validate/roguedeckgame-3b2b837452f1/src/game-phaser/view-models/combat-view-model.ts
+--- rgd_original/roguedeckgame-3b2b837452f1/src/game-phaser/view-models/combat-view-model.ts	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/src/game-phaser/view-models/combat-view-model.ts	2026-05-27 23:03:50.888440984 +0000
+@@ -644,7 +644,7 @@
+         source,
+         revealPolicy: visibilityLevel,
+         title: `${intentType} candidate`,
+-        subtitle: "Scoped planned card",
++        subtitle: "Scoped enemy intent",
+         intentId: intent.intentId,
+         intentType,
+         tags: [],
+@@ -678,7 +678,7 @@
+         source,
+         revealPolicy: visibilityLevel,
+         title: `${intentType} intent`,
+-        subtitle: "Rough planned card",
++        subtitle: "Rough enemy intent",
+         intentId: intent.intentId,
+         intentType,
+         tags: [],
+@@ -698,7 +698,7 @@
+         source,
+         revealPolicy: visibilityLevel,
+         title: `${intentType} intent`,
+-        subtitle: "Category planned card",
++        subtitle: "Category enemy intent",
+         intentId: intent.intentId,
+         intentType,
+         tags: [],
+@@ -737,7 +737,7 @@
+       source: "unknown",
+       revealPolicy: visibilityLevel,
+       title: "?",
+-      subtitle: "Hidden planned card",
++      subtitle: "Hidden enemy intent",
+       intentId: intent.intentId,
+       intentType: "unknown",
+       tags: [],
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/tests/game-cli/version.test.ts rgd_validate/roguedeckgame-3b2b837452f1/tests/game-cli/version.test.ts
+--- rgd_original/roguedeckgame-3b2b837452f1/tests/game-cli/version.test.ts	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/tests/game-cli/version.test.ts	2026-05-27 23:04:40.613752925 +0000
+@@ -2,11 +2,14 @@
+ import { describe, expect, it } from "vitest";
+ import { currentRuntimeMetadata } from "../../src/game-core";
+ 
++const CLI_SMOKE_TIMEOUT_MS = 30_000;
++
+ const runNode = (args: readonly string[]) => {
+   const result = spawnSync(process.execPath, args, {
+     cwd: process.cwd(),
+     encoding: "utf8",
+-    shell: false
++    shell: false,
++    timeout: CLI_SMOKE_TIMEOUT_MS
+   });
+ 
+   return {
+@@ -29,7 +32,7 @@
+     expect(json.stderr).toBe("");
+     expect(human.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
+     expect(parseRuntimeMetadata(json.stdout)).toEqual(currentRuntimeMetadata);
+-  });
++  }, CLI_SMOKE_TIMEOUT_MS);
+ 
+   it("prints CLI help through the transient entrypoint", () => {
+     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--help"]);
+@@ -40,7 +43,7 @@
+     expect(result.stdout).not.toContain("npm run game:cli -- --");
+     expect(result.stdout).toContain("Runtime provenance:");
+     expect(result.stdout).toContain(`Package: ${currentRuntimeMetadata.packageName}@${currentRuntimeMetadata.packageVersion}`);
+-  });
++  }, CLI_SMOKE_TIMEOUT_MS);
+ 
+   it("reports shared runtime provenance through the game CLI version command", () => {
+     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--version"]);
+@@ -50,14 +53,14 @@
+       type: "version",
+       runtimeMetadata: currentRuntimeMetadata
+     });
+-  });
++  }, CLI_SMOKE_TIMEOUT_MS);
+ 
+   it("includes shared runtime provenance in JSON auto results", () => {
+     const result = runNode(["scripts/run-cli-entry.mjs", "game-cli", "--seed", "cli-dev", "--json", "--auto"]);
+ 
+     expect(result.status).toBe(0);
+     expect(JSON.parse(result.stdout).runtimeMetadata).toEqual(currentRuntimeMetadata);
+-  });
++  }, CLI_SMOKE_TIMEOUT_MS);
+ 
+   it("reports the same runtime provenance from simulation output", () => {
+     const result = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--mode", "smoke", "--analyze"]);
+@@ -68,7 +71,7 @@
+     expect(result.stdout).toContain(`Registry fingerprint: ${currentRuntimeMetadata.registryFingerprint}`);
+     expect(result.stdout).toContain(`Trace schema: ${currentRuntimeMetadata.traceSchemaVersion}`);
+     expect(result.stdout).toContain(`Save schema: ${currentRuntimeMetadata.saveSchemaVersion}`);
+-  });
++  }, CLI_SMOKE_TIMEOUT_MS);
+ 
+   it("prints concise simulation parse errors without bundled stack traces", () => {
+     const result = runNode(["scripts/run-cli-entry.mjs", "simulate-runs", "--mode"]);
+@@ -76,6 +79,6 @@
+     expect(result.status).toBe(1);
+     expect(result.stderr).toBe("Missing value for --mode.");
+     expect(result.stderr).not.toContain("at ");
+-  });
++  }, CLI_SMOKE_TIMEOUT_MS);
+ 
+ });
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/tests/game-phaser/combat-view-model.test.ts rgd_validate/roguedeckgame-3b2b837452f1/tests/game-phaser/combat-view-model.test.ts
+--- rgd_original/roguedeckgame-3b2b837452f1/tests/game-phaser/combat-view-model.test.ts	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/tests/game-phaser/combat-view-model.test.ts	2026-05-27 23:04:16.545755213 +0000
+@@ -8,6 +8,7 @@
+   monsterAbilityId,
+   monsterId,
+   monsterIntentId,
++  type IntentVisibilityLevel,
+   starterRegistry,
+   statusId,
+   upgradeId
+@@ -540,6 +541,44 @@
+     });
+   });
+ 
++  it("uses player-facing intent wording instead of planned-card copy for partial visibility", () => {
++    const controller = createCombatSandboxController("view-model-intent-copy-polish");
++    const state = controller.getState();
++    const monsterId = state.combat.monsters[0]!.id;
++    const partialLevels: readonly IntentVisibilityLevel[] = ["none", "unknown", "category", "rough", "scoped"];
++
++    for (const level of partialLevels) {
++      const viewModel = buildCombatViewModel({
++        ...state,
++        combat: {
++          ...state.combat,
++          intentVisibilityOverrides: [{
++            monsterCombatantId: monsterId,
++            level,
++            source: "debug",
++            expires: "never"
++          }]
++        }
++      });
++      const intent = viewModel.monsterIntents[0]!;
++      const copy = [
++        intent.description,
++        intent.detail.subtitle,
++        ...intent.detail.lines,
++        intent.plannedAction.title,
++        intent.plannedAction.subtitle,
++        ...intent.plannedAction.effectLines,
++        intent.token.detail.subtitle,
++        ...intent.token.detail.lines,
++        intent.token.tooltip.title,
++        intent.token.tooltip.body
++      ].join("\n");
++
++      expect(copy).not.toMatch(/planned card/i);
++      expect(copy).toMatch(/intent|action|candidate|marker|hidden|useful/i);
++    }
++  });
++
+   it("redacts hidden enemy planned cards until intent visibility is improved", () => {
+     const controller = createCombatSandboxController("view-model-hidden-intent");
+     const state = controller.getState();
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/tests/scripts/create-review-zip.test.js rgd_validate/roguedeckgame-3b2b837452f1/tests/scripts/create-review-zip.test.js
+--- rgd_original/roguedeckgame-3b2b837452f1/tests/scripts/create-review-zip.test.js	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/tests/scripts/create-review-zip.test.js	2026-05-27 23:24:31.928339989 +0000
+@@ -1,7 +1,7 @@
+ import { readdirSync, statSync } from "node:fs";
+ import { join, relative } from "node:path";
+ import { describe, expect, it } from "vitest";
+-import { findNestedRepoArchiveEntries } from "../../scripts/create-review-zip.mjs";
++import { findNestedRepoArchiveEntries, shouldExcludeFilesystemReviewPath } from "../../scripts/create-review-zip.mjs";
+ 
+ const listFiles = (root, current = root) => {
+   const entries = readdirSync(current, { withFileTypes: true });
+@@ -54,4 +54,15 @@
+ 
+     expect(findNestedRepoArchiveEntries(contractEntries)).toEqual([]);
+   });
++
++  it("excludes dependency, build, zip, and archived contract paths in filesystem fallback mode", () => {
++    expect(shouldExcludeFilesystemReviewPath("node_modules/vitest/index.js")).toBe(true);
++    expect(shouldExcludeFilesystemReviewPath("dist/assets/index.js")).toBe(true);
++    expect(shouldExcludeFilesystemReviewPath("dist-cli/game-cli.mjs")).toBe(true);
++    expect(shouldExcludeFilesystemReviewPath("docs/contracts/p2/snapshot/src/game-core/index.ts")).toBe(true);
++    expect(shouldExcludeFilesystemReviewPath("roguedeckgame-review-old.zip")).toBe(true);
++    expect(shouldExcludeFilesystemReviewPath("src/game-phaser/scenes/CombatScene.ts")).toBe(false);
++    expect(shouldExcludeFilesystemReviewPath("docs/contracts/combat-ui-asset-manifest-v0.1.md")).toBe(false);
++  });
++
+ });
+diff -ruN '--exclude=node_modules' '--exclude=dist' '--exclude=dist-cli' '--exclude=*.zip' rgd_original/roguedeckgame-3b2b837452f1/vitest.config.ts rgd_validate/roguedeckgame-3b2b837452f1/vitest.config.ts
+--- rgd_original/roguedeckgame-3b2b837452f1/vitest.config.ts	2026-05-27 22:48:32.000000000 +0000
++++ rgd_validate/roguedeckgame-3b2b837452f1/vitest.config.ts	2026-05-27 23:11:03.291851143 +0000
+@@ -4,6 +4,7 @@
+   test: {
+     environment: "node",
+     include: ["tests/**/*.test.ts", "tests/**/*.test.js"],
+-    setupFiles: ["tests/setup-node-env.ts"]
++    setupFiles: ["tests/setup-node-env.ts"],
++    testTimeout: 30_000
+   }
+ });
