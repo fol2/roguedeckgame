@@ -13,6 +13,7 @@ export type SimulationCliOptions = {
   readonly mode: "smoke" | "fuzz" | "exhaustive-small" | "replay";
   readonly version: boolean;
   readonly seed: string | number;
+  readonly seedProvided: boolean;
   readonly runs?: number;
   readonly maxSteps?: number;
   readonly maxDepth?: number;
@@ -126,6 +127,7 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
   let completionRateMin: number | undefined = npmCompletionRateMin ? Number.parseFloat(npmCompletionRateMin) : undefined;
   let completionRateMax: number | undefined = npmCompletionRateMax ? Number.parseFloat(npmCompletionRateMax) : undefined;
   let seed: string | number = npmSeed ?? "sim";
+  let seedProvided = npmSeed !== undefined;
   let trace: string | undefined = npmTrace;
   let traceOutput: string | undefined = process.env.npm_config_trace_output;
 
@@ -136,6 +138,7 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
       index += 1;
     } else if (arg === "--seed") {
       seed = readValue(args, index, String(seed));
+      seedProvided = true;
       index += 1;
     } else if (arg === "--runs") {
       runs = Number.parseInt(readValue(args, index, "0"), 10);
@@ -171,6 +174,7 @@ export const parseSimulationCliOptions = (args: readonly string[]): SimulationCl
     mode,
     version: args.includes("--version") || process.env.npm_config_version === "true",
     seed,
+    seedProvided,
     runs: Number.isFinite(runs) ? runs : undefined,
     maxSteps: Number.isFinite(maxSteps) ? maxSteps : undefined,
     maxDepth: Number.isFinite(maxDepth) ? maxDepth : undefined,

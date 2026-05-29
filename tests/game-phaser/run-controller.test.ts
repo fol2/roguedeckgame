@@ -215,6 +215,13 @@ describe("Run sandbox controller", () => {
       "EnemyPlanCreated",
       "MonsterAbilityPlanned",
       "MonsterIntentSet",
+      "EnemyDeckShuffled",
+      "EnemyCardMoved",
+      "EnemyCardMoved",
+      "EnemyCardMoved",
+      "EnemyPlanCreated",
+      "MonsterAbilityPlanned",
+      "MonsterIntentSet",
       "TurnStarted"
     ]);
     expect(replayAgentTrace(trace).ok).toBe(true);

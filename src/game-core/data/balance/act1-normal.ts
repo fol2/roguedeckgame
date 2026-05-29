@@ -117,12 +117,12 @@ export const act1NormalBalance = {
     cinderScribeInkSparkBurn: 1,
     cinderScribePageShieldBlock: 8,
     cinderScribeSmudgeBlock: 3,
-    emberrootWardenHp: 70,
-    emberrootWardenRootSlamDamage: 10,
-    emberrootWardenCinderBarkBlock: 8,
+    emberrootWardenHp: 42,
+    emberrootWardenRootSlamDamage: 7,
+    emberrootWardenCinderBarkBlock: 5,
     emberrootWardenCinderBarkBurn: 1,
     emberrootWardenOldFlameBurn: 1,
-    emberrootWardenAncientShelterBlock: 12,
+    emberrootWardenAncientShelterBlock: 8,
     emberrootWardenAncientShelterCleanse: 2
   }
 } as const;

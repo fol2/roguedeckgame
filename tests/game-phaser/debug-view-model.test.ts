@@ -123,7 +123,7 @@ describe("Combat debug view model", () => {
     });
 
     expect(after.combat.revision).toBeGreaterThan(before.combat.revision ?? 0);
-    expect(after.latestEvents.map((event) => event.type)).toContain("CardPlayed");
+    expect(controller.getState().lastEvents.map((event) => event.type)).toContain("CardPlayed");
     expect(after.input.pendingRequestId).toBe("debug-play-card");
   });
 

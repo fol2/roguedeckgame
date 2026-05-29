@@ -31,33 +31,56 @@ describe("level authoring report", () => {
       "training_slime_encounter"
     ]);
     expect(first.encounterBudgetsByType).toEqual({
-      boss: 8,
-      combat: 16,
-      elite: 10
+      boss: 10,
+      combat: 26,
+      elite: 15
     });
     expect(first.encounters[0]).toMatchObject({
       id: "ash_mite_encounter",
-      name: "Cinder Mite",
+      name: "Cinder Mite and Soot Crow",
       rewardPoolId: "normal",
-      monsterIds: ["ash_mite"],
+      monsterIds: ["ash_mite", "soot_crow"],
       monsters: [expect.objectContaining({
         id: "ash_mite",
         name: "Cinder Mite",
         roles: ["attack", "burn"]
+      }), expect.objectContaining({
+        id: "soot_crow",
+        name: "Soot Crow",
+        roles: ["information", "obscure"]
       })],
-      monsterGroups: [{
-        id: "cinder_mite_group",
-        maxCount: 1,
-        minCount: 1,
-        monsterIds: ["ash_mite"],
-        roles: ["attack", "burn"]
-      }]
+      monsterGroups: expect.arrayContaining([
+        {
+          id: "cinder_mite_group",
+          maxCount: 1,
+          minCount: 1,
+          monsterIds: ["ash_mite"],
+          roles: ["attack", "burn"]
+        },
+        {
+          id: "cinder_mite_crow_group",
+          maxCount: 1,
+          minCount: 1,
+          monsterIds: ["soot_crow"],
+          roles: ["information", "obscure"]
+        }
+      ])
     });
     expect(first.encounters[4]).toMatchObject({
       id: "forest_duo_encounter",
       monsters: [
         expect.objectContaining({ id: "ash_mite", roles: ["attack", "burn"] }),
-        expect.objectContaining({ id: "training_slime", roles: ["block", "frontline"] })
+        expect.objectContaining({ id: "root_husk", roles: ["block", "slow-pressure"] }),
+        expect.objectContaining({ id: "training_slime", roles: ["block", "training"] })
+      ]
+    });
+    expect(first.encounters[7]).toMatchObject({
+      id: "soot_crow_encounter",
+      monsterIds: ["soot_crow", "training_slime", "training_slime"],
+      monsters: [
+        expect.objectContaining({ id: "soot_crow", roles: ["information", "obscure"] }),
+        expect.objectContaining({ id: "training_slime", roles: ["block", "training"] }),
+        expect.objectContaining({ id: "training_slime", roles: ["block", "training"] })
       ]
     });
     expect(first.runMapTemplates[0]).toMatchObject({
@@ -76,9 +99,12 @@ describe("level authoring report", () => {
         meaning: "Starts one of the listed combat encounters.",
         encounters: expect.arrayContaining([
           expect.objectContaining({
-            name: "Cinder Mite",
+            name: "Cinder Mite and Soot Crow",
             rewardPoolId: "normal",
-            monsters: [expect.objectContaining({ name: "Cinder Mite" })]
+            monsters: expect.arrayContaining([
+              expect.objectContaining({ name: "Cinder Mite" }),
+              expect.objectContaining({ name: "Soot Crow" })
+            ])
           })
         ])
       }),
@@ -86,18 +112,25 @@ describe("level authoring report", () => {
         id: "act1_forest_3_elite_a",
         type: "elite",
         encounters: [expect.objectContaining({
-          name: "Charred Stag",
+          name: "Charred Stag Warband",
           rewardPoolId: "elite",
-          monsters: [expect.objectContaining({ id: "charred_stag", name: "Charred Stag" })]
+          monsters: expect.arrayContaining([
+            expect.objectContaining({ id: "charred_stag", name: "Charred Stag" }),
+            expect.objectContaining({ id: "ash_mite", name: "Cinder Mite" })
+          ])
         })]
       }),
       expect.objectContaining({
         id: "act1_forest_4_boss_a",
         type: "boss",
         encounters: [expect.objectContaining({
-          name: "Emberroot Warden",
+          name: "Emberroot Warden Guard",
           rewardPoolId: "boss",
-          monsters: [expect.objectContaining({ id: "forest_warden", name: "Emberroot Warden" })]
+          monsters: expect.arrayContaining([
+            expect.objectContaining({ id: "forest_warden", name: "Emberroot Warden" }),
+            expect.objectContaining({ id: "soot_crow", name: "Soot Crow" }),
+            expect.objectContaining({ id: "training_slime", name: "Ash Slime" })
+          ])
         })]
       })
     ]));
@@ -480,12 +513,12 @@ describe("level authoring report", () => {
   it("surfaces encounter budget context beside simulation completion rate", () => {
     expect(buildLevelSimulationAuthoringSummary(starterRegistry, { completionRate: 0.75 })).toMatchObject({
       completionRate: 0.75,
-      averageEncounterBudget: 3.7777777777777777,
+      averageEncounterBudget: 5.666666666666667,
       budgetedEncounterCount: 9,
       encounterBudgetsByType: {
-        boss: 8,
-        combat: 16,
-        elite: 10
+        boss: 10,
+        combat: 26,
+        elite: 15
       }
     });
   });

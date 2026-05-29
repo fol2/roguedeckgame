@@ -133,9 +133,10 @@ const main = () => {
     ? options.maxSteps ?? act1NormalBalance.targets.normalMaxSteps
     : options.maxSteps;
   const replayTrace = options.trace ? parseAgentTrace(readFileSync(options.trace, "utf8")) : undefined;
+  const seedOverride = options.seedProvided ? options.seed : undefined;
   const result =
     options.mode === "smoke"
-      ? runSmokeSimulation({ mode: "smoke", seed: options.seed, maxSteps })
+      ? runSmokeSimulation({ mode: "smoke", seed: seedOverride, maxSteps })
       : options.mode === "fuzz"
         ? runFuzzSimulation({
             mode: "fuzz",
@@ -153,7 +154,7 @@ const main = () => {
             })
           : runReplaySimulation({
               mode: "replay",
-              seed: replayTrace && options.seed === "sim" ? replayTrace.seed : options.seed,
+              seed: options.seedProvided ? options.seed : replayTrace?.seed ?? options.seed,
               trace: replayTrace
             });
 

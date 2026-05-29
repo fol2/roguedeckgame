@@ -141,7 +141,7 @@ describe("vertical slice controller flow", () => {
     selectNode(controller, "elite");
     expect(controller.getCombatViewModel()).toMatchObject({
       runNodeType: "elite",
-      encounterLabel: "Charred Stag"
+      encounterLabel: "Charred Stag Warband"
     });
     winCurrentCombat(controller);
     skipCurrentReward(controller);
@@ -149,7 +149,7 @@ describe("vertical slice controller flow", () => {
     selectNode(controller, "boss");
     expect(controller.getCombatViewModel()).toMatchObject({
       runNodeType: "boss",
-      encounterLabel: "Emberroot Warden"
+      encounterLabel: "Emberroot Warden Guard"
     });
     const completed = winCurrentCombat(controller);
 

@@ -117,7 +117,10 @@ describe("vertical slice run flow", () => {
 
     const elite = selectAndStart(run, petInstances, "elite", "slice-elite-combat");
     expect(elite.node.encounterId).toBe(encounterId("forest_elite_placeholder"));
-    expect(elite.combat.monsters.map((monster) => monster.definitionId)).toEqual([monsterId("charred_stag")]);
+    expect(elite.combat.monsters.map((monster) => monster.definitionId)).toEqual([
+      monsterId("charred_stag"),
+      monsterId("ash_mite")
+    ]);
 
     const eliteCompleted = completeRunCombatNode({
       run: elite.selected,
@@ -134,7 +137,11 @@ describe("vertical slice run flow", () => {
     const boss = selectAndStart(run, petInstances, "boss", "slice-boss-combat");
     expect(boss.node.id).toBe(runNodeId("act1_forest_4_boss_a"));
     expect(boss.node.encounterId).toBe(encounterId("forest_boss_placeholder"));
-    expect(boss.combat.monsters.map((monster) => monster.definitionId)).toEqual([monsterId("forest_warden")]);
+    expect(boss.combat.monsters.map((monster) => monster.definitionId)).toEqual([
+      monsterId("forest_warden"),
+      monsterId("training_slime"),
+      monsterId("soot_crow")
+    ]);
 
     const bossCompleted = completeRunCombatNode({
       run: boss.selected,

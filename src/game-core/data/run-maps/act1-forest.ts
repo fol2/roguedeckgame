@@ -13,7 +13,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 0,
       encounterIds: [encounterId("training_slime_encounter"), encounterId("ash_mite_encounter")],
       nextNodeIds: [runNodeId("act1_forest_1_combat_a"), runNodeId("act1_forest_1_event_a")],
-      authoring: { budgetMin: 1, budgetMax: 2 }
+      authoring: { budgetMin: 3, budgetMax: 4 }
     },
     {
       id: runNodeId("act1_forest_0_combat_b"),
@@ -21,7 +21,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 0,
       encounterIds: [encounterId("ash_mite_encounter"), encounterId("training_slime_encounter")],
       nextNodeIds: [runNodeId("act1_forest_1_combat_a"), runNodeId("act1_forest_1_event_a")],
-      authoring: { budgetMin: 1, budgetMax: 2 }
+      authoring: { budgetMin: 3, budgetMax: 4 }
     },
     {
       id: runNodeId("act1_forest_1_combat_a"),
@@ -29,7 +29,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 1,
       encounterIds: [encounterId("forest_duo_encounter"), encounterId("soot_crow_encounter")],
       nextNodeIds: [runNodeId("act1_forest_2_combat_a"), runNodeId("act1_forest_2_rest_a")],
-      authoring: { budgetMin: 2, budgetMax: 4 }
+      authoring: { budgetMin: 4, budgetMax: 5 }
     },
     {
       id: runNodeId("act1_forest_1_event_a"),
@@ -44,7 +44,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 2,
       encounterIds: [encounterId("root_husk_encounter"), encounterId("crow_mite_encounter")],
       nextNodeIds: [runNodeId("act1_forest_3_rest_a"), runNodeId("act1_forest_3_rare_a")],
-      authoring: { budgetMin: 3, budgetMax: 4 }
+      authoring: { budgetMin: 5, budgetMax: 5 }
     },
     {
       id: runNodeId("act1_forest_2_rest_a"),
@@ -66,7 +66,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 3,
       encounterIds: [encounterId("forest_elite_placeholder")],
       nextNodeIds: [runNodeId("act1_forest_4_boss_a")],
-      authoring: { budgetMin: 5, budgetMax: 5 }
+      authoring: { budgetMin: 7, budgetMax: 7 }
     },
     {
       id: runNodeId("act1_forest_3_rare_a"),
@@ -74,7 +74,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 3,
       encounterIds: [encounterId("cinder_scribe_encounter")],
       nextNodeIds: [runNodeId("act1_forest_4_boss_a")],
-      authoring: { budgetMin: 5, budgetMax: 5 }
+      authoring: { budgetMin: 8, budgetMax: 8 }
     },
     {
       id: runNodeId("act1_forest_4_elite_a"),
@@ -82,7 +82,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 4,
       encounterIds: [encounterId("forest_elite_placeholder")],
       nextNodeIds: [runNodeId("act1_forest_4_boss_a")],
-      authoring: { budgetMin: 5, budgetMax: 5 }
+      authoring: { budgetMin: 7, budgetMax: 7 }
     },
     {
       id: runNodeId("act1_forest_4_boss_a"),
@@ -90,7 +90,7 @@ export const act1ForestRunMapTemplate: RunMapTemplateDefinition = {
       layer: 5,
       encounterIds: [encounterId("forest_boss_placeholder")],
       nextNodeIds: [],
-      authoring: { budgetMin: 8, budgetMax: 8 }
+      authoring: { budgetMin: 10, budgetMax: 10 }
     }
   ]
 };

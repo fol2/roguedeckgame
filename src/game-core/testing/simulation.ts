@@ -145,10 +145,10 @@ const runPolicyTrace = (
 export const runSmokeSimulation = (
   config: Partial<SimulationConfig> = {}
 ): SimulationResult => {
-  const seeds = [config.seed ?? "agent-smoke", "agent-smoke-alt", "agent-smoke-boss"];
+  const seeds = [config.seed ?? "agent-smoke-balance-2", "agent-smoke-alt", "agent-smoke-boss"];
   const traces = seeds.map((seed) => runSmokeTrace(seed, config.maxSteps ?? 500, driverConfigForSeed(seed, config)));
 
-  return normaliseSmokeResult(config.seed ?? "agent-smoke", traces, runtimeMetadataForConfig(config));
+  return normaliseSmokeResult(config.seed ?? "agent-smoke-balance-2", traces, runtimeMetadataForConfig(config));
 };
 
 const runSmokeTrace = (

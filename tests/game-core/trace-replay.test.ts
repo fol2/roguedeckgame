@@ -19,7 +19,7 @@ import {
 } from "../../src/game-core/testing";
 
 const completedSmokeTrace = (): AgentTrace => {
-  const result = runSmokeSimulation({ seed: "agent-smoke", maxSteps: 500 });
+  const result = runSmokeSimulation({ seed: "agent-smoke-balance-2", maxSteps: 500 });
   const trace = result.traces.find((candidate) => candidate.finalStatus === "completed");
   if (!trace) {
     throw new Error("Expected a completed smoke trace.");

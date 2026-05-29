@@ -33,13 +33,13 @@ describe("vertical slice content", () => {
 
     expect(elite).toMatchObject({
       type: "elite",
-      name: "Charred Stag",
-      monsterIds: [monsterId("charred_stag")]
+      name: "Charred Stag Warband",
+      monsterIds: [monsterId("charred_stag"), monsterId("ash_mite")]
     });
     expect(boss).toMatchObject({
       type: "boss",
-      name: "Emberroot Warden",
-      monsterIds: [monsterId("forest_warden")]
+      name: "Emberroot Warden Guard",
+      monsterIds: [monsterId("forest_warden"), monsterId("training_slime"), monsterId("soot_crow")]
     });
   });
 

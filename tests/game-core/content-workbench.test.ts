@@ -131,20 +131,20 @@ describe("content workbench view model", () => {
           id: "act1_forest_3_elite_a",
           type: "elite",
           encounters: [expect.objectContaining({
-            name: "Charred Stag",
-            monsterIds: ["charred_stag"],
+            name: "Charred Stag Warband",
+            monsterIds: ["ash_mite", "charred_stag"],
             rewardPoolId: "elite",
-            budget: 5
+            budget: 7
           })]
         }),
         expect.objectContaining({
           id: "act1_forest_4_boss_a",
           type: "boss",
           encounters: [expect.objectContaining({
-            name: "Emberroot Warden",
-            monsterIds: ["forest_warden"],
+            name: "Emberroot Warden Guard",
+            monsterIds: ["forest_warden", "soot_crow", "training_slime"],
             rewardPoolId: "boss",
-            budget: 8
+            budget: 10
           })]
         })
       ])
@@ -186,9 +186,9 @@ describe("content workbench view model", () => {
     expect(first.reports.content.dependencyReferenceCount).toBe(first.diagnostics.dependencyReferenceCount);
     expect(first.reports.content.dependencyMissingReferenceCount).toBe(0);
     expect(first.reports.levelAuthoring.encounterBudgetsByType).toEqual({
-      boss: 8,
-      combat: 16,
-      elite: 10
+      boss: 10,
+      combat: 26,
+      elite: 15
     });
     expect(first.reports.levelAuthoring).toMatchObject({
       encounterCount: 9,

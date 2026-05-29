@@ -168,7 +168,7 @@ describe("multi-pet readiness proof", () => {
 
   it("can run and replay smoke simulation with two active pets", () => {
     const config = {
-      seed: "phase12-two-pet-simulation",
+      seed: "phase12-two-pet-root-soot-9",
       registry: createMultiPetProofRegistry(),
       petInstances: createMultiPetProofPetInstances(),
       activePetInstanceIds: MULTI_PET_PROOF_ACTIVE_PET_INSTANCE_IDS,

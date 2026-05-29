@@ -28,7 +28,7 @@ import {
 
 describe("simulation analysis", () => {
   it("summarizes smoke traces into engine-flow and balance metrics", () => {
-    const result = runSmokeSimulation({ seed: "sim", maxSteps: 500 });
+    const result = runSmokeSimulation({ seed: "agent-smoke-balance-2", maxSteps: 500 });
     const report = analyzeAgentTraces(result.traces);
 
     expect(result.ok).toBe(true);

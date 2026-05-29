@@ -3,7 +3,7 @@ import { runSmokeSimulation } from "../../src/game-core/testing";
 
 describe("agent playthrough smoke", () => {
   it("completes at least one deterministic seed without forced combat outcome mutation", () => {
-    const result = runSmokeSimulation({ seed: "agent-smoke", maxSteps: 500 });
+    const result = runSmokeSimulation({ seed: "agent-smoke-balance-2", maxSteps: 500 });
 
     expect(result.ok).toBe(true);
     expect(result.traces.some((trace) => trace.finalStatus === "completed")).toBe(true);

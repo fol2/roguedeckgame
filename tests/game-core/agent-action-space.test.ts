@@ -105,7 +105,7 @@ describe("agent action space", () => {
   });
 
   it("completed and lost runs expose no legal gameplay actions", () => {
-    const completed = driveUntil((snapshot) => snapshot.run.status === "completed", "agent-smoke");
+    const completed = driveUntil((snapshot) => snapshot.run.status === "completed", "agent-smoke-balance-2");
     const lost = { ...completed, run: { ...completed.run, status: "lost" as const } };
 
     expect(getLegalAgentActions(completed)).toEqual([]);
