@@ -19,6 +19,14 @@ describe("status and tag icon asset layout", () => {
       block: CombatAssetKeys.icons.statusBlock,
       guard: CombatAssetKeys.icons.statusGuard,
       empowered: CombatAssetKeys.icons.statusEmpowered,
+      marked: CombatAssetKeys.icons.statusMarked,
+      ready: CombatAssetKeys.icons.statusReady,
+      commanded: CombatAssetKeys.icons.statusCommanded,
+      obscured: CombatAssetKeys.icons.statusObscured,
+      scoped: CombatAssetKeys.icons.statusScoped,
+      revealed: CombatAssetKeys.icons.statusRevealed,
+      bound: CombatAssetKeys.icons.statusBound,
+      overflow: CombatAssetKeys.icons.statusOverflow,
       fallback: CombatAssetKeys.icons.statusFallback
     });
     expect(STATUS_ICON_LAYOUT.tagIconKeys).toMatchObject({
@@ -31,7 +39,16 @@ describe("status and tag icon asset layout", () => {
       mark: CombatAssetKeys.icons.tagMark,
       attack: CombatAssetKeys.icons.tagAttack,
       setup: CombatAssetKeys.icons.tagSetup,
-      combo: CombatAssetKeys.icons.tagCombo
+      combo: CombatAssetKeys.icons.tagCombo,
+      keeper: CombatAssetKeys.icons.tagKeeper,
+      signal: CombatAssetKeys.icons.tagSignal,
+      scout: CombatAssetKeys.icons.tagScout,
+      fetch: CombatAssetKeys.icons.tagFetch,
+      reveal: CombatAssetKeys.icons.tagReveal,
+      scope: CombatAssetKeys.icons.tagScope,
+      obscure: CombatAssetKeys.icons.tagObscure,
+      rare: CombatAssetKeys.icons.tagRare,
+      fallback: CombatAssetKeys.icons.tagFallback
     });
   });
 });

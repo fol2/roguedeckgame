@@ -58,7 +58,10 @@ export const CombatFallbackAssetKeys = {
   enemy: CombatAssetKeys.combatants.enemyGenericIdle,
   cardFrame: CombatAssetKeys.cardFrames.normal,
   cardArt: CombatAssetKeys.cardFrames.artWindowPlaceholder,
-  icon: CombatAssetKeys.icons.genericFallback,
+  cardRarityGem: CombatAssetKeys.cardRarityGems.starter,
+  cardSourceBadge: CombatAssetKeys.cardSourceBadges.legacy,
+  cardFamilyBadge: CombatAssetKeys.cardFamilyBadges.temporary,
+  icon: CombatAssetKeys.icons.tagFallback,
   statusIcon: CombatAssetKeys.icons.statusFallback,
   vfx: CombatAssetKeys.vfx.statusPop,
   panel: CombatAssetKeys.uiPanels.tooltipPanel

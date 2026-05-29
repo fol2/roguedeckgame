@@ -6,6 +6,7 @@ import { MONSTER_SLOT } from "../../src/game-phaser/layout/combat-layout";
 describe("intent token asset layout", () => {
   it("matches the current compact enemy intent token geometry", () => {
     expect(INTENT_TOKEN_LAYOUT).toMatchObject({
+      frame: CombatAssetKeys.intentTokens.frame,
       width: MONSTER_SLOT.intentTokenWidth,
       height: MONSTER_SLOT.intentTokenHeight,
       tooltipHitboxPadding: 8
@@ -13,7 +14,7 @@ describe("intent token asset layout", () => {
     expect(INTENT_TOKEN_LAYOUT.amountAnchor.y).toBeGreaterThan(INTENT_TOKEN_LAYOUT.glyphAnchor.y);
   });
 
-  it("defines token variants without battlefield card assets", () => {
+  it("defines sequence-aware plan readout token variants without battlefield card assets", () => {
     expect(INTENT_TOKEN_LAYOUT.variants).toMatchObject({
       unknown: CombatAssetKeys.icons.intentUnknown,
       attack: CombatAssetKeys.icons.intentAttack,
@@ -21,8 +22,23 @@ describe("intent token asset layout", () => {
       buff: CombatAssetKeys.icons.intentBuff,
       debuff: CombatAssetKeys.icons.intentDebuff,
       special: CombatAssetKeys.icons.intentSpecial,
-      charging: CombatAssetKeys.icons.intentCharging
+      charging: CombatAssetKeys.icons.intentCharging,
+      obscured: CombatAssetKeys.icons.intentObscured
     });
+    expect(INTENT_TOKEN_LAYOUT.markers).toMatchObject({
+      scoped: CombatAssetKeys.intentMarkers.scoped,
+      locked: CombatAssetKeys.intentMarkers.locked,
+      adaptive: CombatAssetKeys.intentMarkers.adaptive,
+      changed: CombatAssetKeys.intentMarkers.changedPulse,
+      multiHit: CombatAssetKeys.intentMarkers.multiHit
+    });
+    expect(INTENT_TOKEN_LAYOUT.codeRenderedFields).toEqual(expect.arrayContaining([
+      "summaryLabel",
+      "amountLabel",
+      "exactSequenceLabels",
+      "scopedCandidatePlans",
+      "reasonTags"
+    ]));
     expect(Object.values(INTENT_TOKEN_LAYOUT.variants).join("\n")).not.toMatch(/cardFrame|battlefield/i);
   });
 });

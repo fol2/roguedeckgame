@@ -16,6 +16,7 @@ export type CombatEventVfxSpec = {
 export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
   {
     eventType: "CardPlayed",
+    assetKey: CombatAssetKeys.vfx.cardPlayFlash,
     fallback: "code-popup",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,
@@ -23,6 +24,7 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
   },
   {
     eventType: "EnergySpent",
+    assetKey: CombatAssetKeys.vfx.energySpendPulse,
     fallback: "code-pulse",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,
@@ -45,6 +47,7 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
   },
   {
     eventType: "PetReacted",
+    assetKey: CombatAssetKeys.vfx.targetRingPulse,
     fallback: "code-pulse",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,
@@ -104,6 +107,7 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
   },
   {
     eventType: "StatusTicked",
+    assetKey: CombatAssetKeys.vfx.burnTick,
     fallback: "code-popup",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,
@@ -174,6 +178,7 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
   },
   {
     eventType: "EnemyTeamPlanCreated",
+    assetKey: CombatAssetKeys.vfx.intentChangedPulse,
     fallback: "code-pulse",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,
@@ -181,6 +186,7 @@ export const COMBAT_EVENT_VFX_SPECS: readonly CombatEventVfxSpec[] = [
   },
   {
     eventType: "EnemyPlanChanged",
+    assetKey: CombatAssetKeys.vfx.intentChangedPulse,
     fallback: "code-pulse",
     timingMs: { min: 120, max: 220 },
     inputLocked: true,

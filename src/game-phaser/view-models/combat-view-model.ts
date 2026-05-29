@@ -1,15 +1,15 @@
 import {
   starterRegistry,
   createContentContext,
-	  type ContentContext,
-	  type CardId,
-	  type CardInstanceId,
-	  type CombatantId,
-	  type CombatantState,
-	  type CombatPhase,
-	  type CombatState,
-	  type EffectDefinition,
-	  type GameContentRegistry,
+  type ContentContext,
+  type CardId,
+  type CardInstanceId,
+  type CombatantId,
+  type CombatantState,
+  type CombatPhase,
+  type CombatState,
+  type EffectDefinition,
+  type GameContentRegistry,
   type GameEvent,
   type EncounterId,
   type MonsterAbilityId,
@@ -21,20 +21,20 @@ import {
   type PetInstanceId,
   type RunState,
   type RunNodeType,
-	  type StatusDefinition,
-	  type StatusId,
-	  buildEnemyCardHoldingReadouts,
-	  resolveMonsterIntentPresentation,
-	  type CoreIntentScopeReadout,
-	  type CoreResolvedMonsterAbilityDisplay
-	} from "../../game-core";
+  type StatusDefinition,
+  type StatusId,
+  buildEnemyCardHoldingReadouts,
+  resolveMonsterIntentPresentation,
+  type CoreIntentScopeReadout,
+  type CoreResolvedMonsterAbilityDisplay
+} from "../../game-core";
 import {
   buildCardActionContract,
   getStatusDescriptor,
   type CardPlayMode,
   type CardTargetKind
 } from "../../game-core";
-import type { CardType } from "../../game-core/model/card";
+import type { CardRarity, CardSource, CardType } from "../../game-core/model/card";
 import type { MonsterDefinition, MonsterIntentDefinition, MonsterIntentType } from "../../game-core/model/monster";
 import { formatCombatEventMessage } from "../animation/combat-event-messages";
 import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
@@ -57,8 +57,11 @@ export type CombatCardViewModel = {
   readonly name: string;
   readonly description: string;
   readonly type: CardType | "unknown";
+  readonly rarity: CardRarity | "unknown";
+  readonly source: CardSource | "unknown";
   readonly cost: number;
   readonly tags: readonly string[];
+  readonly artKey?: CombatAssetKey;
   readonly playable: boolean;
   readonly unplayableReason?: string;
   readonly isPetCommand: boolean;
@@ -572,9 +575,9 @@ const describeMonsterEffect = (effect: EffectDefinition): string => {
 };
 
 const buildPlannedActionViewModel = (
-	  intent: { readonly intentId: MonsterIntentId },
-	  intentDefinition: MonsterIntentDefinition | undefined,
-	  resolvedAbility: CoreResolvedMonsterAbilityDisplay | undefined,
+  intent: { readonly intentId: MonsterIntentId },
+  intentDefinition: MonsterIntentDefinition | undefined,
+  resolvedAbility: CoreResolvedMonsterAbilityDisplay | undefined,
   targetHint: MonsterIntentViewModel["targetHint"],
   amount: number | undefined,
   visibilityLevel: IntentVisibilityLevel,
@@ -646,7 +649,7 @@ const getRoughStrengthLabel = (amount: number | undefined): "Low" | "Med" | "Hig
 const buildVisibleIntentCopy = (input: {
   readonly intent: { readonly intentId: MonsterIntentId };
   readonly intentDefinition: MonsterIntentDefinition | undefined;
-	  readonly resolvedAbility: CoreResolvedMonsterAbilityDisplay | undefined;
+  readonly resolvedAbility: CoreResolvedMonsterAbilityDisplay | undefined;
   readonly targetHint: MonsterIntentViewModel["targetHint"];
   readonly amount: number | undefined;
   readonly visibilityLevel: IntentVisibilityLevel;
@@ -1135,31 +1138,31 @@ export const buildCombatViewModel = (
       };
     }),
     monsters: state.combat.monsters.map((monster) => toCombatantViewModel(monster, content)),
-	    monsterIntents: state.combat.monsterIntents.map((intent) => {
-	      const monster = state.combat.monsters.find((candidate) => candidate.id === intent.monsterCombatantId);
-	      const monsterDefinition = monster?.definitionId && monster.type === "monster"
-	        ? content.index.monstersById.get(monster.definitionId as MonsterId)
-	        : undefined;
-	      const presentation = monster
-	        ? resolveMonsterIntentPresentation({
-	            state: state.combat,
-	            monsterCombatantId: intent.monsterCombatantId,
-	            intentId: intent.intentId,
-	            monsterDefinition,
-		            registry: content.registry
-	          })
-	        : undefined;
-	      const intentDefinition = presentation?.intentDefinition;
-	      const resolvedAbility = presentation?.resolvedAbility;
-	      const targetHint = presentation?.targetHint ?? "unknown";
-	      const intentType = presentation?.intentType ?? "intent";
-	      const amount = presentation?.amount;
-	      const visibilityLevel = presentation?.visibilityLevel ?? "unknown";
-	      const planMode = toPlanModeViewModel(presentation?.planMode);
-	      const scope = buildIntentScopeViewModel(presentation?.scope);
-	      const visibleIntent = buildVisibleIntentCopy({
-	        intent,
-	        intentDefinition,
+    monsterIntents: state.combat.monsterIntents.map((intent) => {
+      const monster = state.combat.monsters.find((candidate) => candidate.id === intent.monsterCombatantId);
+      const monsterDefinition = monster?.definitionId && monster.type === "monster"
+        ? content.index.monstersById.get(monster.definitionId as MonsterId)
+        : undefined;
+      const presentation = monster
+        ? resolveMonsterIntentPresentation({
+            state: state.combat,
+            monsterCombatantId: intent.monsterCombatantId,
+            intentId: intent.intentId,
+            monsterDefinition,
+            registry: content.registry
+          })
+        : undefined;
+      const intentDefinition = presentation?.intentDefinition;
+      const resolvedAbility = presentation?.resolvedAbility;
+      const targetHint = presentation?.targetHint ?? "unknown";
+      const intentType = presentation?.intentType ?? "intent";
+      const amount = presentation?.amount;
+      const visibilityLevel = presentation?.visibilityLevel ?? "unknown";
+      const planMode = toPlanModeViewModel(presentation?.planMode);
+      const scope = buildIntentScopeViewModel(presentation?.scope);
+      const visibleIntent = buildVisibleIntentCopy({
+        intent,
+        intentDefinition,
         resolvedAbility,
         targetHint,
         amount,
@@ -1209,9 +1212,13 @@ export const buildCombatViewModel = (
       const requiresManualTarget = actionContract.requiresManualTarget;
       const tags = cardDefinition?.tags ?? [];
       const type = cardDefinition?.type ?? "unknown";
+      const rarity = cardDefinition?.rarity ?? "unknown";
+      const source = cardDefinition?.source ?? "unknown";
       const keywordExplanations = getCardKeywordExplanations(tags, type);
       const detailLines = [
         `Cost: ${cost}`,
+        `Rarity: ${rarity}`,
+        `Source: ${source}`,
         `Rules: ${cardDefinition?.description ?? "Missing card definition."}`,
         `Tags: ${tags.join(", ") || "none"}`,
         "Keywords:",
@@ -1231,6 +1238,8 @@ export const buildCombatViewModel = (
         name: cardDefinition?.name ?? "Unknown Card",
         description: cardDefinition?.description ?? "Missing card definition.",
         type,
+        rarity,
+        source,
         cost,
         tags,
         playable: cardDefinition ? actionContract.playable : false,

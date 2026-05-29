@@ -20,6 +20,8 @@ const createCard = (
   name: targetKind,
   description: "Test card.",
   type: "skill",
+  rarity: "starter",
+  source: "classBound",
   cost: 1,
   tags: [],
   playable: true,

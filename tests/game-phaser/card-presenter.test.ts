@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { cardId, cardInstanceId, type CardInstanceId } from "../../src/game-core";
 import { CardPresenter } from "../../src/game-phaser/presenters/CardPresenter";
+import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
 import { DISCARD_PILE, DRAW_PILE } from "../../src/game-phaser/layout/combat-layout";
-import { getHandCardPosition } from "../../src/game-phaser/layout/hand-layout";
+import { CARD_SIZE, getHandCardPosition } from "../../src/game-phaser/layout/hand-layout";
 import type { CombatCardViewModel } from "../../src/game-phaser/view-models/combat-view-model";
 
 type TweenConfig = {
@@ -24,7 +25,9 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
   readonly on: (event: string, handler: Handler) => void;
   readonly removeAll: () => void;
   readonly removeAllListeners: () => void;
+  readonly setAlpha: (alpha: number) => T;
   readonly setDepth: (depth: number) => T;
+  readonly setDisplaySize: (width: number, height: number) => T;
   readonly setInteractive: () => void;
   readonly setLineWidth: () => T;
   readonly setOrigin: () => T;
@@ -57,11 +60,22 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
     removeAllListeners: () => {
       object.handlers = {};
     },
+    setAlpha: (alpha: number) => {
+      object.alpha = alpha;
+      return object;
+    },
     setDepth: (depth: number) => {
       object.depth = depth;
       return object;
     },
-    setInteractive: () => undefined,
+    setDisplaySize: (width: number, height: number) => {
+      object.displayWidth = width;
+      object.displayHeight = height;
+      return object;
+    },
+    setInteractive: () => {
+      object.interactive = true;
+    },
     setLineWidth: () => object,
     setOrigin: () => object,
     setPosition: (x: number, y: number) => {
@@ -77,7 +91,11 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
     y: "y" in shape && typeof shape.y === "number" ? shape.y : 0,
     startX: "x" in shape && typeof shape.x === "number" ? shape.x : 0,
     startY: "y" in shape && typeof shape.y === "number" ? shape.y : 0,
+    alpha: 1,
     depth: 0,
+    displayHeight: 0,
+    displayWidth: 0,
+    interactive: false,
     draggable: false,
     scale: 1
   };
@@ -85,11 +103,17 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
   return object;
 };
 
-const createSceneStub = (options: { readonly completeTweens?: boolean } = {}) => {
+const createSceneStub = (options: {
+  readonly completeTweens?: boolean;
+  readonly textures?: readonly string[];
+} = {}) => {
   const records = {
     containers: [] as Array<Record<string, unknown>>,
+    images: [] as Array<Record<string, unknown>>,
+    rectangles: [] as Array<Record<string, unknown>>,
     tweens: [] as TweenConfig[]
   };
+  const textures = new Set(options.textures ?? []);
   const scene = {
     add: {
       container: (x: number, y: number) => {
@@ -97,8 +121,20 @@ const createSceneStub = (options: { readonly completeTweens?: boolean } = {}) =>
         records.containers.push(container);
         return container;
       },
-      rectangle: (x: number, y: number) => createChainableObject({ kind: "rectangle", x, y }),
+      rectangle: (x: number, y: number, width?: number, height?: number, fillColour?: number, fillAlpha?: number) => {
+        const rectangle = createChainableObject({ kind: "rectangle", x, y, width, height, fillColour, fillAlpha });
+        records.rectangles.push(rectangle);
+        return rectangle;
+      },
+      image: (x: number, y: number, textureKey: string) => {
+        const image = createChainableObject({ kind: "image", x, y, textureKey });
+        records.images.push(image);
+        return image;
+      },
       text: (x: number, y: number, text: string) => createChainableObject({ kind: "text", x, y, text })
+    },
+    textures: {
+      exists: (key: string) => textures.has(key)
     },
     input: {
       off: () => undefined,
@@ -135,6 +171,8 @@ const createCard = (id: string, name = id): CombatCardViewModel => ({
   name,
   description: "Deal damage.",
   type: "attack",
+  rarity: "starter",
+  source: "classBound",
   cost: 1,
   tags: ["attack"],
   playable: true,
@@ -244,6 +282,96 @@ describe("CardPresenter", () => {
       to: "discard"
     }, [])).resolves.toBe(true);
     expect(hasTweenTo(records.tweens, { x: DISCARD_PILE.x, y: DISCARD_PILE.y })).toBe(true);
+  });
+
+  it("keeps locked cards visually disabled even when their card metadata is playable", () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = createCard("strike:1", "Strike");
+
+    presenter.render([firstCard], false);
+    const rectangleCountBeforeLock = records.rectangles.length;
+    presenter.setLocked(true);
+
+    expect(records.rectangles[rectangleCountBeforeLock]).toMatchObject({
+      kind: "rectangle",
+      width: CARD_SIZE.width,
+      height: CARD_SIZE.height,
+      fillColour: 0x2f3540
+    });
+  });
+
+  it("composes available generated frame and art assets into the live card", () => {
+    const { scene, records } = createSceneStub({
+      textures: [
+        CombatAssetKeys.cardFrames.normal,
+        CombatAssetKeys.cardArt.keepersTap,
+        CombatAssetKeys.cardRarityGems.starter,
+        CombatAssetKeys.cardSourceBadges.classBound,
+        CombatAssetKeys.cardFamilyBadges.keeperAttack,
+        CombatAssetKeys.cardFrames.selectedOverlay,
+        CombatAssetKeys.icons.tagKeeper,
+        CombatAssetKeys.icons.tagAttack,
+        CombatAssetKeys.icons.tagSignal
+      ]
+    });
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = {
+      ...createCard("keepers_tap:1", "Keeper's Tap"),
+      cardId: cardId("keepers_tap"),
+      tags: ["keeper", "attack", "signal"]
+    };
+
+    presenter.render([firstCard], false, { selectedCardId: firstCard.cardInstanceId });
+
+    expect(records.images.map((image) => image.textureKey)).toEqual(expect.arrayContaining([
+      CombatAssetKeys.cardFrames.normal,
+      CombatAssetKeys.cardArt.keepersTap,
+      CombatAssetKeys.cardRarityGems.starter,
+      CombatAssetKeys.cardSourceBadges.classBound,
+      CombatAssetKeys.cardFamilyBadges.keeperAttack,
+      CombatAssetKeys.cardFrames.selectedOverlay,
+      CombatAssetKeys.icons.tagKeeper,
+      CombatAssetKeys.icons.tagAttack,
+      CombatAssetKeys.icons.tagSignal
+    ]));
+  });
+
+  it("composes hover and unplayable overlay assets when those states are active", () => {
+    const { scene, records } = createSceneStub({
+      textures: [
+        CombatAssetKeys.cardFrames.hoverOverlay,
+        CombatAssetKeys.cardFrames.unplayableOverlay
+      ]
+    });
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = {
+      ...createCard("strike:1", "Strike"),
+      playable: false,
+      unplayableReason: "No energy."
+    };
+
+    presenter.render([firstCard], false, { hoveredCardId: firstCard.cardInstanceId });
+
+    expect(records.images.map((image) => image.textureKey)).toEqual(expect.arrayContaining([
+      CombatAssetKeys.cardFrames.hoverOverlay,
+      CombatAssetKeys.cardFrames.unplayableOverlay
+    ]));
+  });
+
+  it("does not leave tag hit areas interactive while cards are locked", () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = createCard("strike:1", "Strike");
+
+    presenter.render([firstCard], true);
+
+    const cardContainer = records.containers.find((container) => container.startX !== 0 || container.startY !== 0) as {
+      readonly children?: readonly Record<string, unknown>[];
+    } | undefined;
+    const tagText = cardContainer?.children?.find((child) => child.kind === "text" && child.text === "ATK");
+
+    expect(tagText).toMatchObject({ interactive: false });
   });
 
   it("exposes card parity snapshots for visible hand and transient drag state", () => {

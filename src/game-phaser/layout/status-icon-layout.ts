@@ -22,6 +22,12 @@ export const STATUS_ICON_LAYOUT = {
     empowered: CombatAssetKeys.icons.statusEmpowered,
     marked: CombatAssetKeys.icons.statusMarked,
     ready: CombatAssetKeys.icons.statusReady,
+    commanded: CombatAssetKeys.icons.statusCommanded,
+    obscured: CombatAssetKeys.icons.statusObscured,
+    scoped: CombatAssetKeys.icons.statusScoped,
+    revealed: CombatAssetKeys.icons.statusRevealed,
+    bound: CombatAssetKeys.icons.statusBound,
+    overflow: CombatAssetKeys.icons.statusOverflow,
     fallback: CombatAssetKeys.icons.statusFallback
   },
   tagIconKeys: {
@@ -34,6 +40,15 @@ export const STATUS_ICON_LAYOUT = {
     mark: CombatAssetKeys.icons.tagMark,
     attack: CombatAssetKeys.icons.tagAttack,
     setup: CombatAssetKeys.icons.tagSetup,
-    combo: CombatAssetKeys.icons.tagCombo
+    combo: CombatAssetKeys.icons.tagCombo,
+    keeper: CombatAssetKeys.icons.tagKeeper,
+    signal: CombatAssetKeys.icons.tagSignal,
+    scout: CombatAssetKeys.icons.tagScout,
+    fetch: CombatAssetKeys.icons.tagFetch,
+    reveal: CombatAssetKeys.icons.tagReveal,
+    scope: CombatAssetKeys.icons.tagScope,
+    obscure: CombatAssetKeys.icons.tagObscure,
+    rare: CombatAssetKeys.icons.tagRare,
+    fallback: CombatAssetKeys.icons.tagFallback
   }
 } as const;

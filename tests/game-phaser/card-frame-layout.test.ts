@@ -3,22 +3,19 @@ import { CARD_FRAME_ASSET_SPEC } from "../../src/game-phaser/layout/card-frame-l
 import { CARD_FRAME_ZONES, CARD_SIZE } from "../../src/game-phaser/layout/hand-layout";
 
 describe("card frame asset layout", () => {
-  it("preserves the 5:7 replacement contract around the current 1x card display", () => {
+  it("preserves the 5:7 replacement contract around one 4K-ready runtime asset per key", () => {
     expect(CARD_FRAME_ASSET_SPEC.ratio).toEqual({ width: 5, height: 7 });
     expect(CARD_FRAME_ASSET_SPEC.display).toEqual(CARD_SIZE);
-    expect(CARD_FRAME_ASSET_SPEC.exportSizes.twoX).toEqual({
-      width: CARD_SIZE.width * 2,
-      height: CARD_SIZE.height * 2
-    });
-    expect(CARD_FRAME_ASSET_SPEC.exportSizes.threeX).toEqual({
-      width: CARD_SIZE.width * 3,
-      height: CARD_SIZE.height * 3
+    expect(CARD_FRAME_ASSET_SPEC.highResolutionScale).toBe(4);
+    expect(CARD_FRAME_ASSET_SPEC.singleRuntimeExport).toEqual({
+      width: CARD_SIZE.width * 4,
+      height: CARD_SIZE.height * 4
     });
     expect(CARD_FRAME_ASSET_SPEC.display.width / CARD_FRAME_ASSET_SPEC.display.height)
       .toBeCloseTo(5 / 7, 1);
   });
 
-  it("keeps dynamic text zones separated from asset-backed replacement zones", () => {
+  it("keeps dynamic text zones separated from asset-backed visual-engine zones", () => {
     expect(CARD_FRAME_ASSET_SPEC.zones).toBe(CARD_FRAME_ZONES);
     expect(CARD_FRAME_ASSET_SPEC.dynamicCodeRenderedZones).toEqual([
       "costSocket",
@@ -27,8 +24,18 @@ describe("card frame asset layout", () => {
       "tagRow"
     ]);
     expect(CARD_FRAME_ASSET_SPEC.assetBackedZones).toEqual([
+      "rarityGemSocket",
       "familyBadge",
+      "sourceBadge",
       "artWindow"
+    ]);
+    expect(CARD_FRAME_ASSET_SPEC.visualEngineSlots).toEqual([
+      "frame",
+      "rarityGem",
+      "sourceBadge",
+      "familyBadge",
+      "artWindow",
+      "tagIcons"
     ]);
   });
 });

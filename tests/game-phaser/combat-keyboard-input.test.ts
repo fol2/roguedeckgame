@@ -17,6 +17,8 @@ const targetCard = (): CombatCardViewModel => ({
   name: "Strike",
   description: "Deal damage.",
   type: "attack",
+  rarity: "starter",
+  source: "classBound",
   cost: 1,
   tags: [],
   playable: true,

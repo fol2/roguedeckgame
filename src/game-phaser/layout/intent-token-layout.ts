@@ -2,6 +2,7 @@ import { CombatAssetKeys } from "../assets/combat-asset-keys";
 import { MONSTER_SLOT } from "./combat-layout";
 
 export const INTENT_TOKEN_LAYOUT = {
+  frame: CombatAssetKeys.intentTokens.frame,
   width: MONSTER_SLOT.intentTokenWidth,
   height: MONSTER_SLOT.intentTokenHeight,
   glyphAnchor: {
@@ -20,15 +21,27 @@ export const INTENT_TOKEN_LAYOUT = {
     buff: CombatAssetKeys.icons.intentBuff,
     debuff: CombatAssetKeys.icons.intentDebuff,
     special: CombatAssetKeys.icons.intentSpecial,
-    charging: CombatAssetKeys.icons.intentCharging
+    charging: CombatAssetKeys.icons.intentCharging,
+    obscured: CombatAssetKeys.icons.intentObscured
   },
   markers: {
-    scoped: "code-rendered scoped corner mark",
-    roughLow: "code-rendered low strength dot",
-    roughMedium: "code-rendered medium strength dot",
-    roughHigh: "code-rendered high strength dot",
-    multiHit: "code-rendered multi-hit tick stack"
-  }
+    scoped: CombatAssetKeys.intentMarkers.scoped,
+    locked: CombatAssetKeys.intentMarkers.locked,
+    adaptive: CombatAssetKeys.intentMarkers.adaptive,
+    changed: CombatAssetKeys.intentMarkers.changedPulse,
+    roughLow: CombatAssetKeys.intentMarkers.roughLow,
+    roughMedium: CombatAssetKeys.intentMarkers.roughMedium,
+    roughHigh: CombatAssetKeys.intentMarkers.roughHigh,
+    multiHit: CombatAssetKeys.intentMarkers.multiHit
+  },
+  codeRenderedFields: [
+    "summaryLabel",
+    "amountLabel",
+    "exactSequenceLabels",
+    "scopedCandidatePlans",
+    "reasonTags"
+  ]
 } as const;
 
 export type IntentTokenVariant = keyof typeof INTENT_TOKEN_LAYOUT.variants;
+export type IntentTokenMarker = keyof typeof INTENT_TOKEN_LAYOUT.markers;

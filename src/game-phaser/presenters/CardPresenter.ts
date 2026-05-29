@@ -5,6 +5,13 @@ import { DISCARD_PILE, DRAW_PILE } from "../layout/combat-layout";
 import { CARD_FRAME_ZONES, CARD_SIZE, CARD_TEXT, HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
 import { TOOLTIP_DELAYS_MS, type CombatTooltip } from "./CombatOverlayPresenter";
 import type { CombatParityCardSnapshot } from "../debug/combat-parity";
+import { CARD_VISUAL_DISABLED_PALETTE, buildCardVisualSpec } from "../card-visuals/card-visual-generator";
+import {
+  CombatFallbackAssetKeys,
+  resolveCombatTexture,
+  type CombatAssetAvailability
+} from "../assets/combat-fallback-assets";
+import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
 
 const CARD_MOVE_DURATION_MS = 210;
 const HAND_RELAYOUT_DURATION_MS = 120;
@@ -81,8 +88,6 @@ const getCardPreviewDescription = (description: string): string => {
   return `${description.slice(0, CARD_TEXT.descriptionMaxLength - 3).trimEnd()}...`;
 };
 
-const getCardTagLabel = (tag: string): string =>
-  tag.length > 4 ? tag.slice(0, 4) : tag;
 
 const containsHitAreaPoint = (hitArea: CardHitArea, x: number, y: number): boolean =>
   (
@@ -301,6 +306,53 @@ export class CardPresenter {
     return visual;
   }
 
+  private combatAssetAvailability(): CombatAssetAvailability {
+    return {
+      hasTexture: (key: string) => this.scene.textures.exists(key)
+    };
+  }
+
+  private addAssetBackedRectangle({
+    group,
+    assetKey,
+    fallbackKey,
+    x,
+    y,
+    width,
+    height,
+    fillColour,
+    fillAlpha,
+    strokeColour,
+    strokeAlpha = 1,
+    strokeWidth = 1
+  }: {
+    readonly group: GameObjects.Container;
+    readonly assetKey: CombatAssetKey;
+    readonly fallbackKey: CombatAssetKey;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly fillColour: number;
+    readonly fillAlpha: number;
+    readonly strokeColour?: number;
+    readonly strokeAlpha?: number;
+    readonly strokeWidth?: number;
+  }): void {
+    const resolution = resolveCombatTexture(assetKey, fallbackKey, this.combatAssetAvailability());
+
+    if (resolution.kind === "texture") {
+      group.add(this.scene.add.image(x, y, resolution.key).setDisplaySize(width, height));
+      return;
+    }
+
+    const rectangle = this.scene.add.rectangle(x, y, width, height, fillColour, fillAlpha);
+    if (strokeColour !== undefined) {
+      rectangle.setStrokeStyle(strokeWidth, strokeColour, strokeAlpha);
+    }
+    group.add(rectangle);
+  }
+
   private renderCardVisual(visual: CardVisual): void {
     const card = visual.card;
     const visibleTags = card.tags.slice(0, COMBAT_UI_CAPS.maxCardVisibleTags);
@@ -309,11 +361,13 @@ export class CardPresenter {
     const isSelected = this.renderOptions.selectedCardId === card.cardInstanceId;
     const isHovered = this.renderOptions.hoveredCardId === card.cardInstanceId;
     const disabled = this.locked || !card.playable || visual.moving;
-    const borderColour = card.isPetCommand ? 0xffb35b : card.type === "attack" ? 0x7dd3fc : 0xa7f3d0;
-    const fillColour = disabled ? 0x2f3540 : card.isPetCommand ? 0x4a321f : card.type === "attack" ? 0x3b3328 : 0x263f4e;
-    const titleBandColour = card.isPetCommand ? 0x5a351d : 0x1a2432;
-    const rulesBoxColour = card.isPetCommand ? 0x2b241d : 0x152131;
-    const badgeLabel = card.isPetCommand ? "PAW" : card.type.toUpperCase().slice(0, 4);
+    const cardVisual = buildCardVisualSpec(card);
+    const palette = disabled ? CARD_VISUAL_DISABLED_PALETTE : cardVisual.palette;
+    const borderColour = palette.border;
+    const fillColour = palette.fill;
+    const titleBandColour = palette.titleBand;
+    const rulesBoxColour = palette.rulesBox;
+    const badgeLabel = cardVisual.family.glyph;
     const strokeWidth = isSelected ? 4 : isHovered ? 3 : 2;
     const group = visual.container;
 
@@ -432,8 +486,19 @@ export class CardPresenter {
       });
     }
 
-    group.add(this.scene.add.rectangle(0, 0, CARD_SIZE.width, CARD_SIZE.height, fillColour, 1)
-      .setStrokeStyle(strokeWidth, disabled ? 0x687386 : borderColour));
+    this.addAssetBackedRectangle({
+      group,
+      assetKey: cardVisual.frameKey,
+      fallbackKey: CombatFallbackAssetKeys.cardFrame,
+      x: 0,
+      y: 0,
+      width: CARD_SIZE.width,
+      height: CARD_SIZE.height,
+      fillColour,
+      fillAlpha: 1,
+      strokeColour: disabled ? 0x687386 : borderColour,
+      strokeWidth
+    });
     group.add(this.scene.add.rectangle(-CARD_SIZE.width / 2 + 3, 0, 5, CARD_SIZE.height - 10, borderColour, disabled ? 0.25 : 0.72));
     group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.titleBand.x, CARD_FRAME_ZONES.titleBand.y, CARD_FRAME_ZONES.titleBand.width, CARD_FRAME_ZONES.titleBand.height, titleBandColour, 1)
       .setStrokeStyle(1, disabled ? 0x687386 : borderColour, 0.55));
@@ -445,77 +510,185 @@ export class CardPresenter {
       fontSize: CARD_TEXT.fontSize.cost
     }).setOrigin(0.5, 0));
     group.add(this.scene.add.text(-CARD_SIZE.width / 2 + CARD_TEXT.nameX, -CARD_SIZE.height / 2 + CARD_TEXT.topPadding, card.name, {
-      color: disabled ? "#aab4c5" : "#f6f1e8",
+      color: palette.titleText,
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.name,
       wordWrap: { width: CARD_SIZE.width - CARD_TEXT.nameWrapPadding }
     }));
-    group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.familyBadge.x, CARD_FRAME_ZONES.familyBadge.y, CARD_FRAME_ZONES.familyBadge.width, CARD_FRAME_ZONES.familyBadge.height, 0x151923, 1)
-      .setStrokeStyle(1, disabled ? 0x687386 : borderColour));
+    this.addAssetBackedRectangle({
+      group,
+      assetKey: cardVisual.rarity.assetKey,
+      fallbackKey: CombatFallbackAssetKeys.cardRarityGem,
+      x: CARD_FRAME_ZONES.rarityGemSocket.x,
+      y: CARD_FRAME_ZONES.rarityGemSocket.y,
+      width: CARD_FRAME_ZONES.rarityGemSocket.width,
+      height: CARD_FRAME_ZONES.rarityGemSocket.height,
+      fillColour: borderColour,
+      fillAlpha: disabled ? 0.35 : 0.9,
+      strokeColour: 0xfff0d4,
+      strokeAlpha: disabled ? 0.25 : 0.75
+    });
+    group.add(this.scene.add.text(CARD_FRAME_ZONES.rarityGemSocket.x, CARD_FRAME_ZONES.rarityGemSocket.y - 5, cardVisual.rarity.glyph, {
+      color: "#1f1a18",
+      fontFamily: "Inter, sans-serif",
+      fontSize: CARD_TEXT.fontSize.rarity
+    }).setOrigin(0.5, 0));
+    this.addAssetBackedRectangle({
+      group,
+      assetKey: cardVisual.family.assetKey,
+      fallbackKey: CombatFallbackAssetKeys.cardFamilyBadge,
+      x: CARD_FRAME_ZONES.familyBadge.x,
+      y: CARD_FRAME_ZONES.familyBadge.y,
+      width: CARD_FRAME_ZONES.familyBadge.width,
+      height: CARD_FRAME_ZONES.familyBadge.height,
+      fillColour: 0x151923,
+      fillAlpha: 1,
+      strokeColour: disabled ? 0x687386 : borderColour
+    });
     group.add(this.scene.add.text(CARD_FRAME_ZONES.familyBadge.x, CARD_FRAME_ZONES.familyBadge.y - 5, badgeLabel, {
-      color: card.isPetCommand ? "#ffcf8a" : "#8fd6b5",
+      color: palette.accentText,
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.type
     }).setOrigin(0.5, 0));
-    if (card.isPetCommand) {
-      group.add(this.scene.add.text(CARD_FRAME_ZONES.familyBadge.x + 28, CARD_FRAME_ZONES.familyBadge.y - 5, "CMD", {
-        color: "#ffc36b",
-        fontFamily: "Inter, sans-serif",
-        fontSize: CARD_TEXT.fontSize.type
-      }).setOrigin(0.5, 0));
-    }
-    group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.artWindow.x, CARD_FRAME_ZONES.artWindow.y, CARD_FRAME_ZONES.artWindow.width, CARD_FRAME_ZONES.artWindow.height, 0x1a2432, 1)
-      .setStrokeStyle(1, 0x5f6f89));
+    this.addAssetBackedRectangle({
+      group,
+      assetKey: cardVisual.source.assetKey,
+      fallbackKey: CombatFallbackAssetKeys.cardSourceBadge,
+      x: CARD_FRAME_ZONES.sourceBadge.x,
+      y: CARD_FRAME_ZONES.sourceBadge.y,
+      width: CARD_FRAME_ZONES.sourceBadge.width,
+      height: CARD_FRAME_ZONES.sourceBadge.height,
+      fillColour: 0x151923,
+      fillAlpha: 1,
+      strokeColour: disabled ? 0x687386 : borderColour,
+      strokeAlpha: 0.7
+    });
+    group.add(this.scene.add.text(CARD_FRAME_ZONES.sourceBadge.x, CARD_FRAME_ZONES.sourceBadge.y - 5, cardVisual.source.glyph, {
+      color: palette.accentText,
+      fontFamily: "Inter, sans-serif",
+      fontSize: CARD_TEXT.fontSize.type
+    }).setOrigin(0.5, 0));
+    this.addAssetBackedRectangle({
+      group,
+      assetKey: cardVisual.artKey,
+      fallbackKey: CombatFallbackAssetKeys.cardArt,
+      x: CARD_FRAME_ZONES.artWindow.x,
+      y: CARD_FRAME_ZONES.artWindow.y,
+      width: CARD_FRAME_ZONES.artWindow.width,
+      height: CARD_FRAME_ZONES.artWindow.height,
+      fillColour: 0x1a2432,
+      fillAlpha: 1,
+      strokeColour: 0x5f6f89
+    });
     group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.rulesTextBox.x, CARD_FRAME_ZONES.rulesTextBox.y, CARD_FRAME_ZONES.rulesTextBox.width, CARD_FRAME_ZONES.rulesTextBox.height, rulesBoxColour, 0.65)
       .setStrokeStyle(1, disabled ? 0x3a4352 : 0x5f6f89, 0.6));
     group.add(this.scene.add.text(-CARD_SIZE.width / 2 + CARD_TEXT.leftPadding, CARD_TEXT.descriptionY, getCardPreviewDescription(card.description), {
-      color: disabled ? "#8d98aa" : "#c4d0df",
+      color: palette.bodyText,
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.description,
       wordWrap: { width: CARD_SIZE.width - CARD_TEXT.textWrapPadding }
     }));
 
-    const tagLabels = [
-      ...visibleTags.map(getCardTagLabel),
-      ...(hiddenTagCount > 0 ? [`+${hiddenTagCount}`] : [])
+    const tagVisualEntries = [
+      ...cardVisual.tagVisuals.slice(0, COMBAT_UI_CAPS.maxCardVisibleTags),
+      ...(hiddenTagCount > 0
+        ? [{
+            tag: "overflow",
+            assetKey: CombatFallbackAssetKeys.icon,
+            glyph: `+${hiddenTagCount}`
+          }]
+        : [])
     ];
-    tagLabels.forEach((tagLabel, tagIndex) => {
-      const tagTooltip = tagLabel.startsWith("+")
+    tagVisualEntries.forEach((tagVisual, tagIndex) => {
+      const tagLabel = tagVisual.glyph;
+      const tagTooltip = tagVisual.tag === "overflow"
         ? card.tagOverflowTooltip
         : visibleTagTooltips[tagIndex];
-      const tagX = -CARD_SIZE.width / 2 + CARD_TEXT.leftPadding + tagIndex * 24;
+      const tagX = -CARD_SIZE.width / 2 + CARD_TEXT.leftPadding + tagIndex * CARD_TEXT.tagGap;
       const tagY = CARD_SIZE.height / 2 - CARD_TEXT.tagBottomInset;
+      this.addAssetBackedRectangle({
+        group,
+        assetKey: tagVisual.assetKey,
+        fallbackKey: CombatFallbackAssetKeys.icon,
+        x: tagX + 12,
+        y: tagY + 8,
+        width: 28,
+        height: 18,
+        fillColour: 0x151923,
+        fillAlpha: disabled ? 0.45 : 0.78,
+        strokeColour: disabled ? 0x687386 : borderColour,
+        strokeAlpha: 0.42
+      });
       const tagText = this.scene.add.text(tagX, tagY, tagLabel, {
-        color: card.isPetCommand ? "#ffc36b" : "#8fd6b5",
+        color: palette.accentText,
         fontFamily: "Inter, sans-serif",
         fontSize: CARD_TEXT.fontSize.tags
       });
-      tagText.setInteractive();
-      tagText.on("pointerover", () => this.onTooltipChanged({
-        title: tagTooltip?.title ?? tagLabel,
-        body: tagTooltip?.body ?? "No details available yet.",
-        x: group.x + tagX,
-        y: group.y + tagY,
-        delayMs: TOOLTIP_DELAYS_MS.statusIntent
-      }));
-      tagText.on("pointermove", () => this.onTooltipChanged({
-        title: tagTooltip?.title ?? tagLabel,
-        body: tagTooltip?.body ?? "No details available yet.",
-        x: group.x + tagX,
-        y: group.y + tagY,
-        delayMs: TOOLTIP_DELAYS_MS.statusIntent
-      }));
-      tagText.on("pointerout", () => this.onTooltipChanged(undefined));
+      if (!disabled) {
+        tagText.setInteractive();
+        tagText.on("pointerover", () => this.onTooltipChanged({
+          title: tagTooltip?.title ?? tagLabel,
+          body: tagTooltip?.body ?? "No details available yet.",
+          x: group.x + tagX,
+          y: group.y + tagY,
+          delayMs: TOOLTIP_DELAYS_MS.statusIntent
+        }));
+        tagText.on("pointermove", () => this.onTooltipChanged({
+          title: tagTooltip?.title ?? tagLabel,
+          body: tagTooltip?.body ?? "No details available yet.",
+          x: group.x + tagX,
+          y: group.y + tagY,
+          delayMs: TOOLTIP_DELAYS_MS.statusIntent
+        }));
+        tagText.on("pointerout", () => this.onTooltipChanged(undefined));
+      }
       group.add(tagText);
     });
 
     if (isSelected) {
-      group.add(this.scene.add.rectangle(0, 0, CARD_SIZE.width + 8, CARD_SIZE.height + 8, 0xffb35b, 0)
-        .setStrokeStyle(2, 0xffe0a3));
+      this.addAssetBackedRectangle({
+        group,
+        assetKey: CombatAssetKeys.cardFrames.selectedOverlay,
+        fallbackKey: CombatAssetKeys.cardFrames.selectedOverlay,
+        x: 0,
+        y: 0,
+        width: CARD_SIZE.width + 8,
+        height: CARD_SIZE.height + 8,
+        fillColour: 0xffb35b,
+        fillAlpha: 0,
+        strokeColour: 0xffe0a3,
+        strokeWidth: 2
+      });
+    } else if (isHovered) {
+      this.addAssetBackedRectangle({
+        group,
+        assetKey: CombatAssetKeys.cardFrames.hoverOverlay,
+        fallbackKey: CombatAssetKeys.cardFrames.hoverOverlay,
+        x: 0,
+        y: 0,
+        width: CARD_SIZE.width + 6,
+        height: CARD_SIZE.height + 6,
+        fillColour: 0xfff0d4,
+        fillAlpha: 0,
+        strokeColour: borderColour,
+        strokeAlpha: 0.72,
+        strokeWidth: 2
+      });
     }
     if (!card.playable) {
-      group.add(this.scene.add.rectangle(0, 0, CARD_SIZE.width, CARD_SIZE.height, 0x10151f, 0.42)
-        .setStrokeStyle(1, 0x687386, 0.7));
+      this.addAssetBackedRectangle({
+        group,
+        assetKey: CombatAssetKeys.cardFrames.unplayableOverlay,
+        fallbackKey: CombatAssetKeys.cardFrames.unplayableOverlay,
+        x: 0,
+        y: 0,
+        width: CARD_SIZE.width,
+        height: CARD_SIZE.height,
+        fillColour: 0x10151f,
+        fillAlpha: 0.42,
+        strokeColour: 0x687386,
+        strokeAlpha: 0.7
+      });
     }
   }
 

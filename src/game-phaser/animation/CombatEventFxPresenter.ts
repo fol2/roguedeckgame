@@ -14,6 +14,9 @@ import { COMBAT_ANIMATION_DURATIONS, COMBAT_PLACEHOLDER_COLOURS } from "../layou
 import { HAND_LAYOUT, getHandCardPosition } from "../layout/hand-layout";
 import { getPetSlotPosition } from "../layout/pet-layout";
 import type { CombatViewModel } from "../view-models/combat-view-model";
+import { CombatFallbackAssetKeys, resolveCombatTexture } from "../assets/combat-fallback-assets";
+import type { CombatAssetKey } from "../assets/combat-asset-keys";
+import { getCombatEventVfxSpec } from "./combat-vfx-keys";
 
 const FX_DURATION_MS = COMBAT_ANIMATION_DURATIONS.eventFxMs;
 const FLOAT_DISTANCE = COMBAT_ANIMATION_DURATIONS.popupFloatDistance;
@@ -106,12 +109,13 @@ export class CombatEventFxPresenter {
 
   public play(event: GameEvent): Promise<void> {
     this.pendingFallback = undefined;
+    const assetKey = getCombatEventVfxSpec(event.type)?.assetKey;
 
     switch (event.type) {
       case "CardPlayed":
-        return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", COMBAT_PLACEHOLDER_COLOURS.status);
+        return this.playPopup(this.getCardPoint(event.cardInstanceId, event.type), "Played", COMBAT_PLACEHOLDER_COLOURS.status, assetKey);
       case "EnergySpent":
-        return this.playPulse(ENERGY_POINT, `-${event.amount}`, COMBAT_PLACEHOLDER_COLOURS.commandThread);
+        return this.playPulse(ENERGY_POINT, `-${event.amount}`, COMBAT_PLACEHOLDER_COLOURS.commandThread, assetKey);
       case "CardDrawn":
         return this.wait(0);
       case "CardMoved":
@@ -161,22 +165,24 @@ export class CombatEventFxPresenter {
           this.getCardPoint(event.cardInstanceId, event.type),
           this.getPetPoint(event.petInstanceId, event.type),
           "Command",
-          COMBAT_PLACEHOLDER_COLOURS.commandThread
+          COMBAT_PLACEHOLDER_COLOURS.commandThread,
+          assetKey
         );
       case "PetReacted":
-        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.reaction, COMBAT_PLACEHOLDER_COLOURS.status);
+        return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.reaction, COMBAT_PLACEHOLDER_COLOURS.status, assetKey);
       case "PetModifierActivated":
         return this.playPulse(this.getPetPoint(event.petInstanceId, event.type), event.modifierId, COMBAT_PLACEHOLDER_COLOURS.status);
       case "DamageDealt":
         return this.playImpactAtTarget(
           this.getCombatantPoint(event.targetId),
           `-${event.amount}`,
-          COMBAT_PLACEHOLDER_COLOURS.impact
+          COMBAT_PLACEHOLDER_COLOURS.impact,
+          assetKey
         );
       case "BlockGained":
-        return this.playPulse(this.getCombatantPoint(event.targetId), `+${event.amount} block`, COMBAT_PLACEHOLDER_COLOURS.shield);
+        return this.playPulse(this.getCombatantPoint(event.targetId), `+${event.amount} block`, COMBAT_PLACEHOLDER_COLOURS.shield, assetKey);
       case "StatusApplied":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} +${event.stacks}`, COMBAT_PLACEHOLDER_COLOURS.status);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} +${event.stacks}`, COMBAT_PLACEHOLDER_COLOURS.status, assetKey);
       case "StatusApplicationBlocked":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} blocked`, COMBAT_PLACEHOLDER_COLOURS.muted);
       case "StatusCleansed":
@@ -184,7 +190,7 @@ export class CombatEventFxPresenter {
       case "StatusConsumed":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} consumed`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusTicked":
-        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} tick`, 0xff9aad);
+        return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} tick`, 0xff9aad, assetKey);
       case "StatusDurationChanged":
         return this.playPopup(this.getCombatantPoint(event.targetId), `${event.statusId} duration`, COMBAT_PLACEHOLDER_COLOURS.status);
       case "StatusExpired":
@@ -194,7 +200,7 @@ export class CombatEventFxPresenter {
       case "MonsterAbilityPlayed":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Act", COMBAT_PLACEHOLDER_COLOURS.status);
       case "MonsterIntentResolved":
-        return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", COMBAT_PLACEHOLDER_COLOURS.status);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", COMBAT_PLACEHOLDER_COLOURS.status, assetKey);
       case "MonsterIntentSet":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Intent", 0xff9aad);
       case "EnemyIntentVisibilityChanged":
@@ -206,15 +212,15 @@ export class CombatEventFxPresenter {
       case "EnemyPlanCreated":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Plan", 0xff9aad);
       case "EnemyTeamPlanCreated":
-        return this.playPulse(this.getCombatantPoint(event.leaderMonsterId), "Team", 0xff9aad);
+        return this.playPulse(this.getCombatantPoint(event.leaderMonsterId), "Team", 0xff9aad, assetKey);
       case "EnemyPlanChanged":
-        return this.playPulse(this.getCombatantPoint(event.monsterId), "Plan", 0xff9aad);
+        return this.playPulse(this.getCombatantPoint(event.monsterId), "Plan", 0xff9aad, assetKey);
       case "EnemyPlanFinalized":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Ready", 0xff9aad);
       case "EnemyCardResolved":
         return this.playPulse(this.getCombatantPoint(event.monsterId), "Resolve", COMBAT_PLACEHOLDER_COLOURS.status);
       case "CombatantDefeated":
-        return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", COMBAT_PLACEHOLDER_COLOURS.status);
+        return this.playPulse(this.getCombatantPoint(event.combatantId), "Defeated", COMBAT_PLACEHOLDER_COLOURS.status, assetKey);
       case "CombatEnded":
         return this.playPopup(PLAYER_HUD_POINT, event.outcome === "won" ? "Victory" : "Defeat", COMBAT_PLACEHOLDER_COLOURS.status);
       case "ActionRejected":
@@ -304,7 +310,37 @@ export class CombatEventFxPresenter {
     return HAND_POINT;
   }
 
-  private playPopup(point: Point, label: string, colour: number): Promise<void> {
+  private hasTexture(key: string): boolean {
+    return this.scene.textures.exists(key);
+  }
+
+  private playTextureVfx(point: Point, assetKey: CombatAssetKey | undefined): GameObjects.Image | undefined {
+    if (!assetKey) {
+      return undefined;
+    }
+
+    const resolution = resolveCombatTexture(assetKey, CombatFallbackAssetKeys.vfx, { hasTexture: (key) => this.hasTexture(key) });
+    if (resolution.kind !== "texture") {
+      return undefined;
+    }
+
+    const image = this.scene.add.image(point.x, point.y, resolution.key)
+      .setAlpha(0.86)
+      .setScale(0.35);
+    this.container.add(image);
+    this.scene.tweens.add({
+      targets: image,
+      scale: 0.65,
+      alpha: 0,
+      duration: FX_DURATION_MS,
+      onComplete: () => image.destroy()
+    });
+
+    return image;
+  }
+
+  private playPopup(point: Point, label: string, colour: number, assetKey?: CombatAssetKey): Promise<void> {
+    this.playTextureVfx(point, assetKey);
     const text = this.scene.add.text(point.x, point.y, label, {
       color: `#${colour.toString(16).padStart(6, "0")}`,
       fontFamily: "Inter, sans-serif",
@@ -322,7 +358,8 @@ export class CombatEventFxPresenter {
     return this.wait(FX_DURATION_MS);
   }
 
-  private playPulse(point: Point, label: string, colour: number): Promise<void> {
+  private playPulse(point: Point, label: string, colour: number, assetKey?: CombatAssetKey): Promise<void> {
+    this.playTextureVfx(point, assetKey);
     const ring = this.scene.add.circle(point.x, point.y, 24, colour, 0)
       .setStrokeStyle(3, colour, 0.9);
     this.container.add(ring);
@@ -357,7 +394,8 @@ export class CombatEventFxPresenter {
     return this.playPopup(to, label, colour);
   }
 
-  private playImpactAtTarget(to: Point, label: string, colour: number): Promise<void> {
+  private playImpactAtTarget(to: Point, label: string, colour: number, assetKey?: CombatAssetKey): Promise<void> {
+    this.playTextureVfx(to, assetKey);
     const burst = this.scene.add.circle(to.x, to.y, MONSTER_SLOT.intentRadius / 2, colour, 0.35)
       .setStrokeStyle(3, colour, 0.95);
     this.container.add(burst);
@@ -396,7 +434,8 @@ export class CombatEventFxPresenter {
     return this.playPopup(to, label, colour);
   }
 
-  private playCommandThread(from: Point, to: Point, label: string, colour: number): Promise<void> {
+  private playCommandThread(from: Point, to: Point, label: string, colour: number, assetKey?: CombatAssetKey): Promise<void> {
+    this.playTextureVfx(to, assetKey);
     const points = this.sampleCommandCurve(from, to);
     const lines = points.slice(1).map((point, index) => {
       const previous = points[index]!;

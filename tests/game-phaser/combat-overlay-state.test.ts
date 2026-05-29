@@ -22,6 +22,8 @@ const card = (overrides: Partial<CombatCardViewModel> = {}): CombatCardViewModel
   name: "Strike",
   description: "Deal damage.",
   type: "attack",
+  rarity: "starter",
+  source: "classBound",
   cost: 1,
   tags: [],
   playable: true,

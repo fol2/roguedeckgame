@@ -6,15 +6,10 @@ export const CARD_FRAME_ASSET_SPEC = {
     height: 7
   },
   display: CARD_SIZE,
-  exportSizes: {
-    twoX: {
-      width: CARD_SIZE.width * 2,
-      height: CARD_SIZE.height * 2
-    },
-    threeX: {
-      width: CARD_SIZE.width * 3,
-      height: CARD_SIZE.height * 3
-    }
+  highResolutionScale: 4,
+  singleRuntimeExport: {
+    width: CARD_SIZE.width * 4,
+    height: CARD_SIZE.height * 4
   },
   zones: CARD_FRAME_ZONES,
   dynamicCodeRenderedZones: [
@@ -24,8 +19,18 @@ export const CARD_FRAME_ASSET_SPEC = {
     "tagRow"
   ],
   assetBackedZones: [
+    "rarityGemSocket",
     "familyBadge",
+    "sourceBadge",
     "artWindow"
+  ],
+  visualEngineSlots: [
+    "frame",
+    "rarityGem",
+    "sourceBadge",
+    "familyBadge",
+    "artWindow",
+    "tagIcons"
   ]
 } as const;
 

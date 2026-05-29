@@ -222,7 +222,7 @@ Examples based on current layout:
 
 | Asset | Logical Display | Recommended Source Pixels |
 | --- | ---: | ---: |
-| Hand card frame | `96 x 134` | `384 x 536` |
+| Hand card frame | `192 x 268` | `768 x 1072` |
 | Status icon | `22 x 22` | `88 x 88` |
 | Intent token | `70 x 46` | `280 x 184` |
 | Draw pile | `58 x 82` | `232 x 328` |
@@ -917,8 +917,8 @@ Image generation supplies the visual parts. Phaser supplies layout, text, values
 
 ```txt
 Card aspect ratio: 5:7
-Current hand-card logical display: 96 x 134
-Recommended source frame: 384 x 536
+Current hand-card logical display: 192 x 268
+Recommended source frame: 768 x 1072
 ```
 
 Card detail panels can scale the same card component larger. Do not make separate full-card art for detail view.

@@ -12,6 +12,7 @@ import {
   type GameEvent
 } from "../../src/game-core";
 import { CombatEventFxPresenter } from "../../src/game-phaser/animation/CombatEventFxPresenter";
+import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
 import {
   DECK_SOURCE_PILE,
   DISCARD_PILE,
@@ -43,6 +44,12 @@ type RecordedLine = {
   readonly y1: number;
   readonly x2: number;
   readonly y2: number;
+};
+
+type RecordedImage = {
+  readonly x: number;
+  readonly y: number;
+  readonly textureKey: string;
 };
 
 type TweenConfig = {
@@ -84,6 +91,8 @@ const monsterPoint = {
 };
 
 const createChainableObject = <T extends object>(shape: T): T & {
+  readonly setAlpha: () => T;
+  readonly setScale: () => T;
   readonly setOrigin: () => T;
   readonly setStrokeStyle: () => T;
   readonly setLineWidth: () => T;
@@ -93,6 +102,8 @@ const createChainableObject = <T extends object>(shape: T): T & {
 } => {
   const object = {
     ...shape,
+    setAlpha: () => object,
+    setScale: () => object,
     setOrigin: () => object,
     setStrokeStyle: () => object,
     setLineWidth: () => object,
@@ -104,10 +115,12 @@ const createChainableObject = <T extends object>(shape: T): T & {
   return object;
 };
 
-const createSceneStub = () => {
+const createSceneStub = (options: { readonly textures?: readonly string[] } = {}) => {
+  const textures = new Set(options.textures ?? []);
   const records = {
     texts: [] as RecordedText[],
     circles: [] as RecordedCircle[],
+    images: [] as RecordedImage[],
     lines: [] as RecordedLine[],
     tweens: [] as TweenConfig[]
   };
@@ -126,7 +139,14 @@ const createSceneStub = () => {
       line: (_x: number, _y: number, x1: number, y1: number, x2: number, y2: number) => {
         records.lines.push({ x1, y1, x2, y2 });
         return createChainableObject({ x1, y1, x2, y2 });
+      },
+      image: (x: number, y: number, textureKey: string) => {
+        records.images.push({ x, y, textureKey });
+        return createChainableObject({ x, y, textureKey });
       }
+    },
+    textures: {
+      exists: (key: string) => textures.has(key)
     },
     tweens: {
       add: (config: TweenConfig) => {
@@ -291,6 +311,23 @@ describe("CombatEventFxPresenter", () => {
     await playedPresenter.play({ type: "CardPlayed", cardInstanceId: playedCardInstanceId, cardId: cardId("strike"), sourceId: playerId });
 
     expect(playedScene.records.texts.find((text) => text.text === "Played")).toMatchObject(expectedCardPoint);
+  });
+
+  it("renders available image-backed VFX assets before falling back to code shapes", async () => {
+    const expectedCardPoint = getHandCardPosition(0, 2);
+    const playedScene = createSceneStub({
+      textures: [CombatAssetKeys.vfx.cardPlayFlash]
+    });
+    const playedPresenter = new CombatEventFxPresenter(playedScene.scene);
+    playedPresenter.setViewModel(createViewModel());
+
+    await playedPresenter.play({ type: "CardPlayed", cardInstanceId: playedCardInstanceId, cardId: cardId("strike"), sourceId: playerId });
+
+    expect(playedScene.records.images).toContainEqual({
+      x: expectedCardPoint.x,
+      y: expectedCardPoint.y,
+      textureKey: CombatAssetKeys.vfx.cardPlayFlash
+    });
   });
 
   it("retains previous card points during playback refreshes", async () => {
