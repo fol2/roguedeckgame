@@ -89,6 +89,12 @@
         pointer-events: none;
       }
 
+      .rarity-gem {
+        position: absolute;
+        object-fit: contain;
+        pointer-events: none;
+      }
+
       .title-panel,
       .rules-panel {
         position: absolute;
@@ -271,6 +277,7 @@
           <img id="artImage" class="art-image" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layout_lab/read_the_ash_art_window.png" alt="">
           <div id="costChip" class="cost-chip">1</div>
           <img class="layer" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02.png" alt="">
+          <img id="rarityGem" class="rarity-gem" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_gem_mock/combat_card_rarity_rare_alpha_mock_01_192.png" alt="">
           <div id="titlePanel" class="title-panel"></div>
           <div id="rulesPanel" class="rules-panel"></div>
           <div id="titleText" class="sample-text sample-title">Read the Ash</div>
@@ -323,13 +330,14 @@
         tagSlots: 3,
         size: stageSize,
         zones: {
-          costSocket: { x: 28, y: 20, w: 76, h: 76, colour: "#ffc400" },
-          artWindow: { x: 48, y: 100, w: 288, h: 138, colour: "#0087ff" },
-          titleBand: { x: 54, y: 266, w: 276, h: 36, colour: "#ff4040" },
-          rulesTextBox: { x: 54, y: 326, w: 276, h: 122, colour: "#ffffff" },
-          tag1: { x: 108, y: 480, w: 44, h: 26, colour: "#ff8e00" },
-          tag2: { x: 174, y: 480, w: 44, h: 26, colour: "#ff8e00" },
-          tag3: { x: 240, y: 480, w: 44, h: 26, colour: "#ff8e00" }
+          costSocket: { x: 40, y: 17, w: 76, h: 76, colour: "#ffc400" },
+          rarityGemSocket: { x: 162, y: 262, w: 60, h: 60, colour: "#a24cff" },
+          artWindow: { x: 46, y: 29, w: 287, h: 265, colour: "#0087ff" },
+          titleBand: { x: 63, y: 303, w: 252, h: 28, colour: "#ff4040" },
+          rulesTextBox: { x: 60, y: 344, w: 261, h: 132, colour: "#ffffff" },
+          tag1: { x: 117, y: 480, w: 41, h: 41, colour: "#ff8e00" },
+          tag2: { x: 170, y: 480, w: 41, h: 41, colour: "#ff8e00" },
+          tag3: { x: 222, y: 480, w: 41, h: 41, colour: "#ff8e00" }
         }
       };
 
@@ -415,8 +423,10 @@
         const title = zones.titleBand;
         const rules = zones.rulesTextBox;
         const cost = zones.costSocket;
+        const rarity = zones.rarityGemSocket;
 
         zoneStyle(document.getElementById("artImage"), art);
+        zoneStyle(document.getElementById("rarityGem"), rarity);
         zoneStyle(document.getElementById("titlePanel"), title);
         zoneStyle(document.getElementById("rulesPanel"), rules);
         zoneStyle(document.getElementById("titleText"), {

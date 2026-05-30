@@ -229,6 +229,64 @@ Selection rule:
 - If Branch A is selected, continue refining prompts around the existing engine layout.
 - If Branch B is selected, first update the card layout constants and tests, then generate the rest of the card-frame family against the reverse-overlay contract.
 
+## Branch B Locked Layout Metrics
+
+Branch B is now the accepted working direction for the next image-generation pass. The current source of truth is:
+
+```txt
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-layout.json
+```
+
+Current `384 x 536` top-left layout metrics:
+
+```txt
+costSocket: x 40, y 17, w 76, h 76
+artWindow: x 46, y 29, w 287, h 265
+rarityGemSocket: x 162, y 262, w 60, h 60
+titleBand: x 63, y 303, w 252, h 28
+rulesTextBox: x 60, y 344, w 261, h 132
+tag1: x 117, y 480, w 41, h 41
+tag2: x 170, y 480, w 41, h 41
+tag3: x 222, y 480, w 41, h 41
+```
+
+Important measurement notes:
+
+- `rarityGemSocket` is horizontally centred: `(384 - 60) / 2 = 162`.
+- The rarity gem is a separate image-generated overlay, not baked into the card frame.
+- The gem sits between the art window and title band, so later card-frame prompts should leave a clean centred socket in this area.
+- The art window no longer uses the earlier short landscape crop. It is now `287 x 265`, an aspect ratio of approximately `1.083:1`.
+- Future card art-window prompts and crops must target this near-square landscape ratio, not the earlier wide banner ratio.
+- `tag1`, `tag2`, and `tag3` are independent slots. Do not regenerate a single baked tag row that forces equal spacing.
+
+### Rarity Gem Mock
+
+The first rarity placement mock used an image-generated rare gem:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_gem_mock/combat_card_rarity_rare_raw_chroma_attempt_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_gem_mock/combat_card_rarity_rare_alpha_mock_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_gem_mock/combat_card_rarity_rare_alpha_mock_01_192.png
+```
+
+Validation result:
+
+```txt
+raw generation path: built-in image generator
+transparency workflow: chroma-key removal
+alpha range: 0..255
+corner alpha: 0
+runtime mock size: 192 x 192
+no text, no numbers, no labels
+```
+
+Visual evidence:
+
+```txt
+docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock.png
+docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock-no-wires.png
+```
+
 ## First Twelve Asset Order
 
 ```txt
