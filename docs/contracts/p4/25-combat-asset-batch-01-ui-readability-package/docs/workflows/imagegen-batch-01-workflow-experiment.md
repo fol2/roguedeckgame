@@ -287,6 +287,81 @@ docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock.png
 docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock-no-wires.png
 ```
 
+## Experiment 02 - Pet Command Card Frame
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/frames/combat_card_frame_pet_command.png
+```
+
+Approved working candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04.png
+```
+
+Raw and alpha files:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_raw_chroma_attempt_04.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_alpha_full_attempt_04.png
+```
+
+Validation result:
+
+```txt
+raw generation path: built-in image generator
+transparency workflow: chroma-key removal
+runtime candidate size: 384 x 536
+alpha range: 0..255
+corner alpha: 0, 0, 0, 0
+no text, no numbers, no labels
+```
+
+Visual evidence:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04_layout_overlay.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04_composed_proof.png
+docs/evidence/p4-25-combat-asset-batch-01/pet-command-layout-editor-latest-json-confirmation.png
+```
+
+Rejected attempts:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rejected/pet_command_frame_attempt_01/
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rejected/pet_command_frame_attempt_02/
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rejected/pet_command_frame_attempt_03/
+```
+
+Lessons:
+
+- Do not mention a gem, rarity socket, centred socket, or similar "pink elephant" phrase in frame prompts.
+- Explicitly forbid central ornaments between the art window and title band.
+- Pet-command visual language must be universal to all pets, not fox-specific.
+- Colour tone must differ from the normal card frame; attempt 04 uses a cooler teal/copper command palette.
+- Pet-command layout is allowed to differ from normal layout and must be confirmed in its own editor.
+
+Current pet-command layout source of truth:
+
+```txt
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-pet-command-layout.json
+```
+
+Current `384 x 536` pet-command metrics:
+
+```txt
+costSocket: x 42, y 23, w 76, h 76
+artWindow: x 53, y 37, w 272, h 258
+rarityGemSocket: x 162, y 262, w 60, h 60
+titleBand: x 63, y 303, w 252, h 28
+rulesTextBox: x 64, y 345, w 255, h 127
+tag1: x 110, y 477, w 41, h 41
+tag2: x 169, y 477, w 41, h 41
+tag3: x 226, y 477, w 41, h 41
+```
+
 ## First Twelve Asset Order
 
 ```txt
