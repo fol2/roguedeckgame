@@ -121,11 +121,15 @@
   <body>
     <h1>Combat Asset Batch 01 Review</h1>
     <p>This is the simple iPhone-safe page. It uses plain HTML, black text on white background, and vertical images.</p>
-    <p><strong>Editable layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor.html">Open the Option B card layout editor</a>.</p>
+    <p><strong>Editable layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor.html">Open the Option B card layout editor</a>. Current accepted baseline is Option B with alpha-reverse candidate 02 and three tag slots.</p>
 
     <div class="choice">
-      <p><strong>Decision:</strong> choose Option A or Option B before generating the next dozen assets.</p>
+      <p><strong>Decision:</strong> Option B is locked for the next workflow pass; use the editor as the source of truth for live metrics.</p>
     </div>
+
+    <h2>Current Accepted Layout</h2>
+    <img class="asset" src="/docs/evidence/p4-25-combat-asset-batch-01/tagrow-3slot-layout-editor.png" alt="Option B editor screenshot with three tag slots">
+    <p class="caption">Option B alpha-reverse candidate 02 with tag1, tag2, and tag3 as independently editable slots.</p>
 
     <h2>Option A: V3 follows current engine overlay</h2>
     <p>Lower engine risk. Cost remains top-right and title remains top. Needs one more prompt refinement to quiet the bottom ornaments.</p>
@@ -151,6 +155,14 @@
 
     <h2>Option B: V2 style anchor with reverse overlay</h2>
     <p>Stronger visual anchor. Cost moves top-left and title moves to the central banner. Requires updating engine card layout constants and tests.</p>
+
+    <h3>B Alpha-Reverse Candidate</h3>
+    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02.png" alt="Option B alpha-reversed candidate">
+    <p class="caption">Frame generated with visual transparency, then converted to true alpha by checker/background detection. The art window and cost socket are real transparent holes.</p>
+
+    <h3>B Alpha-Reverse Proof</h3>
+    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02_proof.png" alt="Option B alpha-reversed candidate proof">
+    <p class="caption">Proof image: art sits behind the transparent window and the generated frame naturally trims it.</p>
 
     <h3>B0. Layered Mock V2</h3>
     <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layered_mock/option_b_layered_composed_mock_v2.png" alt="Option B layered mock version 2">
@@ -184,7 +196,7 @@
       <span style="color:#d53030">Red: title band</span>
       <span style="color:#006fcf">Blue: art window</span>
       <span style="color:#555">White: rules text box</span>
-      <span style="color:#c96c00">Orange: tag row</span>
+      <span style="color:#c96c00">Orange: tag slots</span>
       <span style="color:#008fce">Cyan: rarity socket</span>
       <span style="color:#008f48">Green: family badge</span>
       <span style="color:#744ad8">Purple: source badge</span>

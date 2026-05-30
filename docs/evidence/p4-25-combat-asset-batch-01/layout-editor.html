@@ -268,15 +268,14 @@
     <main class="layout">
       <section class="stage-wrap">
         <div id="stage" class="stage" aria-label="Editable card layout stage">
-          <img class="layer" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layout_lab/option_b_base_transparent_art_window.png" alt="">
           <img id="artImage" class="art-image" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layout_lab/read_the_ash_art_window.png" alt="">
+          <div id="costChip" class="cost-chip">1</div>
+          <img class="layer" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02.png" alt="">
           <div id="titlePanel" class="title-panel"></div>
           <div id="rulesPanel" class="rules-panel"></div>
           <div id="titleText" class="sample-text sample-title">Read the Ash</div>
           <div id="rulesText" class="sample-text sample-rules">Draw 1. Improve target<br>enemy Intent visibility by 1<br>for the current plan.</div>
-          <div id="costChip" class="cost-chip">1</div>
           <div id="tagChips"></div>
-          <img class="layer" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layout_lab/option_b_foreground_trim.png" alt="">
           <div id="zones"></div>
         </div>
       </section>
@@ -321,17 +320,55 @@
       const defaultLayout = {
         version: 1,
         frame: "option-b-layered",
+        tagSlots: 3,
         size: stageSize,
         zones: {
           costSocket: { x: 28, y: 20, w: 76, h: 76, colour: "#ffc400" },
           artWindow: { x: 48, y: 100, w: 288, h: 138, colour: "#0087ff" },
           titleBand: { x: 54, y: 266, w: 276, h: 36, colour: "#ff4040" },
           rulesTextBox: { x: 54, y: 326, w: 276, h: 122, colour: "#ffffff" },
-          tagRow: { x: 88, y: 464, w: 208, h: 54, colour: "#ff8e00" }
+          tag1: { x: 108, y: 480, w: 44, h: 26, colour: "#ff8e00" },
+          tag2: { x: 174, y: 480, w: 44, h: 26, colour: "#ff8e00" },
+          tag3: { x: 240, y: 480, w: 44, h: 26, colour: "#ff8e00" }
         }
       };
 
-      let layout = JSON.parse(JSON.stringify(defaultLayout));
+      const tagZoneNames = ["tag1", "tag2", "tag3"];
+      const tagLabels = ["KPR", "SIG", "SET"];
+
+      const cloneLayout = source => JSON.parse(JSON.stringify(source));
+
+      const migrateLayout = source => {
+        const next = cloneLayout(defaultLayout);
+        Object.assign(next, source ?? {});
+        next.size = stageSize;
+        next.tagSlots = 3;
+        next.zones = { ...cloneLayout(defaultLayout).zones, ...(source?.zones ?? {}) };
+
+        if (next.zones.tagRow) {
+          const row = next.zones.tagRow;
+          const slotCount = tagZoneNames.length;
+          const gap = row.w / slotCount;
+          const slotWidth = Math.min(44, Math.max(34, gap - 8));
+          const slotHeight = 26;
+
+          tagZoneNames.forEach((name, index) => {
+            if (source?.zones?.[name]) return;
+            next.zones[name] = {
+              x: Math.round(row.x + gap * index + (gap - slotWidth) / 2),
+              y: Math.round(row.y + (row.h - slotHeight) / 2),
+              w: slotWidth,
+              h: slotHeight,
+              colour: row.colour
+            };
+          });
+          delete next.zones.tagRow;
+        }
+
+        return next;
+      };
+
+      let layout = migrateLayout(defaultLayout);
       let selected = "artWindow";
       let activeDrag = null;
 
@@ -378,7 +415,6 @@
         const title = zones.titleBand;
         const rules = zones.rulesTextBox;
         const cost = zones.costSocket;
-        const tags = zones.tagRow;
 
         zoneStyle(document.getElementById("artImage"), art);
         zoneStyle(document.getElementById("titlePanel"), title);
@@ -393,20 +429,13 @@
 
         const tagRoot = document.getElementById("tagChips");
         tagRoot.replaceChildren();
-        const labels = ["KPR", "SIG", "SET", "DRAW"];
-        const gap = tags.w / labels.length;
-        labels.forEach((label, index) => {
+        tagZoneNames.forEach((name, index) => {
+          const zone = zones[name];
+          if (!zone) return;
           const chip = document.createElement("div");
           chip.className = "tag-chip";
-          chip.textContent = label;
-          const w = Math.min(44, Math.max(34, gap - 8));
-          const h = 26;
-          zoneStyle(chip, {
-            x: tags.x + gap * index + (gap - w) / 2,
-            y: tags.y + (tags.h - h) / 2,
-            w,
-            h
-          });
+          chip.textContent = tagLabels[index] ?? `TAG${index + 1}`;
+          zoneStyle(chip, zone);
           tagRoot.append(chip);
         });
       };
@@ -503,7 +532,7 @@
       });
 
       Object.entries(fields).forEach(([key, input]) => {
-        input.addEventListener("change", () => {
+        input.addEventListener("input", () => {
           layout.zones[selected][key] = Number(input.value) || 0;
           clampZone(layout.zones[selected]);
           render();
@@ -536,7 +565,7 @@
       document.getElementById("loadButton").addEventListener("click", () => {
         const stored = localStorage.getItem("optionBCardLayout");
         if (stored) {
-          layout = JSON.parse(stored);
+          layout = migrateLayout(JSON.parse(stored));
           selected = Object.keys(layout.zones)[0] ?? "artWindow";
           render();
           saveStatus.textContent = "Loaded local layout.";
