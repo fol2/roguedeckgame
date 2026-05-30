@@ -8,6 +8,8 @@ describe("hand layout", () => {
     expect(CARD_SIZE).toEqual({ width: 192, height: 268 });
     expect(HAND_LAYOUT.y - CARD_SIZE.height / 2).toBeLessThan(COMBAT_BOARD.y + COMBAT_BOARD.height);
     expect(HAND_LAYOUT.y + CARD_SIZE.height / 2).toBeLessThanOrEqual(GAME_HEIGHT);
+    expect(HAND_LAYOUT.hoverLift).toBe(0);
+    expect(HAND_LAYOUT.selectedLift).toBeGreaterThan(0);
   });
 
   it("stacks cards naturally when hand width is constrained", () => {

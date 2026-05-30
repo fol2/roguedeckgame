@@ -356,6 +356,10 @@ describe("Combat scene boundary", () => {
     expect(overlayPresenter).toMatch(/onCloseDetail/);
     expect(overlayPresenter).toMatch(/onResumePause/);
     expect(overlayPresenter).toMatch(/No details available yet/);
+    expect(overlayPresenter).toMatch(/renderCardDetail/);
+    expect(overlayPresenter).toMatch(/renderStaticCardPreview/);
+    expect(overlayPresenter).toMatch(/cardDetailSidebar|sidebarWidth/);
+    expect(sceneSource).toMatch(/\.\.\.card\.detail,\n\s+card/);
     expect(eventPlayer).toMatch(/PLAYBACK_TIMEOUT_MS/);
     expect(eventPlayer).toMatch(/getCombatPlaybackPolicy/);
     expect(eventPlayer).toMatch(/getPlaybackObservations/);

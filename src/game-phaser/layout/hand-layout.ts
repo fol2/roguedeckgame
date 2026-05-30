@@ -7,70 +7,67 @@ export const CARD_SIZE = {
 } as const;
 
 export const CARD_TEXT = {
-  leftPadding: 16,
-  nameX: 18,
+  leftPadding: 14,
+  nameX: 36,
   topPadding: 14,
-  costInsetX: 160,
-  nameWrapPadding: 72,
-  descriptionMaxLength: 68,
-  typeY: -42,
-  artY: -22,
-  descriptionY: 44,
-  tagBottomInset: 26,
-  tagGap: 34,
+  nameWrapPadding: 86,
+  descriptionMaxLength: 88,
+  descriptionY: 48,
+  tagBottomInset: 24,
+  tagGap: 37,
   textWrapPadding: 32,
   fontSize: {
-    name: "18px",
-    cost: "26px",
-    type: "13px",
-    description: "14px",
+    name: "14px",
+    cost: "21px",
+    type: "10px",
+    description: "13px",
     tags: "11px",
-    rarity: "10px"
+    rarity: "9px"
   }
 } as const;
 
 export const CARD_FRAME_ZONES = {
   rarityGemSocket: {
-    x: -CARD_SIZE.width / 2 + 18,
-    y: -CARD_SIZE.height / 2 + 18,
-    width: 18,
-    height: 18
+    x: -CARD_SIZE.width / 2 + 22,
+    y: -CARD_SIZE.height / 2 + 20,
+    width: 22,
+    height: 22
   },
   costSocket: {
-    x: CARD_SIZE.width / 2 - 34,
-    y: -CARD_SIZE.height / 2 + 38,
-    width: 46,
-    height: 46
+    x: CARD_SIZE.width / 2 - 28,
+    y: -CARD_SIZE.height / 2 + 25,
+    width: 36,
+    height: 36
   },
   titleBand: {
     x: 0,
-    y: -CARD_SIZE.height / 2 + 38,
+    y: -CARD_SIZE.height / 2 + 25,
     width: CARD_SIZE.width - 18,
-    height: 50
+    height: 38
   },
   familyBadge: {
-    x: -CARD_SIZE.width / 2 + 50,
-    y: -CARD_SIZE.height / 2 + 88,
-    width: 72,
-    height: 26
+    x: -CARD_SIZE.width / 2 + 72,
+    y: -CARD_SIZE.height / 2 + 58,
+    width: 78,
+    height: 20
   },
   sourceBadge: {
-    x: CARD_SIZE.width / 2 - 48,
-    y: -CARD_SIZE.height / 2 + 88,
-    width: 64,
-    height: 26
+    x: CARD_SIZE.width / 2 - 42,
+    y: -CARD_SIZE.height / 2 + 58,
+    width: 58,
+    height: 20
   },
   artWindow: {
     x: 0,
-    y: -20,
+    y: -18,
     width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
-    height: 76
+    height: 92
   },
   rulesTextBox: {
     x: 0,
-    y: 70,
+    y: 72,
     width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
-    height: 82
+    height: 70
   },
   tagRow: {
     x: 0,
@@ -86,8 +83,9 @@ export const HAND_LAYOUT = {
   rightX: DISCARD_PILE.x - DISCARD_PILE.width / 2 - 28,
   preferredGap: -60,
   minOverlapStep: 42,
-  hoverLift: 50,
-  hoverScale: 1.06,
+  hoverLift: 0,
+  selectedLift: 50,
+  hoverScale: 1.04,
   maxSupportedCards: 10
 } as const;
 

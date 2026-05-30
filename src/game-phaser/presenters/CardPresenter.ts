@@ -509,11 +509,11 @@ export class CardPresenter {
       .setStrokeStyle(1, disabled ? 0x687386 : borderColour, 0.55));
     group.add(this.scene.add.rectangle(CARD_FRAME_ZONES.costSocket.x, CARD_FRAME_ZONES.costSocket.y, CARD_FRAME_ZONES.costSocket.width, CARD_FRAME_ZONES.costSocket.height, 0x151923, 1)
       .setStrokeStyle(2, disabled ? 0x687386 : 0xffd166));
-    group.add(this.scene.add.text(-CARD_SIZE.width / 2 + CARD_TEXT.costInsetX, -CARD_SIZE.height / 2 + CARD_TEXT.topPadding - 1, String(card.cost), {
+    group.add(this.scene.add.text(CARD_FRAME_ZONES.costSocket.x, CARD_FRAME_ZONES.costSocket.y, String(card.cost), {
       color: disabled ? "#aab4c5" : "#ffd166",
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.cost
-    }).setOrigin(0.5, 0));
+    }).setOrigin(0.5));
     group.add(this.scene.add.text(-CARD_SIZE.width / 2 + CARD_TEXT.nameX, -CARD_SIZE.height / 2 + CARD_TEXT.topPadding, card.name, {
       color: palette.titleText,
       fontFamily: "Inter, sans-serif",
@@ -533,11 +533,11 @@ export class CardPresenter {
       strokeColour: 0xfff0d4,
       strokeAlpha: disabled ? 0.25 : 0.75
     });
-    group.add(this.scene.add.text(CARD_FRAME_ZONES.rarityGemSocket.x, CARD_FRAME_ZONES.rarityGemSocket.y - 5, cardVisual.rarity.glyph, {
+    group.add(this.scene.add.text(CARD_FRAME_ZONES.rarityGemSocket.x, CARD_FRAME_ZONES.rarityGemSocket.y, cardVisual.rarity.glyph, {
       color: "#1f1a18",
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.rarity
-    }).setOrigin(0.5, 0));
+    }).setOrigin(0.5));
     this.addAssetBackedRectangle({
       group,
       assetKey: cardVisual.family.assetKey,
@@ -550,11 +550,11 @@ export class CardPresenter {
       fillAlpha: 1,
       strokeColour: disabled ? 0x687386 : borderColour
     });
-    group.add(this.scene.add.text(CARD_FRAME_ZONES.familyBadge.x, CARD_FRAME_ZONES.familyBadge.y - 5, badgeLabel, {
+    group.add(this.scene.add.text(CARD_FRAME_ZONES.familyBadge.x, CARD_FRAME_ZONES.familyBadge.y, badgeLabel, {
       color: palette.accentText,
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.type
-    }).setOrigin(0.5, 0));
+    }).setOrigin(0.5));
     this.addAssetBackedRectangle({
       group,
       assetKey: cardVisual.source.assetKey,
@@ -568,11 +568,11 @@ export class CardPresenter {
       strokeColour: disabled ? 0x687386 : borderColour,
       strokeAlpha: 0.7
     });
-    group.add(this.scene.add.text(CARD_FRAME_ZONES.sourceBadge.x, CARD_FRAME_ZONES.sourceBadge.y - 5, cardVisual.source.glyph, {
+    group.add(this.scene.add.text(CARD_FRAME_ZONES.sourceBadge.x, CARD_FRAME_ZONES.sourceBadge.y, cardVisual.source.glyph, {
       color: palette.accentText,
       fontFamily: "Inter, sans-serif",
       fontSize: CARD_TEXT.fontSize.type
-    }).setOrigin(0.5, 0));
+    }).setOrigin(0.5));
     this.addAssetBackedRectangle({
       group,
       assetKey: cardVisual.artKey,
@@ -882,7 +882,13 @@ export class CardPresenter {
       const position = getHandCardPosition(index, this.visualHandOrder.length);
       const target = {
         x: position.x,
-        y: position.y - (isSelected || isHovered ? HAND_LAYOUT.hoverLift : 0)
+        y: position.y - (
+          isSelected
+            ? HAND_LAYOUT.selectedLift
+            : isHovered
+              ? HAND_LAYOUT.hoverLift
+              : 0
+        )
       };
 
       if (animated) {

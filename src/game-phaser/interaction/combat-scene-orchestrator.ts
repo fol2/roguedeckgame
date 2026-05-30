@@ -520,7 +520,10 @@ export class CombatSceneOrchestrator extends Scene {
       return;
     }
 
-    this.openDetail(card.detail);
+    this.openDetail({
+      ...card.detail,
+      card
+    });
   }
 
   private bindFocusAndResizeSafety(): void {
