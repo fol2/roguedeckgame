@@ -18,6 +18,7 @@ type Handler = (...args: unknown[]) => void;
 
 const createChainableObject = <T extends { readonly kind: string }>(shape: T): T & {
   readonly add: (child: unknown) => void;
+  readonly bringToTop: (child: unknown) => T;
   readonly destroy: () => void;
   readonly disableInteractive: () => void;
   readonly handlers: Record<string, Handler[]>;
@@ -45,6 +46,11 @@ const createChainableObject = <T extends { readonly kind: string }>(shape: T): T
       if (child && typeof child === "object" && "kind" in child) {
         (child as { parentContainer?: typeof object }).parentContainer = object;
       }
+    },
+    bringToTop: (child: unknown) => {
+      object.children = object.children.filter((candidate) => candidate !== child);
+      object.children.push(child);
+      return object;
     },
     destroy: () => {
       object.destroyed = true;
@@ -357,6 +363,38 @@ describe("CardPresenter", () => {
       CombatAssetKeys.cardFrames.hoverOverlay,
       CombatAssetKeys.cardFrames.unplayableOverlay
     ]));
+  });
+
+  it("brings a hovered stacked hand card to the front so it remains readable", () => {
+    const { scene, records } = createSceneStub();
+    const onHoverChanged = vi.fn();
+    const presenter = new CardPresenter(scene, vi.fn(), onHoverChanged);
+    const firstCard = createCard("strike:1", "Strike");
+    const secondCard = createCard("defend:1", "Defend");
+
+    presenter.render([firstCard, secondCard], false);
+
+    const rootContainer = records.containers[0] as {
+      readonly children: Array<{ readonly depth: number; readonly handlers: Record<string, Handler[]> }>;
+    };
+    const firstVisual = rootContainer.children[0];
+    const secondVisual = rootContainer.children[1];
+
+    expect(rootContainer.children.at(-1)).toBe(secondVisual);
+
+    firstVisual.handlers.pointerover?.[0]?.();
+
+    expect(onHoverChanged).toHaveBeenCalledWith(firstCard.cardInstanceId);
+    expect(rootContainer.children.at(-1)).toBe(firstVisual);
+    expect(firstVisual.depth).toBeGreaterThan(secondVisual.depth);
+
+    presenter.render([firstCard, secondCard], false, { hoveredCardId: firstCard.cardInstanceId });
+
+    expect(rootContainer.children.at(-1)).toBe(firstVisual);
+
+    presenter.render([firstCard, secondCard], false);
+
+    expect(rootContainer.children.at(-1)).toBe(secondVisual);
   });
 
   it("does not leave tag hit areas interactive while cards are locked", () => {

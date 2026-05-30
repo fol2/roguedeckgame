@@ -15,6 +15,9 @@ import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-key
 
 const CARD_MOVE_DURATION_MS = 210;
 const HAND_RELAYOUT_DURATION_MS = 120;
+const HAND_CARD_BASE_DEPTH = 10;
+const HAND_CARD_SELECTED_DEPTH = 120;
+const HAND_CARD_HOVER_DEPTH = 140;
 const CARD_ANIMATION_DEPTH = 780;
 const CARD_DRAG_THRESHOLD_PX = 12;
 
@@ -401,6 +404,7 @@ export class CardPresenter {
           return;
         }
 
+        this.applyHandLayering(card.cardInstanceId);
         this.onHoverChanged(card.cardInstanceId);
         showUnplayableTooltip();
       });
@@ -418,6 +422,7 @@ export class CardPresenter {
           return;
         }
 
+        this.applyHandLayering(undefined);
         this.onHoverChanged(undefined);
         this.onTooltipChanged(undefined);
       });
@@ -826,6 +831,41 @@ export class CardPresenter {
     this.layoutHand(false);
   }
 
+  private applyHandLayering(hoveredCardId: CardInstanceId | undefined = this.renderOptions.hoveredCardId): void {
+    this.visualHandOrder.forEach((cardInstanceId, index) => {
+      const visual = this.visuals.get(cardInstanceId);
+      if (!visual || visual.moving || visual.dragging) {
+        return;
+      }
+
+      visual.container.setDepth(HAND_CARD_BASE_DEPTH + index);
+      this.container.bringToTop(visual.container);
+    });
+
+    const selectedVisual = this.renderOptions.selectedCardId
+      ? this.visuals.get(this.renderOptions.selectedCardId)
+      : undefined;
+    if (selectedVisual && !selectedVisual.moving && !selectedVisual.dragging) {
+      selectedVisual.container.setDepth(HAND_CARD_SELECTED_DEPTH);
+      this.container.bringToTop(selectedVisual.container);
+    }
+
+    const hoveredVisual = hoveredCardId ? this.visuals.get(hoveredCardId) : undefined;
+    if (hoveredVisual && !hoveredVisual.moving && !hoveredVisual.dragging) {
+      hoveredVisual.container.setDepth(HAND_CARD_HOVER_DEPTH);
+      this.container.bringToTop(hoveredVisual.container);
+    }
+
+    for (const visual of this.visuals.values()) {
+      if (!visual.moving && !visual.dragging) {
+        continue;
+      }
+
+      visual.container.setDepth(CARD_ANIMATION_DEPTH);
+      this.container.bringToTop(visual.container);
+    }
+  }
+
   private layoutHand(animated: boolean, excludedCardIds: ReadonlySet<CardInstanceId> = new Set()): void {
     this.visualHandOrder.forEach((cardInstanceId, index) => {
       if (excludedCardIds.has(cardInstanceId)) {
@@ -857,6 +897,7 @@ export class CardPresenter {
       }
       this.rememberCardPoint(cardInstanceId, target);
     });
+    this.applyHandLayering();
   }
 
   private getVisualPoint(visual: CardVisual): Point {
