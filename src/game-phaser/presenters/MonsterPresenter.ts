@@ -10,12 +10,20 @@ import {
 import { getMonsterPosition, MONSTER_SLOT } from "../layout/combat-layout";
 import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from "./CombatOverlayPresenter";
 import type { CombatParityCombatantSnapshot } from "../debug/combat-parity";
-import { resolveCombatDetailCopy, resolveCombatTooltipCopy } from "../assets/combat-fallback-assets";
+import {
+  CombatFallbackAssetKeys,
+  resolveCombatDetailCopy,
+  resolveCombatTexture,
+  resolveCombatTooltipCopy,
+  type CombatAssetAvailability
+} from "../assets/combat-fallback-assets";
 import {
   getEnemyTargetRingStyle,
   resolveEnemyTargetVisualState,
   type EnemyTargetVisualState
 } from "./combat-visual-states";
+import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
+import { STATUS_ICON_LAYOUT } from "../layout/status-icon-layout";
 
 type MonsterRenderOptions = {
   readonly validTargetIds?: readonly CombatantId[];
@@ -29,6 +37,11 @@ type MonsterRenderOptions = {
 type PointerLike = {
   readonly button?: number;
   readonly rightButtonDown?: () => boolean;
+};
+
+type InteractiveGameObject = GameObjects.GameObject & {
+  readonly setInteractive: () => InteractiveGameObject;
+  readonly on: (event: string, handler: (...args: never[]) => void) => InteractiveGameObject;
 };
 
 type StatusChip = Pick<CombatantStatusViewModel, "label" | "tooltip"> & {
@@ -98,6 +111,56 @@ const getIntentTokenGlyph = (token: CombatIntentTokenViewModel | undefined): str
     case "unknown":
       return "?";
   }
+};
+
+const getIntentAssetKey = (token: CombatIntentTokenViewModel | undefined): CombatAssetKey => {
+  if (!token || token.visibility === "unknown" || token.visibility === "none") {
+    return CombatAssetKeys.icons.intentUnknown;
+  }
+
+  switch (token.kind) {
+    case "attack":
+      return CombatAssetKeys.icons.intentAttack;
+    case "defend":
+      return CombatAssetKeys.icons.intentDefend;
+    case "buff":
+      return CombatAssetKeys.icons.intentBuff;
+    case "debuff":
+      return CombatAssetKeys.icons.intentDebuff;
+    case "special":
+      return CombatAssetKeys.icons.intentSpecial;
+    case "charging":
+      return CombatAssetKeys.icons.intentCharging;
+    case "unknown":
+      return CombatAssetKeys.icons.intentUnknown;
+  }
+};
+
+const getStatusAssetKey = (label: string): CombatAssetKey => {
+  const normalised = label.toLowerCase();
+  if (normalised.startsWith("+")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.overflow;
+  }
+  if (normalised.startsWith("burn")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.burn;
+  }
+  if (normalised.startsWith("block")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.block;
+  }
+  if (normalised.startsWith("guard")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.guard;
+  }
+  if (normalised.startsWith("empowered")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.empowered;
+  }
+  if (normalised.startsWith("marked")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.marked;
+  }
+  if (normalised.startsWith("ready")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.ready;
+  }
+
+  return STATUS_ICON_LAYOUT.statusIconKeys.fallback;
 };
 
 export class MonsterPresenter {
@@ -187,21 +250,58 @@ export class MonsterPresenter {
       group.add(this.scene.add.rectangle(0, -8, MONSTER_SLOT.spriteWidth, MONSTER_SLOT.spriteHeight, monster.alive ? 0x4b2630 : 0x2c3038, 1)
         .setStrokeStyle(2, monster.alive ? 0xff758f : 0x677184));
       group.add(this.scene.add.triangle(-30, -46, 0, 44, 30, 44, 14, -26, monster.alive ? 0x6b2d3a : 0x394150, 1));
-      group.add(this.scene.add.rectangle(0, MONSTER_SLOT.hpBarY, MONSTER_SLOT.hpBarWidth, MONSTER_SLOT.hpBarHeight, 0x293241, 1)
-        .setOrigin(0.5));
-      group.add(this.scene.add.rectangle(-MONSTER_SLOT.hpBarWidth / 2, MONSTER_SLOT.hpBarY, MONSTER_SLOT.hpBarWidth * hpFill, MONSTER_SLOT.hpBarHeight, 0xdf6b6b, 1)
-        .setOrigin(0, 0.5));
+      this.addAssetBackedImage({
+        group,
+        assetKey: CombatAssetKeys.slots.enemyHpBarTrack,
+        fallbackKey: CombatFallbackAssetKeys.panel,
+        x: 0,
+        y: MONSTER_SLOT.hpBarY,
+        width: MONSTER_SLOT.hpBarWidth,
+        height: MONSTER_SLOT.hpBarHeight,
+        fallback: () => this.scene.add.rectangle(0, MONSTER_SLOT.hpBarY, MONSTER_SLOT.hpBarWidth, MONSTER_SLOT.hpBarHeight, 0x293241, 1)
+          .setOrigin(0.5)
+      });
+      this.addAssetBackedImage({
+        group,
+        assetKey: CombatAssetKeys.slots.enemyHpBarFillMask,
+        fallbackKey: CombatFallbackAssetKeys.panel,
+        x: -MONSTER_SLOT.hpBarWidth / 2,
+        y: MONSTER_SLOT.hpBarY,
+        width: MONSTER_SLOT.hpBarWidth * hpFill,
+        height: MONSTER_SLOT.hpBarHeight,
+        originX: 0,
+        originY: 0.5,
+        fallback: () => this.scene.add.rectangle(-MONSTER_SLOT.hpBarWidth / 2, MONSTER_SLOT.hpBarY, MONSTER_SLOT.hpBarWidth * hpFill, MONSTER_SLOT.hpBarHeight, 0xdf6b6b, 1)
+          .setOrigin(0, 0.5)
+      });
       const hpText = this.scene.add.text(0, MONSTER_SLOT.hpBarY - 17, `HP ${monster.hp}/${monster.maxHp}  B${monster.block}`, {
         color: "#f4cfda",
         fontFamily: "Inter, sans-serif",
         fontSize: MONSTER_SLOT.fontSize.hp
       }).setOrigin(0.5);
+      this.addAssetBackedImage({
+        group,
+        assetKey: CombatAssetKeys.slots.enemyBlockBadge,
+        fallbackKey: CombatFallbackAssetKeys.panel,
+        x: MONSTER_SLOT.hpBarWidth / 2 - 4,
+        y: MONSTER_SLOT.hpBarY - 17,
+        width: 24,
+        height: 24
+      });
       group.add(hpText);
       paritySnapshots.push(parseMonsterHpLabel(monster.id, hpText.text));
       getVisibleStatusChips(monster.statuses, COMBAT_UI_CAPS.maxEnemyVisibleStatuses, monster.statusOverflowTooltip).forEach((status, statusIndex) => {
         const statusX = (statusIndex - 1.5) * MONSTER_SLOT.statusGap;
-        const statusBox = this.scene.add.rectangle(statusX, MONSTER_SLOT.statusY, MONSTER_SLOT.statusSize, MONSTER_SLOT.statusSize, 0x3a2832, 1)
-          .setStrokeStyle(1, 0xff9aad);
+        const statusBox = this.createAssetBackedInteractive({
+          assetKey: getStatusAssetKey(status.label),
+          fallbackKey: CombatFallbackAssetKeys.statusIcon,
+          x: statusX,
+          y: MONSTER_SLOT.statusY,
+          width: MONSTER_SLOT.statusSize,
+          height: MONSTER_SLOT.statusSize,
+          fallback: () => this.scene.add.rectangle(statusX, MONSTER_SLOT.statusY, MONSTER_SLOT.statusSize, MONSTER_SLOT.statusSize, 0x3a2832, 1)
+            .setStrokeStyle(1, 0xff9aad)
+        });
         statusBox.setInteractive();
         const showStatusTooltip = (): void => this.onTooltipChanged({
           title: status.title,
@@ -250,14 +350,23 @@ export class MonsterPresenter {
       return;
     }
 
-    group.add(this.scene.add.ellipse(
-      0,
-      MONSTER_SLOT.targetRingY,
-      MONSTER_SLOT.targetRingWidth * style.pulseScale,
-      MONSTER_SLOT.targetRingHeight * style.pulseScale,
-      style.strokeColour,
-      0
-    ).setStrokeStyle(style.strokeWidth, style.strokeColour, style.alpha));
+    this.addAssetBackedImage({
+      group,
+      assetKey: CombatAssetKeys.slots.enemyTargetRing,
+      fallbackKey: CombatFallbackAssetKeys.panel,
+      x: 0,
+      y: MONSTER_SLOT.targetRingY,
+      width: MONSTER_SLOT.targetRingWidth * style.pulseScale,
+      height: MONSTER_SLOT.targetRingHeight * style.pulseScale,
+      fallback: () => this.scene.add.ellipse(
+        0,
+        MONSTER_SLOT.targetRingY,
+        MONSTER_SLOT.targetRingWidth * style.pulseScale,
+        MONSTER_SLOT.targetRingHeight * style.pulseScale,
+        style.strokeColour,
+        0
+      ).setStrokeStyle(style.strokeWidth, style.strokeColour, style.alpha)
+    });
   }
 
   private renderIntentToken(
@@ -296,8 +405,16 @@ export class MonsterPresenter {
     const isRightClick = (pointer: PointerLike): boolean =>
       pointer.button === 2 || pointer.rightButtonDown?.() === true;
     let inspectedOnPointerDown = false;
-    const tokenBody = this.scene.add.ellipse(0, MONSTER_SLOT.intentTokenY, MONSTER_SLOT.intentTokenWidth, MONSTER_SLOT.intentTokenHeight, tokenColour, 1)
-      .setStrokeStyle(2, tokenStroke, token?.visibility === "unknown" ? 0.65 : 0.9);
+    const tokenBody = this.createAssetBackedInteractive({
+      assetKey: CombatAssetKeys.intentTokens.frame,
+      fallbackKey: CombatFallbackAssetKeys.panel,
+      x: 0,
+      y: MONSTER_SLOT.intentTokenY,
+      width: MONSTER_SLOT.intentTokenWidth,
+      height: MONSTER_SLOT.intentTokenHeight,
+      fallback: () => this.scene.add.ellipse(0, MONSTER_SLOT.intentTokenY, MONSTER_SLOT.intentTokenWidth, MONSTER_SLOT.intentTokenHeight, tokenColour, 1)
+        .setStrokeStyle(2, tokenStroke, token?.visibility === "unknown" ? 0.65 : 0.9)
+    });
     tokenBody.setInteractive();
     tokenBody.on("pointerover", () => {
       this.onHoverChanged(monster.id);
@@ -331,6 +448,15 @@ export class MonsterPresenter {
       }
     });
     group.add(tokenBody);
+    this.addAssetBackedImage({
+      group,
+      assetKey: getIntentAssetKey(token),
+      fallbackKey: CombatFallbackAssetKeys.icon,
+      x: 0,
+      y: MONSTER_SLOT.intentGlyphY,
+      width: 36,
+      height: 36
+    });
     group.add(this.scene.add.text(0, MONSTER_SLOT.intentGlyphY, getIntentTokenGlyph(token), {
       color: token?.visibility === "unknown" ? "#d5dce8" : "#ffe4ec",
       fontFamily: "Inter, sans-serif",
@@ -343,5 +469,70 @@ export class MonsterPresenter {
         fontSize: MONSTER_SLOT.fontSize.amount
       }).setOrigin(0.5));
     }
+  }
+
+  private combatAssetAvailability(): CombatAssetAvailability {
+    return {
+      hasTexture: (key: string) => this.scene.textures?.exists(key) ?? false
+    };
+  }
+
+  private addAssetBackedImage({
+    group,
+    assetKey,
+    fallbackKey,
+    x,
+    y,
+    width,
+    height,
+    originX = 0.5,
+    originY = 0.5,
+    fallback
+  }: {
+    readonly group: GameObjects.Container;
+    readonly assetKey: CombatAssetKey;
+    readonly fallbackKey: CombatAssetKey;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly originX?: number;
+    readonly originY?: number;
+    readonly fallback?: () => GameObjects.GameObject;
+  }): void {
+    const resolution = resolveCombatTexture(assetKey, fallbackKey, this.combatAssetAvailability());
+    if (resolution.kind === "texture") {
+      group.add(this.scene.add.image(x, y, resolution.key).setOrigin(originX, originY).setDisplaySize(width, height));
+      return;
+    }
+
+    if (fallback) {
+      group.add(fallback());
+    }
+  }
+
+  private createAssetBackedInteractive({
+    assetKey,
+    fallbackKey,
+    x,
+    y,
+    width,
+    height,
+    fallback
+  }: {
+    readonly assetKey: CombatAssetKey;
+    readonly fallbackKey: CombatAssetKey;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly fallback: () => InteractiveGameObject;
+  }): InteractiveGameObject {
+    const resolution = resolveCombatTexture(assetKey, fallbackKey, this.combatAssetAvailability());
+    if (resolution.kind === "texture") {
+      return this.scene.add.image(x, y, resolution.key).setDisplaySize(width, height) as InteractiveGameObject;
+    }
+
+    return fallback();
   }
 }

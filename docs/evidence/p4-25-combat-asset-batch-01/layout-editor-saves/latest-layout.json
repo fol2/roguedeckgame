@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "frame": "option-b-layered",
+  "size": {
+    "width": 384,
+    "height": 536
+  },
+  "zones": {
+    "costSocket": {
+      "x": 28,
+      "y": 20,
+      "w": 76,
+      "h": 76,
+      "colour": "#ffc400"
+    },
+    "artWindow": {
+      "x": 48,
+      "y": 100,
+      "w": 288,
+      "h": 138,
+      "colour": "#0087ff"
+    },
+    "titleBand": {
+      "x": 54,
+      "y": 266,
+      "w": 276,
+      "h": 36,
+      "colour": "#ff4040"
+    },
+    "rulesTextBox": {
+      "x": 54,
+      "y": 326,
+      "w": 276,
+      "h": 122,
+      "colour": "#ffffff"
+    },
+    "tagRow": {
+      "x": 88,
+      "y": 464,
+      "w": 208,
+      "h": 54,
+      "colour": "#ff8e00"
+    }
+  }
+}

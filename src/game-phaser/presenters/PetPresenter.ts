@@ -3,6 +3,13 @@ import { COMBAT_UI_CAPS, type PetViewModel } from "../view-models/combat-view-mo
 import { getPetSlotPosition, PET_LAYOUT, PET_SLOT_SIZE, PET_TEXT } from "../layout/pet-layout";
 import { TOOLTIP_DELAYS_MS, type CombatDetailPanel, type CombatTooltip } from "./CombatOverlayPresenter";
 import type { PetCommandVisualState } from "./combat-visual-states";
+import { CombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
+import {
+  CombatFallbackAssetKeys,
+  resolveCombatTexture,
+  type CombatAssetAvailability
+} from "../assets/combat-fallback-assets";
+import { STATUS_ICON_LAYOUT } from "../layout/status-icon-layout";
 
 type PetCommandPreview = {
   readonly slotIndex: number;
@@ -14,6 +21,11 @@ type PointerLike = {
   readonly rightButtonDown?: () => boolean;
 };
 
+type InteractiveGameObject = GameObjects.GameObject & {
+  readonly setInteractive: () => InteractiveGameObject;
+  readonly on: (event: string, handler: (...args: never[]) => void) => InteractiveGameObject;
+};
+
 const getVisiblePetStatusLabels = (labels: readonly string[]): readonly string[] => {
   const visibleLabels = labels.slice(0, COMBAT_UI_CAPS.maxPetVisibleStatuses);
   const hiddenLabelCount = Math.max(0, labels.length - visibleLabels.length);
@@ -21,6 +33,27 @@ const getVisiblePetStatusLabels = (labels: readonly string[]): readonly string[]
   return hiddenLabelCount > 0
     ? [...visibleLabels, `+${hiddenLabelCount}`]
     : visibleLabels;
+};
+
+const getPetStatusAssetKey = (label: string): CombatAssetKey => {
+  const normalised = label.toLowerCase();
+  if (normalised.startsWith("+")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.overflow;
+  }
+  if (normalised.includes("command")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.commanded;
+  }
+  if (normalised.includes("ready")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.ready;
+  }
+  if (normalised.includes("guard")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.guard;
+  }
+  if (normalised.includes("burn")) {
+    return STATUS_ICON_LAYOUT.statusIconKeys.burn;
+  }
+
+  return STATUS_ICON_LAYOUT.statusIconKeys.fallback;
 };
 
 export class PetPresenter {
@@ -85,8 +118,17 @@ export class PetPresenter {
 
         this.onSelected(index);
       });
-      slot.add(this.scene.add.ellipse(0, 0, PET_LAYOUT.activeRingRadius * 2, PET_LAYOUT.activeRingRadius, 0x2f2415, ringAlpha)
-        .setStrokeStyle(ringWidth, ringColour));
+      this.addAssetBackedImage({
+        group: slot,
+        assetKey: commandState === "active" ? CombatAssetKeys.slots.petRing : CombatAssetKeys.slots.petCommandGlow,
+        fallbackKey: CombatFallbackAssetKeys.panel,
+        x: 0,
+        y: 0,
+        width: PET_LAYOUT.activeRingRadius * 2,
+        height: PET_LAYOUT.activeRingRadius,
+        fallback: () => this.scene.add.ellipse(0, 0, PET_LAYOUT.activeRingRadius * 2, PET_LAYOUT.activeRingRadius, 0x2f2415, ringAlpha)
+          .setStrokeStyle(ringWidth, ringColour)
+      });
       slot.add(this.scene.add.polygon(0, -20, [
         -42, 10,
         -18, -28,
@@ -129,8 +171,27 @@ export class PetPresenter {
       visibleStatusChips.forEach((status, statusIndex) => {
         const statusX = (statusIndex - 1) * 24;
         const statusY = PET_TEXT.moodY + 16;
-        const chip = this.scene.add.rectangle(statusX, statusY, 22, 16, 0x3a2a1c, 1)
-          .setStrokeStyle(1, 0xffbd66);
+        if (statusIndex === 0) {
+          this.addAssetBackedImage({
+            group: slot,
+            assetKey: CombatAssetKeys.slots.petStatusTray,
+            fallbackKey: CombatFallbackAssetKeys.panel,
+            x: 0,
+            y: statusY,
+            width: 76,
+            height: 22
+          });
+        }
+        const chip = this.createAssetBackedInteractive({
+          assetKey: getPetStatusAssetKey(status.label),
+          fallbackKey: CombatFallbackAssetKeys.statusIcon,
+          x: statusX,
+          y: statusY,
+          width: 22,
+          height: 16,
+          fallback: () => this.scene.add.rectangle(statusX, statusY, 22, 16, 0x3a2a1c, 1)
+            .setStrokeStyle(1, 0xffbd66)
+        });
         const showStatusTooltip = (): void => this.onTooltipChanged({
           title: status.title,
           body: status.body,
@@ -149,15 +210,26 @@ export class PetPresenter {
           fontSize: PET_TEXT.fontSize.mood
         }).setOrigin(0.5));
       });
-      if (activePet.charge) {
-        for (let chargeIndex = 0; chargeIndex < activePet.charge.max; chargeIndex += 1) {
-          slot.add(this.scene.add.circle(
-            (chargeIndex - (activePet.charge.max - 1) / 2) * PET_LAYOUT.chargeGap,
-            PET_LAYOUT.chargeY,
-            5,
-            chargeIndex < activePet.charge.current ? 0xffb35b : 0x2f2415,
-            1
-          ).setStrokeStyle(1, 0xffd999));
+      const charge = activePet.charge;
+      if (charge) {
+        for (let chargeIndex = 0; chargeIndex < charge.max; chargeIndex += 1) {
+          this.addAssetBackedImage({
+            group: slot,
+            assetKey: CombatAssetKeys.slots.emberChargePip,
+            fallbackKey: CombatFallbackAssetKeys.icon,
+            x: (chargeIndex - (charge.max - 1) / 2) * PET_LAYOUT.chargeGap,
+            y: PET_LAYOUT.chargeY,
+            width: 12,
+            height: 12,
+            alpha: chargeIndex < charge.current ? 1 : 0.28,
+            fallback: () => this.scene.add.circle(
+              (chargeIndex - (charge.max - 1) / 2) * PET_LAYOUT.chargeGap,
+              PET_LAYOUT.chargeY,
+              5,
+              chargeIndex < charge.current ? 0xffb35b : 0x2f2415,
+              1
+            ).setStrokeStyle(1, 0xffd999)
+          });
         }
       }
       this.container.add(slot);
@@ -167,8 +239,17 @@ export class PetPresenter {
       const position = getPetSlotPosition(index);
       const slot = this.scene.add.container(position.x, position.y);
 
-      slot.add(this.scene.add.circle(0, 0, PET_LAYOUT.futureRingRadius, 0x151923, 0.35)
-        .setStrokeStyle(2, 0x6b5f4a, 0.45));
+      this.addAssetBackedImage({
+        group: slot,
+        assetKey: CombatAssetKeys.slots.inactivePetSlot,
+        fallbackKey: CombatFallbackAssetKeys.panel,
+        x: 0,
+        y: 0,
+        width: PET_LAYOUT.futureRingRadius * 2,
+        height: PET_LAYOUT.futureRingRadius * 2,
+        fallback: () => this.scene.add.circle(0, 0, PET_LAYOUT.futureRingRadius, 0x151923, 0.35)
+          .setStrokeStyle(2, 0x6b5f4a, 0.45)
+      });
       slot.add(this.scene.add.text(0, 0, "+", {
         color: "#6b5f4a",
         fontFamily: "Inter, sans-serif",
@@ -176,5 +257,68 @@ export class PetPresenter {
       }).setOrigin(0.5));
       this.container.add(slot);
     }
+  }
+
+  private combatAssetAvailability(): CombatAssetAvailability {
+    return {
+      hasTexture: (key: string) => this.scene.textures?.exists(key) ?? false
+    };
+  }
+
+  private addAssetBackedImage({
+    group,
+    assetKey,
+    fallbackKey,
+    x,
+    y,
+    width,
+    height,
+    alpha = 1,
+    fallback
+  }: {
+    readonly group: GameObjects.Container;
+    readonly assetKey: CombatAssetKey;
+    readonly fallbackKey: CombatAssetKey;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly alpha?: number;
+    readonly fallback?: () => GameObjects.GameObject;
+  }): void {
+    const resolution = resolveCombatTexture(assetKey, fallbackKey, this.combatAssetAvailability());
+    if (resolution.kind === "texture") {
+      group.add(this.scene.add.image(x, y, resolution.key).setDisplaySize(width, height).setAlpha(alpha));
+      return;
+    }
+
+    if (fallback) {
+      group.add(fallback());
+    }
+  }
+
+  private createAssetBackedInteractive({
+    assetKey,
+    fallbackKey,
+    x,
+    y,
+    width,
+    height,
+    fallback
+  }: {
+    readonly assetKey: CombatAssetKey;
+    readonly fallbackKey: CombatAssetKey;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly fallback: () => InteractiveGameObject;
+  }): InteractiveGameObject {
+    const resolution = resolveCombatTexture(assetKey, fallbackKey, this.combatAssetAvailability());
+    if (resolution.kind === "texture") {
+      return this.scene.add.image(x, y, resolution.key).setDisplaySize(width, height) as InteractiveGameObject;
+    }
+
+    return fallback();
   }
 }

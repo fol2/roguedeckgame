@@ -83,6 +83,8 @@ import {
 } from "../layout/combat-layout";
 import { configureFixedResolutionStage } from "../layout/fixed-resolution-stage";
 import { SceneKeys } from "../scenes/SceneKeys";
+import { preloadCombatAssets } from "../assets/combat-asset-loader";
+import { CombatAssetKeys } from "../assets/combat-asset-keys";
 
 export class CombatSceneOrchestrator extends Scene {
   private sandbox?: RunSandboxController;
@@ -131,6 +133,10 @@ export class CombatSceneOrchestrator extends Scene {
 
   public constructor() {
     super(SceneKeys.Combat);
+  }
+
+  public preload(): void {
+    preloadCombatAssets(this);
   }
 
   public create(): void {
@@ -193,6 +199,10 @@ export class CombatSceneOrchestrator extends Scene {
     menuButton.on("pointerup", () => this.openPauseOverlay());
     menuButton.add(this.add.rectangle(0, 0, MENU_BUTTON.width, MENU_BUTTON.height, 0x10151f, 0.85)
       .setStrokeStyle(2, COMBAT_PANEL_STROKE));
+    if (this.textures.exists(CombatAssetKeys.controls.menuButton)) {
+      menuButton.add(this.add.image(0, 0, CombatAssetKeys.controls.menuButton)
+        .setDisplaySize(MENU_BUTTON.width, MENU_BUTTON.height));
+    }
     menuButton.add(this.add.text(0, 0, "☰", {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",

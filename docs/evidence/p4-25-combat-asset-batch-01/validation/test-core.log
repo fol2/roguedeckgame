@@ -1,0 +1,17 @@
+
+> roguedeckgame@0.0.0 test:core
+> vitest run --config vitest.config.ts --pool=threads --maxWorkers=4 --testTimeout=20000 tests/game-core --reporter=dot
+
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+·····························stdout | tests/game-core/localhost-smoke.test.js > localhost smoke > serves registry validation evidence over localhost
+localhost smoke URL: http://127.0.0.1:57810/health
+
+···········································································································································································································································································································································································································································································································································································
+
+ Test Files  60 passed (60)
+      Tests  584 passed (584)
+   Start at  02:53:36
+   Duration  3.81s (transform 1.87s, setup 198ms, import 2.43s, tests 6.02s, environment 4ms)
+

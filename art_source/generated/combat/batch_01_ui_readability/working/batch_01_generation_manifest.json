@@ -1,0 +1,1132 @@
+{
+  "batch": "batch-01-ui-readability",
+  "rawSourceImage": "C:\\Users\\fol2h\\.codex\\generated_images\\019e7670-8fd5-7c23-8f40-6235f65c924d\\ig_0c85e053dd64c4c4016a1a3a2ea3108191af9e05a1f552e341.png",
+  "rawArchive": "D:\\Coding\\roguedeckgame\\art_source\\generated\\combat\\batch_01_ui_readability\\raw\\combat_asset_batch_01_ui_readability_raw_sheet.png",
+  "assetCount": 112,
+  "assets": [
+    {
+      "key": "combat.cardFrame.normal",
+      "path": "assets/combat/cards/frames/combat_card_frame_normal.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "normal"
+    },
+    {
+      "key": "combat.cardFrame.petCommand",
+      "path": "assets/combat/cards/frames/combat_card_frame_pet_command.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "petCommand"
+    },
+    {
+      "key": "combat.cardFrame.petSupport",
+      "path": "assets/combat/cards/frames/combat_card_frame_pet_support.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "petSupport"
+    },
+    {
+      "key": "combat.cardFrame.keeperSignal",
+      "path": "assets/combat/cards/frames/combat_card_frame_keeper_signal.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "keeperSignal"
+    },
+    {
+      "key": "combat.cardFrame.futurePower",
+      "path": "assets/combat/cards/frames/combat_card_frame_future_power.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "futurePower"
+    },
+    {
+      "key": "combat.cardFrame.temporary",
+      "path": "assets/combat/cards/frames/combat_card_frame_temporary.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "temporary"
+    },
+    {
+      "key": "combat.cardFrame.hoverOverlay",
+      "path": "assets/combat/cards/frames/combat_card_frame_hover_overlay.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "hoverOverlay"
+    },
+    {
+      "key": "combat.cardFrame.selectedOverlay",
+      "path": "assets/combat/cards/frames/combat_card_frame_selected_overlay.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "selectedOverlay"
+    },
+    {
+      "key": "combat.cardFrame.unplayableOverlay",
+      "path": "assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png",
+      "size": [
+        384,
+        536
+      ],
+      "kind": "frame",
+      "variant": "unplayableOverlay"
+    },
+    {
+      "key": "combat.cardFrame.artWindowPlaceholder",
+      "path": "assets/combat/cards/frames/combat_card_art_window_placeholder.png",
+      "size": [
+        320,
+        180
+      ],
+      "kind": "panel",
+      "variant": "artWindowPlaceholder"
+    },
+    {
+      "key": "combat.cardRarity.starter",
+      "path": "assets/combat/cards/rarity/combat_card_rarity_starter.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "rarity",
+      "variant": "starter"
+    },
+    {
+      "key": "combat.cardRarity.common",
+      "path": "assets/combat/cards/rarity/combat_card_rarity_common.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "rarity",
+      "variant": "common"
+    },
+    {
+      "key": "combat.cardRarity.uncommon",
+      "path": "assets/combat/cards/rarity/combat_card_rarity_uncommon.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "rarity",
+      "variant": "uncommon"
+    },
+    {
+      "key": "combat.cardRarity.rare",
+      "path": "assets/combat/cards/rarity/combat_card_rarity_rare.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "rarity",
+      "variant": "rare"
+    },
+    {
+      "key": "combat.cardRarity.special",
+      "path": "assets/combat/cards/rarity/combat_card_rarity_special.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "rarity",
+      "variant": "special"
+    },
+    {
+      "key": "combat.cardRarity.unique",
+      "path": "assets/combat/cards/rarity/combat_card_rarity_unique.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "rarity",
+      "variant": "unique"
+    },
+    {
+      "key": "combat.cardSource.universalPlayer",
+      "path": "assets/combat/cards/source_badges/combat_card_source_universal_player.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "universalPlayer"
+    },
+    {
+      "key": "combat.cardSource.classBound",
+      "path": "assets/combat/cards/source_badges/combat_card_source_class_bound.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "classBound"
+    },
+    {
+      "key": "combat.cardSource.petBound",
+      "path": "assets/combat/cards/source_badges/combat_card_source_pet_bound.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "petBound"
+    },
+    {
+      "key": "combat.cardSource.petSupport",
+      "path": "assets/combat/cards/source_badges/combat_card_source_pet_support.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "petSupport"
+    },
+    {
+      "key": "combat.cardSource.encounterReward",
+      "path": "assets/combat/cards/source_badges/combat_card_source_encounter_reward.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "encounterReward"
+    },
+    {
+      "key": "combat.cardSource.eventOnly",
+      "path": "assets/combat/cards/source_badges/combat_card_source_event_only.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "eventOnly"
+    },
+    {
+      "key": "combat.cardSource.temporary",
+      "path": "assets/combat/cards/source_badges/combat_card_source_temporary.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "temporary"
+    },
+    {
+      "key": "combat.cardSource.legacy",
+      "path": "assets/combat/cards/source_badges/combat_card_source_legacy.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "source",
+      "variant": "legacy"
+    },
+    {
+      "key": "combat.cardFamily.keeperAttack",
+      "path": "assets/combat/cards/family_badges/combat_card_family_keeper_attack.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "family",
+      "variant": "keeperAttack"
+    },
+    {
+      "key": "combat.cardFamily.keeperSkill",
+      "path": "assets/combat/cards/family_badges/combat_card_family_keeper_skill.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "family",
+      "variant": "keeperSkill"
+    },
+    {
+      "key": "combat.cardFamily.keeperSignal",
+      "path": "assets/combat/cards/family_badges/combat_card_family_keeper_signal.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "family",
+      "variant": "keeperSignal"
+    },
+    {
+      "key": "combat.cardFamily.petCommand",
+      "path": "assets/combat/cards/family_badges/combat_card_family_pet_command.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "family",
+      "variant": "petCommand"
+    },
+    {
+      "key": "combat.cardFamily.petSupport",
+      "path": "assets/combat/cards/family_badges/combat_card_family_pet_support.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "family",
+      "variant": "petSupport"
+    },
+    {
+      "key": "combat.cardFamily.power",
+      "path": "assets/combat/cards/family_badges/combat_card_family_power.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "family",
+      "variant": "power"
+    },
+    {
+      "key": "combat.cardFamily.temporary",
+      "path": "assets/combat/cards/family_badges/combat_card_family_temporary.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "family",
+      "variant": "temporary"
+    },
+    {
+      "key": "combat.intentToken.frame",
+      "path": "assets/combat/icons/intent/combat_intent_token_frame.png",
+      "size": [
+        280,
+        184
+      ],
+      "kind": "panel",
+      "variant": "intentToken"
+    },
+    {
+      "key": "combat.icon.intent.unknown",
+      "path": "assets/combat/icons/intent/combat_icon_intent_unknown.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "unknown"
+    },
+    {
+      "key": "combat.icon.intent.attack",
+      "path": "assets/combat/icons/intent/combat_icon_intent_attack.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "attack"
+    },
+    {
+      "key": "combat.icon.intent.defend",
+      "path": "assets/combat/icons/intent/combat_icon_intent_defend.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "defend"
+    },
+    {
+      "key": "combat.icon.intent.buff",
+      "path": "assets/combat/icons/intent/combat_icon_intent_buff.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "buff"
+    },
+    {
+      "key": "combat.icon.intent.debuff",
+      "path": "assets/combat/icons/intent/combat_icon_intent_debuff.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "debuff"
+    },
+    {
+      "key": "combat.icon.intent.special",
+      "path": "assets/combat/icons/intent/combat_icon_intent_special.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "specialIntent"
+    },
+    {
+      "key": "combat.icon.intent.charging",
+      "path": "assets/combat/icons/intent/combat_icon_intent_charging.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "charging"
+    },
+    {
+      "key": "combat.icon.intent.obscured",
+      "path": "assets/combat/icons/intent/combat_icon_intent_obscured.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "intent",
+      "variant": "obscured"
+    },
+    {
+      "key": "combat.intentMarker.scoped",
+      "path": "assets/combat/icons/intent/combat_intent_marker_scoped.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "scoped"
+    },
+    {
+      "key": "combat.intentMarker.locked",
+      "path": "assets/combat/icons/intent/combat_intent_marker_locked.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "locked"
+    },
+    {
+      "key": "combat.intentMarker.adaptive",
+      "path": "assets/combat/icons/intent/combat_intent_marker_adaptive.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "adaptive"
+    },
+    {
+      "key": "combat.intentMarker.changedPulse",
+      "path": "assets/combat/icons/intent/combat_intent_marker_changed_pulse.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "changedPulse"
+    },
+    {
+      "key": "combat.intentMarker.multiHit",
+      "path": "assets/combat/icons/intent/combat_intent_marker_multi_hit.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "multiHit"
+    },
+    {
+      "key": "combat.intentMarker.roughLow",
+      "path": "assets/combat/icons/intent/combat_intent_marker_rough_low.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "roughLow"
+    },
+    {
+      "key": "combat.intentMarker.roughMedium",
+      "path": "assets/combat/icons/intent/combat_intent_marker_rough_medium.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "roughMedium"
+    },
+    {
+      "key": "combat.intentMarker.roughHigh",
+      "path": "assets/combat/icons/intent/combat_intent_marker_rough_high.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "marker",
+      "variant": "roughHigh"
+    },
+    {
+      "key": "combat.icon.status.burn",
+      "path": "assets/combat/icons/status/combat_icon_status_burn.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "burn"
+    },
+    {
+      "key": "combat.icon.status.block",
+      "path": "assets/combat/icons/status/combat_icon_status_block.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "block"
+    },
+    {
+      "key": "combat.icon.status.guard",
+      "path": "assets/combat/icons/status/combat_icon_status_guard.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "guard"
+    },
+    {
+      "key": "combat.icon.status.empowered",
+      "path": "assets/combat/icons/status/combat_icon_status_empowered.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "empowered"
+    },
+    {
+      "key": "combat.icon.status.marked",
+      "path": "assets/combat/icons/status/combat_icon_status_marked.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "mark"
+    },
+    {
+      "key": "combat.icon.status.ready",
+      "path": "assets/combat/icons/status/combat_icon_status_ready.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "ready"
+    },
+    {
+      "key": "combat.icon.status.commanded",
+      "path": "assets/combat/icons/status/combat_icon_status_commanded.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "commanded"
+    },
+    {
+      "key": "combat.icon.status.obscured",
+      "path": "assets/combat/icons/status/combat_icon_status_obscured.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "obscured"
+    },
+    {
+      "key": "combat.icon.status.scoped",
+      "path": "assets/combat/icons/status/combat_icon_status_scoped.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "scoped"
+    },
+    {
+      "key": "combat.icon.status.revealed",
+      "path": "assets/combat/icons/status/combat_icon_status_revealed.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "revealed"
+    },
+    {
+      "key": "combat.icon.status.bound",
+      "path": "assets/combat/icons/status/combat_icon_status_bound.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "bound"
+    },
+    {
+      "key": "combat.icon.status.overflow",
+      "path": "assets/combat/icons/status/combat_icon_status_overflow.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "overflow"
+    },
+    {
+      "key": "combat.icon.status.fallback",
+      "path": "assets/combat/icons/status/combat_icon_status_fallback.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "status",
+      "variant": "fallback"
+    },
+    {
+      "key": "combat.icon.tag.petCommand",
+      "path": "assets/combat/icons/tags/combat_icon_tag_pet_command.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "petCommand"
+    },
+    {
+      "key": "combat.icon.tag.fox",
+      "path": "assets/combat/icons/tags/combat_icon_tag_fox.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "fox"
+    },
+    {
+      "key": "combat.icon.tag.burn",
+      "path": "assets/combat/icons/tags/combat_icon_tag_burn.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "burn"
+    },
+    {
+      "key": "combat.icon.tag.guard",
+      "path": "assets/combat/icons/tags/combat_icon_tag_guard.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "guard"
+    },
+    {
+      "key": "combat.icon.tag.block",
+      "path": "assets/combat/icons/tags/combat_icon_tag_block.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "block"
+    },
+    {
+      "key": "combat.icon.tag.draw",
+      "path": "assets/combat/icons/tags/combat_icon_tag_draw.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "draw"
+    },
+    {
+      "key": "combat.icon.tag.mark",
+      "path": "assets/combat/icons/tags/combat_icon_tag_mark.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "mark"
+    },
+    {
+      "key": "combat.icon.tag.attack",
+      "path": "assets/combat/icons/tags/combat_icon_tag_attack.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "attack"
+    },
+    {
+      "key": "combat.icon.tag.setup",
+      "path": "assets/combat/icons/tags/combat_icon_tag_setup.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "setup"
+    },
+    {
+      "key": "combat.icon.tag.combo",
+      "path": "assets/combat/icons/tags/combat_icon_tag_combo.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "combo"
+    },
+    {
+      "key": "combat.icon.tag.keeper",
+      "path": "assets/combat/icons/tags/combat_icon_tag_keeper.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "keeper"
+    },
+    {
+      "key": "combat.icon.tag.signal",
+      "path": "assets/combat/icons/tags/combat_icon_tag_signal.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "signal"
+    },
+    {
+      "key": "combat.icon.tag.scout",
+      "path": "assets/combat/icons/tags/combat_icon_tag_scout.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "scout"
+    },
+    {
+      "key": "combat.icon.tag.fetch",
+      "path": "assets/combat/icons/tags/combat_icon_tag_fetch.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "fetch"
+    },
+    {
+      "key": "combat.icon.tag.reveal",
+      "path": "assets/combat/icons/tags/combat_icon_tag_reveal.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "reveal"
+    },
+    {
+      "key": "combat.icon.tag.scope",
+      "path": "assets/combat/icons/tags/combat_icon_tag_scope.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "scope"
+    },
+    {
+      "key": "combat.icon.tag.obscure",
+      "path": "assets/combat/icons/tags/combat_icon_tag_obscure.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "obscure"
+    },
+    {
+      "key": "combat.icon.tag.rare",
+      "path": "assets/combat/icons/tags/combat_icon_tag_rare.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "rare"
+    },
+    {
+      "key": "combat.icon.tag.fallback",
+      "path": "assets/combat/icons/tags/combat_icon_tag_fallback.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "tag",
+      "variant": "fallback"
+    },
+    {
+      "key": "combat.ui.bottomHudPlate",
+      "path": "assets/combat/ui/hud/combat_ui_bottom_hud_plate.png",
+      "size": [
+        5120,
+        640
+      ],
+      "kind": "panel",
+      "variant": "bottomHud"
+    },
+    {
+      "key": "combat.ui.playerHudFrame",
+      "path": "assets/combat/ui/hud/combat_ui_player_hud_frame.png",
+      "size": [
+        704,
+        480
+      ],
+      "kind": "panel",
+      "variant": "playerHud"
+    },
+    {
+      "key": "combat.ui.playerPortraitFrame",
+      "path": "assets/combat/ui/hud/combat_ui_player_portrait_frame.png",
+      "size": [
+        256,
+        256
+      ],
+      "kind": "panel",
+      "variant": "playerPortrait"
+    },
+    {
+      "key": "combat.ui.playerHpBarTrack",
+      "path": "assets/combat/ui/hud/combat_ui_player_hp_bar_track.png",
+      "size": [
+        512,
+        96
+      ],
+      "kind": "panel",
+      "variant": "playerHpBarTrack"
+    },
+    {
+      "key": "combat.ui.playerHpBarFillMask",
+      "path": "assets/combat/ui/hud/combat_ui_player_hp_bar_fill_mask.png",
+      "size": [
+        512,
+        96
+      ],
+      "kind": "panel",
+      "variant": "playerHpBarFillMask"
+    },
+    {
+      "key": "combat.ui.playerBlockBadge",
+      "path": "assets/combat/ui/hud/combat_ui_player_block_badge.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "panel",
+      "variant": "playerBlockBadge"
+    },
+    {
+      "key": "combat.ui.playerStatusTray",
+      "path": "assets/combat/ui/hud/combat_ui_player_status_tray.png",
+      "size": [
+        512,
+        128
+      ],
+      "kind": "panel",
+      "variant": "playerStatusTray"
+    },
+    {
+      "key": "combat.ui.playerHoverFrame",
+      "path": "assets/combat/ui/hud/combat_ui_player_hover_frame.png",
+      "size": [
+        704,
+        480
+      ],
+      "kind": "panel",
+      "variant": "playerHoverFrame"
+    },
+    {
+      "key": "combat.ui.tooltipPanel",
+      "path": "assets/combat/ui/panels/combat_ui_tooltip_panel.png",
+      "size": [
+        704,
+        320
+      ],
+      "kind": "panel",
+      "variant": "tooltipPanel"
+    },
+    {
+      "key": "combat.ui.detailPanel",
+      "path": "assets/combat/ui/panels/combat_ui_detail_panel.png",
+      "size": [
+        1280,
+        880
+      ],
+      "kind": "panel",
+      "variant": "detailPanel"
+    },
+    {
+      "key": "combat.ui.cardDetailSidebar",
+      "path": "assets/combat/ui/panels/combat_ui_card_detail_sidebar.png",
+      "size": [
+        512,
+        880
+      ],
+      "kind": "panel",
+      "variant": "cardDetailSidebar"
+    },
+    {
+      "key": "combat.ui.cardDetailKeywordRow",
+      "path": "assets/combat/ui/panels/combat_ui_card_detail_keyword_row.png",
+      "size": [
+        640,
+        96
+      ],
+      "kind": "panel",
+      "variant": "cardDetailKeywordRow"
+    },
+    {
+      "key": "combat.ui.cardDetailTagTray",
+      "path": "assets/combat/ui/panels/combat_ui_card_detail_tag_tray.png",
+      "size": [
+        640,
+        128
+      ],
+      "kind": "panel",
+      "variant": "cardDetailTagTray"
+    },
+    {
+      "key": "combat.ui.detailCloseButton",
+      "path": "assets/combat/ui/panels/combat_ui_detail_close_button.png",
+      "size": [
+        160,
+        160
+      ],
+      "kind": "panel",
+      "variant": "detailCloseButton"
+    },
+    {
+      "key": "combat.ui.clickBlockerTint",
+      "path": "assets/combat/ui/panels/combat_ui_click_blocker_tint.png",
+      "size": [
+        64,
+        64
+      ],
+      "kind": "panel",
+      "variant": "clickBlockerTint"
+    },
+    {
+      "key": "combat.ui.pausePanel",
+      "path": "assets/combat/ui/panels/combat_ui_pause_panel.png",
+      "size": [
+        960,
+        640
+      ],
+      "kind": "panel",
+      "variant": "pausePanel"
+    },
+    {
+      "key": "combat.ui.eventLogPanel",
+      "path": "assets/combat/ui/panels/combat_ui_event_log_panel.png",
+      "size": [
+        768,
+        512
+      ],
+      "kind": "panel",
+      "variant": "eventLogPanel"
+    },
+    {
+      "key": "combat.control.energyOrb",
+      "path": "assets/combat/ui/hud/combat_control_energy_orb.png",
+      "size": [
+        320,
+        320
+      ],
+      "kind": "control",
+      "variant": "energyOrb"
+    },
+    {
+      "key": "combat.control.drawPile",
+      "path": "assets/combat/ui/hud/combat_control_draw_pile.png",
+      "size": [
+        232,
+        328
+      ],
+      "kind": "control",
+      "variant": "drawPile"
+    },
+    {
+      "key": "combat.control.discardPile",
+      "path": "assets/combat/ui/hud/combat_control_discard_pile.png",
+      "size": [
+        232,
+        328
+      ],
+      "kind": "control",
+      "variant": "discardPile"
+    },
+    {
+      "key": "combat.control.endTurnButton",
+      "path": "assets/combat/ui/hud/combat_control_end_turn_button.png",
+      "size": [
+        496,
+        224
+      ],
+      "kind": "control",
+      "variant": "endTurn"
+    },
+    {
+      "key": "combat.control.menuButton",
+      "path": "assets/combat/ui/hud/combat_control_menu_button.png",
+      "size": [
+        160,
+        160
+      ],
+      "kind": "control",
+      "variant": "menuButton"
+    },
+    {
+      "key": "combat.slot.petRing",
+      "path": "assets/combat/ui/slots/combat_slot_pet_ring.png",
+      "size": [
+        472,
+        472
+      ],
+      "kind": "slot",
+      "variant": "petRing"
+    },
+    {
+      "key": "combat.slot.petCommandGlow",
+      "path": "assets/combat/ui/slots/combat_slot_pet_command_glow.png",
+      "size": [
+        472,
+        472
+      ],
+      "kind": "slot",
+      "variant": "petCommandGlow"
+    },
+    {
+      "key": "combat.slot.emberChargePip",
+      "path": "assets/combat/ui/slots/combat_slot_ember_charge_pip.png",
+      "size": [
+        128,
+        128
+      ],
+      "kind": "slot",
+      "variant": "emberChargePip"
+    },
+    {
+      "key": "combat.slot.petStatusTray",
+      "path": "assets/combat/ui/slots/combat_slot_pet_status_tray.png",
+      "size": [
+        384,
+        104
+      ],
+      "kind": "slot",
+      "variant": "petStatusTray"
+    },
+    {
+      "key": "combat.slot.inactivePetSlot",
+      "path": "assets/combat/ui/slots/combat_slot_inactive_pet_slot.png",
+      "size": [
+        472,
+        472
+      ],
+      "kind": "slot",
+      "variant": "inactivePetSlot"
+    },
+    {
+      "key": "combat.slot.enemyTargetRing",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_target_ring.png",
+      "size": [
+        472,
+        472
+      ],
+      "kind": "slot",
+      "variant": "enemyTargetRing"
+    },
+    {
+      "key": "combat.slot.enemyHpBarTrack",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_hp_bar_track.png",
+      "size": [
+        512,
+        96
+      ],
+      "kind": "slot",
+      "variant": "enemyHpBarTrack"
+    },
+    {
+      "key": "combat.slot.enemyHpBarFillMask",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_hp_bar_fill_mask.png",
+      "size": [
+        512,
+        96
+      ],
+      "kind": "slot",
+      "variant": "enemyHpBarFillMask"
+    },
+    {
+      "key": "combat.slot.enemyBlockBadge",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_block_badge.png",
+      "size": [
+        192,
+        192
+      ],
+      "kind": "slot",
+      "variant": "enemyBlockBadge"
+    },
+    {
+      "key": "combat.slot.enemyStatusTray",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_status_tray.png",
+      "size": [
+        384,
+        104
+      ],
+      "kind": "slot",
+      "variant": "enemyStatusTray"
+    }
+  ],
+  "notes": [
+    "Runtime assets are transparent PNGs with no baked gameplay text or numbers.",
+    "The imagegen raw sheet establishes the Ember Journal visual language; exported runtime assets are deterministic clean variants for contract-safe Phaser ingestion."
+  ]
+}

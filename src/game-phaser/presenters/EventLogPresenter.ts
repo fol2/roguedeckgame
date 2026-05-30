@@ -1,4 +1,5 @@
 import type { GameObjects, Scene } from "phaser";
+import { CombatAssetKeys } from "../assets/combat-asset-keys";
 import { EVENT_LOG_AREA } from "../layout/combat-layout";
 
 export class EventLogPresenter {
@@ -33,6 +34,10 @@ export class EventLogPresenter {
     this.container.add(scene.add.rectangle(0, 0, EVENT_LOG_AREA.width, EVENT_LOG_AREA.height, 0x10151f, 0.92)
       .setOrigin(0, 0)
       .setStrokeStyle(2, 0x5f6f89));
+    if (scene.textures.exists(CombatAssetKeys.uiPanels.eventLogPanel)) {
+      this.container.add(scene.add.image(EVENT_LOG_AREA.width / 2, EVENT_LOG_AREA.height / 2, CombatAssetKeys.uiPanels.eventLogPanel)
+        .setDisplaySize(EVENT_LOG_AREA.width, EVENT_LOG_AREA.height));
+    }
     this.container.add(scene.add.text(EVENT_LOG_AREA.titleX, EVENT_LOG_AREA.titleY, "Event Log", {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",

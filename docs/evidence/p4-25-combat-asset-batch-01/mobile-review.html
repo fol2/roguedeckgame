@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Combat Asset Batch 01 Review</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #10151d;
+        --panel: #171f2b;
+        --panel-2: #202a38;
+        --text: #f3eee5;
+        --muted: #b8c1cf;
+        --line: #39475b;
+        --gold: #f0bd68;
+        --blue: #72c7ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.45;
+      }
+
+      header,
+      main {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+      }
+
+      header {
+        padding: 22px 16px 10px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      h2 {
+        font-size: 22px;
+        margin: 26px 0 10px;
+      }
+
+      h3 {
+        font-size: 17px;
+        margin: 0 0 8px;
+      }
+
+      p {
+        margin: 8px 0;
+        color: var(--muted);
+      }
+
+      main {
+        padding: 0 16px 40px;
+      }
+
+      a {
+        color: var(--blue);
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .badge {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 6px 9px;
+        font-size: 13px;
+      }
+
+      .summary {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 16px;
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .card__body {
+        padding: 12px;
+      }
+
+      figure {
+        margin: 0;
+        background: #0c1016;
+        border-top: 1px solid var(--line);
+      }
+
+      figure:first-child {
+        border-top: 0;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      figcaption {
+        padding: 8px 10px 10px;
+        color: var(--muted);
+        font-size: 13px;
+        border-top: 1px solid var(--line);
+      }
+
+      .asset-frame {
+        display: grid;
+        place-items: center;
+        padding: 14px;
+        background:
+          linear-gradient(45deg, #1d2633 25%, transparent 25%),
+          linear-gradient(-45deg, #1d2633 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #1d2633 75%),
+          linear-gradient(-45deg, transparent 75%, #1d2633 75%);
+        background-color: #111821;
+        background-size: 18px 18px;
+        background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+      }
+
+      .asset-frame img {
+        width: min(100%, 384px);
+      }
+
+      .doc-list {
+        display: grid;
+        gap: 10px;
+        padding: 0;
+        margin: 10px 0 0;
+        list-style: none;
+      }
+
+      .doc-list li {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+      }
+
+      .note {
+        border-left: 4px solid var(--gold);
+        background: var(--panel-2);
+        padding: 10px 12px;
+        margin-top: 14px;
+      }
+
+      @media (max-width: 760px) {
+        header {
+          padding-top: 18px;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+
+        .compare {
+          grid-template-columns: 1fr;
+        }
+
+        .badge {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Combat Asset Batch 01 Review</h1>
+      <p>Mobile review page for choosing the image-generation card-frame workflow.</p>
+      <div class="badge-row">
+        <span class="badge">Project: roguedeckgame</span>
+        <span class="badge">Asset: normal card frame</span>
+        <span class="badge">Target: 384 x 536 RGBA PNG</span>
+        <span class="badge">No baked text or numbers</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="summary">
+        <h2>Decision Needed</h2>
+        <p>Choose whether to continue with Option A, which follows the existing engine card overlay, or Option B, which keeps the stronger V2 visual anchor and updates the engine overlay to match it.</p>
+        <p class="note">Both options are image-generated raster assets with chroma-key cleanup and exact-size runtime candidates. The choice is about layout ownership: current engine overlay first, or asset-led reverse overlay first.</p>
+      </section>
+
+      <h2>Side By Side</h2>
+      <section class="compare">
+        <article class="card">
+          <div class="card__body">
+            <h3>Option A: V3 follows current engine overlay</h3>
+            <p>Lower engine risk. Cost remains top-right and title remains top. Needs a follow-up prompt to remove or quiet the bottom baked ornaments.</p>
+          </div>
+          <figure>
+            <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_composed_preview.png" alt="V3 composed card preview">
+            <figcaption>V3 composed preview with sample cost, title, art area, rules text, and tag chips.</figcaption>
+          </figure>
+          <figure>
+            <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_engine_overlay.png" alt="V3 current engine overlay">
+            <figcaption>Current engine overlay projected onto the V3 frame.</figcaption>
+          </figure>
+          <figure class="asset-frame">
+            <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_03.png" alt="V3 transparent runtime candidate">
+            <figcaption>V3 transparent runtime candidate, exact 384 x 536.</figcaption>
+          </figure>
+        </article>
+
+        <article class="card">
+          <div class="card__body">
+            <h3>Option B: V2 style anchor with reverse overlay</h3>
+            <p>Stronger visual anchor. Cost moves top-left and title moves to the central banner. Requires updating engine card layout constants and tests.</p>
+          </div>
+          <figure>
+            <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_02_reverse_composed_preview_adjusted.png" alt="V2 reverse overlay composed card preview">
+            <figcaption>V2 reverse-overlay composed preview with sample engine-rendered content.</figcaption>
+          </figure>
+          <figure>
+            <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_02_reverse_overlay_adjusted.png" alt="V2 reverse overlay">
+            <figcaption>Proposed new overlay derived from the V2 generated frame.</figcaption>
+          </figure>
+          <figure class="asset-frame">
+            <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_02.png" alt="V2 transparent runtime candidate">
+            <figcaption>V2 transparent runtime candidate, exact 384 x 536.</figcaption>
+          </figure>
+        </article>
+      </section>
+
+      <h2>Workflow Evidence</h2>
+      <ul class="doc-list">
+        <li><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/docs/workflows/imagegen-batch-01-workflow-experiment.md">Image generation workflow experiment</a></li>
+        <li><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/completion-report.md">Current completion report</a></li>
+        <li><a href="/docs/evidence/p4-25-combat-asset-batch-01/runtime-asset-gallery.png">Runtime asset gallery screenshot</a></li>
+        <li><a href="/docs/evidence/p4-25-combat-asset-batch-01/runtime-asset-gallery.json">Runtime asset gallery JSON</a></li>
+      </ul>
+    </main>
+  </body>
+</html>

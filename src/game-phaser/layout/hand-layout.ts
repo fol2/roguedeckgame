@@ -83,7 +83,7 @@ export const HAND_LAYOUT = {
   rightX: DISCARD_PILE.x - DISCARD_PILE.width / 2 - 28,
   preferredGap: -60,
   minOverlapStep: 42,
-  hoverLift: 0,
+  hoverLift: 36,
   selectedLift: 50,
   hoverScale: 1.04,
   maxSupportedCards: 10

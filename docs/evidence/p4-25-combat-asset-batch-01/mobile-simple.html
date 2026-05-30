@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Combat Asset Review - Simple</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 14px;
+        background: white;
+        color: black;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 17px;
+        line-height: 1.45;
+      }
+
+      h1 {
+        font-size: 24px;
+        margin: 0 0 12px;
+      }
+
+      h2 {
+        font-size: 21px;
+        margin: 26px 0 8px;
+        padding-top: 12px;
+        border-top: 2px solid #222;
+      }
+
+      h3 {
+        font-size: 18px;
+        margin: 18px 0 8px;
+      }
+
+      p {
+        margin: 8px 0;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        max-width: 536px;
+        height: auto;
+        margin: 8px 0 4px;
+        border: 1px solid #999;
+        background: #222;
+      }
+
+      .asset {
+        background:
+          linear-gradient(45deg, #ddd 25%, transparent 25%),
+          linear-gradient(-45deg, #ddd 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #ddd 75%),
+          linear-gradient(-45deg, transparent 75%, #ddd 75%);
+        background-color: #f8f8f8;
+        background-size: 18px 18px;
+        background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+      }
+
+      .caption {
+        color: #333;
+        font-size: 15px;
+        margin-bottom: 16px;
+      }
+
+      .stack {
+        position: relative;
+        width: 100%;
+        max-width: 536px;
+        margin: 8px 0 4px;
+        background:
+          linear-gradient(45deg, #ddd 25%, transparent 25%),
+          linear-gradient(-45deg, #ddd 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #ddd 75%),
+          linear-gradient(-45deg, transparent 75%, #ddd 75%);
+        background-color: #f8f8f8;
+        background-size: 18px 18px;
+        background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+        border: 1px solid #999;
+      }
+
+      .stack img {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        border: 0;
+        background: transparent;
+      }
+
+      .stack img + img {
+        position: absolute;
+        inset: 0;
+      }
+
+      .legend {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        background: #fafafa;
+        font-size: 14px;
+      }
+
+      .legend span {
+        display: inline-block;
+      }
+
+      .choice {
+        padding: 10px;
+        border: 1px solid #bbb;
+        background: #f4f4f4;
+        margin: 10px 0;
+      }
+
+      a {
+        color: #0645ad;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Combat Asset Batch 01 Review</h1>
+    <p>This is the simple iPhone-safe page. It uses plain HTML, black text on white background, and vertical images.</p>
+    <p><strong>Editable layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor.html">Open the Option B card layout editor</a>.</p>
+
+    <div class="choice">
+      <p><strong>Decision:</strong> choose Option A or Option B before generating the next dozen assets.</p>
+    </div>
+
+    <h2>Option A: V3 follows current engine overlay</h2>
+    <p>Lower engine risk. Cost remains top-right and title remains top. Needs one more prompt refinement to quiet the bottom ornaments.</p>
+
+    <h3>A1. Composed Preview</h3>
+    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_composed_preview.png" alt="Option A composed preview">
+    <p class="caption">Sample engine-rendered cost, title, art area, rules text, and tag chips on V3.</p>
+
+    <h3>A2. Overlay</h3>
+    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_engine_overlay.png" alt="Option A overlay">
+    <p class="caption">Current engine overlay projected onto V3.</p>
+
+    <h3>A2b. Transparent Wire Overlay On Candidate</h3>
+    <div class="stack">
+      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_03.png" alt="Option A candidate base">
+      <img src="/docs/evidence/p4-25-combat-asset-batch-01/mobile-overlays/option-a-engine-wire-overlay.png" alt="Option A transparent wire overlay">
+    </div>
+    <p class="caption">Transparent PNG overlay only: coloured wireframes, no filled blocks.</p>
+
+    <h3>A3. Transparent Runtime Candidate</h3>
+    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_03.png" alt="Option A transparent runtime candidate">
+    <p class="caption">Exact 384 x 536 candidate PNG.</p>
+
+    <h2>Option B: V2 style anchor with reverse overlay</h2>
+    <p>Stronger visual anchor. Cost moves top-left and title moves to the central banner. Requires updating engine card layout constants and tests.</p>
+
+    <h3>B0. Layered Mock V2</h3>
+    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layered_mock/option_b_layered_composed_mock_v2.png" alt="Option B layered mock version 2">
+    <p class="caption">Recommended layered direction: art sits behind transparent art window trim; title and rules stay on parchment with subtle readability tint.</p>
+
+    <h3>B0b. Layered Wire Overlay V2</h3>
+    <div class="stack">
+      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_02.png" alt="Option B candidate base for layered wire">
+      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layered_mock/option_b_layered_wire_overlay_v2.png" alt="Option B layered wire overlay">
+    </div>
+    <p class="caption">Updated wire overlay for the layered mock.</p>
+
+    <h3>B1. Composed Preview</h3>
+    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_02_reverse_composed_preview_adjusted.png" alt="Option B composed preview">
+    <p class="caption">Sample engine-rendered content using the reverse overlay from V2.</p>
+
+    <h3>B2. Overlay</h3>
+    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_02_reverse_overlay_adjusted.png" alt="Option B overlay">
+    <p class="caption">Proposed new overlay derived from V2.</p>
+
+    <h3>B2b. Transparent Wire Overlay On Candidate</h3>
+    <div class="stack">
+      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_02.png" alt="Option B candidate base">
+      <img src="/docs/evidence/p4-25-combat-asset-batch-01/mobile-overlays/option-b-reverse-wire-overlay.png" alt="Option B transparent wire overlay">
+    </div>
+    <p class="caption">Transparent PNG overlay only: coloured wireframes, no filled blocks.</p>
+
+    <h2>Wireframe Colour Legend</h2>
+    <div class="legend">
+      <span style="color:#d39000">Yellow: cost socket</span>
+      <span style="color:#d53030">Red: title band</span>
+      <span style="color:#006fcf">Blue: art window</span>
+      <span style="color:#555">White: rules text box</span>
+      <span style="color:#c96c00">Orange: tag row</span>
+      <span style="color:#008fce">Cyan: rarity socket</span>
+      <span style="color:#008f48">Green: family badge</span>
+      <span style="color:#744ad8">Purple: source badge</span>
+    </div>
+
+    <h3>B3. Transparent Runtime Candidate</h3>
+    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_02.png" alt="Option B transparent runtime candidate">
+    <p class="caption">Exact 384 x 536 candidate PNG.</p>
+
+    <h2>Documents</h2>
+    <p><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/docs/workflows/imagegen-batch-01-workflow-experiment.md">Workflow experiment Markdown</a></p>
+    <p><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/completion-report.md">Completion report Markdown</a></p>
+    <p><a href="/docs/evidence/p4-25-combat-asset-batch-01/runtime-asset-gallery.png">Runtime asset gallery PNG</a></p>
+  </body>
+</html>

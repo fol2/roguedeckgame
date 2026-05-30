@@ -1,0 +1,14 @@
+
+> roguedeckgame@0.0.0 test:scripts
+> vitest run --config vitest.config.ts --pool=threads --maxWorkers=2 --testTimeout=20000 tests/scripts --reporter=dot
+
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+······
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  02:53:43
+   Duration  709ms (transform 21ms, setup 12ms, import 26ms, tests 550ms, environment 0ms)
+

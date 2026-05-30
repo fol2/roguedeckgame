@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "assetCount": 112,
+  "problems": [],
+  "criticalDuplicateFailures": [],
+  "criticalDuplicateChecks": [
+    {
+      "left": "assets/combat/icons/tags/combat_icon_tag_pet_command.png",
+      "right": "assets/combat/icons/tags/combat_icon_tag_fox.png",
+      "distinct": true
+    },
+    {
+      "left": "assets/combat/cards/frames/combat_card_frame_normal.png",
+      "right": "assets/combat/cards/frames/combat_card_frame_hover_overlay.png",
+      "distinct": true
+    },
+    {
+      "left": "assets/combat/cards/frames/combat_card_frame_normal.png",
+      "right": "assets/combat/cards/frames/combat_card_frame_selected_overlay.png",
+      "distinct": true
+    },
+    {
+      "left": "assets/combat/cards/frames/combat_card_frame_normal.png",
+      "right": "assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png",
+      "distinct": true
+    },
+    {
+      "left": "assets/combat/cards/source_badges/combat_card_source_legacy.png",
+      "right": "assets/combat/cards/rarity/combat_card_rarity_common.png",
+      "distinct": true
+    }
+  ]
+}

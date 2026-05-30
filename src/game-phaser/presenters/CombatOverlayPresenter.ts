@@ -21,6 +21,7 @@ import {
   UI_WARNING_LABEL
 } from "../layout/combat-layout";
 import { GAME_HEIGHT, GAME_WIDTH } from "../layout/game-size";
+import { CombatAssetKeys } from "../assets/combat-asset-keys";
 
 export type CombatTooltip = {
   readonly title: string;
@@ -108,14 +109,19 @@ export class CombatOverlayPresenter {
       Math.min(tooltip.y + QUICK_TOOLTIP.offsetY, GAME_HEIGHT - tooltipHeight - QUICK_TOOLTIP.padding)
     );
 
-    this.tooltipContainer.add(this.scene.add.rectangle(
-      clampedX,
-      clampedY,
-      QUICK_TOOLTIP.width,
-      tooltipHeight,
-      COMBAT_PANEL_COLOUR,
-      0.98
-    ).setOrigin(0, 0).setStrokeStyle(2, COMBAT_PANEL_STROKE));
+    this.addAssetBackedRectangle({
+      group: this.tooltipContainer,
+      assetKey: CombatAssetKeys.uiPanels.tooltipPanel,
+      fallbackKey: CombatFallbackAssetKeys.panel,
+      x: clampedX + QUICK_TOOLTIP.width / 2,
+      y: clampedY + tooltipHeight / 2,
+      width: QUICK_TOOLTIP.width,
+      height: tooltipHeight,
+      fillColour: COMBAT_PANEL_COLOUR,
+      fillAlpha: 0.98,
+      strokeColour: COMBAT_PANEL_STROKE,
+      strokeWidth: 2
+    });
     this.tooltipContainer.add(this.scene.add.text(clampedX + QUICK_TOOLTIP.padding, clampedY + QUICK_TOOLTIP.titleY, tooltip.title, {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",
@@ -148,13 +154,35 @@ export class CombatOverlayPresenter {
     blocker.setInteractive();
     blocker.on("pointerup", this.onCloseDetail);
     this.modalContainer.add(blocker);
+    this.addAssetBackedRectangle({
+      group: this.modalContainer,
+      assetKey: CombatAssetKeys.uiPanels.clickBlockerTint,
+      fallbackKey: CombatAssetKeys.uiPanels.clickBlockerTint,
+      x: GAME_WIDTH / 2,
+      y: GAME_HEIGHT / 2,
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      fillColour: 0x000000,
+      fillAlpha: 0.45
+    });
 
     const panel = this.scene.add.container(DETAIL_OVERLAY.x, DETAIL_OVERLAY.y);
     panel.setSize(DETAIL_OVERLAY.width, DETAIL_OVERLAY.height);
     panel.setInteractive();
     panel.on("pointerup", () => undefined);
-    panel.add(this.scene.add.rectangle(0, 0, DETAIL_OVERLAY.width, DETAIL_OVERLAY.height, COMBAT_PANEL_COLOUR, 1)
-      .setStrokeStyle(2, 0xffd166));
+    this.addAssetBackedRectangle({
+      group: panel,
+      assetKey: CombatAssetKeys.uiPanels.detailPanel,
+      fallbackKey: CombatFallbackAssetKeys.panel,
+      x: 0,
+      y: 0,
+      width: DETAIL_OVERLAY.width,
+      height: DETAIL_OVERLAY.height,
+      fillColour: COMBAT_PANEL_COLOUR,
+      fillAlpha: 1,
+      strokeColour: 0xffd166,
+      strokeWidth: 2
+    });
     const detailCard = detail.card;
     if (detailCard) {
       this.renderCardDetail(panel, { ...detail, card: detailCard });
@@ -166,8 +194,19 @@ export class CombatOverlayPresenter {
     closeButton.setSize(DETAIL_OVERLAY.closeSize, DETAIL_OVERLAY.closeSize);
     closeButton.setInteractive();
     closeButton.on("pointerup", this.onCloseDetail);
-    closeButton.add(this.scene.add.rectangle(0, 0, DETAIL_OVERLAY.closeSize, DETAIL_OVERLAY.closeSize, 0x31283f, 1)
-      .setStrokeStyle(2, 0xffd166));
+    this.addAssetBackedRectangle({
+      group: closeButton,
+      assetKey: CombatAssetKeys.uiPanels.detailCloseButton,
+      fallbackKey: CombatFallbackAssetKeys.panel,
+      x: 0,
+      y: 0,
+      width: DETAIL_OVERLAY.closeSize,
+      height: DETAIL_OVERLAY.closeSize,
+      fillColour: 0x31283f,
+      fillAlpha: 1,
+      strokeColour: 0xffd166,
+      strokeWidth: 2
+    });
     closeButton.add(this.scene.add.text(0, 0, "x", {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",
@@ -220,14 +259,20 @@ export class CombatOverlayPresenter {
     this.renderStaticCardPreview(preview, detail.card);
     panel.add(preview);
 
-    panel.add(this.scene.add.rectangle(
-      DETAIL_OVERLAY.sidebarX + DETAIL_OVERLAY.sidebarWidth / 2,
-      DETAIL_OVERLAY.sidebarY + DETAIL_OVERLAY.sidebarHeight / 2,
-      DETAIL_OVERLAY.sidebarWidth,
-      DETAIL_OVERLAY.sidebarHeight,
-      0x10151f,
-      0.96
-    ).setStrokeStyle(2, 0x5f6f89, 0.85));
+    this.addAssetBackedRectangle({
+      group: panel,
+      assetKey: CombatAssetKeys.uiPanels.cardDetailSidebar,
+      fallbackKey: CombatFallbackAssetKeys.panel,
+      x: DETAIL_OVERLAY.sidebarX + DETAIL_OVERLAY.sidebarWidth / 2,
+      y: DETAIL_OVERLAY.sidebarY + DETAIL_OVERLAY.sidebarHeight / 2,
+      width: DETAIL_OVERLAY.sidebarWidth,
+      height: DETAIL_OVERLAY.sidebarHeight,
+      fillColour: 0x10151f,
+      fillAlpha: 0.96,
+      strokeColour: 0x5f6f89,
+      strokeAlpha: 0.85,
+      strokeWidth: 2
+    });
     panel.add(this.scene.add.text(DETAIL_OVERLAY.sidebarX + DETAIL_OVERLAY.padding, DETAIL_OVERLAY.sidebarY + DETAIL_OVERLAY.sidebarTitleY, detail.title, {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",
@@ -455,10 +500,32 @@ export class CombatOverlayPresenter {
     const blocker = this.scene.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.58);
     blocker.setInteractive();
     this.modalContainer.add(blocker);
+    this.addAssetBackedRectangle({
+      group: this.modalContainer,
+      assetKey: CombatAssetKeys.uiPanels.clickBlockerTint,
+      fallbackKey: CombatAssetKeys.uiPanels.clickBlockerTint,
+      x: GAME_WIDTH / 2,
+      y: GAME_HEIGHT / 2,
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      fillColour: 0x000000,
+      fillAlpha: 0.58
+    });
 
     const panel = this.scene.add.container(PAUSE_OVERLAY.x, PAUSE_OVERLAY.y);
-    panel.add(this.scene.add.rectangle(0, 0, PAUSE_OVERLAY.width, PAUSE_OVERLAY.height, COMBAT_PANEL_COLOUR, 1)
-      .setStrokeStyle(2, COMBAT_PANEL_STROKE));
+    this.addAssetBackedRectangle({
+      group: panel,
+      assetKey: CombatAssetKeys.uiPanels.pausePanel,
+      fallbackKey: CombatFallbackAssetKeys.panel,
+      x: 0,
+      y: 0,
+      width: PAUSE_OVERLAY.width,
+      height: PAUSE_OVERLAY.height,
+      fillColour: COMBAT_PANEL_COLOUR,
+      fillAlpha: 1,
+      strokeColour: COMBAT_PANEL_STROKE,
+      strokeWidth: 2
+    });
     panel.add(this.scene.add.text(0, PAUSE_OVERLAY.titleY, "Paused", {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",

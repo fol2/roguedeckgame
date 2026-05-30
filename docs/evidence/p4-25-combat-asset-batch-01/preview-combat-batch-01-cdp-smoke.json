@@ -1,0 +1,124 @@
+{
+  "ok": true,
+  "url": "http://127.0.0.1:4173/",
+  "clickedCombatNodeAt": {
+    "x": 190,
+    "y": 286
+  },
+  "hoverCardAt": {
+    "x": 1000,
+    "y": 690
+  },
+  "screenshotPath": "D:\\Coding\\roguedeckgame\\docs\\evidence\\p4-25-combat-asset-batch-01\\preview-combat-batch-01.png",
+  "canvasProbe": {
+    "hasCanvas": true,
+    "width": 1440,
+    "height": 810,
+    "bodyText": ""
+  },
+  "combatAssetResponseCount": 112,
+  "failedCombatAssetResponses": [],
+  "sampleCombatAssetResponses": [
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_normal.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_pet_support.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_pet_command.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_keeper_signal.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_future_power.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_temporary.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_hover_overlay.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_selected_overlay.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_art_window_placeholder.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/rarity/combat_card_rarity_starter.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/rarity/combat_card_rarity_uncommon.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/rarity/combat_card_rarity_special.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/rarity/combat_card_rarity_common.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/rarity/combat_card_rarity_unique.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/rarity/combat_card_rarity_rare.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/source_badges/combat_card_source_pet_bound.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/source_badges/combat_card_source_class_bound.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/source_badges/combat_card_source_universal_player.png",
+      "status": 200,
+      "mimeType": "image/png"
+    },
+    {
+      "url": "http://127.0.0.1:4173/assets/combat/cards/source_badges/combat_card_source_pet_support.png",
+      "status": 200,
+      "mimeType": "image/png"
+    }
+  ],
+  "consoleMessages": []
+}
