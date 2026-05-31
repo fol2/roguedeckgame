@@ -1,0 +1,106 @@
+{
+  "assets": [
+    {
+      "name": "starter",
+      "path": "public/assets/combat/cards/rarity/combat_card_rarity_starter.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 20750,
+      "partialAlphaPixels": 1516,
+      "opaquePixels": 14598,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "common",
+      "path": "public/assets/combat/cards/rarity/combat_card_rarity_common.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 24235,
+      "partialAlphaPixels": 1291,
+      "opaquePixels": 11338,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "uncommon",
+      "path": "public/assets/combat/cards/rarity/combat_card_rarity_uncommon.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 27915,
+      "partialAlphaPixels": 1267,
+      "opaquePixels": 7682,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "rare",
+      "path": "public/assets/combat/cards/rarity/combat_card_rarity_rare.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 28326,
+      "partialAlphaPixels": 1241,
+      "opaquePixels": 7297,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "special",
+      "path": "public/assets/combat/cards/rarity/combat_card_rarity_special.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 28096,
+      "partialAlphaPixels": 1246,
+      "opaquePixels": 7522,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "unique",
+      "path": "public/assets/combat/cards/rarity/combat_card_rarity_unique.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 28820,
+      "partialAlphaPixels": 1199,
+      "opaquePixels": 6845,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

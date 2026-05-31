@@ -18,7 +18,9 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - Runtime asset count: 112
 - Skipped assets: none
 - Regenerated assets: rarity/source/family badge filenames were regenerated once to match exact contract snake_case paths.
-- Image-generation runtime promotion update: the six approved card frames, hover overlay, selected overlay, art-window placeholder, starter rarity token, and common rarity token now replace their earlier deterministic runtime PNGs.
+- Image-generation runtime promotion update: the six approved card frames, hover overlay, selected overlay, art-window placeholder, and all six rarity tokens now replace their earlier deterministic runtime PNGs.
+- Current outstanding review inventory: `docs/evidence/p4-25-combat-asset-batch-01/outstanding-assets.md`
+- Rarity gem validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/rarity-gems-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/rarity-gems-runtime-sheet.png`
 
 ### `assets/combat/cards/family_badges/`
 - `combat.cardFamily.keeperAttack` -> `assets/combat/cards/family_badges/combat_card_family_keeper_attack.png` (192 x 192)
