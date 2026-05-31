@@ -1,0 +1,148 @@
+{
+  "assets": [
+    {
+      "slug": "universal_player",
+      "label": "Universal Player",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_universal_player.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23637,
+      "partialAlphaPixels": 1377,
+      "opaquePixels": 11850,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "class_bound",
+      "label": "Class Bound",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_class_bound.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 21645,
+      "partialAlphaPixels": 1388,
+      "opaquePixels": 13831,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "pet_bound",
+      "label": "Pet Bound",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_pet_bound.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23273,
+      "partialAlphaPixels": 1800,
+      "opaquePixels": 11791,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "pet_support",
+      "label": "Pet Support",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_pet_support.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 25983,
+      "partialAlphaPixels": 1258,
+      "opaquePixels": 9623,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "encounter_reward",
+      "label": "Encounter Reward",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_encounter_reward.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 22390,
+      "partialAlphaPixels": 1667,
+      "opaquePixels": 12807,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "event_only",
+      "label": "Event Only",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_event_only.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 24545,
+      "partialAlphaPixels": 1310,
+      "opaquePixels": 11009,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "temporary",
+      "label": "Temporary",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_temporary.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 24554,
+      "partialAlphaPixels": 2707,
+      "opaquePixels": 9603,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "legacy",
+      "label": "Legacy",
+      "path": "public/assets/combat/cards/source_badges/combat_card_source_legacy.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 26747,
+      "partialAlphaPixels": 1271,
+      "opaquePixels": 8846,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

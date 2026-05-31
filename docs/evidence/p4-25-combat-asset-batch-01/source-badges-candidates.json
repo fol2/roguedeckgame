@@ -1,0 +1,44 @@
+{
+  "assets": [
+    {
+      "slug": "universal_player",
+      "label": "Universal Player",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_universal_player_attempt_01/combat_card_source_universal_player_candidate_01_192.png"
+    },
+    {
+      "slug": "class_bound",
+      "label": "Class Bound",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_class_bound_attempt_01/combat_card_source_class_bound_candidate_01_192.png"
+    },
+    {
+      "slug": "pet_bound",
+      "label": "Pet Bound",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_pet_bound_attempt_01/combat_card_source_pet_bound_candidate_01_192.png"
+    },
+    {
+      "slug": "pet_support",
+      "label": "Pet Support",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_pet_support_attempt_01/combat_card_source_pet_support_candidate_01_192.png"
+    },
+    {
+      "slug": "encounter_reward",
+      "label": "Encounter Reward",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_encounter_reward_attempt_01/combat_card_source_encounter_reward_candidate_01_192.png"
+    },
+    {
+      "slug": "event_only",
+      "label": "Event Only",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_event_only_attempt_01/combat_card_source_event_only_candidate_01_192.png"
+    },
+    {
+      "slug": "temporary",
+      "label": "Temporary",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_temporary_attempt_01/combat_card_source_temporary_candidate_01_192.png"
+    },
+    {
+      "slug": "legacy",
+      "label": "Legacy",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/source_badge_legacy_attempt_01/combat_card_source_legacy_candidate_01_192.png"
+    }
+  ]
+}

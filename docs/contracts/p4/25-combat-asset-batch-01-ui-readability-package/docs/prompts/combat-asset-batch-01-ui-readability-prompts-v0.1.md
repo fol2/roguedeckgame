@@ -145,7 +145,7 @@ Create a cohesive transparent PNG icon sheet of eight card source badges for a f
 Order left to right, top to bottom:
 1 universalPlayer: neutral field-journal mark
 2 classBound: Ashbound Keeper command bracer / field signal mark
-3 petBound: Ember Fox paw-rune / fox sigil
+3 petBound: generic companion command charm, not species-specific, no fox or paw mark
 4 petSupport: pet charm / link rune
 5 encounterReward: rare-holder / scribe seal
 6 eventOnly: story or journal event seal
@@ -384,4 +384,3 @@ Regenerate if:
 - generated assets are fused together and cannot be cleanly cropped;
 - background is not removable for transparent assets;
 - the style looks sci-fi, photorealistic, or too mobile-gacha.
-

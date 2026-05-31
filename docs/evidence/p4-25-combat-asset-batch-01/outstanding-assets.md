@@ -9,9 +9,9 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | State | Count | Notes |
 |---|---:|---|
 | Batch 01 registry entries | 112 | All entries loaded through `BATCH_01_COMBAT_ASSET_DEFINITIONS`. |
-| Image-generation assets already promoted to runtime | 15 | Six card frames, hover overlay, selected overlay, art-window placeholder, and all six rarity gems. |
+| Image-generation assets already promoted to runtime | 23 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, and all eight card source badges. |
 | Registry entry intentionally not generated | 1 | `combat.cardFrame.unplayableOverlay`; unplayable state is engine-rendered grey/dim treatment. |
-| Outstanding image-generation assets | 96 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
+| Outstanding image-generation assets | 88 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
 
 ## Shared Generation Rules
 
@@ -29,7 +29,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | Category | Outstanding | Runtime dimensions | Description |
 |---|---:|---|---|
 | Card rarity gems | 0 | 192 x 192 | Complete six-rarity runtime set is promoted and validated. |
-| Card source badges | 8 | 192 x 192 | Small badges describing where a card came from. These should be metadata symbols, not card frames. |
+| Card source badges | 0 | 192 x 192 | Complete eight-source runtime badge set is promoted and validated. |
 | Card family badges | 7 | 192 x 192 | Small badges describing card family/type. They need stronger silhouette differences than colour alone. |
 | Intent UI | 17 | 280 x 184, 192 x 192, 128 x 128 | Enemy intent token frame, intent category icons, and plan-state markers. All numeric intent values stay engine-rendered. |
 | Status icons | 13 | 128 x 128 | Combatant status icons. Stack counts and labels stay engine-rendered. |
@@ -49,7 +49,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | `combat.cardRarity.special` | `assets/combat/cards/rarity/combat_card_rarity_special.png` | 192 x 192 | Shrine or memory seal, visibly special without text or letters. |
 | `combat.cardRarity.unique` | `assets/combat/cards/rarity/combat_card_rarity_unique.png` | 192 x 192 | Distinct sealed story charm, most singular silhouette in the set. |
 
-## Card Source Badges - Outstanding 8
+## Card Source Badges - Complete 8
 
 | Asset key | Runtime path | Dimensions | Description |
 |---|---|---:|---|
