@@ -6,10 +6,10 @@ describe("card frame asset layout", () => {
   it("preserves the 5:7 replacement contract around one 4K-ready runtime asset per key", () => {
     expect(CARD_FRAME_ASSET_SPEC.ratio).toEqual({ width: 5, height: 7 });
     expect(CARD_FRAME_ASSET_SPEC.display).toEqual(CARD_SIZE);
-    expect(CARD_FRAME_ASSET_SPEC.highResolutionScale).toBe(4);
+    expect(CARD_FRAME_ASSET_SPEC.highResolutionScale).toBe(2);
     expect(CARD_FRAME_ASSET_SPEC.singleRuntimeExport).toEqual({
-      width: CARD_SIZE.width * 4,
-      height: CARD_SIZE.height * 4
+      width: CARD_SIZE.width * 2,
+      height: CARD_SIZE.height * 2
     });
     expect(CARD_FRAME_ASSET_SPEC.display.width / CARD_FRAME_ASSET_SPEC.display.height)
       .toBeCloseTo(5 / 7, 1);
@@ -21,19 +21,17 @@ describe("card frame asset layout", () => {
       "costSocket",
       "titleBand",
       "rulesTextBox",
-      "tagRow"
+      "tag1",
+      "tag2",
+      "tag3"
     ]);
     expect(CARD_FRAME_ASSET_SPEC.assetBackedZones).toEqual([
       "rarityGemSocket",
-      "familyBadge",
-      "sourceBadge",
       "artWindow"
     ]);
     expect(CARD_FRAME_ASSET_SPEC.visualEngineSlots).toEqual([
       "frame",
       "rarityGem",
-      "sourceBadge",
-      "familyBadge",
       "artWindow",
       "tagIcons"
     ]);

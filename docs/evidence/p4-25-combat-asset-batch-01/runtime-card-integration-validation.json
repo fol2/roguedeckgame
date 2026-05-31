@@ -1,0 +1,216 @@
+{
+  "ok": true,
+  "scope": "promoted image-generation runtime card assets",
+  "entries": [
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_normal.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 97302,
+      "partialAlphaPixels": 10113
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_pet_command.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 97767,
+      "partialAlphaPixels": 15912
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_pet_support.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        4,
+        3,
+        0,
+        1
+      ],
+      "transparentPixels": 88527,
+      "partialAlphaPixels": 23437
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_keeper_signal.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 84826,
+      "partialAlphaPixels": 10962
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_future_power.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 86717,
+      "partialAlphaPixels": 10611
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_temporary.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 92756,
+      "partialAlphaPixels": 10682
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_hover_overlay.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 175790,
+      "partialAlphaPixels": 23073
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_frame_selected_overlay.png",
+      "size": [
+        384,
+        536
+      ],
+      "expectedSize": [
+        384,
+        536
+      ],
+      "cornerAlpha": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 166163,
+      "partialAlphaPixels": 24898
+    },
+    {
+      "path": "assets/combat/cards/frames/combat_card_art_window_placeholder.png",
+      "size": [
+        287,
+        265
+      ],
+      "expectedSize": [
+        287,
+        265
+      ],
+      "cornerAlpha": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "partialAlphaPixels": 0
+    },
+    {
+      "path": "assets/combat/cards/rarity/combat_card_rarity_starter.png",
+      "size": [
+        192,
+        192
+      ],
+      "expectedSize": [
+        192,
+        192
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 20750,
+      "partialAlphaPixels": 1516
+    },
+    {
+      "path": "assets/combat/cards/rarity/combat_card_rarity_common.png",
+      "size": [
+        192,
+        192
+      ],
+      "expectedSize": [
+        192,
+        192
+      ],
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentPixels": 24235,
+      "partialAlphaPixels": 1291
+    }
+  ],
+  "problems": []
+}

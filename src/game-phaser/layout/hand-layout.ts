@@ -7,7 +7,7 @@ export const CARD_SIZE = {
 } as const;
 
 export const CARD_TEXT = {
-  leftPadding: 14,
+  leftPadding: 8,
   nameX: 36,
   topPadding: 14,
   nameWrapPadding: 86,
@@ -27,53 +27,59 @@ export const CARD_TEXT = {
 } as const;
 
 export const CARD_FRAME_ZONES = {
-  rarityGemSocket: {
-    x: -CARD_SIZE.width / 2 + 22,
-    y: -CARD_SIZE.height / 2 + 20,
-    width: 22,
-    height: 22
-  },
   costSocket: {
-    x: CARD_SIZE.width / 2 - 28,
-    y: -CARD_SIZE.height / 2 + 25,
-    width: 36,
-    height: 36
-  },
-  titleBand: {
-    x: 0,
-    y: -CARD_SIZE.height / 2 + 25,
-    width: CARD_SIZE.width - 18,
+    x: -57,
+    y: -106.5,
+    width: 38,
     height: 38
   },
-  familyBadge: {
-    x: -CARD_SIZE.width / 2 + 72,
-    y: -CARD_SIZE.height / 2 + 58,
-    width: 78,
-    height: 20
-  },
-  sourceBadge: {
-    x: CARD_SIZE.width / 2 - 42,
-    y: -CARD_SIZE.height / 2 + 58,
-    width: 58,
-    height: 20
+  rarityGemSocket: {
+    x: 0,
+    y: 12,
+    width: 30,
+    height: 30
   },
   artWindow: {
-    x: 0,
-    y: -18,
-    width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
-    height: 92
+    x: -1.25,
+    y: -53.25,
+    width: 143.5,
+    height: 132.5
+  },
+  titleBand: {
+    x: -1.5,
+    y: 24.5,
+    width: 126,
+    height: 14
   },
   rulesTextBox: {
-    x: 0,
-    y: 72,
-    width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
-    height: 70
+    x: -0.75,
+    y: 71,
+    width: 130.5,
+    height: 66
   },
   tagRow: {
     x: 0,
-    y: CARD_SIZE.height / 2 - CARD_TEXT.tagBottomInset,
-    width: CARD_SIZE.width - CARD_TEXT.textWrapPadding,
-    height: 24
+    y: 116.25,
+    width: 73,
+    height: 20.5
+  },
+  tag1: {
+    x: -27.25,
+    y: 116.25,
+    width: 20.5,
+    height: 20.5
+  },
+  tag2: {
+    x: -0.25,
+    y: 116.25,
+    width: 20.5,
+    height: 20.5
+  },
+  tag3: {
+    x: 25.25,
+    y: 116.25,
+    width: 20.5,
+    height: 20.5
   }
 } as const;
 

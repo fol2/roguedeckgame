@@ -188,7 +188,7 @@ describe("Combat view model", () => {
       maxEnemyVisibleStatuses: 4,
       maxPlayerVisibleStatuses: 5,
       maxPetVisibleStatuses: 3,
-      maxCardVisibleTags: 4
+      maxCardVisibleTags: 3
     });
     expect(targetable).toMatchObject({
       playMode: "selectEnemy",

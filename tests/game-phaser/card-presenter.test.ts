@@ -299,12 +299,14 @@ describe("CardPresenter", () => {
     const rectangleCountBeforeLock = records.rectangles.length;
     presenter.setLocked(true);
 
-    expect(records.rectangles[rectangleCountBeforeLock]).toMatchObject({
+    expect(records.rectangles.slice(rectangleCountBeforeLock)).toEqual(expect.arrayContaining([
+      expect.objectContaining({
       kind: "rectangle",
       width: CARD_SIZE.width,
       height: CARD_SIZE.height,
       fillColour: 0x2f3540
-    });
+      })
+    ]));
   });
 
   it("composes available generated frame and art assets into the live card", () => {
@@ -334,8 +336,6 @@ describe("CardPresenter", () => {
       CombatAssetKeys.cardFrames.normal,
       CombatAssetKeys.cardArt.keepersTap,
       CombatAssetKeys.cardRarityGems.starter,
-      CombatAssetKeys.cardSourceBadges.classBound,
-      CombatAssetKeys.cardFamilyBadges.keeperAttack,
       CombatAssetKeys.cardFrames.selectedOverlay,
       CombatAssetKeys.icons.tagKeeper,
       CombatAssetKeys.icons.tagAttack,
@@ -343,7 +343,7 @@ describe("CardPresenter", () => {
     ]));
   });
 
-  it("composes hover and unplayable overlay assets when those states are active", () => {
+  it("composes hover assets and greys unplayable cards without an image overlay", () => {
     const { scene, records } = createSceneStub({
       textures: [
         CombatAssetKeys.cardFrames.hoverOverlay,
@@ -360,8 +360,17 @@ describe("CardPresenter", () => {
     presenter.render([firstCard], false, { hoveredCardId: firstCard.cardInstanceId });
 
     expect(records.images.map((image) => image.textureKey)).toEqual(expect.arrayContaining([
-      CombatAssetKeys.cardFrames.hoverOverlay,
-      CombatAssetKeys.cardFrames.unplayableOverlay
+      CombatAssetKeys.cardFrames.hoverOverlay
+    ]));
+    expect(records.images.map((image) => image.textureKey)).not.toContain(CombatAssetKeys.cardFrames.unplayableOverlay);
+    expect(records.rectangles).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "rectangle",
+        width: CARD_SIZE.width,
+        height: CARD_SIZE.height,
+        fillColour: 0x1f242d,
+        fillAlpha: 0.52
+      })
     ]));
   });
 

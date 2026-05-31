@@ -1,0 +1,13 @@
+
+> roguedeckgame@0.0.0 test
+> vitest run --config vitest.config.ts --pool=threads --maxWorkers=4 --testTimeout=20000 --teardownTimeout=5000
+
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+
+ Test Files  114 passed (114)
+      Tests  900 passed (900)
+   Start at  03:21:44
+   Duration  5.54s (transform 3.76s, setup 294ms, import 5.98s, tests 12.84s, environment 7ms)
+

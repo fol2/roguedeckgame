@@ -18,6 +18,7 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - Runtime asset count: 112
 - Skipped assets: none
 - Regenerated assets: rarity/source/family badge filenames were regenerated once to match exact contract snake_case paths.
+- Image-generation runtime promotion update: the six approved card frames, hover overlay, selected overlay, art-window placeholder, starter rarity token, and common rarity token now replace their earlier deterministic runtime PNGs.
 
 ### `assets/combat/cards/family_badges/`
 - `combat.cardFamily.keeperAttack` -> `assets/combat/cards/family_badges/combat_card_family_keeper_attack.png` (192 x 192)
@@ -37,8 +38,8 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - `combat.cardFrame.temporary` -> `assets/combat/cards/frames/combat_card_frame_temporary.png` (384 x 536)
 - `combat.cardFrame.hoverOverlay` -> `assets/combat/cards/frames/combat_card_frame_hover_overlay.png` (384 x 536)
 - `combat.cardFrame.selectedOverlay` -> `assets/combat/cards/frames/combat_card_frame_selected_overlay.png` (384 x 536)
-- `combat.cardFrame.unplayableOverlay` -> `assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png` (384 x 536)
-- `combat.cardFrame.artWindowPlaceholder` -> `assets/combat/cards/frames/combat_card_art_window_placeholder.png` (320 x 180)
+- `combat.cardFrame.unplayableOverlay` -> `assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png` (384 x 536, retained for registry compatibility; live unplayable rendering is now engine-owned greying/dimming)
+- `combat.cardFrame.artWindowPlaceholder` -> `assets/combat/cards/frames/combat_card_art_window_placeholder.png` (287 x 265)
 
 ### `assets/combat/cards/rarity/`
 - `combat.cardRarity.starter` -> `assets/combat/cards/rarity/combat_card_rarity_starter.png` (192 x 192)
@@ -155,7 +156,8 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - Registry: `src/game-phaser/assets/combat-asset-registry.ts`
 - Loader: `src/game-phaser/assets/combat-asset-loader.ts`
 - Preload hook: `CombatSceneOrchestrator.preload()` calls `preloadCombatAssets(this)`.
-- Card composition: `CardPresenter` continues to compose card frames, rarity/source/family badges, art placeholders, overlays, and tag icons through the card visual generator.
+- Card composition: `CardPresenter` composes card art behind transparent frame windows, generated frames above the art, engine-rendered cost/title/rules text, separate rarity tokens, three tag sockets, and hover/selected overlays through card-specific layout metrics from the layout editor.
+- Unplayable state: live cards no longer render `combat.cardFrame.unplayableOverlay`; unplayable cards are greyed/dimmed by engine-owned Phaser presentation.
 - Existing implemented UI surfaces now resolve texture assets with code fallbacks: HUD, energy, draw/discard piles, End Turn, player HUD panels, enemy intent tokens/icons, enemy target rings, enemy HP/status surfaces, pet rings/glows/charge pips/status chips, tooltip/detail/pause panels.
 - Missing textures still fall back through `resolveCombatTexture` or existing code-rendered shapes.
 
@@ -166,6 +168,7 @@ Required commands:
 - `npm run typecheck` - passed
 - `npm run test:phaser` - passed, 50 files / 295 tests
 - `npm run build` - passed
+- `npm test` - passed, 114 files / 900 tests
 
 Recommended commands:
 
@@ -183,10 +186,15 @@ Command logs:
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/test-core.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/test-cli.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/test-scripts.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-typecheck.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-test-phaser.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-build.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-test-all.log`
 
 Asset validation:
 
 - Evidence: `docs/evidence/p4-25-combat-asset-batch-01/asset-png-validation.json`
+- Runtime integration validation: `docs/evidence/p4-25-combat-asset-batch-01/runtime-card-integration-validation.json`
 - Result: true (112 RGBA PNGs, expected dimensions, transparent pixels present, critical duplicate checks passed)
 
 Production preview smoke:
@@ -195,6 +203,8 @@ Production preview smoke:
 - Evidence JSON: `docs/evidence/p4-25-combat-asset-batch-01/preview-combat-batch-01-cdp-smoke.json`
 - Per-asset runtime gallery screenshot: `docs/evidence/p4-25-combat-asset-batch-01/runtime-asset-gallery.png`
 - Per-asset runtime gallery JSON: `docs/evidence/p4-25-combat-asset-batch-01/runtime-asset-gallery.json`
+- Image-generation runtime integration screenshot: `docs/evidence/p4-25-combat-asset-batch-01/runtime-card-integration-dev.png`
+- Vite preview production route screenshot: `docs/evidence/p4-25-combat-asset-batch-01/runtime-card-integration-preview-map.png`
 - Served URL: `http://127.0.0.1:4173/` via `vite preview`
 - Combat asset responses: 112
 - Failed combat asset responses: 0

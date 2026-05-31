@@ -5,5 +5,5 @@ export const COMBAT_UI_CAPS = {
   maxEnemyVisibleStatuses: 4,
   maxPlayerVisibleStatuses: 5,
   maxPetVisibleStatuses: 3,
-  maxCardVisibleTags: 4
+  maxCardVisibleTags: 3
 } as const;
