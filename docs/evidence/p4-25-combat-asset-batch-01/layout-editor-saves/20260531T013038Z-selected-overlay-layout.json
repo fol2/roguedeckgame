@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "asset": "combat_card_frame_selected_overlay.png",
+  "mode": "card-settings",
+  "stageSize": {
+    "width": 384,
+    "height": 536
+  },
+  "baseFrame": "temporary",
+  "cardSettings": {
+    "normal": {
+      "overlayVariant": "attempt 01",
+      "transform": {
+        "x": 10,
+        "y": -7,
+        "w": 362,
+        "h": 554
+      },
+      "opacity": 0.82,
+      "animate": true
+    },
+    "pet command": {
+      "overlayVariant": "attempt 01",
+      "transform": {
+        "x": 10,
+        "y": -4,
+        "w": 355,
+        "h": 548
+      },
+      "opacity": 0.82,
+      "animate": true
+    },
+    "pet support": {
+      "overlayVariant": "attempt 01",
+      "transform": {
+        "x": -3,
+        "y": -3,
+        "w": 385,
+        "h": 542
+      },
+      "opacity": 0.82,
+      "animate": true
+    },
+    "keeper signal": {
+      "overlayVariant": "attempt 01",
+      "transform": {
+        "x": -4,
+        "y": -5,
+        "w": 388,
+        "h": 545
+      },
+      "opacity": 0.82,
+      "animate": true
+    },
+    "future power": {
+      "overlayVariant": "attempt 01",
+      "transform": {
+        "x": -1,
+        "y": -3,
+        "w": 382,
+        "h": 547
+      },
+      "opacity": 0.82,
+      "animate": true
+    },
+    "temporary": {
+      "overlayVariant": "attempt 01",
+      "transform": {
+        "x": 1,
+        "y": 1,
+        "w": 380,
+        "h": 541
+      },
+      "opacity": 0.82,
+      "animate": true
+    }
+  }
+}

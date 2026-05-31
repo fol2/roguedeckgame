@@ -8,6 +8,17 @@ Purpose: replace deterministic placeholder generation with prompt-driven image-g
 
 The Batch 01 prompt pack is directionally usable and should be refined through live generation rather than avoided. Image generation can produce richer UI assets than code-drawn placeholders, but the workflow must absorb the practical cleanup steps: chroma-key transparency, crop, exact resize, naming, alpha validation, visual inspection, and runtime smoke.
 
+## Source Preservation Rule
+
+Approved image-generated assets must keep their full-size source files for future use. The runtime-sized PNG is a derivative, not the only retained asset.
+
+For every approved frame, preserve at minimum:
+
+- raw full-size image-generator output;
+- full-size alpha-cleaned PNG;
+- exact runtime candidate PNG;
+- layout overlay or composed proof used for approval.
+
 ## Experiment 01 - Normal Card Frame
 
 Target runtime file:
@@ -362,6 +373,57 @@ tag2: x 169, y 477, w 41, h 41
 tag3: x 226, y 477, w 41, h 41
 ```
 
+## Experiment 03 - Pet Support Card Frame
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/frames/combat_card_frame_pet_support.png
+```
+
+Current discussion candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_candidate_03.png
+```
+
+Raw and alpha files:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_raw_chroma_attempt_03.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_alpha_full_attempt_03.png
+```
+
+Validation result:
+
+```txt
+raw generation path: built-in image generator
+transparency workflow: chroma-key removal
+runtime candidate size: 384 x 536
+top-left cost socket: open alpha cutout
+no text, no numbers, no labels
+```
+
+Visual evidence:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_candidate_03_layout_overlay.png
+docs/evidence/p4-25-combat-asset-batch-01/pet-support-layout-editor-attempt-03.png
+```
+
+Current pet-support layout source of truth:
+
+```txt
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-pet-support-layout.json
+```
+
+Lessons:
+
+- Attempt 02 established the accepted pet-support colour direction: pale jade, sage, ivory parchment, and soft aged gold.
+- Attempt 02 was not sufficient because the top-left cost socket was filled parchment instead of negative alpha.
+- Attempt 03 corrects the cost socket as an open alpha cutout while keeping the accepted visual direction.
+- The bottom tag row must remain three small independent sockets, not a tall decorative footer or three large plaques.
+
 ## First Twelve Asset Order
 
 ```txt
@@ -378,3 +440,307 @@ tag3: x 226, y 477, w 41, h 41
 11. combat_card_rarity_starter.png
 12. combat_card_rarity_common.png
 ```
+
+Current status:
+
+```txt
+1. normal frame: accepted workflow anchor
+2. pet-command frame: accepted candidate and card-specific layout saved
+3. pet-support frame: accepted candidate and card-specific layout saved
+4. keeper-signal frame: candidate and card-specific layout saved
+5. future-power frame: accepted candidate and card-specific layout saved
+6. temporary frame: accepted candidate and card-specific layout saved
+7. hover overlay: attempt 01 preferred for future animated VFX direction; card-specific layout saved
+8. selected overlay: candidate and card-specific layout saved
+9. unplayable overlay: no image asset; engine grey/desaturate/dim state only
+10. art-window placeholder: candidate and composed proof generated
+11. starter rarity token: candidate and composed proof generated
+12. common rarity token: candidate and composed proof generated
+```
+
+## Experiment 04 - Keeper Signal Card Frame
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/frames/combat_card_frame_keeper_signal.png
+```
+
+Current candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_candidate_01.png
+```
+
+Raw and alpha files:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_raw_chroma_attempt_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_alpha_full_attempt_01.png
+```
+
+Visual evidence:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_candidate_01_layout_overlay.png
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-keeper-signal-layout.json
+```
+
+Notes:
+
+- The candidate uses smoky indigo, charcoal ink, pale silver, and restrained ember signal accents.
+- The cost socket is an alpha cutout.
+- Card-specific layout metrics are required; do not assume the normal-frame metrics fit.
+
+## Experiment 05 - Future Power Card Frame
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/frames/combat_card_frame_future_power.png
+```
+
+Accepted candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_candidate_02.png
+```
+
+Raw and alpha files:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_raw_chroma_attempt_02.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_alpha_full_attempt_02.png
+```
+
+Visual evidence:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_candidate_02_layout_overlay.png
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-future-power-layout.json
+```
+
+Notes:
+
+- Attempt 02 replaced the too-normal colour direction with obsidian, silver, violet-blue, and cool grey-lavender.
+- The art window and cost socket are alpha cutouts.
+- The frame keeps three independent tag sockets rather than a single footer row.
+
+## Experiment 06 - Temporary Card Frame
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/frames/combat_card_frame_temporary.png
+```
+
+Accepted candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_candidate_02.png
+```
+
+Raw and alpha files:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_raw_chroma_attempt_02.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_alpha_full_attempt_02.png
+```
+
+Visual evidence:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_candidate_02_layout_overlay.png
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-temporary-layout.json
+```
+
+Notes:
+
+- Attempt 02 uses pale ash, smoky cool grey, worn silver, soft charcoal, and contained ember flecks.
+- The fading treatment stays inside the card silhouette.
+- Card-specific layout metrics are saved for later engine mapping.
+
+## Experiment 07 - Hover Overlay
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/overlays/combat_card_frame_hover_overlay.png
+```
+
+Preferred candidate for VFX direction:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_01/combat_card_frame_hover_overlay_candidate_01.png
+```
+
+Visual evidence:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_01/combat_card_frame_hover_overlay_candidate_01_normal_proof.png
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hover-overlay-layout.json
+```
+
+Notes:
+
+- Attempt 01 is the preferred visual direction because it has enough strength for later outer-glow animation.
+- Overlay placement must be card-specific. One global overlay transform does not fit every frame.
+- Attempt 02 remains preserved as a subtler alternative.
+
+## Experiment 08 - Selected Overlay
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/overlays/combat_card_frame_selected_overlay.png
+```
+
+Current candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/selected_overlay_attempt_01/combat_card_frame_selected_overlay_candidate_01.png
+```
+
+Visual evidence:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/selected_overlay_attempt_01/combat_card_frame_selected_overlay_candidate_01_normal_proof.png
+docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-selected-overlay-layout.json
+```
+
+Notes:
+
+- The selected overlay should read stronger than hover.
+- Placement must also be card-specific.
+- Future Phaser implementation should allow per-card overlay settings instead of a single global transform.
+
+## Experiment 09 - Unplayable State
+
+Target runtime file from the original list:
+
+```txt
+public/assets/combat/cards/overlays/combat_card_frame_unplayable_overlay.png
+```
+
+Decision:
+
+```txt
+No image-generated runtime asset for Batch 01.
+```
+
+Preserved abandoned source:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/unplayable_overlay_attempt_01/
+```
+
+Notes:
+
+- The approved approach is engine-owned greying, dimming, or desaturation of the whole card.
+- A separate image overlay creates avoidable alignment risk across different frame silhouettes.
+- The generated attempt is preserved only as rejected workflow evidence and must not be promoted to `public/assets`.
+
+## Experiment 10 - Art Window Placeholder
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/placeholders/combat_card_art_window_placeholder.png
+```
+
+Current candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/art_window_placeholder_attempt_01/combat_card_art_window_placeholder_candidate_01_287x265.png
+```
+
+Raw source and visual proof:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/art_window_placeholder_attempt_01/combat_card_art_window_placeholder_raw_attempt_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/art_window_placeholder_attempt_01/combat_card_art_window_placeholder_candidate_01_287x265_normal_proof.png
+```
+
+Validation result:
+
+```txt
+runtime candidate size: 287 x 265
+no text, no numbers, no labels
+proof uses the current normal-frame art window
+```
+
+Notes:
+
+- The placeholder is a quiet parchment and ash wash.
+- This is intentionally content-light so future card art can replace it without changing frame layout.
+- The current card art window is near-square landscape and this derivative preserves that exact layout-editor size.
+
+## Experiment 11 - Starter Rarity Token
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/rarity/combat_card_rarity_starter.png
+```
+
+Current candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_candidate_01_192.png
+```
+
+Raw, alpha, and visual proof:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_raw_chroma_attempt_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_alpha_full_attempt_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_candidate_01_normal_proof.png
+```
+
+Validation result:
+
+```txt
+runtime candidate size: 192 x 192
+corner alpha: 0, 0, 0, 0
+no text, no numbers, no labels
+```
+
+Notes:
+
+- Starter rarity uses a modest wood-and-bronze training-token treatment.
+- It is a separate overlay and must not be baked into card frames.
+
+## Experiment 12 - Common Rarity Token
+
+Target runtime file:
+
+```txt
+public/assets/combat/cards/rarity/combat_card_rarity_common.png
+```
+
+Current candidate:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_candidate_01_192.png
+```
+
+Raw, alpha, and visual proof:
+
+```txt
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_raw_chroma_attempt_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_alpha_full_attempt_01.png
+art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_candidate_01_normal_proof.png
+```
+
+Validation result:
+
+```txt
+runtime candidate size: 192 x 192
+corner alpha: 0, 0, 0, 0
+no text, no numbers, no labels
+```
+
+Notes:
+
+- Common rarity uses a bronze shield-like token with an amber centre.
+- There is intentionally no gem for common in the frame itself; rarity is declared by this separate overlay.

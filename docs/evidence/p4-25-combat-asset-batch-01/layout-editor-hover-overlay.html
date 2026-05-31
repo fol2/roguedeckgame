@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hover Overlay Layout Editor</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --stage-w: 384px;
+        --stage-h: 536px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f4f4f1;
+        color: #181818;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      header {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      p {
+        margin: 0 0 10px;
+        line-height: 1.45;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(390px, 430px) minmax(360px, 1fr);
+        gap: 18px;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 14px 24px;
+      }
+
+      .stage-wrap {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        padding-top: 8px;
+      }
+
+      .stage,
+      .card-preview {
+        position: relative;
+        width: var(--stage-w);
+        height: var(--stage-h);
+        overflow: visible;
+        background:
+          linear-gradient(45deg, #d5d5d5 25%, transparent 25%),
+          linear-gradient(-45deg, #d5d5d5 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #d5d5d5 75%),
+          linear-gradient(-45deg, transparent 75%, #d5d5d5 75%);
+        background-color: #eeeeee;
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      }
+
+      .stage {
+        border: 1px solid #777;
+      }
+
+      .base,
+      .overlay {
+        position: absolute;
+        display: block;
+        user-select: none;
+        pointer-events: none;
+      }
+
+      .base {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .box {
+        position: absolute;
+        border: 2px dashed #ff8e00;
+        background: rgb(255 142 0 / 8%);
+        touch-action: none;
+      }
+
+      .box .handle {
+        position: absolute;
+        right: -8px;
+        bottom: -8px;
+        width: 18px;
+        height: 18px;
+        border: 2px solid #ff8e00;
+        background: #fff5e0;
+      }
+
+      .panel {
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid #b8b8b8;
+        background: #ffffff;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      select,
+      input,
+      button,
+      textarea {
+        width: 100%;
+        font: inherit;
+      }
+
+      input,
+      select {
+        padding: 7px;
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid #222;
+        background: #222;
+        color: white;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #f7f7f7;
+        color: #222;
+      }
+
+      textarea {
+        min-height: 210px;
+        padding: 10px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+      }
+
+      .save-status {
+        min-height: 22px;
+        color: #295f2d;
+        font-weight: 700;
+      }
+
+      .review-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+        gap: 12px;
+      }
+
+      .review-card {
+        display: grid;
+        gap: 6px;
+      }
+
+      .review-card strong {
+        font-size: 12px;
+      }
+
+      .card-preview {
+        width: 122px;
+        height: 170px;
+        border: 1px solid #aaa;
+      }
+
+      .card-preview .base,
+      .card-preview .overlay {
+        width: 100%;
+        height: 100%;
+      }
+
+      .pulse {
+        animation: hoverPulse 1.15s ease-in-out infinite alternate;
+      }
+
+      @keyframes hoverPulse {
+        from {
+          opacity: calc(var(--overlay-opacity) * 0.72);
+          filter: brightness(0.95);
+        }
+        to {
+          opacity: var(--overlay-opacity);
+          filter: brightness(1.08);
+        }
+      }
+
+      @media (max-width: 850px) {
+        .layout {
+          display: block;
+        }
+
+        .stage-wrap {
+          position: static;
+          margin-bottom: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Hover Overlay Layout Editor</h1>
+      <p>Choose a card, choose hover attempt 01 or 02 for that card, then adjust its overlay transform. The review grid uses each card's own saved setting.</p>
+    </header>
+
+    <main class="layout">
+      <section class="stage-wrap">
+        <div id="stage" class="stage" aria-label="Hover overlay editor stage">
+          <img id="baseImage" class="base" alt="">
+          <img id="overlayImage" class="overlay" alt="">
+          <div id="box" class="box"><div class="handle"></div></div>
+        </div>
+      </section>
+
+      <section>
+        <div class="panel">
+          <h2>Preview</h2>
+          <div class="controls">
+            <label>Base card
+              <select id="baseSelect"></select>
+            </label>
+            <label>Overlay
+              <select id="overlaySelect"></select>
+            </label>
+            <label>Opacity
+              <input id="opacityInput" type="number" min="0" max="1" step="0.05">
+            </label>
+            <label>Animate
+              <select id="animateSelect">
+                <option value="true">On</option>
+                <option value="false">Off</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Selected Card Transform</h2>
+          <div class="controls">
+            <label>X <input id="xInput" type="number" inputmode="numeric"></label>
+            <label>Y <input id="yInput" type="number" inputmode="numeric"></label>
+            <label>W <input id="wInput" type="number" inputmode="numeric"></label>
+            <label>H <input id="hInput" type="number" inputmode="numeric"></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>All Current Frames</h2>
+          <div id="reviewGrid" class="review-grid"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Actions</h2>
+          <div class="controls">
+            <button id="exportButton" type="button">Export JSON</button>
+            <button id="saveButton" type="button">Save Layout</button>
+            <button id="loadButton" class="secondary" type="button">Load Local</button>
+            <button id="resetButton" class="secondary" type="button">Reset</button>
+          </div>
+          <p id="saveStatus" class="save-status"></p>
+        </div>
+
+        <div class="panel">
+          <h2>Layout JSON</h2>
+          <textarea id="jsonOutput" spellcheck="false"></textarea>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const stageSize = { width: 384, height: 536 };
+      const frames = [
+        ["normal", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02.png"],
+        ["pet command", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04.png"],
+        ["pet support", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_candidate_03.png"],
+        ["keeper signal", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_candidate_01.png"],
+        ["future power", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_candidate_02.png"],
+        ["temporary", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_candidate_02.png"]
+      ];
+      const overlays = [
+        ["attempt 01", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_01/combat_card_frame_hover_overlay_candidate_01.png"],
+        ["attempt 02", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_02/combat_card_frame_hover_overlay_candidate_02.png"]
+      ];
+      const defaultLayout = {
+        version: 1,
+        asset: "combat_card_frame_hover_overlay.png",
+        mode: "card-settings",
+        stageSize,
+        baseFrame: "normal",
+        cardSettings: {
+          normal: { overlayVariant: "attempt 01", transform: { x: 0, y: 0, w: 384, h: 536 }, opacity: 0.82, animate: true },
+          "pet command": { overlayVariant: "attempt 01", transform: { x: 0, y: 0, w: 384, h: 536 }, opacity: 0.82, animate: true },
+          "pet support": { overlayVariant: "attempt 01", transform: { x: 0, y: 0, w: 384, h: 536 }, opacity: 0.82, animate: true },
+          "keeper signal": { overlayVariant: "attempt 01", transform: { x: 0, y: 0, w: 384, h: 536 }, opacity: 0.82, animate: true },
+          "future power": { overlayVariant: "attempt 01", transform: { x: 0, y: 0, w: 384, h: 536 }, opacity: 0.82, animate: true },
+          temporary: { overlayVariant: "attempt 01", transform: { x: 0, y: 0, w: 384, h: 536 }, opacity: 0.82, animate: true }
+        }
+      };
+      const storageKey = "hoverOverlayLayout";
+      const latestLayoutUrl = "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hover-overlay-layout.json";
+
+      let layout = structuredClone(defaultLayout);
+      let activeDrag = null;
+
+      const stage = document.getElementById("stage");
+      const box = document.getElementById("box");
+      const baseImage = document.getElementById("baseImage");
+      const overlayImage = document.getElementById("overlayImage");
+      const baseSelect = document.getElementById("baseSelect");
+      const overlaySelect = document.getElementById("overlaySelect");
+      const opacityInput = document.getElementById("opacityInput");
+      const animateSelect = document.getElementById("animateSelect");
+      const reviewGrid = document.getElementById("reviewGrid");
+      const jsonOutput = document.getElementById("jsonOutput");
+      const saveStatus = document.getElementById("saveStatus");
+      const fields = {
+        x: document.getElementById("xInput"),
+        y: document.getElementById("yInput"),
+        w: document.getElementById("wInput"),
+        h: document.getElementById("hInput")
+      };
+
+      const scale = () => stage.getBoundingClientRect().width / stageSize.width;
+      const toCss = value => `${value * scale()}px`;
+      const pointerToStage = event => {
+        const rect = stage.getBoundingClientRect();
+        return {
+          x: Math.round((event.clientX - rect.left) / scale()),
+          y: Math.round((event.clientY - rect.top) / scale())
+        };
+      };
+
+      const makeSetting = () => ({ overlayVariant: "attempt 01", transform: { x: 0, y: 0, w: 384, h: 536 }, opacity: 0.82, animate: true });
+      const migrateLayout = source => {
+        const next = { ...structuredClone(defaultLayout), ...(source ?? {}) };
+        next.mode = "card-settings";
+        next.stageSize = stageSize;
+        next.cardSettings = { ...structuredClone(defaultLayout).cardSettings, ...(source?.cardSettings ?? {}) };
+
+        if (!source?.cardSettings && source?.transform) {
+          frames.forEach(([name]) => {
+            next.cardSettings[name] = {
+              overlayVariant: source.overlayVariant ?? "attempt 01",
+              transform: { ...source.transform },
+              opacity: source.opacity ?? 0.82,
+              animate: source.animate ?? true
+            };
+          });
+        }
+
+        return next;
+      };
+
+      const cardSetting = (name = layout.baseFrame) => {
+        layout.cardSettings ??= {};
+        layout.cardSettings[name] ??= makeSetting();
+        layout.cardSettings[name].transform ??= { x: 0, y: 0, w: 384, h: 536 };
+        layout.cardSettings[name].overlayVariant ??= "attempt 01";
+        layout.cardSettings[name].opacity ??= 0.82;
+        layout.cardSettings[name].animate ??= true;
+        return layout.cardSettings[name];
+      };
+      const overlayPath = (variant = cardSetting().overlayVariant) => overlays.find(([name]) => name === variant)?.[1] ?? overlays[0][1];
+      const basePath = () => frames.find(([name]) => name === layout.baseFrame)?.[1] ?? frames[0][1];
+
+      const clampSetting = setting => {
+        const t = setting.transform;
+        t.w = Math.max(32, Math.min(460, Number(t.w) || 384));
+        t.h = Math.max(32, Math.min(640, Number(t.h) || 536));
+        t.x = Math.max(-64, Math.min(64, Number(t.x) || 0));
+        t.y = Math.max(-64, Math.min(64, Number(t.y) || 0));
+        setting.opacity = Math.max(0, Math.min(1, Number(setting.opacity) || 0));
+      };
+
+      const clamp = () => {
+        frames.forEach(([name]) => clampSetting(cardSetting(name)));
+      };
+
+      const applyOverlayStyle = (element, setting = cardSetting()) => {
+        const t = setting.transform;
+        element.src = overlayPath(setting.overlayVariant);
+        element.style.left = toCss(t.x);
+        element.style.top = toCss(t.y);
+        element.style.width = toCss(t.w);
+        element.style.height = toCss(t.h);
+        element.style.opacity = setting.opacity;
+        element.style.setProperty("--overlay-opacity", String(setting.opacity));
+        element.classList.toggle("pulse", Boolean(setting.animate));
+      };
+
+      const renderReviewGrid = () => {
+        reviewGrid.replaceChildren();
+        frames.forEach(([name, src]) => {
+          const card = document.createElement("div");
+          card.className = "review-card";
+          const label = document.createElement("strong");
+          label.textContent = name;
+          const preview = document.createElement("div");
+          preview.className = "card-preview";
+          const base = document.createElement("img");
+          base.className = "base";
+          base.src = src;
+          base.alt = "";
+          const overlay = document.createElement("img");
+          overlay.className = "overlay";
+          overlay.alt = "";
+          const setting = cardSetting(name);
+          const t = setting.transform;
+          overlay.src = overlayPath(setting.overlayVariant);
+          overlay.style.left = `${(t.x / stageSize.width) * 100}%`;
+          overlay.style.top = `${(t.y / stageSize.height) * 100}%`;
+          overlay.style.width = `${(t.w / stageSize.width) * 100}%`;
+          overlay.style.height = `${(t.h / stageSize.height) * 100}%`;
+          overlay.style.opacity = setting.opacity;
+          overlay.style.setProperty("--overlay-opacity", String(setting.opacity));
+          overlay.classList.toggle("pulse", Boolean(setting.animate));
+          preview.append(base, overlay);
+          card.append(label, preview);
+          reviewGrid.append(card);
+        });
+      };
+
+      const render = () => {
+        clamp();
+        baseImage.src = basePath();
+        const setting = cardSetting();
+        applyOverlayStyle(overlayImage, setting);
+
+        const t = setting.transform;
+        box.style.left = toCss(t.x);
+        box.style.top = toCss(t.y);
+        box.style.width = toCss(t.w);
+        box.style.height = toCss(t.h);
+
+        baseSelect.value = layout.baseFrame;
+        overlaySelect.value = setting.overlayVariant;
+        opacityInput.value = setting.opacity;
+        animateSelect.value = String(Boolean(setting.animate));
+        fields.x.value = t.x;
+        fields.y.value = t.y;
+        fields.w.value = t.w;
+        fields.h.value = t.h;
+        jsonOutput.value = JSON.stringify(layout, null, 2);
+        renderReviewGrid();
+      };
+
+      frames.forEach(([name]) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        baseSelect.append(option);
+      });
+      overlays.forEach(([name]) => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        overlaySelect.append(option);
+      });
+
+      baseSelect.addEventListener("change", () => {
+        layout.baseFrame = baseSelect.value;
+        render();
+      });
+      overlaySelect.addEventListener("change", () => {
+        cardSetting().overlayVariant = overlaySelect.value;
+        render();
+      });
+      opacityInput.addEventListener("input", () => {
+        cardSetting().opacity = Number(opacityInput.value);
+        render();
+      });
+      animateSelect.addEventListener("change", () => {
+        cardSetting().animate = animateSelect.value === "true";
+        render();
+      });
+
+      Object.entries(fields).forEach(([key, input]) => {
+        input.addEventListener("input", () => {
+          cardSetting().transform[key] = Number(input.value) || 0;
+          render();
+        });
+      });
+
+      box.addEventListener("pointerdown", event => {
+        event.preventDefault();
+        const point = pointerToStage(event);
+        activeDrag = {
+          mode: event.target.classList.contains("handle") ? "resize" : "move",
+          start: point,
+          original: { ...cardSetting().transform }
+        };
+        box.setPointerCapture(event.pointerId);
+      });
+
+      stage.addEventListener("pointermove", event => {
+        if (!activeDrag) return;
+        event.preventDefault();
+        const point = pointerToStage(event);
+        const dx = point.x - activeDrag.start.x;
+        const dy = point.y - activeDrag.start.y;
+        const t = cardSetting().transform;
+        if (activeDrag.mode === "move") {
+          t.x = activeDrag.original.x + dx;
+          t.y = activeDrag.original.y + dy;
+        } else {
+          t.w = activeDrag.original.w + dx;
+          t.h = activeDrag.original.h + dy;
+        }
+        render();
+      });
+
+      stage.addEventListener("pointerup", () => {
+        activeDrag = null;
+      });
+      stage.addEventListener("pointercancel", () => {
+        activeDrag = null;
+      });
+
+      document.getElementById("exportButton").addEventListener("click", () => {
+        jsonOutput.focus();
+        jsonOutput.select();
+      });
+
+      document.getElementById("saveButton").addEventListener("click", async () => {
+        saveStatus.textContent = "Saving...";
+        localStorage.setItem(storageKey, JSON.stringify(layout));
+        try {
+          const response = await fetch("/__save_card_layout?name=hover-overlay", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(layout, null, 2)
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const result = await response.json();
+          saveStatus.textContent = `Saved: ${result.path}`;
+        } catch (error) {
+          saveStatus.textContent = `Saved locally only. Server save failed: ${error.message}`;
+        }
+      });
+
+      document.getElementById("loadButton").addEventListener("click", () => {
+        const stored = localStorage.getItem(storageKey);
+        if (!stored) return;
+        layout = migrateLayout(JSON.parse(stored));
+        render();
+        saveStatus.textContent = "Loaded local layout.";
+      });
+
+      document.getElementById("resetButton").addEventListener("click", () => {
+        layout = structuredClone(defaultLayout);
+        render();
+        saveStatus.textContent = "Reset to defaults.";
+      });
+
+      window.addEventListener("resize", render);
+      const loadLatestLayout = async () => {
+        try {
+          const response = await fetch(`${latestLayoutUrl}?t=${Date.now()}`, { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          layout = migrateLayout(await response.json());
+          saveStatus.textContent = "Loaded latest hover-overlay layout.";
+        } catch (error) {
+          saveStatus.textContent = `Using default layout. Latest layout load failed: ${error.message}`;
+        }
+        render();
+      };
+
+      loadLatestLayout();
+    </script>
+  </body>
+</html>
