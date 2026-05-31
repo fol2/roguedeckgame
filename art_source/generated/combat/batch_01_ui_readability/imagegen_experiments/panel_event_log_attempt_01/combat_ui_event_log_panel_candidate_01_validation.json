@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_event_log_attempt_01\\combat_ui_event_log_panel_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_event_log_attempt_01\\combat_ui_event_log_panel_candidate_01_768x512.png",
+  "size": {
+    "width": 768,
+    "height": 512
+  },
+  "sourceVisibleBounds": {
+    "left": 62,
+    "top": 88,
+    "right": 1469,
+    "bottom": 913
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 752,
+    "height": 496
+  },
+  "finalVisibleBounds": {
+    "left": 8,
+    "top": 8,
+    "right": 760,
+    "bottom": 504
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

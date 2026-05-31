@@ -1,0 +1,16 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_click_blocker_tint_attempt_01\\combat_ui_click_blocker_tint_raw_texture_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_click_blocker_tint_attempt_01\\combat_ui_click_blocker_tint_candidate_01_64.png",
+  "size": {
+    "width": 64,
+    "height": 64
+  },
+  "fitMode": "texture-alpha",
+  "cornerAlpha": [
+    114,
+    114,
+    114,
+    114
+  ],
+  "hasTranslucentTileAlpha": true
+}

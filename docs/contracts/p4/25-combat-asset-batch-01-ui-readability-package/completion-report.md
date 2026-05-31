@@ -18,7 +18,7 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - Runtime asset count: 112
 - Skipped image-generation assets: `combat.cardFrame.unplayableOverlay`; live unplayable state is engine-owned greying/dimming.
 - Regenerated assets: rarity/source/family badge filenames were regenerated once to match exact contract snake_case paths.
-- Image-generation runtime promotion update: the six approved card frames, hover overlay, selected overlay, art-window placeholder, all six rarity tokens, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, and all nineteen tag icons now replace their earlier deterministic runtime PNGs.
+- Image-generation runtime promotion update: the six approved card frames, hover overlay, selected overlay, art-window placeholder, all six rarity tokens, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, all nineteen tag icons, all ten combat slot assets, all thirteen HUD/control assets, and all nine detail/pause/event panel assets now replace their earlier deterministic runtime PNGs.
 - Current outstanding review inventory: `docs/evidence/p4-25-combat-asset-batch-01/outstanding-assets.md`
 - Rarity gem validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/rarity-gems-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/rarity-gems-runtime-sheet.png`
 - Source badge validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/source-badges-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/source-badges-runtime-sheet.png`
@@ -26,6 +26,9 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - Intent UI validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/intent-ui-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/intent-ui-runtime-sheet.png`
 - Status icon validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/status-icons-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/status-icons-runtime-sheet.png`
 - Tag icon validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/tag-icons-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/tag-icons-runtime-sheet.png`
+- Combat slot validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/combat-slots-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/combat-slots-runtime-sheet.png`
+- HUD/control validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/hud-controls-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/hud-controls-runtime-sheet.png`
+- Detail/pause/event panel validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/panels-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/panels-runtime-sheet.png`
 
 ### `assets/combat/cards/family_badges/`
 - `combat.cardFamily.keeperAttack` -> `assets/combat/cards/family_badges/combat_card_family_keeper_attack.png` (192 x 192)
@@ -197,6 +200,15 @@ Command logs:
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-test-phaser.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-build.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-test-all.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/combat-slots-typecheck.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/combat-slots-test-phaser-combat-asset.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/combat-slots-build.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/hud-controls-typecheck.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/hud-controls-test-phaser-combat-asset.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/hud-controls-build.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/panels-typecheck.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/panels-test-phaser-combat-asset.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/panels-build.log`
 
 Asset validation:
 
@@ -205,6 +217,9 @@ Asset validation:
 - Intent UI validation: `docs/evidence/p4-25-combat-asset-batch-01/intent-ui-validation.json`
 - Status icon validation: `docs/evidence/p4-25-combat-asset-batch-01/status-icons-validation.json`
 - Tag icon validation: `docs/evidence/p4-25-combat-asset-batch-01/tag-icons-validation.json`
+- Combat slot validation: `docs/evidence/p4-25-combat-asset-batch-01/combat-slots-validation.json`
+- HUD/control validation: `docs/evidence/p4-25-combat-asset-batch-01/hud-controls-validation.json`
+- Detail/pause/event panel validation: `docs/evidence/p4-25-combat-asset-batch-01/panels-validation.json`
 - Result: true (112 RGBA PNGs, expected dimensions, transparent pixels present, critical duplicate checks passed)
 
 Production preview smoke:

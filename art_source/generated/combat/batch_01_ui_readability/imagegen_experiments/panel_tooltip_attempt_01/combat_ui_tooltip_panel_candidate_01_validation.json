@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_tooltip_attempt_01\\combat_ui_tooltip_panel_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_tooltip_attempt_01\\combat_ui_tooltip_panel_candidate_01_704x320.png",
+  "size": {
+    "width": 704,
+    "height": 320
+  },
+  "sourceVisibleBounds": {
+    "left": 94,
+    "top": 86,
+    "right": 1767,
+    "bottom": 758
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 692,
+    "height": 308
+  },
+  "finalVisibleBounds": {
+    "left": 6,
+    "top": 6,
+    "right": 698,
+    "bottom": 314
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_card_detail_keyword_row_attempt_01\\combat_ui_card_detail_keyword_row_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_card_detail_keyword_row_attempt_01\\combat_ui_card_detail_keyword_row_candidate_01_640x96.png",
+  "size": {
+    "width": 640,
+    "height": 96
+  },
+  "sourceVisibleBounds": {
+    "left": 32,
+    "top": 234,
+    "right": 1742,
+    "bottom": 642
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 636,
+    "height": 92
+  },
+  "finalVisibleBounds": {
+    "left": 2,
+    "top": 2,
+    "right": 638,
+    "bottom": 94
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

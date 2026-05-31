@@ -1,0 +1,252 @@
+{
+  "batch": "p4-25-combat-asset-batch-01",
+  "category": "detail-pause-event-panels",
+  "assetCount": 9,
+  "allDimensionsMatchContract": true,
+  "allAlphaContractsSatisfied": true,
+  "assets": [
+    {
+      "key": "combat.ui.tooltipPanel",
+      "path": "assets/combat/ui/panels/combat_ui_tooltip_panel.png",
+      "width": 704,
+      "height": 320,
+      "expectedWidth": 704,
+      "expectedHeight": 320,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 6,
+        "top": 6,
+        "right": 698,
+        "bottom": 314
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 182968
+    },
+    {
+      "key": "combat.ui.detailPanel",
+      "path": "assets/combat/ui/panels/combat_ui_detail_panel.png",
+      "width": 1280,
+      "height": 880,
+      "expectedWidth": 1280,
+      "expectedHeight": 880,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 10,
+        "top": 10,
+        "right": 1270,
+        "bottom": 870
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 992282
+    },
+    {
+      "key": "combat.ui.cardDetailSidebar",
+      "path": "assets/combat/ui/panels/combat_ui_card_detail_sidebar.png",
+      "width": 512,
+      "height": 880,
+      "expectedWidth": 512,
+      "expectedHeight": 880,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 8,
+        "top": 8,
+        "right": 504,
+        "bottom": 872
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 382432
+    },
+    {
+      "key": "combat.ui.cardDetailKeywordRow",
+      "path": "assets/combat/ui/panels/combat_ui_card_detail_keyword_row.png",
+      "width": 640,
+      "height": 96,
+      "expectedWidth": 640,
+      "expectedHeight": 96,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 2,
+        "top": 2,
+        "right": 638,
+        "bottom": 94
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 44865
+    },
+    {
+      "key": "combat.ui.cardDetailTagTray",
+      "path": "assets/combat/ui/panels/combat_ui_card_detail_tag_tray.png",
+      "width": 640,
+      "height": 128,
+      "expectedWidth": 640,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 2,
+        "top": 2,
+        "right": 638,
+        "bottom": 126
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 60984
+    },
+    {
+      "key": "combat.ui.detailCloseButton",
+      "path": "assets/combat/ui/panels/combat_ui_detail_close_button.png",
+      "width": 160,
+      "height": 160,
+      "expectedWidth": 160,
+      "expectedHeight": 160,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 5,
+        "top": 5,
+        "right": 155,
+        "bottom": 155
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 13677
+    },
+    {
+      "key": "combat.ui.clickBlockerTint",
+      "path": "assets/combat/ui/panels/combat_ui_click_blocker_tint.png",
+      "width": 64,
+      "height": 64,
+      "expectedWidth": 64,
+      "expectedHeight": 64,
+      "mode": "RGBA",
+      "alphaContract": "translucent-tile",
+      "visibleBounds": {
+        "left": 0,
+        "top": 0,
+        "right": 64,
+        "bottom": 64
+      },
+      "cornerAlpha": [
+        114,
+        114,
+        114,
+        114
+      ],
+      "hasTransparentCorners": false,
+      "hasTranslucentTileAlpha": true,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 4096
+    },
+    {
+      "key": "combat.ui.pausePanel",
+      "path": "assets/combat/ui/panels/combat_ui_pause_panel.png",
+      "width": 960,
+      "height": 640,
+      "expectedWidth": 960,
+      "expectedHeight": 640,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 10,
+        "top": 10,
+        "right": 950,
+        "bottom": 630
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 518629
+    },
+    {
+      "key": "combat.ui.eventLogPanel",
+      "path": "assets/combat/ui/panels/combat_ui_event_log_panel.png",
+      "width": 768,
+      "height": 512,
+      "expectedWidth": 768,
+      "expectedHeight": 512,
+      "mode": "RGBA",
+      "alphaContract": "transparent-corners",
+      "visibleBounds": {
+        "left": 8,
+        "top": 8,
+        "right": 760,
+        "bottom": 504
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "hasTranslucentTileAlpha": false,
+      "alphaContractSatisfied": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 320848
+    }
+  ]
+}

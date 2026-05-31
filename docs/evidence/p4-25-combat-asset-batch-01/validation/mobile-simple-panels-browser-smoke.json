@@ -1,0 +1,15 @@
+{
+  "url": "http://127.0.0.1:8787/docs/evidence/p4-25-combat-asset-batch-01/mobile-simple.html",
+  "title": "Combat Asset Batch 01 Review",
+  "hasPanelSet": true,
+  "panelHeading": "22. Complete Detail, Pause, And Event Panel Set",
+  "panelStatus": "Status: Runtime promoted",
+  "panelImageSrc": "/docs/evidence/p4-25-combat-asset-batch-01/panels-runtime-sheet.png",
+  "panelImageLoaded": true,
+  "panelImageNaturalWidth": 560,
+  "panelImageNaturalHeight": 1190,
+  "artefactCount": 26,
+  "hasValidationLink": true,
+  "hasLatestLayoutLink": true,
+  "bodyHasPanelCaption": true
+}

@@ -35,6 +35,8 @@
 - `layout-editor-panels.html`: editable panel layout editor for the collaborative tooltip/detail/pause/event asset pass.
 - `layout-editor-saves/latest-panels-layout.json`: current tooltip, detail, pause, and event panel layout metrics exported by the editor.
 - `panel-layout-editor-mobile-render.png`: iPhone-width browser screenshot proving the panel editor renders through the Tailscale review server.
+- `panels-runtime-sheet.png`: proof sheet for the complete nine-asset tooltip/detail/pause/event panel runtime set.
+- `panels-validation.json`: dimensions and alpha validation for the complete panel runtime set.
 - `layout-editor-slots.html`: editable combat slot layout editor for the collaborative pet/enemy slot asset pass.
 - `layout-editor-saves/latest-slots-layout.json`: current pet and enemy slot layout metrics exported by the editor.
 - `slot-layout-editor-mobile-render.png`: iPhone-width browser screenshot proving the slot editor renders through the Tailscale review server.
@@ -42,11 +44,14 @@
 - `combat-slots-validation.json`: dimensions and alpha validation for the complete combat slot runtime set.
 - `mobile-simple-combat-slots-browser.png`: mobile-width browser smoke screenshot proving `mobile-simple.html` exposes the promoted combat slot set.
 - `mobile-simple-hud-controls-browser.png`: mobile-width browser smoke screenshot proving `mobile-simple.html` exposes the promoted HUD/control set.
+- `mobile-simple-panels-browser.png`: full-page browser smoke screenshot proving `mobile-simple.html` exposes the promoted panel set.
 - `asset-png-validation.json`: runtime PNG count, dimensions, RGBA mode, and transparency validation.
 - `validation/mobile-simple-combat-slots-browser-smoke.json`: browser DOM proof that the combat slot sheet loads on the mobile review page.
 - `validation/mobile-simple-combat-slots-console-clean.log`: browser console proof for the mobile review page after adding an inline favicon.
 - `validation/mobile-simple-hud-controls-browser-smoke.json`: browser DOM proof that the HUD/control sheet loads on the mobile review page.
 - `validation/mobile-simple-hud-controls-console-clean.log`: browser console proof after adding the HUD/control review entry.
+- `validation/mobile-simple-panels-browser-smoke.json`: browser DOM proof that the panel sheet loads on the mobile review page.
+- `validation/mobile-simple-panels-console-clean.log`: browser console proof after adding the panel review entry.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.
 - `validation/vite-*-runtime-integration*.log`: local Vite server logs used for browser smoke evidence.
@@ -59,3 +64,6 @@
 - `validation/hud-controls-typecheck.log`: typecheck proof after promoting the HUD/control runtime assets.
 - `validation/hud-controls-test-phaser-combat-asset.log`: focused Phaser asset test proof after HUD/control promotion.
 - `validation/hud-controls-build.log`: production build proof after HUD/control promotion.
+- `validation/panels-typecheck.log`: typecheck proof after promoting the panel runtime assets.
+- `validation/panels-test-phaser-combat-asset.log`: focused Phaser asset test proof after panel promotion.
+- `validation/panels-build.log`: production build proof after panel promotion.

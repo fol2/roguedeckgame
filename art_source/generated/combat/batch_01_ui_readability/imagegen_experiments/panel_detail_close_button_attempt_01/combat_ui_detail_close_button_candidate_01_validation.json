@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_detail_close_button_attempt_01\\combat_ui_detail_close_button_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_detail_close_button_attempt_01\\combat_ui_detail_close_button_candidate_01_160.png",
+  "size": {
+    "width": 160,
+    "height": 160
+  },
+  "sourceVisibleBounds": {
+    "left": 120,
+    "top": 98,
+    "right": 1131,
+    "bottom": 1110
+  },
+  "fitMode": "contain",
+  "fittedSize": {
+    "width": 150,
+    "height": 150
+  },
+  "finalVisibleBounds": {
+    "left": 5,
+    "top": 5,
+    "right": 155,
+    "bottom": 155
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

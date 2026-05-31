@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_card_detail_sidebar_attempt_01\\combat_ui_card_detail_sidebar_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\panel_card_detail_sidebar_attempt_01\\combat_ui_card_detail_sidebar_candidate_01_512x880.png",
+  "size": {
+    "width": 512,
+    "height": 880
+  },
+  "sourceVisibleBounds": {
+    "left": 74,
+    "top": 35,
+    "right": 881,
+    "bottom": 1608
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 496,
+    "height": 864
+  },
+  "finalVisibleBounds": {
+    "left": 8,
+    "top": 8,
+    "right": 504,
+    "bottom": 872
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

@@ -1,0 +1,14 @@
+
+> roguedeckgame@0.0.0 test:phaser
+> vitest run --config vitest.config.ts --pool=threads --maxWorkers=4 --testTimeout=20000 tests/game-phaser --reporter=dot combat-asset
+
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+·········································································································································································································································································································
+
+ Test Files  50 passed (50)
+      Tests  297 passed (297)
+   Start at  09:41:29
+   Duration  1.39s (transform 2.09s, setup 115ms, import 3.29s, tests 1.40s, environment 4ms)
+
