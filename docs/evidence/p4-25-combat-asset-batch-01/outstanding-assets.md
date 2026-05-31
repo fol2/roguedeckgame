@@ -38,6 +38,14 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | Detail, pause, and event panels | 9 | Mixed | Tooltip/detail/pause/event surfaces with empty content zones for engine-rendered text. Requires layout-editor collaboration before final promotion. |
 | Combat slots | 10 | Mixed | Pet/enemy rings, glows, charge/status trays, HP tracks, and block badges. Requires layout-editor collaboration before final promotion. |
 
+## Collaborative Layout Editors
+
+| Outstanding category | Editor | Latest layout save | Validation state |
+|---|---|---|---|
+| HUD and controls | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-hud-controls.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hud-controls-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
+| Detail, pause, and event panels | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-panels.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-panels-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
+| Combat slots | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-slots.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-slots-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
+
 ## Card Rarity Gems - Complete 6
 
 | Asset key | Runtime path | Dimensions | Description |
