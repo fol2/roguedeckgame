@@ -1,0 +1,39 @@
+{
+  "assets": [
+    {
+      "slug": "keeper_attack",
+      "label": "Keeper Attack",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/family_badge_keeper_attack_attempt_01/combat_card_family_keeper_attack_candidate_01_192.png"
+    },
+    {
+      "slug": "keeper_skill",
+      "label": "Keeper Skill",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/family_badge_keeper_skill_attempt_01/combat_card_family_keeper_skill_candidate_01_192.png"
+    },
+    {
+      "slug": "keeper_signal",
+      "label": "Keeper Signal",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/family_badge_keeper_signal_attempt_01/combat_card_family_keeper_signal_candidate_01_192.png"
+    },
+    {
+      "slug": "pet_command",
+      "label": "Pet Command",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/family_badge_pet_command_attempt_02/combat_card_family_pet_command_candidate_02_192.png"
+    },
+    {
+      "slug": "pet_support",
+      "label": "Pet Support",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/family_badge_pet_support_attempt_01/combat_card_family_pet_support_candidate_01_192.png"
+    },
+    {
+      "slug": "power",
+      "label": "Power",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/family_badge_power_attempt_01/combat_card_family_power_candidate_01_192.png"
+    },
+    {
+      "slug": "temporary",
+      "label": "Temporary",
+      "candidate": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/family_badge_temporary_attempt_01/combat_card_family_temporary_candidate_01_192.png"
+    }
+  ]
+}

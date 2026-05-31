@@ -1,0 +1,130 @@
+{
+  "assets": [
+    {
+      "slug": "keeper_attack",
+      "label": "Keeper Attack",
+      "path": "public/assets/combat/cards/family_badges/combat_card_family_keeper_attack.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 22700,
+      "partialAlphaPixels": 1666,
+      "opaquePixels": 12498,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "keeper_skill",
+      "label": "Keeper Skill",
+      "path": "public/assets/combat/cards/family_badges/combat_card_family_keeper_skill.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23737,
+      "partialAlphaPixels": 1368,
+      "opaquePixels": 11759,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "keeper_signal",
+      "label": "Keeper Signal",
+      "path": "public/assets/combat/cards/family_badges/combat_card_family_keeper_signal.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 24267,
+      "partialAlphaPixels": 1352,
+      "opaquePixels": 11245,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "pet_command",
+      "label": "Pet Command",
+      "path": "public/assets/combat/cards/family_badges/combat_card_family_pet_command.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23240,
+      "partialAlphaPixels": 1371,
+      "opaquePixels": 12253,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "pet_support",
+      "label": "Pet Support",
+      "path": "public/assets/combat/cards/family_badges/combat_card_family_pet_support.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23119,
+      "partialAlphaPixels": 1361,
+      "opaquePixels": 12384,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "power",
+      "label": "Power",
+      "path": "public/assets/combat/cards/family_badges/combat_card_family_power.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 22477,
+      "partialAlphaPixels": 1399,
+      "opaquePixels": 12988,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "temporary",
+      "label": "Temporary",
+      "path": "public/assets/combat/cards/family_badges/combat_card_family_temporary.png",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23496,
+      "partialAlphaPixels": 2620,
+      "opaquePixels": 10748,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

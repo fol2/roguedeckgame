@@ -1,0 +1,13 @@
+
+> roguedeckgame@0.0.0 test:phaser
+> vitest run --config vitest.config.ts --pool=threads --maxWorkers=4 --testTimeout=20000 tests/game-phaser --reporter=dot tests/game-phaser/combat-asset-registry.test.ts tests/game-phaser/combat-asset-keys.test.ts tests/game-phaser/card-visual-generator.test.ts
+
+
+ RUN  v4.1.7 D:/Coding/roguedeckgame
+
+·······································································································································································································································································································
+
+ Test Files  50 passed (50)
+      Tests  295 passed (295)
+   Start at  04:37:37
+   Duration  1.28s (transform 1.87s, setup 114ms, import 2.95s, tests 1.31s, environment 3ms)

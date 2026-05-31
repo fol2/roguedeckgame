@@ -168,7 +168,7 @@ Order left to right, top to bottom:
 1 Keeper Attack: direct Keeper strike / small blade-staff impact motif
 2 Keeper Skill: shield / fieldcraft utility motif
 3 Keeper Signal: scout signal / ash-reading eye-rune motif
-4 Pet-Command: paw-command rune, unmistakably commands a pet
+4 Pet-Command: generic companion command signal, not species-specific, no fox or paw mark
 5 Pet Support: pet support/link charm motif
 6 Power/Ongoing: ongoing ember seal motif
 7 Temporary: fading ash/time mark motif

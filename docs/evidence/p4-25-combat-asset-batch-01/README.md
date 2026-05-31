@@ -13,6 +13,8 @@
 - `rarity-gems-validation.json`: dimensions and alpha validation for the complete six-rarity runtime gem set.
 - `source-badges-runtime-sheet.png`: proof sheet for the complete eight-source runtime badge set at 192 x 192 and small UI scale.
 - `source-badges-validation.json`: dimensions and alpha validation for the complete eight-source runtime badge set.
+- `family-badges-runtime-sheet.png`: proof sheet for the complete seven-family runtime badge set at 192 x 192 and small UI scale.
+- `family-badges-validation.json`: dimensions and alpha validation for the complete seven-family runtime badge set.
 - `asset-png-validation.json`: runtime PNG count, dimensions, RGBA mode, and transparency validation.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.

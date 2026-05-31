@@ -1,0 +1,18 @@
+
+> roguedeckgame@0.0.0 build
+> vite build
+
+vite v8.0.14 building client environment for production...
+[2K
+transforming...✓ 180 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                0.46 kB │ gzip:   0.30 kB
+dist/assets/index-C3SUpnFv.css                 6.85 kB │ gzip:   1.62 kB
+dist/assets/index-GNyLhgdg.js                  2.92 kB │ gzip:   1.36 kB
+dist/assets/content-workbench-Bqb8B3oH.js     72.63 kB │ gzip:  19.69 kB
+dist/assets/create-game-Rq4yXuKP.js          192.33 kB │ gzip:  48.24 kB
+dist/assets/runtime-metadata-CQogdKMh.js     234.82 kB │ gzip:  51.18 kB
+dist/assets/phaser-U3MaEuds.js             1,352.44 kB │ gzip: 351.55 kB
+
+✓ built in 512ms
