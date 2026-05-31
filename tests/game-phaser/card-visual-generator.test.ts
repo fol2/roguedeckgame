@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { cardId, cardInstanceId, type CombatantId } from "../../src/game-core";
 import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
 import { buildCardVisualSpec, getCardTagVisual } from "../../src/game-phaser/card-visuals/card-visual-generator";
+import rawCardVisualConfig from "../../src/game-phaser/card-visuals/card-visual-config.json";
+import { CARD_VISUAL_CONFIG, loadCardVisualConfig } from "../../src/game-phaser/card-visuals/card-visual-config-loader";
 import type { CombatCardViewModel } from "../../src/game-phaser/view-models/combat-view-model";
 
 const createCard = (overrides: Partial<CombatCardViewModel> = {}): CombatCardViewModel => ({
@@ -139,5 +141,17 @@ describe("card visual generator", () => {
       assetKey: CombatAssetKeys.icons.tagFallback,
       glyph: "VERY"
     });
+  });
+
+  it("loads palette colours from JSON into Phaser numeric colours", () => {
+    expect(CARD_VISUAL_CONFIG.palettes.normal.border).toBe(0x7dd3fc);
+    expect(CARD_VISUAL_CONFIG.palettes.petCommand.titleText).toBe("#fff0d4");
+  });
+
+  it("rejects JSON config entries that reference unknown combat asset keys", () => {
+    const invalidConfig = structuredClone(rawCardVisualConfig);
+    invalidConfig.tags.burn.assetKey = "combat.icon.tag.missing";
+
+    expect(() => loadCardVisualConfig(invalidConfig)).toThrow(/unknown combat asset key/);
   });
 });

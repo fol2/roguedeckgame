@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "palettes": {
+    "normal": {
+      "border": "#7dd3fc",
+      "fill": "#263f4e",
+      "titleBand": "#1a2432",
+      "rulesBox": "#152131",
+      "accentText": "#8fd6b5",
+      "titleText": "#f6f1e8",
+      "bodyText": "#c4d0df"
+    },
+    "skill": {
+      "border": "#a7f3d0",
+      "fill": "#263f4e",
+      "titleBand": "#1a2432",
+      "rulesBox": "#152131",
+      "accentText": "#a7f3d0",
+      "titleText": "#f6f1e8",
+      "bodyText": "#c4d0df"
+    },
+    "petCommand": {
+      "border": "#ffb35b",
+      "fill": "#4a321f",
+      "titleBand": "#5a351d",
+      "rulesBox": "#2b241d",
+      "accentText": "#ffc36b",
+      "titleText": "#fff0d4",
+      "bodyText": "#f1d2a1"
+    },
+    "disabled": {
+      "border": "#687386",
+      "fill": "#2f3540",
+      "titleBand": "#1a2432",
+      "rulesBox": "#202734",
+      "accentText": "#aab4c5",
+      "titleText": "#aab4c5",
+      "bodyText": "#8d98aa"
+    }
+  },
+  "frames": {
+    "normal": "combat.cardFrame.normal",
+    "petCommand": "combat.cardFrame.petCommand",
+    "petSupport": "combat.cardFrame.petSupport",
+    "keeperSignal": "combat.cardFrame.keeperSignal",
+    "futurePower": "combat.cardFrame.futurePower",
+    "temporary": "combat.cardFrame.temporary"
+  },
+  "badges": {
+    "rarity": {
+      "starter": { "assetKey": "combat.cardRarity.starter", "label": "Starter", "glyph": "S" },
+      "common": { "assetKey": "combat.cardRarity.common", "label": "Common", "glyph": "C" },
+      "uncommon": { "assetKey": "combat.cardRarity.uncommon", "label": "Uncommon", "glyph": "U" },
+      "rare": { "assetKey": "combat.cardRarity.rare", "label": "Rare", "glyph": "R" },
+      "special": { "assetKey": "combat.cardRarity.special", "label": "Special", "glyph": "SP" },
+      "unique": { "assetKey": "combat.cardRarity.unique", "label": "Unique", "glyph": "UQ" },
+      "unknown": { "assetKey": "combat.cardRarity.starter", "label": "Unknown", "glyph": "?" }
+    },
+    "source": {
+      "universalPlayer": { "assetKey": "combat.cardSource.universalPlayer", "label": "Universal", "glyph": "UNI" },
+      "classBound": { "assetKey": "combat.cardSource.classBound", "label": "Class", "glyph": "CLS" },
+      "petBound": { "assetKey": "combat.cardSource.petBound", "label": "Pet", "glyph": "PET" },
+      "petSupport": { "assetKey": "combat.cardSource.petSupport", "label": "Pet Support", "glyph": "SUP" },
+      "encounterReward": { "assetKey": "combat.cardSource.encounterReward", "label": "Encounter", "glyph": "ENC" },
+      "eventOnly": { "assetKey": "combat.cardSource.eventOnly", "label": "Event", "glyph": "EVT" },
+      "enemyCommon": { "assetKey": "combat.cardSource.encounterReward", "label": "Enemy", "glyph": "EN" },
+      "enemySignature": { "assetKey": "combat.cardSource.encounterReward", "label": "Enemy Signature", "glyph": "SIG" },
+      "eliteOnly": { "assetKey": "combat.cardSource.encounterReward", "label": "Elite", "glyph": "ELT" },
+      "bossOnly": { "assetKey": "combat.cardSource.encounterReward", "label": "Boss", "glyph": "BOS" },
+      "temporary": { "assetKey": "combat.cardSource.temporary", "label": "Temporary", "glyph": "TMP" },
+      "legacy": { "assetKey": "combat.cardSource.legacy", "label": "Legacy", "glyph": "LEG" },
+      "unknown": { "assetKey": "combat.cardSource.legacy", "label": "Unknown", "glyph": "?" }
+    },
+    "family": {
+      "attack": { "assetKey": "combat.cardFamily.keeperAttack", "label": "Keeper Attack", "glyph": "KAT" },
+      "skill": { "assetKey": "combat.cardFamily.keeperSkill", "label": "Keeper Skill", "glyph": "KSK" },
+      "power": { "assetKey": "combat.cardFamily.power", "label": "Power", "glyph": "PWR" },
+      "pet-command": { "assetKey": "combat.cardFamily.petCommand", "label": "Pet-Command", "glyph": "CMD" },
+      "pet-support": { "assetKey": "combat.cardFamily.petSupport", "label": "Pet Support", "glyph": "SUP" },
+      "temporary": { "assetKey": "combat.cardFamily.temporary", "label": "Temporary", "glyph": "TMP" },
+      "other": { "assetKey": "combat.cardFamily.temporary", "label": "Other", "glyph": "OTH" },
+      "keeper-attack": { "assetKey": "combat.cardFamily.keeperAttack", "label": "Keeper Attack", "glyph": "KAT" },
+      "keeper-skill": { "assetKey": "combat.cardFamily.keeperSkill", "label": "Keeper Skill", "glyph": "KSK" },
+      "keeper-signal": { "assetKey": "combat.cardFamily.keeperSignal", "label": "Keeper Signal", "glyph": "SIG" },
+      "unknown": { "assetKey": "combat.cardFamily.temporary", "label": "Unknown", "glyph": "?" }
+    }
+  },
+  "tags": {
+    "pet-command": { "tag": "pet-command", "assetKey": "combat.icon.tag.petCommand", "glyph": "CMD" },
+    "command": { "tag": "command", "assetKey": "combat.icon.tag.petCommand", "glyph": "CMD" },
+    "pet": { "tag": "pet", "assetKey": "combat.icon.tag.petCommand", "glyph": "PET" },
+    "fox": { "tag": "fox", "assetKey": "combat.icon.tag.fox", "glyph": "FOX" },
+    "burn": { "tag": "burn", "assetKey": "combat.icon.tag.burn", "glyph": "BRN" },
+    "guard": { "tag": "guard", "assetKey": "combat.icon.tag.guard", "glyph": "GRD" },
+    "block": { "tag": "block", "assetKey": "combat.icon.tag.block", "glyph": "BLK" },
+    "draw": { "tag": "draw", "assetKey": "combat.icon.tag.draw", "glyph": "DRW" },
+    "mark": { "tag": "mark", "assetKey": "combat.icon.tag.mark", "glyph": "MRK" },
+    "attack": { "tag": "attack", "assetKey": "combat.icon.tag.attack", "glyph": "ATK" },
+    "setup": { "tag": "setup", "assetKey": "combat.icon.tag.setup", "glyph": "SET" },
+    "combo": { "tag": "combo", "assetKey": "combat.icon.tag.combo", "glyph": "CMB" },
+    "keeper": { "tag": "keeper", "assetKey": "combat.icon.tag.keeper", "glyph": "KPR" },
+    "signal": { "tag": "signal", "assetKey": "combat.icon.tag.signal", "glyph": "SIG" },
+    "scout": { "tag": "scout", "assetKey": "combat.icon.tag.scout", "glyph": "SCT" },
+    "fetch": { "tag": "fetch", "assetKey": "combat.icon.tag.fetch", "glyph": "FCH" },
+    "reveal": { "tag": "reveal", "assetKey": "combat.icon.tag.reveal", "glyph": "REV" },
+    "scope": { "tag": "scope", "assetKey": "combat.icon.tag.scope", "glyph": "SCP" },
+    "obscure": { "tag": "obscure", "assetKey": "combat.icon.tag.obscure", "glyph": "OBS" },
+    "rare": { "tag": "rare", "assetKey": "combat.icon.tag.rare", "glyph": "RAR" },
+    "passive": { "tag": "passive", "assetKey": "combat.icon.tag.fallback", "glyph": "PAS" },
+    "skill": { "tag": "skill", "assetKey": "combat.icon.tag.fallback", "glyph": "SKL" }
+  },
+  "artByCardId": {
+    "keepers_tap": "combat.cardArt.keepersTap",
+    "field_brace": "combat.cardArt.fieldBrace",
+    "read_the_ash": "combat.cardArt.readTheAsh",
+    "fox_bite": "combat.cardArt.foxBite",
+    "tailguard": "combat.cardArt.tailguard",
+    "kindle_mark": "combat.cardArt.kindleMark",
+    "fetch_signal": "combat.cardArt.fetchSignal"
+  },
+  "paletteByFamily": {
+    "pet-command": "petCommand",
+    "pet-support": "petCommand",
+    "skill": "skill",
+    "keeper-skill": "skill",
+    "keeper-signal": "skill"
+  },
+  "fallbacks": {
+    "rarity": "unknown",
+    "source": "unknown",
+    "family": "unknown",
+    "tagAssetKey": "combat.icon.tag.fallback",
+    "artKey": "combat.cardFrame.artWindowPlaceholder",
+    "palette": "normal",
+    "disabledPalette": "disabled"
+  }
+}

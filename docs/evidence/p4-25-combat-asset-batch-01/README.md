@@ -40,3 +40,6 @@
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.
 - `validation/vite-*-runtime-integration*.log`: local Vite server logs used for browser smoke evidence.
+- `validation/card-visual-config-loader-typecheck.log`: typecheck proof for the JSON-backed card visual config loader.
+- `validation/card-visual-config-loader-test-phaser.log`: focused Phaser test proof for the card visual generator/config loader.
+- `validation/card-visual-config-loader-build.log`: production build proof after moving card visual asset mapping into JSON config.
