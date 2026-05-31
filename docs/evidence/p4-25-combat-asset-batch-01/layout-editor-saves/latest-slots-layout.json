@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "stage": {
+    "width": 1280,
+    "height": 720,
+    "coordinateMode": "top-left"
+  },
+  "view": {
+    "zoom": 0.72,
+    "showAssets": true,
+    "showWires": true,
+    "showText": true,
+    "assetOpacity": 0.9,
+    "wireOpacity": 0.86,
+    "textOpacity": 0.88
+  },
+  "zones": {
+    "petRing": { "x": 234, "y": 299, "w": 92, "h": 46, "colour": "#ffbd66" },
+    "petCommandGlow": { "x": 234, "y": 299, "w": 92, "h": 46, "colour": "#ffe0a3" },
+    "emberChargePip": { "x": 258, "y": 262, "w": 12, "h": 12, "colour": "#ffc857" },
+    "petStatusTray": { "x": 242, "y": 409, "w": 76, "h": 22, "colour": "#72d6a3" },
+    "inactivePetSlot": { "x": 324, "y": 304, "w": 52, "h": 52, "colour": "#8e8e8e" },
+    "enemyTargetRing": { "x": 933, "y": 286, "w": 126, "h": 32, "colour": "#ff758f" },
+    "enemyHpBarTrack": { "x": 937, "y": 308, "w": 118, "h": 12, "colour": "#e75c63" },
+    "enemyHpBarFillMask": { "x": 937, "y": 308, "w": 82, "h": 12, "colour": "#ff8b8b" },
+    "enemyBlockBadge": { "x": 1043, "y": 285, "w": 24, "h": 24, "colour": "#77d5ff" },
+    "enemyStatusTray": { "x": 954, "y": 331, "w": 84, "h": 24, "colour": "#b58cff" }
+  },
+  "engineText": {
+    "petName": { "x": 236, "y": 384, "w": 88, "h": 34, "text": "Ember\nReady" },
+    "petStatuses": { "x": 252, "y": 413, "w": 56, "h": 16, "text": "Guard" },
+    "petCharge": { "x": 256, "y": 246, "w": 62, "h": 16, "text": "charge pips" },
+    "inactivePet": { "x": 334, "y": 318, "w": 32, "h": 20, "text": "+" },
+    "enemyName": { "x": 936, "y": 180, "w": 120, "h": 22, "text": "Training Slime" },
+    "enemyHp": { "x": 948, "y": 291, "w": 82, "h": 18, "text": "HP 18/24" },
+    "enemyBlock": { "x": 1045, "y": 287, "w": 22, "h": 18, "text": "B4" },
+    "enemyStatuses": { "x": 956, "y": 334, "w": 82, "h": 18, "text": "Burn Mark" }
+  },
+  "referenceActors": {
+    "pet": { "x": 238, "y": 268, "w": 84, "h": 72 },
+    "enemy": { "x": 953, "y": 197, "w": 86, "h": 110 }
+  }
+}
