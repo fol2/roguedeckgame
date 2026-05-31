@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HUD And Controls Layout Editor</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --stage-w: 1280px;
+        --stage-h: 720px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f4f4f1;
+        color: #181818;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      header {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      p {
+        margin: 0 0 10px;
+        line-height: 1.45;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(620px, 1fr) minmax(360px, 430px);
+        gap: 18px;
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 14px 24px;
+      }
+
+      .stage-wrap {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        padding-top: 8px;
+        overflow: auto;
+      }
+
+      .stage-scale {
+        width: calc(var(--stage-w) * var(--zoom));
+        height: calc(var(--stage-h) * var(--zoom));
+      }
+
+      .stage {
+        position: relative;
+        width: var(--stage-w);
+        height: var(--stage-h);
+        overflow: hidden;
+        border: 1px solid #777;
+        background:
+          linear-gradient(45deg, #d5d5d5 25%, transparent 25%),
+          linear-gradient(-45deg, #d5d5d5 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #d5d5d5 75%),
+          linear-gradient(-45deg, transparent 75%, #d5d5d5 75%);
+        background-color: #eeeeee;
+        background-size: 24px 24px;
+        background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+        transform: scale(var(--zoom));
+        transform-origin: top left;
+      }
+
+      .board {
+        position: absolute;
+        left: 24px;
+        top: 28px;
+        width: 1232px;
+        height: 468px;
+        border: 2px solid #5f6f89;
+        background: rgb(27 34 48 / 92%);
+      }
+
+      .asset,
+      .engine-text,
+      .zone {
+        position: absolute;
+      }
+
+      .asset {
+        display: block;
+        object-fit: fill;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .engine-text {
+        display: grid;
+        place-items: center;
+        min-width: 20px;
+        min-height: 18px;
+        padding: 2px 5px;
+        border: 1px solid rgb(255 255 255 / 35%);
+        background: rgb(16 21 31 / 72%);
+        color: #f6f1e8;
+        font-weight: 700;
+        font-size: 13px;
+        pointer-events: none;
+      }
+
+      .zone {
+        border: 2px dashed var(--zone-colour);
+        background: color-mix(in srgb, var(--zone-colour) 14%, transparent);
+        touch-action: none;
+      }
+
+      .zone[data-selected="true"] {
+        border-style: solid;
+        box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--zone-colour);
+      }
+
+      .zone::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        padding: 2px 5px;
+        background: rgb(255 255 255 / 88%);
+        color: #111;
+        font-size: 12px;
+        font-weight: 700;
+        max-width: calc(100% - 6px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      .zone .handle {
+        position: absolute;
+        right: -8px;
+        bottom: -8px;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--zone-colour);
+        background: #fff5e0;
+      }
+
+      .panel {
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid #b8b8b8;
+        background: #ffffff;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      input,
+      select,
+      button,
+      textarea {
+        width: 100%;
+        font: inherit;
+      }
+
+      input,
+      select {
+        padding: 7px;
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid #222;
+        background: #222;
+        color: white;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #f7f7f7;
+        color: #222;
+      }
+
+      textarea {
+        min-height: 260px;
+        padding: 10px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+      }
+
+      .save-status {
+        min-height: 22px;
+        color: #295f2d;
+        font-weight: 700;
+      }
+
+      .toggle-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .toggle-row label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 400;
+      }
+
+      .toggle-row input {
+        width: auto;
+      }
+
+      @media (max-width: 1050px) {
+        .layout {
+          display: block;
+        }
+
+        .stage-wrap {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>HUD And Controls Layout Editor</h1>
+      <p>Drag or resize the wire boxes. Use the numeric fields for precise edits. Press Save Layout when done so Codex can read the HUD JSON from the repo.</p>
+    </header>
+
+    <main class="layout">
+      <section class="stage-wrap" aria-label="HUD layout stage">
+        <div class="stage-scale">
+          <div id="stage" class="stage"></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="panel">
+          <h2>Editor</h2>
+          <label>Selected Zone
+            <select id="zoneSelect"></select>
+          </label>
+          <div class="controls">
+            <label>X <input id="xInput" type="number" step="1"></label>
+            <label>Y <input id="yInput" type="number" step="1"></label>
+            <label>W <input id="wInput" type="number" step="1" min="1"></label>
+            <label>H <input id="hInput" type="number" step="1" min="1"></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>View</h2>
+          <div class="controls">
+            <label>Zoom <input id="zoomInput" type="number" min="0.35" max="1" step="0.05"></label>
+            <label>Asset Opacity <input id="assetOpacityInput" type="number" min="0" max="1" step="0.05"></label>
+            <label>Wire Opacity <input id="wireOpacityInput" type="number" min="0" max="1" step="0.05"></label>
+            <label>Text Opacity <input id="textOpacityInput" type="number" min="0" max="1" step="0.05"></label>
+          </div>
+          <div class="toggle-row">
+            <label><input id="showAssetsInput" type="checkbox"> Assets</label>
+            <label><input id="showWiresInput" type="checkbox"> Wires</label>
+            <label><input id="showTextInput" type="checkbox"> Engine text</label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <button id="saveButton" type="button">Save Layout</button>
+          <button id="resetButton" class="secondary" type="button">Reset Defaults</button>
+          <p id="saveStatus" class="save-status"></p>
+        </div>
+
+        <div class="panel">
+          <h2>JSON</h2>
+          <textarea id="jsonOutput" readonly></textarea>
+        </div>
+      </aside>
+    </main>
+
+    <script>
+      const stage = document.getElementById("stage");
+      const zoneSelect = document.getElementById("zoneSelect");
+      const xInput = document.getElementById("xInput");
+      const yInput = document.getElementById("yInput");
+      const wInput = document.getElementById("wInput");
+      const hInput = document.getElementById("hInput");
+      const zoomInput = document.getElementById("zoomInput");
+      const assetOpacityInput = document.getElementById("assetOpacityInput");
+      const wireOpacityInput = document.getElementById("wireOpacityInput");
+      const textOpacityInput = document.getElementById("textOpacityInput");
+      const showAssetsInput = document.getElementById("showAssetsInput");
+      const showWiresInput = document.getElementById("showWiresInput");
+      const showTextInput = document.getElementById("showTextInput");
+      const saveButton = document.getElementById("saveButton");
+      const resetButton = document.getElementById("resetButton");
+      const saveStatus = document.getElementById("saveStatus");
+      const jsonOutput = document.getElementById("jsonOutput");
+
+      const saveName = "hud-controls";
+      const storageKey = "hudControlsLayout";
+      const latestLayoutUrl = "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hud-controls-layout.json";
+      const stageSize = { w: 1280, h: 720 };
+      const assetRoot = "/public/assets/combat/ui/hud/";
+
+      const assets = [
+        { id: "bottomHudPlate", src: `${assetRoot}combat_ui_bottom_hud_plate.png` },
+        { id: "playerHudFrame", src: `${assetRoot}combat_ui_player_hud_frame.png` },
+        { id: "playerHoverFrame", src: `${assetRoot}combat_ui_player_hover_frame.png` },
+        { id: "playerPortraitFrame", src: `${assetRoot}combat_ui_player_portrait_frame.png` },
+        { id: "playerHpBarTrack", src: `${assetRoot}combat_ui_player_hp_bar_track.png` },
+        { id: "playerHpBarFillMask", src: `${assetRoot}combat_ui_player_hp_bar_fill_mask.png` },
+        { id: "playerBlockBadge", src: `${assetRoot}combat_ui_player_block_badge.png` },
+        { id: "playerStatusTray", src: `${assetRoot}combat_ui_player_status_tray.png` },
+        { id: "energyOrb", src: `${assetRoot}combat_control_energy_orb.png` },
+        { id: "drawPile", src: `${assetRoot}combat_control_draw_pile.png` },
+        { id: "discardPile", src: `${assetRoot}combat_control_discard_pile.png` },
+        { id: "endTurnButton", src: `${assetRoot}combat_control_end_turn_button.png` },
+        { id: "menuButton", src: `${assetRoot}combat_control_menu_button.png` }
+      ];
+
+      const labels = {
+        bottomHudPlate: "Bottom HUD plate",
+        playerHudFrame: "Player HUD frame",
+        playerHoverFrame: "Player hover frame",
+        playerPortraitFrame: "Portrait frame",
+        playerHpBarTrack: "HP track",
+        playerHpBarFillMask: "HP fill mask",
+        playerBlockBadge: "Block badge",
+        playerStatusTray: "Status tray",
+        energyOrb: "Energy orb",
+        drawPile: "Draw pile",
+        discardPile: "Discard pile",
+        endTurnButton: "End turn button",
+        menuButton: "Menu button"
+      };
+
+      const defaultLayout = {
+        version: 1,
+        stage: { width: stageSize.w, height: stageSize.h, coordinateMode: "top-left" },
+        view: {
+          zoom: 0.72,
+          showAssets: true,
+          showWires: true,
+          showText: true,
+          assetOpacity: 0.92,
+          wireOpacity: 0.88,
+          textOpacity: 0.9
+        },
+        zones: {
+          bottomHudPlate: { x: 0, y: 564, w: 1280, h: 156, colour: "#d8872f" },
+          playerHudFrame: { x: 24, y: 564, w: 176, h: 120, colour: "#4f83ff" },
+          playerHoverFrame: { x: 24, y: 564, w: 176, h: 120, colour: "#84c8ff" },
+          playerPortraitFrame: { x: 31, y: 571, w: 54, h: 54, colour: "#7aa5ff" },
+          playerHpBarTrack: { x: 90, y: 616, w: 92, h: 10, colour: "#e75c63" },
+          playerHpBarFillMask: { x: 90, y: 616, w: 68, h: 10, colour: "#ff8b8b" },
+          playerBlockBadge: { x: 38, y: 632, w: 48, h: 34, colour: "#77d5ff" },
+          playerStatusTray: { x: 78, y: 647, w: 148, h: 30, colour: "#b58cff" },
+          energyOrb: { x: 208, y: 590, w: 76, h: 76, colour: "#ffc857" },
+          drawPile: { x: 291, y: 587, w: 58, h: 82, colour: "#6cc6ff" },
+          discardPile: { x: 1037, y: 587, w: 58, h: 82, colour: "#e4a45f" },
+          endTurnButton: { x: 1132, y: 600, w: 124, h: 56, colour: "#ff7d4d" },
+          menuButton: { x: 1208, y: 35, w: 48, h: 34, colour: "#d0d0d0" }
+        },
+        engineText: {
+          playerName: { x: 90, y: 580, w: 78, h: 20, text: "Keeper" },
+          playerHp: { x: 90, y: 604, w: 86, h: 20, text: "HP 52/70" },
+          playerBlock: { x: 42, y: 642, w: 72, h: 20, text: "Block 8" },
+          playerStatuses: { x: 90, y: 646, w: 104, h: 20, text: "Burn Guard" },
+          energy: { x: 220, y: 618, w: 52, h: 24, text: "3/3" },
+          drawCount: { x: 303, y: 678, w: 34, h: 24, text: "12" },
+          discardCount: { x: 1049, y: 678, w: 34, h: 24, text: "5" },
+          endTurn: { x: 1150, y: 616, w: 90, h: 26, text: "End Turn" },
+          menu: { x: 1220, y: 43, w: 24, h: 20, text: "Menu" }
+        }
+      };
+
+      let layout = structuredClone(defaultLayout);
+      let selectedId = "bottomHudPlate";
+      const zoneElements = new Map();
+      const assetElements = new Map();
+      let dragState;
+
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const zone = () => layout.zones[selectedId];
+      const roundZone = (z) => {
+        z.x = Math.round(z.x);
+        z.y = Math.round(z.y);
+        z.w = Math.max(1, Math.round(z.w));
+        z.h = Math.max(1, Math.round(z.h));
+      };
+
+      const normaliseLayout = (next) => {
+        const merged = structuredClone(defaultLayout);
+        if (next && typeof next === "object") {
+          merged.version = next.version ?? merged.version;
+          merged.view = { ...merged.view, ...(next.view ?? {}) };
+          for (const [id, value] of Object.entries(next.zones ?? {})) {
+            if (merged.zones[id] && value && typeof value === "object") {
+              merged.zones[id] = { ...merged.zones[id], ...value };
+              roundZone(merged.zones[id]);
+            }
+          }
+          merged.engineText = { ...merged.engineText, ...(next.engineText ?? {}) };
+        }
+        return merged;
+      };
+
+      const setBoxStyle = (element, box) => {
+        element.style.left = `${box.x}px`;
+        element.style.top = `${box.y}px`;
+        element.style.width = `${box.w}px`;
+        element.style.height = `${box.h}px`;
+      };
+
+      const buildStage = () => {
+        stage.innerHTML = '<div class="board"></div>';
+        zoneElements.clear();
+        assetElements.clear();
+
+        for (const asset of assets) {
+          const img = document.createElement("img");
+          img.className = "asset";
+          img.id = `asset-${asset.id}`;
+          img.src = asset.src;
+          img.alt = "";
+          stage.appendChild(img);
+          assetElements.set(asset.id, img);
+        }
+
+        for (const [id, textBox] of Object.entries(layout.engineText)) {
+          const text = document.createElement("div");
+          text.className = "engine-text";
+          text.id = `text-${id}`;
+          text.textContent = textBox.text;
+          setBoxStyle(text, textBox);
+          stage.appendChild(text);
+        }
+
+        for (const id of Object.keys(layout.zones)) {
+          const box = document.createElement("div");
+          box.className = "zone";
+          box.dataset.id = id;
+          box.dataset.label = labels[id] ?? id;
+          box.style.setProperty("--zone-colour", layout.zones[id].colour);
+          const handle = document.createElement("div");
+          handle.className = "handle";
+          box.appendChild(handle);
+          stage.appendChild(box);
+          zoneElements.set(id, box);
+          box.addEventListener("pointerdown", (event) => beginDrag(event, id, "move"));
+          handle.addEventListener("pointerdown", (event) => beginDrag(event, id, "resize"));
+        }
+      };
+
+      const beginDrag = (event, id, mode) => {
+        event.preventDefault();
+        event.stopPropagation();
+        selectedId = id;
+        const current = layout.zones[id];
+        dragState = {
+          id,
+          mode,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          original: { ...current }
+        };
+        zoneElements.get(id).setPointerCapture(event.pointerId);
+        syncSelection();
+      };
+
+      const updateDrag = (event) => {
+        if (!dragState) {
+          return;
+        }
+        const current = layout.zones[dragState.id];
+        const zoom = layout.view.zoom || 1;
+        const dx = (event.clientX - dragState.startX) / zoom;
+        const dy = (event.clientY - dragState.startY) / zoom;
+        if (dragState.mode === "move") {
+          current.x = clamp(dragState.original.x + dx, -stageSize.w, stageSize.w);
+          current.y = clamp(dragState.original.y + dy, -stageSize.h, stageSize.h);
+        } else {
+          current.w = clamp(dragState.original.w + dx, 1, stageSize.w * 2);
+          current.h = clamp(dragState.original.h + dy, 1, stageSize.h * 2);
+        }
+        roundZone(current);
+        syncSelection();
+        render();
+      };
+
+      const endDrag = () => {
+        if (!dragState) {
+          return;
+        }
+        dragState = undefined;
+        render();
+      };
+
+      window.addEventListener("pointermove", updateDrag);
+      window.addEventListener("pointerup", endDrag);
+      window.addEventListener("pointercancel", endDrag);
+
+      const render = () => {
+        document.documentElement.style.setProperty("--zoom", String(layout.view.zoom));
+        for (const [id, box] of Object.entries(layout.zones)) {
+          const asset = assetElements.get(id);
+          const wire = zoneElements.get(id);
+          if (asset) {
+            setBoxStyle(asset, box);
+            asset.style.opacity = layout.view.showAssets ? layout.view.assetOpacity : 0;
+          }
+          if (wire) {
+            setBoxStyle(wire, box);
+            wire.dataset.selected = String(id === selectedId);
+            wire.style.opacity = layout.view.showWires ? layout.view.wireOpacity : 0;
+            wire.style.pointerEvents = layout.view.showWires ? "auto" : "none";
+          }
+        }
+        for (const [id, textBox] of Object.entries(layout.engineText)) {
+          const element = document.getElementById(`text-${id}`);
+          if (element) {
+            setBoxStyle(element, textBox);
+            element.style.opacity = layout.view.showText ? layout.view.textOpacity : 0;
+          }
+        }
+        zoomInput.value = layout.view.zoom;
+        assetOpacityInput.value = layout.view.assetOpacity;
+        wireOpacityInput.value = layout.view.wireOpacity;
+        textOpacityInput.value = layout.view.textOpacity;
+        showAssetsInput.checked = layout.view.showAssets;
+        showWiresInput.checked = layout.view.showWires;
+        showTextInput.checked = layout.view.showText;
+        jsonOutput.value = JSON.stringify(layout, null, 2);
+      };
+
+      const syncSelection = () => {
+        zoneSelect.value = selectedId;
+        const current = zone();
+        xInput.value = current.x;
+        yInput.value = current.y;
+        wInput.value = current.w;
+        hInput.value = current.h;
+      };
+
+      const updateSelectedFromInputs = () => {
+        const current = zone();
+        current.x = Number(xInput.value);
+        current.y = Number(yInput.value);
+        current.w = Number(wInput.value);
+        current.h = Number(hInput.value);
+        roundZone(current);
+        syncSelection();
+        render();
+      };
+
+      const saveLocal = () => {
+        localStorage.setItem(storageKey, JSON.stringify(layout));
+      };
+
+      zoneSelect.addEventListener("change", () => {
+        selectedId = zoneSelect.value;
+        syncSelection();
+        render();
+      });
+      [xInput, yInput, wInput, hInput].forEach((input) => {
+        input.addEventListener("input", updateSelectedFromInputs);
+      });
+      zoomInput.addEventListener("input", () => {
+        layout.view.zoom = Number(zoomInput.value);
+        render();
+      });
+      assetOpacityInput.addEventListener("input", () => {
+        layout.view.assetOpacity = Number(assetOpacityInput.value);
+        render();
+      });
+      wireOpacityInput.addEventListener("input", () => {
+        layout.view.wireOpacity = Number(wireOpacityInput.value);
+        render();
+      });
+      textOpacityInput.addEventListener("input", () => {
+        layout.view.textOpacity = Number(textOpacityInput.value);
+        render();
+      });
+      showAssetsInput.addEventListener("change", () => {
+        layout.view.showAssets = showAssetsInput.checked;
+        render();
+      });
+      showWiresInput.addEventListener("change", () => {
+        layout.view.showWires = showWiresInput.checked;
+        render();
+      });
+      showTextInput.addEventListener("change", () => {
+        layout.view.showText = showTextInput.checked;
+        render();
+      });
+
+      saveButton.addEventListener("click", async () => {
+        saveStatus.textContent = "Saving...";
+        saveLocal();
+        try {
+          const response = await fetch(`/__save_card_layout?name=${encodeURIComponent(saveName)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(layout)
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const result = await response.json();
+          saveStatus.textContent = `Saved: ${result.path}`;
+        } catch (error) {
+          saveStatus.textContent = `Saved locally only. Server save failed: ${error.message}`;
+        }
+      });
+
+      resetButton.addEventListener("click", () => {
+        layout = structuredClone(defaultLayout);
+        selectedId = "bottomHudPlate";
+        buildStage();
+        syncSelection();
+        render();
+        saveStatus.textContent = "Reset to defaults.";
+      });
+
+      const init = async () => {
+        for (const id of Object.keys(layout.zones)) {
+          const option = document.createElement("option");
+          option.value = id;
+          option.textContent = labels[id] ?? id;
+          zoneSelect.appendChild(option);
+        }
+        const local = localStorage.getItem(storageKey);
+        if (local) {
+          try {
+            layout = normaliseLayout(JSON.parse(local));
+          } catch {
+            layout = structuredClone(defaultLayout);
+          }
+        } else {
+          try {
+            const response = await fetch(latestLayoutUrl, { cache: "no-store" });
+            if (response.ok) {
+              layout = normaliseLayout(await response.json());
+              saveStatus.textContent = "Loaded latest HUD controls layout.";
+            }
+          } catch {
+            layout = structuredClone(defaultLayout);
+          }
+        }
+        buildStage();
+        syncSelection();
+        render();
+      };
+
+      void init();
+    </script>
+  </body>
+</html>

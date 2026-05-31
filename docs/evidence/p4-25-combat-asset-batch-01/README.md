@@ -27,6 +27,9 @@
 - `tag-icons-validation.json`: dimensions and alpha validation for the complete tag icon runtime set.
 - `tag-icons-candidate-sheet.png`: preserved candidate proof sheet for the tag icon image-generation pass.
 - `tag-icons-candidates.json`: selected source-to-candidate mapping for the tag icon promotion.
+- `layout-editor-hud-controls.html`: editable HUD and controls layout editor for the remaining collaborative HUD asset pass.
+- `layout-editor-saves/latest-hud-controls-layout.json`: current HUD and controls layout metrics exported by the editor.
+- `hud-controls-editor-mobile-render.png`: iPhone-width browser screenshot proving the HUD editor renders through the Tailscale review server.
 - `asset-png-validation.json`: runtime PNG count, dimensions, RGBA mode, and transparency validation.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.

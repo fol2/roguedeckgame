@@ -1,0 +1,10 @@
+pageStatus=200
+pageContains=True
+editorStatus=200
+editorContains=True
+jsonStatus=200
+jsonContains=True
+browserConsoleErrors=0
+browserDecodedHudAssets=13/13
+browserWireZones=13
+browserEngineTextPlaceholders=9

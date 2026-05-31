@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "stage": {
+    "width": 1280,
+    "height": 720,
+    "coordinateMode": "top-left"
+  },
+  "view": {
+    "zoom": 0.72,
+    "showAssets": true,
+    "showWires": true,
+    "showText": true,
+    "assetOpacity": 0.92,
+    "wireOpacity": 0.88,
+    "textOpacity": 0.9
+  },
+  "zones": {
+    "bottomHudPlate": { "x": 0, "y": 564, "w": 1280, "h": 156, "colour": "#d8872f" },
+    "playerHudFrame": { "x": 24, "y": 564, "w": 176, "h": 120, "colour": "#4f83ff" },
+    "playerHoverFrame": { "x": 24, "y": 564, "w": 176, "h": 120, "colour": "#84c8ff" },
+    "playerPortraitFrame": { "x": 31, "y": 571, "w": 54, "h": 54, "colour": "#7aa5ff" },
+    "playerHpBarTrack": { "x": 90, "y": 616, "w": 92, "h": 10, "colour": "#e75c63" },
+    "playerHpBarFillMask": { "x": 90, "y": 616, "w": 68, "h": 10, "colour": "#ff8b8b" },
+    "playerBlockBadge": { "x": 38, "y": 632, "w": 48, "h": 34, "colour": "#77d5ff" },
+    "playerStatusTray": { "x": 78, "y": 647, "w": 148, "h": 30, "colour": "#b58cff" },
+    "energyOrb": { "x": 208, "y": 590, "w": 76, "h": 76, "colour": "#ffc857" },
+    "drawPile": { "x": 291, "y": 587, "w": 58, "h": 82, "colour": "#6cc6ff" },
+    "discardPile": { "x": 1037, "y": 587, "w": 58, "h": 82, "colour": "#e4a45f" },
+    "endTurnButton": { "x": 1132, "y": 600, "w": 124, "h": 56, "colour": "#ff7d4d" },
+    "menuButton": { "x": 1208, "y": 35, "w": 48, "h": 34, "colour": "#d0d0d0" }
+  },
+  "engineText": {
+    "playerName": { "x": 90, "y": 580, "w": 78, "h": 20, "text": "Keeper" },
+    "playerHp": { "x": 90, "y": 604, "w": 86, "h": 20, "text": "HP 52/70" },
+    "playerBlock": { "x": 42, "y": 642, "w": 72, "h": 20, "text": "Block 8" },
+    "playerStatuses": { "x": 90, "y": 646, "w": 104, "h": 20, "text": "Burn Guard" },
+    "energy": { "x": 220, "y": 618, "w": 52, "h": 24, "text": "3/3" },
+    "drawCount": { "x": 303, "y": 678, "w": 34, "h": 24, "text": "12" },
+    "discardCount": { "x": 1049, "y": 678, "w": 34, "h": 24, "text": "5" },
+    "endTurn": { "x": 1150, "y": 616, "w": 90, "h": 26, "text": "End Turn" },
+    "menu": { "x": 1220, "y": 43, "w": 24, "h": 20, "text": "Menu" }
+  }
+}
