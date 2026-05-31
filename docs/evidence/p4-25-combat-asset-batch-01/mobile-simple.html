@@ -3,50 +3,129 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Combat Asset Review - Simple</title>
+    <title>Combat Asset Batch 01 Review</title>
     <style>
+      :root {
+        color-scheme: light;
+        --border: #b8b8b8;
+        --ink: #151515;
+        --muted: #444;
+        --panel: #f6f6f6;
+        --link: #0645ad;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
         padding: 14px;
-        background: white;
-        color: black;
+        background: #fff;
+        color: var(--ink);
         font-family: Arial, Helvetica, sans-serif;
         font-size: 17px;
         line-height: 1.45;
       }
 
+      main {
+        max-width: 720px;
+      }
+
       h1 {
         font-size: 24px;
-        margin: 0 0 12px;
+        margin: 0 0 8px;
       }
 
       h2 {
         font-size: 21px;
-        margin: 26px 0 8px;
-        padding-top: 12px;
+        margin: 28px 0 10px;
+        padding-top: 14px;
         border-top: 2px solid #222;
       }
 
       h3 {
         font-size: 18px;
-        margin: 18px 0 8px;
+        margin: 0 0 8px;
       }
 
       p {
         margin: 8px 0;
       }
 
-      img {
+      a {
+        color: var(--link);
+      }
+
+      .notice,
+      .asset-card,
+      details {
+        border: 1px solid var(--border);
+        background: var(--panel);
+      }
+
+      .notice {
+        padding: 10px;
+        margin: 12px 0;
+      }
+
+      .quick-links,
+      .status-grid,
+      .asset-list,
+      .link-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .quick-links {
+        grid-template-columns: 1fr;
+        margin: 12px 0;
+      }
+
+      .quick-links a,
+      .links a {
+        display: inline-block;
+        margin: 4px 8px 4px 0;
+      }
+
+      .status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 10px 0;
+      }
+
+      .status {
+        padding: 8px;
+        border: 1px solid #ccc;
+        background: #fff;
+        min-height: 60px;
+      }
+
+      .status strong {
+        display: block;
+      }
+
+      .asset-card {
+        padding: 10px;
+      }
+
+      .caption,
+      .meta,
+      summary {
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .meta {
+        margin: 4px 0 8px;
+      }
+
+      .asset-image {
         display: block;
         width: 100%;
         max-width: 536px;
         height: auto;
-        margin: 8px 0 4px;
+        margin: 8px 0 6px;
         border: 1px solid #999;
-        background: #222;
-      }
-
-      .asset {
         background:
           linear-gradient(45deg, #ddd 25%, transparent 25%),
           linear-gradient(-45deg, #ddd 25%, transparent 25%),
@@ -57,264 +136,284 @@
         background-position: 0 0, 0 9px, 9px -9px, -9px 0;
       }
 
-      .caption {
-        color: #333;
-        font-size: 15px;
-        margin-bottom: 16px;
+      details {
+        padding: 10px;
       }
 
-      .stack {
-        position: relative;
-        width: 100%;
-        max-width: 536px;
-        margin: 8px 0 4px;
-        background:
-          linear-gradient(45deg, #ddd 25%, transparent 25%),
-          linear-gradient(-45deg, #ddd 25%, transparent 25%),
-          linear-gradient(45deg, transparent 75%, #ddd 75%),
-          linear-gradient(-45deg, transparent 75%, #ddd 75%);
-        background-color: #f8f8f8;
-        background-size: 18px 18px;
-        background-position: 0 0, 0 9px, 9px -9px, -9px 0;
-        border: 1px solid #999;
+      summary {
+        cursor: pointer;
+        font-weight: 700;
       }
 
-      .stack img {
-        width: 100%;
-        max-width: none;
-        margin: 0;
-        border: 0;
-        background: transparent;
+      ul {
+        margin: 8px 0 0;
+        padding-left: 22px;
       }
 
-      .stack img + img {
-        position: absolute;
-        inset: 0;
+      li {
+        margin: 6px 0;
       }
 
-      .legend {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-        padding: 8px;
-        border: 1px solid #ccc;
-        background: #fafafa;
+      code {
+        font-family: Consolas, "Courier New", monospace;
         font-size: 14px;
       }
 
-      .legend span {
-        display: inline-block;
-      }
-
-      .choice {
-        padding: 10px;
-        border: 1px solid #bbb;
-        background: #f4f4f4;
-        margin: 10px 0;
-      }
-
-      a {
-        color: #0645ad;
+      @media (min-width: 640px) {
+        .quick-links {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
     </style>
   </head>
   <body>
-    <h1>Combat Asset Batch 01 Review</h1>
-    <p>This is the simple iPhone-safe page. It uses plain HTML, black text on white background, and vertical images.</p>
-    <p><strong>Editable layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor.html">Open the Option B card layout editor</a>. Current accepted baseline is Option B with alpha-reverse candidate 02, three tag slots, and a horizontally centred rarity gem socket between the art window and title band.</p>
+    <main>
+      <h1>Combat Asset Batch 01 Review</h1>
+      <p>This iPhone-safe page is the current review surface for the image-generation workflow. It shows the current candidate or proof for every completed Batch 01 item and keeps older branch material in compact history links.</p>
 
-    <div class="choice">
-      <p><strong>Decision:</strong> Option B is locked for the next workflow pass; use the editor as the source of truth for live metrics.</p>
-    </div>
+      <div class="notice">
+        <p><strong>Locked direction:</strong> Option B alpha-reverse card layout, separate rarity overlays, card-specific layout metrics, and engine-owned unplayable greying.</p>
+      </div>
 
-    <h2>Current Accepted Layout</h2>
-    <img class="asset" src="/docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock.png" alt="Option B editor screenshot with rarity gem socket and three tag slots">
-    <p class="caption">Option B alpha-reverse candidate 02 with rarityGemSocket plus tag1, tag2, and tag3 as independently editable slots.</p>
+      <section aria-labelledby="quick-links-heading">
+        <h2 id="quick-links-heading">Review Links</h2>
+        <div class="quick-links">
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor.html">Normal layout editor</a>
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-pet-command.html">Pet-command layout editor</a>
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-pet-support.html">Pet-support layout editor</a>
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-keeper-signal.html">Keeper-signal layout editor</a>
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-future-power.html">Future-power layout editor</a>
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-temporary.html">Temporary layout editor</a>
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-hover-overlay.html">Hover overlay editor</a>
+          <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-selected-overlay.html">Selected overlay editor</a>
+        </div>
+      </section>
 
-    <h3>Rarity Gem Mock Without Wires</h3>
-    <img class="asset" src="/docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock-no-wires.png" alt="Option B card mock with rarity gem and wire overlay hidden">
-    <p class="caption">Wire-free proof of the image-generated rarity gem alpha overlay in the centred socket between art and title.</p>
+      <section aria-labelledby="status-heading">
+        <h2 id="status-heading">Review Status</h2>
+        <p class="caption">Twelve Batch 01 items plus the rarity socket proof that anchors rarity placement.</p>
+        <div class="status-grid" id="status-grid"></div>
+      </section>
 
-    <h2>Pet Command Frame Attempt 04</h2>
-    <p><strong>Editable pet-command layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-pet-command.html">Open the pet-command card layout editor</a>.</p>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04.png" alt="Pet command frame attempt 04">
-    <p class="caption">Image-generated universal pet-command frame candidate. The palette is cooler and more teal/copper than the normal frame.</p>
+      <section aria-labelledby="assets-heading">
+        <h2 id="assets-heading">Current Artefacts</h2>
+        <div class="asset-list" id="asset-list"></div>
+      </section>
 
-    <h3>Pet Command Layout Overlay</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04_layout_overlay.png" alt="Pet command frame attempt 04 layout overlay">
-    <p class="caption">Latest saved layout metrics projected onto the pet-command attempt 04 candidate.</p>
+      <section aria-labelledby="history-heading">
+        <h2 id="history-heading">Preserved History</h2>
+        <div class="link-list">
+          <details>
+            <summary>Branch and layout experiments</summary>
+            <ul>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_composed_preview.png">Option A composed preview</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_engine_overlay.png">Option A engine overlay</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layered_mock/option_b_layered_composed_mock_v2.png">Option B layered mock V2</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layered_mock/option_b_layered_wire_overlay_v2.png">Option B layered wire overlay V2</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/option_b_three_tag_slots_wire_proof.png">Three tag-slot wire proof</a></li>
+            </ul>
+          </details>
 
-    <h3>Pet Command Editable Layout</h3>
-    <img class="asset" src="/docs/evidence/p4-25-combat-asset-batch-01/pet-command-layout-editor-confirmation.png" alt="Pet command editable layout confirmation">
-    <p class="caption">Pet-command candidate loaded in the editable layout editor.</p>
+          <details>
+            <summary>Rejected or superseded attempts</summary>
+            <ul>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rejected/pet_command_frame_attempt_01/REJECTED.md">Pet-command attempt 01 rejection note</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rejected/pet_command_frame_attempt_02/REJECTED.md">Pet-command attempt 02 rejection note</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rejected/pet_command_frame_attempt_03/REJECTED.md">Pet-command attempt 03 rejection note</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_02/combat_card_frame_pet_support_candidate_02_layout_overlay.png">Pet-support attempt 02 overlay</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_01/combat_card_frame_future_power_candidate_01_layout_overlay.png">Future-power attempt 01 overlay</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_02/combat_card_frame_hover_overlay_candidate_02_normal_proof.png">Hover overlay attempt 02 proof</a></li>
+              <li><a href="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/unplayable_overlay_attempt_01/REJECTED.md">Unplayable overlay rejection note</a></li>
+            </ul>
+          </details>
+        </div>
+      </section>
 
-    <h3>Pet Command Composed Proof</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04_composed_proof.png" alt="Pet command frame attempt 04 composed proof">
-    <p class="caption">Proof with filled art window, separate rarity gem overlay, code-rendered title/rules/cost/tags.</p>
+      <section aria-labelledby="docs-heading">
+        <h2 id="docs-heading">Documents</h2>
+        <p><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/docs/workflows/imagegen-batch-01-workflow-experiment.md">Workflow experiment Markdown</a></p>
+        <p><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/completion-report.md">Completion report Markdown</a></p>
+        <p><a href="/docs/evidence/p4-25-combat-asset-batch-01/runtime-asset-gallery.png">Runtime asset gallery PNG</a></p>
+      </section>
+    </main>
 
-    <h2>Pet Support Frame Attempt 02</h2>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_02/combat_card_frame_pet_support_candidate_02.png" alt="Pet support frame attempt 02">
-    <p class="caption">Discussion candidate for the next frame. Palette uses pale jade, sage, ivory parchment, and soft aged gold to separate it from normal and pet-command frames.</p>
+    <script>
+      const artefacts = [
+        {
+          id: "normal-frame",
+          title: "1. Normal Card Frame",
+          status: "Locked layout anchor",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02_proof.png",
+          caption: "Option B alpha-reverse frame proof. The art window and cost socket are true alpha openings.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor.html"]
+          ]
+        },
+        {
+          id: "pet-command-frame",
+          title: "2. Pet-Command Frame",
+          status: "Accepted candidate",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04_composed_proof.png",
+          caption: "Universal pet-command frame with cooler teal and copper palette, no baked gem placeholder.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_command_frame_attempt_04/combat_card_frame_pet_command_candidate_04.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-pet-command-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-pet-command.html"]
+          ]
+        },
+        {
+          id: "pet-support-frame",
+          title: "3. Pet-Support Frame",
+          status: "Accepted candidate",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_candidate_03_layout_overlay.png",
+          caption: "Attempt 03 keeps the accepted jade and ivory direction and fixes the top-left cost socket as alpha.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_candidate_03.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-pet-support-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-pet-support.html"]
+          ]
+        },
+        {
+          id: "keeper-signal-frame",
+          title: "4. Keeper-Signal Frame",
+          status: "Layout saved",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_candidate_01_layout_overlay_latest.png",
+          caption: "Smoky indigo, charcoal ink, pale silver, and restrained ember signal accents.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_candidate_01.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-keeper-signal-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-keeper-signal.html"]
+          ]
+        },
+        {
+          id: "future-power-frame",
+          title: "5. Future-Power Frame",
+          status: "Accepted candidate",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_candidate_02_layout_overlay_latest.png",
+          caption: "Attempt 02 separates this type from normal with obsidian, silver, violet-blue, and cool grey-lavender.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_candidate_02.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-future-power-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-future-power.html"]
+          ]
+        },
+        {
+          id: "temporary-frame",
+          title: "6. Temporary Frame",
+          status: "Accepted candidate",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_candidate_02_layout_overlay_latest.png",
+          caption: "Pale ash and smoky grey treatment with fading contained inside the frame silhouette.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_candidate_02.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-temporary-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-temporary.html"]
+          ]
+        },
+        {
+          id: "hover-overlay",
+          title: "7. Hover Overlay",
+          status: "Attempt 01 preferred",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_01/combat_card_frame_hover_overlay_candidate_01_normal_proof.png",
+          caption: "Stronger hover treatment kept as the preferred base for later animated outer-glow VFX.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_01/combat_card_frame_hover_overlay_candidate_01.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hover-overlay-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-hover-overlay.html"]
+          ]
+        },
+        {
+          id: "selected-overlay",
+          title: "8. Selected Overlay",
+          status: "Layout saved",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/selected_overlay_attempt_01/combat_card_frame_selected_overlay_candidate_01_normal_proof.png",
+          caption: "Selected state proof, intentionally stronger than hover and tuned as a per-card overlay.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/selected_overlay_attempt_01/combat_card_frame_selected_overlay_candidate_01.png"],
+            ["Layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-selected-overlay-layout.json"],
+            ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-selected-overlay.html"]
+          ]
+        },
+        {
+          id: "unplayable-state",
+          title: "9. Unplayable State",
+          status: "Engine-owned state",
+          caption: "No image overlay is accepted. The engine should grey, dim, or desaturate the whole card.",
+          links: [
+            ["Rejected attempt note", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/unplayable_overlay_attempt_01/REJECTED.md"]
+          ]
+        },
+        {
+          id: "art-window-placeholder",
+          title: "10. Art Window Placeholder",
+          status: "Exact 287 x 265 derivative",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/art_window_placeholder_attempt_01/combat_card_art_window_placeholder_candidate_01_287x265_normal_proof.png",
+          caption: "Quiet parchment and ash wash for the current near-square landscape art window. No text, numbers, symbols, or labels.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/art_window_placeholder_attempt_01/combat_card_art_window_placeholder_candidate_01_287x265.png"],
+            ["Raw source", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/art_window_placeholder_attempt_01/combat_card_art_window_placeholder_raw_attempt_01.png"]
+          ]
+        },
+        {
+          id: "starter-rarity",
+          title: "11. Starter Rarity Token",
+          status: "Alpha overlay",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_candidate_01_normal_proof.png",
+          caption: "Wood-and-bronze starter token as a separate overlay; no labels are baked into the frame.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_candidate_01_192.png"],
+            ["Alpha source", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_alpha_full_attempt_01.png"]
+          ]
+        },
+        {
+          id: "common-rarity",
+          title: "12. Common Rarity Token",
+          status: "Alpha overlay",
+          image: "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_candidate_01_normal_proof.png",
+          caption: "Bronze shield-like common token with amber centre, separate from the frame.",
+          links: [
+            ["Candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_candidate_01_192.png"],
+            ["Alpha source", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_alpha_full_attempt_01.png"]
+          ]
+        },
+        {
+          id: "rare-rarity",
+          title: "Rarity Socket and Rare Gem Mock",
+          status: "Placement proven",
+          image: "/docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock-no-wires.png",
+          caption: "The centred 60 x 60 rarity socket is proven with a separate image-generated rare gem overlay.",
+          links: [
+            ["Rare gem candidate", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_gem_mock/combat_card_rarity_rare_alpha_mock_01_192.png"],
+            ["Layout proof", "/docs/evidence/p4-25-combat-asset-batch-01/rarity-gem-layout-editor-mock.png"]
+          ]
+        }
+      ];
 
-    <h3>Pet Support Layout Overlay</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_02/combat_card_frame_pet_support_candidate_02_layout_overlay.png" alt="Pet support frame attempt 02 layout overlay">
-    <p class="caption">Current normal-frame layout metrics projected onto the pet-support attempt 02 candidate. The footer now supports three smaller independent tag sockets.</p>
+      const statusGrid = document.getElementById("status-grid");
+      const assetList = document.getElementById("asset-list");
 
-    <h2>Pet Support Frame Attempt 03</h2>
-    <p><strong>Editable pet-support layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-pet-support.html">Open the pet-support card layout editor</a>.</p>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_candidate_03.png" alt="Pet support frame attempt 03">
-    <p class="caption">Attempt 03 keeps the accepted pet-support visual direction and corrects the top-left cost socket into an alpha cutout.</p>
+      for (const item of artefacts) {
+        const status = document.createElement("div");
+        status.className = "status";
+        status.innerHTML = `<strong>${item.title}</strong><span>${item.status}</span>`;
+        statusGrid.appendChild(status);
 
-    <h3>Pet Support Attempt 03 Layout Overlay</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/pet_support_frame_attempt_03/combat_card_frame_pet_support_candidate_03_layout_overlay.png" alt="Pet support frame attempt 03 layout overlay">
-    <p class="caption">Current starting layout metrics projected onto attempt 03. Use the editor to tune exact card-specific metrics.</p>
-
-    <h3>Pet Support Editable Layout</h3>
-    <img class="asset" src="/docs/evidence/p4-25-combat-asset-batch-01/pet-support-layout-editor-attempt-03.png" alt="Pet support editable layout confirmation">
-    <p class="caption">Attempt 03 loaded in the editable pet-support layout editor.</p>
-
-    <h2>Keeper Signal Frame Attempt 01</h2>
-    <p><strong>Editable keeper-signal layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-keeper-signal.html">Open the keeper-signal card layout editor</a>.</p>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_candidate_01.png" alt="Keeper signal frame attempt 01">
-    <p class="caption">Discussion candidate for the Keeper signal frame. Palette uses smoky indigo, charcoal ink, pale silver, and restrained ember signal accents.</p>
-
-    <h3>Keeper Signal Layout Overlay</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/keeper_signal_frame_attempt_01/combat_card_frame_keeper_signal_candidate_01_layout_overlay.png" alt="Keeper signal frame attempt 01 layout overlay">
-    <p class="caption">Current normal-frame starting layout metrics projected onto Keeper signal attempt 01. Cost socket is an alpha cutout; right-side signal wire should be reviewed before approval.</p>
-
-    <h2>Future Power Frame Attempt 01</h2>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_01/combat_card_frame_future_power_candidate_01.png" alt="Future power frame attempt 01">
-    <p class="caption">Discussion candidate for the future-power frame. Palette uses deep ember crimson, blackened iron, antique gold, dark wine lacquer, and restrained amber glow.</p>
-
-    <h3>Future Power Layout Overlay</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_01/combat_card_frame_future_power_candidate_01_layout_overlay.png" alt="Future power frame attempt 01 layout overlay">
-    <p class="caption">Current normal-frame starting layout metrics projected onto future-power attempt 01. Cost socket and art window are alpha cutouts; footer keeps three small tag sockets.</p>
-
-    <h2>Future Power Frame Attempt 02</h2>
-    <p><strong>Editable future-power layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-future-power.html">Open the future-power card layout editor</a>.</p>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_candidate_02.png" alt="Future power frame attempt 02">
-    <p class="caption">Revised future-power candidate with a stronger obsidian, silver, violet-blue, and cool grey-lavender identity to separate it from the normal card.</p>
-
-    <h3>Future Power Attempt 02 Layout Overlay</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/future_power_frame_attempt_02/combat_card_frame_future_power_candidate_02_layout_overlay.png" alt="Future power frame attempt 02 layout overlay">
-    <p class="caption">Attempt 02 projected with current starting metrics. Review the small central notch near the title band and the violet diamonds near tag1/tag3 before approval.</p>
-
-    <h2>Temporary Frame Attempt 02</h2>
-    <p><strong>Editable temporary layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-temporary.html">Open the temporary card layout editor</a>.</p>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_candidate_02.png" alt="Temporary frame attempt 02">
-    <p class="caption">Discussion candidate for the temporary frame. Palette uses pale ash, smoky cool grey, worn silver, soft charcoal, and contained ember flecks.</p>
-
-    <h3>Temporary Attempt 02 Layout Overlay</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/temporary_frame_attempt_02/combat_card_frame_temporary_candidate_02_layout_overlay.png" alt="Temporary frame attempt 02 layout overlay">
-    <p class="caption">Attempt 02 projected with current starting metrics. This version contains the fading ash inside the frame silhouette and keeps the footer as three tag sockets.</p>
-
-    <h2>Hover Overlay Attempts</h2>
-    <p><strong>Editable hover overlay layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-hover-overlay.html">Open the hover overlay editor</a>. The editor now saves per-card overlay settings because one global fit is not reliable across all frames.</p>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_01/combat_card_frame_hover_overlay_candidate_01_normal_proof.png" alt="Hover overlay attempt 01 on normal card">
-    <p class="caption">Attempt 01 proof on the normal card frame. This version is stronger and better suited as a later animated VFX reference.</p>
-
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/hover_overlay_attempt_02/combat_card_frame_hover_overlay_candidate_02_normal_proof.png" alt="Hover overlay attempt 02 on normal card">
-    <p class="caption">Attempt 02 proof on the normal card frame. This version is subtler and is the current default in the hover overlay editor.</p>
-
-    <h2>Selected Overlay Attempt 01</h2>
-    <p><strong>Editable selected overlay layout:</strong> <a href="/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-selected-overlay.html">Open the selected overlay editor</a>. This editor also uses per-card overlay settings.</p>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/selected_overlay_attempt_01/combat_card_frame_selected_overlay_candidate_01_normal_proof.png" alt="Selected overlay attempt 01 on normal card">
-    <p class="caption">Attempt 01 proof on the normal card frame. It is intentionally stronger than hover and should be tuned per card in the selected overlay editor.</p>
-
-    <h2>Unplayable State Decision</h2>
-    <p><strong>Decision:</strong> unplayable cards should be greyed, dimmed, or desaturated by the engine. There is no accepted unplayable image overlay asset in this batch.</p>
-    <p class="caption">The abandoned image-generation attempt is preserved only as experiment source material and must not be promoted as a runtime overlay.</p>
-
-    <h2>Art Window Placeholder Attempt 01</h2>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/art_window_placeholder_attempt_01/combat_card_art_window_placeholder_candidate_01_287x265_normal_proof.png" alt="Art window placeholder attempt 01 on normal card">
-    <p class="caption">Attempt 01 proof using the current 287 x 265 normal-card art window. The runtime candidate is a quiet parchment and ash wash with no text, numbers, symbols, or labels.</p>
-
-    <h2>Starter Rarity Token Attempt 01</h2>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_starter_attempt_01/combat_card_rarity_starter_candidate_01_normal_proof.png" alt="Starter rarity token attempt 01 on normal card">
-    <p class="caption">Attempt 01 proof for starter rarity. The token is a separate alpha overlay so the card frame remains reusable.</p>
-
-    <h2>Common Rarity Token Attempt 01</h2>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/rarity_common_attempt_01/combat_card_rarity_common_candidate_01_normal_proof.png" alt="Common rarity token attempt 01 on normal card">
-    <p class="caption">Attempt 01 proof for common rarity. This provides a distinct bronze shield-like token without adding baked labels or numbers.</p>
-
-    <h2>Option A: V3 follows current engine overlay</h2>
-    <p>Lower engine risk. Cost remains top-right and title remains top. Needs one more prompt refinement to quiet the bottom ornaments.</p>
-
-    <h3>A1. Composed Preview</h3>
-    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_composed_preview.png" alt="Option A composed preview">
-    <p class="caption">Sample engine-rendered cost, title, art area, rules text, and tag chips on V3.</p>
-
-    <h3>A2. Overlay</h3>
-    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_03_engine_overlay.png" alt="Option A overlay">
-    <p class="caption">Current engine overlay projected onto V3.</p>
-
-    <h3>A2b. Transparent Wire Overlay On Candidate</h3>
-    <div class="stack">
-      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_03.png" alt="Option A candidate base">
-      <img src="/docs/evidence/p4-25-combat-asset-batch-01/mobile-overlays/option-a-engine-wire-overlay.png" alt="Option A transparent wire overlay">
-    </div>
-    <p class="caption">Transparent PNG overlay only: coloured wireframes, no filled blocks.</p>
-
-    <h3>A3. Transparent Runtime Candidate</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_03.png" alt="Option A transparent runtime candidate">
-    <p class="caption">Exact 384 x 536 candidate PNG.</p>
-
-    <h2>Option B: V2 style anchor with reverse overlay</h2>
-    <p>Stronger visual anchor. Cost moves top-left and title moves to the central banner. Requires updating engine card layout constants and tests.</p>
-
-    <h3>B Alpha-Reverse Candidate</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02.png" alt="Option B alpha-reversed candidate">
-    <p class="caption">Frame generated with visual transparency, then converted to true alpha by checker/background detection. The art window and cost socket are real transparent holes.</p>
-
-    <h3>B Alpha-Reverse Proof</h3>
-    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/alpha_reverse_attempt/combat_card_frame_normal_alpha_reversed_candidate_02_proof.png" alt="Option B alpha-reversed candidate proof">
-    <p class="caption">Proof image: art sits behind the transparent window and the generated frame naturally trims it.</p>
-
-    <h3>B0. Layered Mock V2</h3>
-    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layered_mock/option_b_layered_composed_mock_v2.png" alt="Option B layered mock version 2">
-    <p class="caption">Recommended layered direction: art sits behind transparent art window trim; title and rules stay on parchment with subtle readability tint.</p>
-
-    <h3>B0b. Layered Wire Overlay V2</h3>
-    <div class="stack">
-      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_02.png" alt="Option B candidate base for layered wire">
-      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/layered_mock/option_b_layered_wire_overlay_v2.png" alt="Option B layered wire overlay">
-    </div>
-    <p class="caption">Updated wire overlay for the layered mock.</p>
-
-    <h3>B1. Composed Preview</h3>
-    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_02_reverse_composed_preview_adjusted.png" alt="Option B composed preview">
-    <p class="caption">Sample engine-rendered content using the reverse overlay from V2.</p>
-
-    <h3>B2. Overlay</h3>
-    <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/working/combat_card_frame_normal_candidate_02_reverse_overlay_adjusted.png" alt="Option B overlay">
-    <p class="caption">Proposed new overlay derived from V2.</p>
-
-    <h3>B2b. Transparent Wire Overlay On Candidate</h3>
-    <div class="stack">
-      <img src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_02.png" alt="Option B candidate base">
-      <img src="/docs/evidence/p4-25-combat-asset-batch-01/mobile-overlays/option-b-reverse-wire-overlay.png" alt="Option B transparent wire overlay">
-    </div>
-    <p class="caption">Transparent PNG overlay only: coloured wireframes, no filled blocks.</p>
-
-    <h2>Wireframe Colour Legend</h2>
-    <div class="legend">
-      <span style="color:#d39000">Yellow: cost socket</span>
-      <span style="color:#d53030">Red: title band</span>
-      <span style="color:#006fcf">Blue: art window</span>
-      <span style="color:#555">White: rules text box</span>
-      <span style="color:#c96c00">Orange: tag slots</span>
-      <span style="color:#008fce">Cyan: rarity socket</span>
-      <span style="color:#008f48">Green: family badge</span>
-      <span style="color:#744ad8">Purple: source badge</span>
-    </div>
-
-    <h3>B3. Transparent Runtime Candidate</h3>
-    <img class="asset" src="/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/runtime_candidates/combat_card_frame_normal_candidate_02.png" alt="Option B transparent runtime candidate">
-    <p class="caption">Exact 384 x 536 candidate PNG.</p>
-
-    <h2>Documents</h2>
-    <p><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/docs/workflows/imagegen-batch-01-workflow-experiment.md">Workflow experiment Markdown</a></p>
-    <p><a href="/docs/contracts/p4/25-combat-asset-batch-01-ui-readability-package/completion-report.md">Completion report Markdown</a></p>
-    <p><a href="/docs/evidence/p4-25-combat-asset-batch-01/runtime-asset-gallery.png">Runtime asset gallery PNG</a></p>
+        const card = document.createElement("article");
+        card.className = "asset-card";
+        card.id = item.id;
+        const links = item.links
+          .map(([label, href]) => `<a href="${href}">${label}</a>`)
+          .join("");
+        card.innerHTML = `
+          <h3>${item.title}</h3>
+          <p class="meta"><strong>Status:</strong> ${item.status}</p>
+          ${item.image ? `<img class="asset-image" src="${item.image}" alt="${item.title} proof">` : ""}
+          <p class="caption">${item.caption}</p>
+          <p class="links">${links}</p>
+        `;
+        assetList.appendChild(card);
+      }
+    </script>
   </body>
 </html>
