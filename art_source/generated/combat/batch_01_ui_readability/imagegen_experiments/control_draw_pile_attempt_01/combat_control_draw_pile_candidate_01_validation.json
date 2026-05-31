@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_draw_pile_attempt_01\\combat_control_draw_pile_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_draw_pile_attempt_01\\combat_control_draw_pile_candidate_01_232x328.png",
+  "size": {
+    "width": 232,
+    "height": 328
+  },
+  "sourceVisibleBounds": {
+    "left": 100,
+    "top": 129,
+    "right": 921,
+    "bottom": 1339
+  },
+  "fitMode": "contain",
+  "fittedSize": {
+    "width": 217,
+    "height": 320
+  },
+  "finalVisibleBounds": {
+    "left": 7,
+    "top": 4,
+    "right": 224,
+    "bottom": 324
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

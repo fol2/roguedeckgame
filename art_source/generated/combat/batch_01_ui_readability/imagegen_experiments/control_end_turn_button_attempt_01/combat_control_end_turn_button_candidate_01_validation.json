@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_end_turn_button_attempt_01\\combat_control_end_turn_button_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_end_turn_button_attempt_01\\combat_control_end_turn_button_candidate_01_496x224.png",
+  "size": {
+    "width": 496,
+    "height": 224
+  },
+  "sourceVisibleBounds": {
+    "left": 44,
+    "top": 83,
+    "right": 1824,
+    "bottom": 743
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 488,
+    "height": 216
+  },
+  "finalVisibleBounds": {
+    "left": 4,
+    "top": 4,
+    "right": 492,
+    "bottom": 220
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

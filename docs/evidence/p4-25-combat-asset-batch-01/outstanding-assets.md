@@ -9,9 +9,9 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | State | Count | Notes |
 |---|---:|---|
 | Batch 01 registry entries | 112 | All entries loaded through `BATCH_01_COMBAT_ASSET_DEFINITIONS`. |
-| Image-generation assets already promoted to runtime | 89 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, all nineteen tag icons, and all ten combat slot assets. |
+| Image-generation assets already promoted to runtime | 102 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, all nineteen tag icons, all ten combat slot assets, and all thirteen HUD/control assets. |
 | Registry entry intentionally not generated | 1 | `combat.cardFrame.unplayableOverlay`; unplayable state is engine-rendered grey/dim treatment. |
-| Outstanding image-generation assets | 22 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
+| Outstanding image-generation assets | 9 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
 
 ## Shared Generation Rules
 
@@ -34,7 +34,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | Intent UI | 0 | 280 x 184, 192 x 192, 128 x 128 | Complete enemy intent token frame, intent category icon, and plan-state marker set is promoted and validated. All numeric intent values stay engine-rendered. |
 | Status icons | 0 | 128 x 128 | Complete combatant status icon set is promoted and validated. Stack counts and labels stay engine-rendered. |
 | Tag icons | 0 | 128 x 128 | Complete card tag icon set is promoted and validated. They are reviewed at roughly 20.5 x 20.5 hand-card display scale. |
-| HUD and controls | 13 | Mixed | Bottom HUD, player HUD parts, piles, energy orb, and menu/end-turn controls. Requires layout-editor collaboration before final promotion. |
+| HUD and controls | 0 | Mixed | Complete bottom HUD, player HUD parts, piles, energy orb, and menu/end-turn controls are promoted and validated. |
 | Detail, pause, and event panels | 9 | Mixed | Tooltip/detail/pause/event surfaces with empty content zones for engine-rendered text. Requires layout-editor collaboration before final promotion. |
 | Combat slots | 0 | Mixed | Complete pet/enemy rings, glows, charge/status trays, HP tracks, and block badges are promoted and validated. |
 
@@ -42,7 +42,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 
 | Outstanding category | Editor | Latest layout save | Validation state |
 |---|---|---|---|
-| HUD and controls | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-hud-controls.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hud-controls-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
+| HUD and controls | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-hud-controls.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hud-controls-layout.json` | Tailscale/mobile/browser smoke complete; promoted to runtime using the approved HUD/control layout metrics. |
 | Detail, pause, and event panels | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-panels.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-panels-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
 | Combat slots | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-slots.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-slots-layout.json` | Tailscale/mobile/browser smoke complete; promoted to runtime using the approved slot layout metrics. |
 
@@ -146,7 +146,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | `combat.icon.tag.rare` | `assets/combat/icons/tags/combat_icon_tag_rare.png` | 128 x 128 | Rare tag. |
 | `combat.icon.tag.fallback` | `assets/combat/icons/tags/combat_icon_tag_fallback.png` | 128 x 128 | Generic unknown tag. |
 
-## HUD And Controls - Outstanding 13
+## HUD And Controls - Complete 13
 
 | Asset key | Runtime path | Dimensions | Description |
 |---|---|---:|---|

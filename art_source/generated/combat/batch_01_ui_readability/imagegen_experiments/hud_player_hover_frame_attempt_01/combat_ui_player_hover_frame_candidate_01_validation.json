@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_hover_frame_attempt_01\\combat_ui_player_hover_frame_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_hover_frame_attempt_01\\combat_ui_player_hover_frame_candidate_01_704x480.png",
+  "size": {
+    "width": 704,
+    "height": 480
+  },
+  "sourceVisibleBounds": {
+    "left": 18,
+    "top": 129,
+    "right": 1481,
+    "bottom": 891
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 696,
+    "height": 472
+  },
+  "finalVisibleBounds": {
+    "left": 4,
+    "top": 4,
+    "right": 700,
+    "bottom": 476
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

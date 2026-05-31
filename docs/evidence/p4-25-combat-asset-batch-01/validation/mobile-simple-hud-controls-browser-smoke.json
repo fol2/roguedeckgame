@@ -1,0 +1,9 @@
+{
+  "cardCount": 25,
+  "statusCount": 24,
+  "hudTitle": "20. Complete HUD And Control Set",
+  "hudImageComplete": true,
+  "hudNaturalWidth": 520,
+  "hudNaturalHeight": 1596,
+  "bodyTextIncludesHudSet": true
+}

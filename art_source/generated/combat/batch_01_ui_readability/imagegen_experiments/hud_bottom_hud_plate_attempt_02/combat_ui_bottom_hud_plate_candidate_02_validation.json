@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_bottom_hud_plate_attempt_02\\combat_ui_bottom_hud_plate_alpha_full_attempt_02.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_bottom_hud_plate_attempt_02\\combat_ui_bottom_hud_plate_candidate_02_5120x640.png",
+  "size": {
+    "width": 5120,
+    "height": 640
+  },
+  "sourceVisibleBounds": {
+    "left": 16,
+    "top": 273,
+    "right": 2051,
+    "bottom": 586
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 5100,
+    "height": 620
+  },
+  "finalVisibleBounds": {
+    "left": 10,
+    "top": 10,
+    "right": 5110,
+    "bottom": 630
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

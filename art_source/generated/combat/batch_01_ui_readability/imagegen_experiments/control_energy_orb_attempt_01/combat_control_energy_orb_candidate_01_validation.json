@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_energy_orb_attempt_01\\combat_control_energy_orb_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_energy_orb_attempt_01\\combat_control_energy_orb_candidate_01_320.png",
+  "size": {
+    "width": 320,
+    "height": 320
+  },
+  "sourceVisibleBounds": {
+    "left": 71,
+    "top": 52,
+    "right": 1179,
+    "bottom": 1197
+  },
+  "fitMode": "contain",
+  "fittedSize": {
+    "width": 294,
+    "height": 304
+  },
+  "finalVisibleBounds": {
+    "left": 13,
+    "top": 8,
+    "right": 307,
+    "bottom": 312
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_hud_frame_attempt_01\\combat_ui_player_hud_frame_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_hud_frame_attempt_01\\combat_ui_player_hud_frame_candidate_01_704x480.png",
+  "size": {
+    "width": 704,
+    "height": 480
+  },
+  "sourceVisibleBounds": {
+    "left": 18,
+    "top": 150,
+    "right": 1480,
+    "bottom": 866
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 688,
+    "height": 464
+  },
+  "finalVisibleBounds": {
+    "left": 8,
+    "top": 8,
+    "right": 696,
+    "bottom": 472
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

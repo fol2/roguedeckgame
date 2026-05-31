@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_discard_pile_attempt_01\\combat_control_discard_pile_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_discard_pile_attempt_01\\combat_control_discard_pile_candidate_01_232x328.png",
+  "size": {
+    "width": 232,
+    "height": 328
+  },
+  "sourceVisibleBounds": {
+    "left": 100,
+    "top": 115,
+    "right": 951,
+    "bottom": 1353
+  },
+  "fitMode": "contain",
+  "fittedSize": {
+    "width": 220,
+    "height": 320
+  },
+  "finalVisibleBounds": {
+    "left": 6,
+    "top": 4,
+    "right": 226,
+    "bottom": 324
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

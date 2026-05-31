@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_block_badge_attempt_01\\combat_ui_player_block_badge_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_block_badge_attempt_01\\combat_ui_player_block_badge_candidate_01_192.png",
+  "size": {
+    "width": 192,
+    "height": 192
+  },
+  "sourceVisibleBounds": {
+    "left": 173,
+    "top": 123,
+    "right": 1078,
+    "bottom": 1111
+  },
+  "fitMode": "contain",
+  "fittedSize": {
+    "width": 165,
+    "height": 180
+  },
+  "finalVisibleBounds": {
+    "left": 13,
+    "top": 6,
+    "right": 178,
+    "bottom": 186
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

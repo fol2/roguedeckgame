@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_menu_button_attempt_01\\combat_control_menu_button_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\control_menu_button_attempt_01\\combat_control_menu_button_candidate_01_160.png",
+  "size": {
+    "width": 160,
+    "height": 160
+  },
+  "sourceVisibleBounds": {
+    "left": 80,
+    "top": 55,
+    "right": 1173,
+    "bottom": 1165
+  },
+  "fitMode": "contain",
+  "fittedSize": {
+    "width": 148,
+    "height": 150
+  },
+  "finalVisibleBounds": {
+    "left": 6,
+    "top": 5,
+    "right": 154,
+    "bottom": 155
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

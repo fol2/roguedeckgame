@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_status_tray_attempt_01\\combat_ui_player_status_tray_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_status_tray_attempt_01\\combat_ui_player_status_tray_candidate_01_512x128.png",
+  "size": {
+    "width": 512,
+    "height": 128
+  },
+  "sourceVisibleBounds": {
+    "left": 59,
+    "top": 206,
+    "right": 1713,
+    "bottom": 686
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 504,
+    "height": 120
+  },
+  "finalVisibleBounds": {
+    "left": 4,
+    "top": 4,
+    "right": 508,
+    "bottom": 124
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

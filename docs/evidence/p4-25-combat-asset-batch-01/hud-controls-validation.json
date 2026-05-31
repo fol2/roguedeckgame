@@ -1,0 +1,321 @@
+{
+  "batch": "p4-25-combat-asset-batch-01",
+  "category": "hud-and-controls",
+  "assetCount": 13,
+  "allDimensionsMatchContract": true,
+  "allHaveTransparentCorners": true,
+  "assets": [
+    {
+      "key": "combat.ui.bottomHudPlate",
+      "path": "assets/combat/ui/hud/combat_ui_bottom_hud_plate.png",
+      "width": 5120,
+      "height": 640,
+      "expectedWidth": 5120,
+      "expectedHeight": 640,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 10,
+        "top": 10,
+        "right": 5110,
+        "bottom": 630
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 2566849
+    },
+    {
+      "key": "combat.ui.playerHudFrame",
+      "path": "assets/combat/ui/hud/combat_ui_player_hud_frame.png",
+      "width": 704,
+      "height": 480,
+      "expectedWidth": 704,
+      "expectedHeight": 480,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 8,
+        "top": 8,
+        "right": 696,
+        "bottom": 472
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 191383
+    },
+    {
+      "key": "combat.ui.playerPortraitFrame",
+      "path": "assets/combat/ui/hud/combat_ui_player_portrait_frame.png",
+      "width": 256,
+      "height": 256,
+      "expectedWidth": 256,
+      "expectedHeight": 256,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 10,
+        "top": 6,
+        "right": 245,
+        "bottom": 250
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 22720
+    },
+    {
+      "key": "combat.ui.playerHpBarTrack",
+      "path": "assets/combat/ui/hud/combat_ui_player_hp_bar_track.png",
+      "width": 512,
+      "height": 96,
+      "expectedWidth": 512,
+      "expectedHeight": 96,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 2,
+        "top": 2,
+        "right": 510,
+        "bottom": 94
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 35382
+    },
+    {
+      "key": "combat.ui.playerHpBarFillMask",
+      "path": "assets/combat/ui/hud/combat_ui_player_hp_bar_fill_mask.png",
+      "width": 512,
+      "height": 96,
+      "expectedWidth": 512,
+      "expectedHeight": 96,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 8,
+        "top": 8,
+        "right": 504,
+        "bottom": 88
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 38920
+    },
+    {
+      "key": "combat.ui.playerBlockBadge",
+      "path": "assets/combat/ui/hud/combat_ui_player_block_badge.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 178,
+        "bottom": 186
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 20165
+    },
+    {
+      "key": "combat.ui.playerStatusTray",
+      "path": "assets/combat/ui/hud/combat_ui_player_status_tray.png",
+      "width": 512,
+      "height": 128,
+      "expectedWidth": 512,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 4,
+        "top": 4,
+        "right": 508,
+        "bottom": 124
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 43034
+    },
+    {
+      "key": "combat.ui.playerHoverFrame",
+      "path": "assets/combat/ui/hud/combat_ui_player_hover_frame.png",
+      "width": 704,
+      "height": 480,
+      "expectedWidth": 704,
+      "expectedHeight": 480,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 4,
+        "top": 4,
+        "right": 700,
+        "bottom": 476
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 94185
+    },
+    {
+      "key": "combat.control.energyOrb",
+      "path": "assets/combat/ui/hud/combat_control_energy_orb.png",
+      "width": 320,
+      "height": 320,
+      "expectedWidth": 320,
+      "expectedHeight": 320,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 307,
+        "bottom": 312
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 49735
+    },
+    {
+      "key": "combat.control.drawPile",
+      "path": "assets/combat/ui/hud/combat_control_draw_pile.png",
+      "width": 232,
+      "height": 328,
+      "expectedWidth": 232,
+      "expectedHeight": 328,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 7,
+        "top": 4,
+        "right": 224,
+        "bottom": 324
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 61559
+    },
+    {
+      "key": "combat.control.discardPile",
+      "path": "assets/combat/ui/hud/combat_control_discard_pile.png",
+      "width": 232,
+      "height": 328,
+      "expectedWidth": 232,
+      "expectedHeight": 328,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 6,
+        "top": 4,
+        "right": 226,
+        "bottom": 324
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 62828
+    },
+    {
+      "key": "combat.control.endTurnButton",
+      "path": "assets/combat/ui/hud/combat_control_end_turn_button.png",
+      "width": 496,
+      "height": 224,
+      "expectedWidth": 496,
+      "expectedHeight": 224,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 4,
+        "top": 4,
+        "right": 492,
+        "bottom": 220
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 78491
+    },
+    {
+      "key": "combat.control.menuButton",
+      "path": "assets/combat/ui/hud/combat_control_menu_button.png",
+      "width": 160,
+      "height": 160,
+      "expectedWidth": 160,
+      "expectedHeight": 160,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 6,
+        "top": 5,
+        "right": 154,
+        "bottom": 155
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 14156
+    }
+  ]
+}

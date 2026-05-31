@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_hp_bar_track_attempt_01\\combat_ui_player_hp_bar_track_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\hud_player_hp_bar_track_attempt_01\\combat_ui_player_hp_bar_track_candidate_01_512x96.png",
+  "size": {
+    "width": 512,
+    "height": 96
+  },
+  "sourceVisibleBounds": {
+    "left": 24,
+    "top": 226,
+    "right": 1750,
+    "bottom": 650
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 508,
+    "height": 92
+  },
+  "finalVisibleBounds": {
+    "left": 2,
+    "top": 2,
+    "right": 510,
+    "bottom": 94
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}
