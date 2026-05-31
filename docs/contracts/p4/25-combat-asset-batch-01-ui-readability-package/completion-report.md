@@ -16,13 +16,14 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - Working export script: `art_source/generated/combat/batch_01_ui_readability/working/generate_batch_01_assets.py`
 - Working contact sheets: `art_source/generated/combat/batch_01_ui_readability/working/*_working_contact_sheet.png`
 - Runtime asset count: 112
-- Skipped assets: none
+- Skipped image-generation assets: `combat.cardFrame.unplayableOverlay`; live unplayable state is engine-owned greying/dimming.
 - Regenerated assets: rarity/source/family badge filenames were regenerated once to match exact contract snake_case paths.
-- Image-generation runtime promotion update: the six approved card frames, hover overlay, selected overlay, art-window placeholder, all six rarity tokens, all eight card source badges, and all seven card family badges now replace their earlier deterministic runtime PNGs.
+- Image-generation runtime promotion update: the six approved card frames, hover overlay, selected overlay, art-window placeholder, all six rarity tokens, all eight card source badges, all seven card family badges, and all seventeen Intent UI assets now replace their earlier deterministic runtime PNGs.
 - Current outstanding review inventory: `docs/evidence/p4-25-combat-asset-batch-01/outstanding-assets.md`
 - Rarity gem validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/rarity-gems-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/rarity-gems-runtime-sheet.png`
 - Source badge validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/source-badges-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/source-badges-runtime-sheet.png`
 - Family badge validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/family-badges-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/family-badges-runtime-sheet.png`
+- Intent UI validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/intent-ui-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/intent-ui-runtime-sheet.png`
 
 ### `assets/combat/cards/family_badges/`
 - `combat.cardFamily.keeperAttack` -> `assets/combat/cards/family_badges/combat_card_family_keeper_attack.png` (192 x 192)
@@ -199,6 +200,7 @@ Asset validation:
 
 - Evidence: `docs/evidence/p4-25-combat-asset-batch-01/asset-png-validation.json`
 - Runtime integration validation: `docs/evidence/p4-25-combat-asset-batch-01/runtime-card-integration-validation.json`
+- Intent UI validation: `docs/evidence/p4-25-combat-asset-batch-01/intent-ui-validation.json`
 - Result: true (112 RGBA PNGs, expected dimensions, transparent pixels present, critical duplicate checks passed)
 
 Production preview smoke:

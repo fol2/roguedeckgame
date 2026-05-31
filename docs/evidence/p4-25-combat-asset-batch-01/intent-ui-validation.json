@@ -1,0 +1,345 @@
+{
+  "assets": [
+    {
+      "slug": "frame",
+      "label": "Intent Frame",
+      "path": "public/assets/combat/icons/intent/combat_intent_token_frame.png",
+      "width": 280,
+      "height": 184,
+      "expectedWidth": 280,
+      "expectedHeight": 184,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 38817,
+      "partialAlphaPixels": 3578,
+      "opaquePixels": 9125,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "unknown",
+      "label": "Unknown",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_unknown.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 22048,
+      "partialAlphaPixels": 3042,
+      "opaquePixels": 11774,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "attack",
+      "label": "Attack",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_attack.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 21860,
+      "partialAlphaPixels": 1610,
+      "opaquePixels": 13394,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "defend",
+      "label": "Defend",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_defend.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 22637,
+      "partialAlphaPixels": 1429,
+      "opaquePixels": 12798,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "buff",
+      "label": "Buff",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_buff.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23190,
+      "partialAlphaPixels": 1397,
+      "opaquePixels": 12277,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "debuff",
+      "label": "Debuff",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_debuff.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 22944,
+      "partialAlphaPixels": 2405,
+      "opaquePixels": 11515,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "special",
+      "label": "Special",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_special.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 23250,
+      "partialAlphaPixels": 2704,
+      "opaquePixels": 10910,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "charging",
+      "label": "Charging",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_charging.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 22756,
+      "partialAlphaPixels": 1385,
+      "opaquePixels": 12723,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "obscured",
+      "label": "Obscured",
+      "path": "public/assets/combat/icons/intent/combat_icon_intent_obscured.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 20802,
+      "partialAlphaPixels": 2645,
+      "opaquePixels": 13417,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "scoped",
+      "label": "Scoped",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_scoped.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10087,
+      "partialAlphaPixels": 910,
+      "opaquePixels": 5387,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "locked",
+      "label": "Locked",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_locked.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9804,
+      "partialAlphaPixels": 902,
+      "opaquePixels": 5678,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "adaptive",
+      "label": "Adaptive",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_adaptive.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9481,
+      "partialAlphaPixels": 927,
+      "opaquePixels": 5976,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "changed_pulse",
+      "label": "Changed Pulse",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_changed_pulse.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9967,
+      "partialAlphaPixels": 918,
+      "opaquePixels": 5499,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "multi_hit",
+      "label": "Multi-hit",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_multi_hit.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10082,
+      "partialAlphaPixels": 902,
+      "opaquePixels": 5400,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "rough_low",
+      "label": "Rough Low",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_rough_low.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9698,
+      "partialAlphaPixels": 5930,
+      "opaquePixels": 756,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "rough_medium",
+      "label": "Rough Medium",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_rough_medium.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11805,
+      "partialAlphaPixels": 865,
+      "opaquePixels": 3714,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "rough_high",
+      "label": "Rough High",
+      "path": "public/assets/combat/icons/intent/combat_intent_marker_rough_high.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11086,
+      "partialAlphaPixels": 865,
+      "opaquePixels": 4433,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "problems": []
+}

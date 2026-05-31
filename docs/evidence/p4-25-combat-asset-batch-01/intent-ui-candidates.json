@@ -1,0 +1,378 @@
+{
+  "assets": [
+    {
+      "kind": "frame",
+      "slug": "frame",
+      "label": "Frame",
+      "folder": "intent_token_frame_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_token_frame_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_token_frame_candidate_01_280x184.png",
+      "size": [
+        280,
+        184
+      ],
+      "max": [
+        260,
+        164
+      ],
+      "small": [
+        70,
+        46
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_token_frame_attempt_01/combat_intent_token_frame_candidate_01_280x184.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "unknown",
+      "label": "Unknown",
+      "folder": "intent_icon_unknown_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_unknown_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_unknown_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_unknown_attempt_01/combat_icon_intent_unknown_candidate_01_192.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "attack",
+      "label": "Attack",
+      "folder": "intent_icon_attack_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_attack_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_attack_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_attack_attempt_01/combat_icon_intent_attack_candidate_01_192.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "defend",
+      "label": "Defend",
+      "folder": "intent_icon_defend_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_defend_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_defend_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_defend_attempt_01/combat_icon_intent_defend_candidate_01_192.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "buff",
+      "label": "Buff",
+      "folder": "intent_icon_buff_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_buff_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_buff_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_buff_attempt_01/combat_icon_intent_buff_candidate_01_192.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "debuff",
+      "label": "Debuff",
+      "folder": "intent_icon_debuff_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_debuff_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_debuff_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_debuff_attempt_01/combat_icon_intent_debuff_candidate_01_192.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "special",
+      "label": "Special",
+      "folder": "intent_icon_special_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_special_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_special_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_special_attempt_01/combat_icon_intent_special_candidate_01_192.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "charging",
+      "label": "Charging",
+      "folder": "intent_icon_charging_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_charging_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_charging_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_charging_attempt_01/combat_icon_intent_charging_candidate_01_192.png"
+    },
+    {
+      "kind": "icon",
+      "slug": "obscured",
+      "label": "Obscured",
+      "folder": "intent_icon_obscured_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_icon_intent_obscured_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_intent_obscured_candidate_01_192.png",
+      "size": [
+        192,
+        192
+      ],
+      "max": [
+        156,
+        156
+      ],
+      "small": [
+        42,
+        42
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_icon_obscured_attempt_01/combat_icon_intent_obscured_candidate_01_192.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "scoped",
+      "label": "Scoped",
+      "folder": "intent_marker_scoped_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_marker_scoped_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_marker_scoped_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_scoped_attempt_01/combat_intent_marker_scoped_candidate_01_128.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "locked",
+      "label": "Locked",
+      "folder": "intent_marker_locked_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_marker_locked_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_marker_locked_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_locked_attempt_01/combat_intent_marker_locked_candidate_01_128.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "adaptive",
+      "label": "Adaptive",
+      "folder": "intent_marker_adaptive_attempt_02",
+      "attempt": "02",
+      "alpha": "combat_intent_marker_adaptive_alpha_full_attempt_02.png",
+      "candidate": "combat_intent_marker_adaptive_candidate_02_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_adaptive_attempt_02/combat_intent_marker_adaptive_candidate_02_128.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "changed_pulse",
+      "label": "Changed",
+      "folder": "intent_marker_changed_pulse_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_marker_changed_pulse_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_marker_changed_pulse_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_changed_pulse_attempt_01/combat_intent_marker_changed_pulse_candidate_01_128.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "multi_hit",
+      "label": "Multi-hit",
+      "folder": "intent_marker_multi_hit_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_marker_multi_hit_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_marker_multi_hit_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_multi_hit_attempt_01/combat_intent_marker_multi_hit_candidate_01_128.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "rough_low",
+      "label": "Rough Low",
+      "folder": "intent_marker_rough_low_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_marker_rough_low_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_marker_rough_low_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_rough_low_attempt_01/combat_intent_marker_rough_low_candidate_01_128.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "rough_medium",
+      "label": "Rough Med",
+      "folder": "intent_marker_rough_medium_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_marker_rough_medium_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_marker_rough_medium_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_rough_medium_attempt_01/combat_intent_marker_rough_medium_candidate_01_128.png"
+    },
+    {
+      "kind": "marker",
+      "slug": "rough_high",
+      "label": "Rough High",
+      "folder": "intent_marker_rough_high_attempt_01",
+      "attempt": "01",
+      "alpha": "combat_intent_marker_rough_high_alpha_full_attempt_01.png",
+      "candidate": "combat_intent_marker_rough_high_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "max": [
+        104,
+        104
+      ],
+      "small": [
+        26,
+        26
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/intent_marker_rough_high_attempt_01/combat_intent_marker_rough_high_candidate_01_128.png"
+    }
+  ]
+}

@@ -15,6 +15,10 @@
 - `source-badges-validation.json`: dimensions and alpha validation for the complete eight-source runtime badge set.
 - `family-badges-runtime-sheet.png`: proof sheet for the complete seven-family runtime badge set at 192 x 192 and small UI scale.
 - `family-badges-validation.json`: dimensions and alpha validation for the complete seven-family runtime badge set.
+- `intent-ui-runtime-sheet.png`: proof sheet for the complete enemy Intent UI runtime set, including the token frame, category icons, and plan-state markers at full and small UI scale.
+- `intent-ui-validation.json`: dimensions and alpha validation for the complete Intent UI runtime set.
+- `intent-ui-candidate-sheet.png`: preserved candidate proof sheet for the Intent UI image-generation pass.
+- `intent-ui-candidates.json`: selected source-to-candidate mapping for the Intent UI promotion.
 - `asset-png-validation.json`: runtime PNG count, dimensions, RGBA mode, and transparency validation.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.

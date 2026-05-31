@@ -189,8 +189,8 @@ Order left to right, top to bottom:
 1 unknown: clear question/unknown shape without using a literal text question mark if possible, mysterious but readable
 2 attack: sharp strike / claw / blade impact motif
 3 defend: shield / guard motif
-4 buff: upward strengthening rune motif
-5 debuff: weakening downward rune / curse mark motif
+4 buff: strengthening aura or reinforced charm motif, no letters or glyph-like text
+5 debuff: weakening cracked charm or curse mark motif, no letters or glyph-like text
 6 special: unique star/shrine action motif
 7 charging: gathering energy / wind-up motif
 8 obscured: smoke/ash-covered hidden plan motif
@@ -205,17 +205,17 @@ Negative prompt: use the Global Negative Prompt.
 ## 10. Prompt 07 — Intent Token Frame and Markers Sheet
 
 ```txt
-Create a transparent PNG UI asset sheet for enemy Intent / plan-readout token frame and seven small plan-state markers. Arrange assets with wide spacing, no labels, no text, no numbers.
+Create a transparent PNG UI asset sheet for enemy Intent / plan-readout token frame and eight small plan-state markers. Arrange assets with wide spacing, no labels, no text, no numbers.
 
 Asset 1: intent token frame, rounded/circular field-journal token frame suitable for an icon plus code-rendered amount/summary.
 Asset 2: scoped marker, reveals deeper plan information.
 Asset 3: locked marker, plan is locked/committed.
-Asset 4: adaptive marker, plan can change/adapt.
+Asset 4: adaptive marker, plan can change/adapt, using shifting plate geometry only; no arrows, chevrons, circular-arrow symbols, letters, or glyph-like text.
 Asset 5: changed pulse marker, plan changed and should pulse.
 Asset 6: multi-hit marker, multiple hits indicator without numbers.
-Asset 7: rough low marker, low pressure.
-Asset 8: rough medium marker, medium pressure.
-Asset 9: rough high marker, high pressure.
+Asset 7: rough low marker, low pressure, no tick marks, numbers, or letters.
+Asset 8: rough medium marker, medium pressure, no tick marks, numbers, or letters.
+Asset 9: rough high marker, high pressure, no tick marks, numbers, or letters.
 
 Clean smooth strokes, readable tactical RPG UI, parchment/ink/ember style, transparent background, no text.
 ```
