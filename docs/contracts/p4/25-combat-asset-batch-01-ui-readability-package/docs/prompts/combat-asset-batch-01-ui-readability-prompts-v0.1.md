@@ -232,11 +232,11 @@ Create a cohesive transparent PNG icon sheet of thirteen combat status icons for
 Order left to right, top to bottom:
 1 burn: ember flame / coal spark
 2 block: shield / barrier
-3 guard: protective tail/shield arc
+3 guard: protective ward arc or shield-stone core, no species-specific tail or paw mark
 4 empowered: charged ember burst
 5 marked: target rune / mark sigil
-6 ready: alert check / ready rune without text
-7 commanded: paw-command flash
+6 ready: alert signal charm or lit lantern, no check mark and no text
+7 commanded: command whistle or signal charm, no paw print, no fox mark, and no species-specific animal mark
 8 obscured: ash cloud hiding information
 9 scoped: focused lens / scout rune
 10 revealed: opened eye/clear ash rune

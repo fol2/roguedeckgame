@@ -19,6 +19,10 @@
 - `intent-ui-validation.json`: dimensions and alpha validation for the complete Intent UI runtime set.
 - `intent-ui-candidate-sheet.png`: preserved candidate proof sheet for the Intent UI image-generation pass.
 - `intent-ui-candidates.json`: selected source-to-candidate mapping for the Intent UI promotion.
+- `status-icons-runtime-sheet.png`: proof sheet for the complete thirteen-status runtime icon set at 128 x 128 and small UI scale.
+- `status-icons-validation.json`: dimensions and alpha validation for the complete status icon runtime set.
+- `status-icons-candidate-sheet.png`: preserved candidate proof sheet for the status icon image-generation pass.
+- `status-icons-candidates.json`: selected and rejected source-to-candidate mapping for the status icon promotion.
 - `asset-png-validation.json`: runtime PNG count, dimensions, RGBA mode, and transparency validation.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.

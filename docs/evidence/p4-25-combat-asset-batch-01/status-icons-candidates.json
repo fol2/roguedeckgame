@@ -1,0 +1,329 @@
+{
+  "assets": [
+    {
+      "slug": "burn",
+      "label": "Burn",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_burn_attempt_01",
+      "chroma": "combat_icon_status_burn_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_burn_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_burn_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_burn_attempt_01/combat_icon_status_burn_candidate_01_128.png"
+    },
+    {
+      "slug": "block",
+      "label": "Block",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_block_attempt_01",
+      "chroma": "combat_icon_status_block_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_block_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_block_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_block_attempt_01/combat_icon_status_block_candidate_01_128.png"
+    },
+    {
+      "slug": "guard",
+      "label": "Guard",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_guard_attempt_01",
+      "chroma": "combat_icon_status_guard_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_guard_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_guard_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_guard_attempt_01/combat_icon_status_guard_candidate_01_128.png"
+    },
+    {
+      "slug": "empowered",
+      "label": "Empowered",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_empowered_attempt_01",
+      "chroma": "combat_icon_status_empowered_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_empowered_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_empowered_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_empowered_attempt_01/combat_icon_status_empowered_candidate_01_128.png"
+    },
+    {
+      "slug": "marked",
+      "label": "Marked",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_marked_attempt_01",
+      "chroma": "combat_icon_status_marked_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_marked_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_marked_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_marked_attempt_01/combat_icon_status_marked_candidate_01_128.png"
+    },
+    {
+      "slug": "ready",
+      "label": "Ready",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_ready_attempt_01",
+      "chroma": "combat_icon_status_ready_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_ready_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_ready_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_ready_attempt_01/combat_icon_status_ready_candidate_01_128.png"
+    },
+    {
+      "slug": "commanded",
+      "label": "Commanded",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_commanded_attempt_01",
+      "chroma": "combat_icon_status_commanded_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_commanded_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_commanded_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_commanded_attempt_01/combat_icon_status_commanded_candidate_01_128.png"
+    },
+    {
+      "slug": "obscured",
+      "label": "Obscured",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_obscured_attempt_01",
+      "chroma": "combat_icon_status_obscured_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_obscured_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_obscured_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_obscured_attempt_01/combat_icon_status_obscured_candidate_01_128.png"
+    },
+    {
+      "slug": "scoped",
+      "label": "Scoped",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_scoped_attempt_01",
+      "chroma": "combat_icon_status_scoped_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_scoped_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_scoped_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_scoped_attempt_01/combat_icon_status_scoped_candidate_01_128.png"
+    },
+    {
+      "slug": "revealed",
+      "label": "Revealed",
+      "attempt": "03",
+      "selected": true,
+      "folder": "status_icon_revealed_attempt_03",
+      "chroma": "combat_icon_status_revealed_chroma_full_attempt_03.png",
+      "alpha": "combat_icon_status_revealed_alpha_full_attempt_03.png",
+      "candidate": "combat_icon_status_revealed_candidate_03_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_revealed_attempt_03/combat_icon_status_revealed_candidate_03_128.png"
+    },
+    {
+      "slug": "bound",
+      "label": "Bound",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_bound_attempt_01",
+      "chroma": "combat_icon_status_bound_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_bound_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_bound_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_bound_attempt_01/combat_icon_status_bound_candidate_01_128.png"
+    },
+    {
+      "slug": "overflow",
+      "label": "Overflow",
+      "attempt": "01",
+      "selected": true,
+      "folder": "status_icon_overflow_attempt_01",
+      "chroma": "combat_icon_status_overflow_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_overflow_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_overflow_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_overflow_attempt_01/combat_icon_status_overflow_candidate_01_128.png"
+    },
+    {
+      "slug": "fallback",
+      "label": "Fallback",
+      "attempt": "03",
+      "selected": true,
+      "folder": "status_icon_fallback_attempt_03",
+      "chroma": "combat_icon_status_fallback_chroma_full_attempt_03.png",
+      "alpha": "combat_icon_status_fallback_alpha_full_attempt_03.png",
+      "candidate": "combat_icon_status_fallback_candidate_03_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_fallback_attempt_03/combat_icon_status_fallback_candidate_03_128.png"
+    }
+  ],
+  "rejected": [
+    {
+      "slug": "revealed",
+      "label": "Revealed rejected target-like plus shine",
+      "attempt": "01",
+      "selected": false,
+      "folder": "status_icon_revealed_attempt_01",
+      "chroma": "combat_icon_status_revealed_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_revealed_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_revealed_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_revealed_attempt_01/combat_icon_status_revealed_candidate_01_128.png"
+    },
+    {
+      "slug": "revealed",
+      "label": "Revealed rejected target-like centre",
+      "attempt": "02",
+      "selected": false,
+      "folder": "status_icon_revealed_attempt_02",
+      "chroma": "combat_icon_status_revealed_chroma_full_attempt_02.png",
+      "alpha": "combat_icon_status_revealed_alpha_full_attempt_02.png",
+      "candidate": "combat_icon_status_revealed_candidate_02_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_revealed_attempt_02/combat_icon_status_revealed_candidate_02_128.png"
+    },
+    {
+      "slug": "fallback",
+      "label": "Fallback rejected target-like centre",
+      "attempt": "01",
+      "selected": false,
+      "folder": "status_icon_fallback_attempt_01",
+      "chroma": "combat_icon_status_fallback_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_status_fallback_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_status_fallback_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_fallback_attempt_01/combat_icon_status_fallback_candidate_01_128.png"
+    },
+    {
+      "slug": "fallback",
+      "label": "Fallback rejected shield-like duplicate",
+      "attempt": "02",
+      "selected": false,
+      "folder": "status_icon_fallback_attempt_02",
+      "chroma": "combat_icon_status_fallback_chroma_full_attempt_02.png",
+      "alpha": "combat_icon_status_fallback_alpha_full_attempt_02.png",
+      "candidate": "combat_icon_status_fallback_candidate_02_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        32,
+        32
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/status_icon_fallback_attempt_02/combat_icon_status_fallback_candidate_02_128.png"
+    }
+  ]
+}

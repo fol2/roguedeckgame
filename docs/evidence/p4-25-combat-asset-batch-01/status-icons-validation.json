@@ -1,0 +1,265 @@
+{
+  "assets": [
+    {
+      "slug": "burn",
+      "label": "Burn",
+      "path": "public/assets/combat/icons/status/combat_icon_status_burn.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 12300,
+      "partialAlphaPixels": 1137,
+      "opaquePixels": 2947,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "block",
+      "label": "Block",
+      "path": "public/assets/combat/icons/status/combat_icon_status_block.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10495,
+      "partialAlphaPixels": 931,
+      "opaquePixels": 4958,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "guard",
+      "label": "Guard",
+      "path": "public/assets/combat/icons/status/combat_icon_status_guard.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10624,
+      "partialAlphaPixels": 1974,
+      "opaquePixels": 3786,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "empowered",
+      "label": "Empowered",
+      "path": "public/assets/combat/icons/status/combat_icon_status_empowered.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11417,
+      "partialAlphaPixels": 921,
+      "opaquePixels": 4046,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "marked",
+      "label": "Marked",
+      "path": "public/assets/combat/icons/status/combat_icon_status_marked.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11088,
+      "partialAlphaPixels": 920,
+      "opaquePixels": 4376,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "ready",
+      "label": "Ready",
+      "path": "public/assets/combat/icons/status/combat_icon_status_ready.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11560,
+      "partialAlphaPixels": 890,
+      "opaquePixels": 3934,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "commanded",
+      "label": "Commanded",
+      "path": "public/assets/combat/icons/status/combat_icon_status_commanded.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10651,
+      "partialAlphaPixels": 2132,
+      "opaquePixels": 3601,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "obscured",
+      "label": "Obscured",
+      "path": "public/assets/combat/icons/status/combat_icon_status_obscured.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9202,
+      "partialAlphaPixels": 1436,
+      "opaquePixels": 5746,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "scoped",
+      "label": "Scoped",
+      "path": "public/assets/combat/icons/status/combat_icon_status_scoped.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9859,
+      "partialAlphaPixels": 940,
+      "opaquePixels": 5585,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "revealed",
+      "label": "Revealed",
+      "path": "public/assets/combat/icons/status/combat_icon_status_revealed.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11426,
+      "partialAlphaPixels": 846,
+      "opaquePixels": 4112,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "bound",
+      "label": "Bound",
+      "path": "public/assets/combat/icons/status/combat_icon_status_bound.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10143,
+      "partialAlphaPixels": 987,
+      "opaquePixels": 5254,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "overflow",
+      "label": "Overflow",
+      "path": "public/assets/combat/icons/status/combat_icon_status_overflow.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9810,
+      "partialAlphaPixels": 1136,
+      "opaquePixels": 5438,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "fallback",
+      "label": "Fallback",
+      "path": "public/assets/combat/icons/status/combat_icon_status_fallback.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10834,
+      "partialAlphaPixels": 834,
+      "opaquePixels": 4716,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "problems": []
+}
