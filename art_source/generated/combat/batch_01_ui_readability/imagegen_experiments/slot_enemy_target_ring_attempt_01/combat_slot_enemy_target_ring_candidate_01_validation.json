@@ -1,0 +1,31 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_enemy_target_ring_attempt_01\\combat_slot_enemy_target_ring_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_enemy_target_ring_attempt_01\\combat_slot_enemy_target_ring_candidate_01_472.png",
+  "size": {
+    "width": 472,
+    "height": 472
+  },
+  "sourceVisibleBounds": {
+    "left": 38,
+    "top": 24,
+    "right": 1214,
+    "bottom": 1221
+  },
+  "fittedSize": {
+    "width": 440,
+    "height": 448
+  },
+  "finalVisibleBounds": {
+    "left": 16,
+    "top": 12,
+    "right": 456,
+    "bottom": 460
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

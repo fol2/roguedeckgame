@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Combat Asset Batch 01 Review</title>
+    <link rel="icon" href="data:,">
     <style>
       :root {
         color-scheme: light;
@@ -195,7 +196,7 @@
 
       <section aria-labelledby="status-heading">
         <h2 id="status-heading">Review Status</h2>
-        <p class="caption">Completed card frame items, complete rarity gem set, and the rarity socket proof that anchors rarity placement.</p>
+        <p class="caption">Completed card frame items, rarity/source/family badges, Intent UI, status icons, tag icons, and the promoted combat slot set.</p>
         <div class="status-grid" id="status-grid"></div>
       </section>
 
@@ -509,8 +510,21 @@
           ]
         },
         {
+          id: "combat-slot-set",
+          title: "19. Complete Combat Slot Set",
+          status: "Runtime promoted",
+          image: "/docs/evidence/p4-25-combat-asset-batch-01/combat-slots-runtime-sheet.png",
+          caption: "Pet ring, command glow, charge pip, pet and enemy status trays, inactive pet slot, enemy target ring, enemy HP track/fill, and enemy block badge. All are image-generated assets promoted at contract dimensions with transparent corners.",
+          links: [
+            ["Validation JSON", "/docs/evidence/p4-25-combat-asset-batch-01/combat-slots-validation.json"],
+            ["Latest layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-slots-layout.json"],
+            ["Pet ring source", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/slot_pet_ring_attempt_01/combat_slot_pet_ring_raw_chroma_attempt_01.png"],
+            ["Enemy status tray source", "/art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/slot_enemy_status_tray_attempt_02/combat_slot_enemy_status_tray_raw_chroma_attempt_02.png"]
+          ]
+        },
+        {
           id: "hud-controls-editor",
-          title: "19. HUD And Controls Layout Editor",
+          title: "20. HUD And Controls Layout Editor",
           status: "Ready for layout review",
           image: "/docs/evidence/p4-25-combat-asset-batch-01/hud-controls-editor-mobile-render.png",
           caption: "Editable 1280 x 720 HUD/control layout editor using current runtime UI assets, wire boxes, and engine-rendered text placeholders. Save writes latest-hud-controls-layout.json for Codex to consume before image-generation promotion.",
@@ -521,7 +535,7 @@
         },
         {
           id: "panel-layout-editor",
-          title: "20. Panel Layout Editor",
+          title: "21. Panel Layout Editor",
           status: "Ready for layout review",
           image: "/docs/evidence/p4-25-combat-asset-batch-01/panel-layout-editor-mobile-render.png",
           caption: "Editable 1280 x 720 editor for tooltip, detail, card-detail sidebar, keyword row, tag tray, close button, click blocker, pause panel, and event log panel. Save writes latest-panels-layout.json for Codex to consume before panel image-generation promotion.",
@@ -532,10 +546,10 @@
         },
         {
           id: "slot-layout-editor",
-          title: "21. Combat Slots Layout Editor",
-          status: "Ready for layout review",
+          title: "22. Combat Slots Layout Editor",
+          status: "Layout consumed",
           image: "/docs/evidence/p4-25-combat-asset-batch-01/slot-layout-editor-mobile-render.png",
-          caption: "Editable 1280 x 720 editor for pet ring, pet command glow, Ember charge pip, pet status tray, inactive pet slot, enemy target ring, enemy HP track/fill, enemy block badge, and enemy status tray. Save writes latest-slots-layout.json for Codex to consume before slot image-generation promotion.",
+          caption: "Editable 1280 x 720 editor for pet ring, pet command glow, Ember charge pip, pet status tray, inactive pet slot, enemy target ring, enemy HP track/fill, enemy block badge, and enemy status tray. latest-slots-layout.json has been consumed for the promoted combat slot runtime set.",
           links: [
             ["Editor", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-slots.html"],
             ["Latest layout JSON", "/docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-slots-layout.json"]

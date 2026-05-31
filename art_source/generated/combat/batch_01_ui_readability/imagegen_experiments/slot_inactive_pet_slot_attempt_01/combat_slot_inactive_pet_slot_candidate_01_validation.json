@@ -1,0 +1,31 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_inactive_pet_slot_attempt_01\\combat_slot_inactive_pet_slot_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_inactive_pet_slot_attempt_01\\combat_slot_inactive_pet_slot_candidate_01_472.png",
+  "size": {
+    "width": 472,
+    "height": 472
+  },
+  "sourceVisibleBounds": {
+    "left": 44,
+    "top": 29,
+    "right": 1210,
+    "bottom": 1221
+  },
+  "fittedSize": {
+    "width": 438,
+    "height": 448
+  },
+  "finalVisibleBounds": {
+    "left": 17,
+    "top": 12,
+    "right": 455,
+    "bottom": 460
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

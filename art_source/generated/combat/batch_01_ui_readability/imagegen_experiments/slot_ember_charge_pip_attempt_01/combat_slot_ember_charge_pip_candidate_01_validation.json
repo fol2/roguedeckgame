@@ -1,0 +1,31 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_ember_charge_pip_attempt_01\\combat_slot_ember_charge_pip_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_ember_charge_pip_attempt_01\\combat_slot_ember_charge_pip_candidate_01_128.png",
+  "size": {
+    "width": 128,
+    "height": 128
+  },
+  "sourceVisibleBounds": {
+    "left": 303,
+    "top": 156,
+    "right": 951,
+    "bottom": 1089
+  },
+  "fittedSize": {
+    "width": 83,
+    "height": 120
+  },
+  "finalVisibleBounds": {
+    "left": 22,
+    "top": 4,
+    "right": 105,
+    "bottom": 124
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

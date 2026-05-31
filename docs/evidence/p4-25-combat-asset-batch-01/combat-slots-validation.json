@@ -1,0 +1,249 @@
+{
+  "batch": "p4-25-combat-asset-batch-01",
+  "category": "combat-slots",
+  "assetCount": 10,
+  "allDimensionsMatchContract": true,
+  "allHaveTransparentCorners": true,
+  "assets": [
+    {
+      "key": "combat.slot.petRing",
+      "path": "assets/combat/ui/slots/combat_slot_pet_ring.png",
+      "width": 472,
+      "height": 472,
+      "expectedWidth": 472,
+      "expectedHeight": 472,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 16,
+        "top": 12,
+        "right": 455,
+        "bottom": 460
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 70705
+    },
+    {
+      "key": "combat.slot.petCommandGlow",
+      "path": "assets/combat/ui/slots/combat_slot_pet_command_glow.png",
+      "width": 472,
+      "height": 472,
+      "expectedWidth": 472,
+      "expectedHeight": 472,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 14,
+        "top": 12,
+        "right": 457,
+        "bottom": 460
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 78096
+    },
+    {
+      "key": "combat.slot.emberChargePip",
+      "path": "assets/combat/ui/slots/combat_slot_ember_charge_pip.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 22,
+        "top": 4,
+        "right": 105,
+        "bottom": 124
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 6864
+    },
+    {
+      "key": "combat.slot.petStatusTray",
+      "path": "assets/combat/ui/slots/combat_slot_pet_status_tray.png",
+      "width": 384,
+      "height": 104,
+      "expectedWidth": 384,
+      "expectedHeight": 104,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 19,
+        "top": 4,
+        "right": 365,
+        "bottom": 100
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 24838
+    },
+    {
+      "key": "combat.slot.inactivePetSlot",
+      "path": "assets/combat/ui/slots/combat_slot_inactive_pet_slot.png",
+      "width": 472,
+      "height": 472,
+      "expectedWidth": 472,
+      "expectedHeight": 472,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 17,
+        "top": 12,
+        "right": 455,
+        "bottom": 460
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 66211
+    },
+    {
+      "key": "combat.slot.enemyTargetRing",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_target_ring.png",
+      "width": 472,
+      "height": 472,
+      "expectedWidth": 472,
+      "expectedHeight": 472,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 16,
+        "top": 12,
+        "right": 456,
+        "bottom": 460
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 59324
+    },
+    {
+      "key": "combat.slot.enemyHpBarTrack",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_hp_bar_track.png",
+      "width": 512,
+      "height": 96,
+      "expectedWidth": 512,
+      "expectedHeight": 96,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 2,
+        "top": 2,
+        "right": 510,
+        "bottom": 94
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 31233
+    },
+    {
+      "key": "combat.slot.enemyHpBarFillMask",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_hp_bar_fill_mask.png",
+      "width": 512,
+      "height": 96,
+      "expectedWidth": 512,
+      "expectedHeight": 96,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 8,
+        "top": 8,
+        "right": 504,
+        "bottom": 88
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 38933
+    },
+    {
+      "key": "combat.slot.enemyBlockBadge",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_block_badge.png",
+      "width": 192,
+      "height": 192,
+      "expectedWidth": 192,
+      "expectedHeight": 192,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 20,
+        "top": 6,
+        "right": 171,
+        "bottom": 186
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 17196
+    },
+    {
+      "key": "combat.slot.enemyStatusTray",
+      "path": "assets/combat/ui/slots/combat_slot_enemy_status_tray.png",
+      "width": 384,
+      "height": 104,
+      "expectedWidth": 384,
+      "expectedHeight": 104,
+      "mode": "RGBA",
+      "visibleBounds": {
+        "left": 4,
+        "top": 4,
+        "right": 380,
+        "bottom": 100
+      },
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "hasTransparentCorners": true,
+      "dimensionMatchesContract": true,
+      "visiblePixelCount": 25076
+    }
+  ]
+}

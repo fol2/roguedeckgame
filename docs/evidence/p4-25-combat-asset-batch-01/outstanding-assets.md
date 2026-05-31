@@ -9,9 +9,9 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | State | Count | Notes |
 |---|---:|---|
 | Batch 01 registry entries | 112 | All entries loaded through `BATCH_01_COMBAT_ASSET_DEFINITIONS`. |
-| Image-generation assets already promoted to runtime | 79 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, and all nineteen tag icons. |
+| Image-generation assets already promoted to runtime | 89 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, all nineteen tag icons, and all ten combat slot assets. |
 | Registry entry intentionally not generated | 1 | `combat.cardFrame.unplayableOverlay`; unplayable state is engine-rendered grey/dim treatment. |
-| Outstanding image-generation assets | 32 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
+| Outstanding image-generation assets | 22 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
 
 ## Shared Generation Rules
 
@@ -36,7 +36,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | Tag icons | 0 | 128 x 128 | Complete card tag icon set is promoted and validated. They are reviewed at roughly 20.5 x 20.5 hand-card display scale. |
 | HUD and controls | 13 | Mixed | Bottom HUD, player HUD parts, piles, energy orb, and menu/end-turn controls. Requires layout-editor collaboration before final promotion. |
 | Detail, pause, and event panels | 9 | Mixed | Tooltip/detail/pause/event surfaces with empty content zones for engine-rendered text. Requires layout-editor collaboration before final promotion. |
-| Combat slots | 10 | Mixed | Pet/enemy rings, glows, charge/status trays, HP tracks, and block badges. Requires layout-editor collaboration before final promotion. |
+| Combat slots | 0 | Mixed | Complete pet/enemy rings, glows, charge/status trays, HP tracks, and block badges are promoted and validated. |
 
 ## Collaborative Layout Editors
 
@@ -44,7 +44,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 |---|---|---|---|
 | HUD and controls | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-hud-controls.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-hud-controls-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
 | Detail, pause, and event panels | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-panels.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-panels-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
-| Combat slots | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-slots.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-slots-layout.json` | Tailscale/mobile/browser smoke complete; awaiting final human alignment before image-generation promotion. |
+| Combat slots | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-slots.html` | `docs/evidence/p4-25-combat-asset-batch-01/layout-editor-saves/latest-slots-layout.json` | Tailscale/mobile/browser smoke complete; promoted to runtime using the approved slot layout metrics. |
 
 ## Card Rarity Gems - Complete 6
 
@@ -178,7 +178,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | `combat.ui.pausePanel` | `assets/combat/ui/panels/combat_ui_pause_panel.png` | 960 x 640 | Pause panel with empty text/control areas. |
 | `combat.ui.eventLogPanel` | `assets/combat/ui/panels/combat_ui_event_log_panel.png` | 768 x 512 | Event log panel with empty content area. |
 
-## Combat Slots - Outstanding 10
+## Combat Slots - Complete 10
 
 | Asset key | Runtime path | Dimensions | Description |
 |---|---|---:|---|

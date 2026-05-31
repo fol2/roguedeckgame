@@ -36,10 +36,18 @@
 - `layout-editor-slots.html`: editable combat slot layout editor for the collaborative pet/enemy slot asset pass.
 - `layout-editor-saves/latest-slots-layout.json`: current pet and enemy slot layout metrics exported by the editor.
 - `slot-layout-editor-mobile-render.png`: iPhone-width browser screenshot proving the slot editor renders through the Tailscale review server.
+- `combat-slots-runtime-sheet.png`: proof sheet for the complete ten-asset combat slot runtime set.
+- `combat-slots-validation.json`: dimensions and alpha validation for the complete combat slot runtime set.
+- `mobile-simple-combat-slots-browser.png`: mobile-width browser smoke screenshot proving `mobile-simple.html` exposes the promoted combat slot set.
 - `asset-png-validation.json`: runtime PNG count, dimensions, RGBA mode, and transparency validation.
+- `validation/mobile-simple-combat-slots-browser-smoke.json`: browser DOM proof that the combat slot sheet loads on the mobile review page.
+- `validation/mobile-simple-combat-slots-console-clean.log`: browser console proof for the mobile review page after adding an inline favicon.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.
 - `validation/vite-*-runtime-integration*.log`: local Vite server logs used for browser smoke evidence.
 - `validation/card-visual-config-loader-typecheck.log`: typecheck proof for the JSON-backed card visual config loader.
 - `validation/card-visual-config-loader-test-phaser.log`: focused Phaser test proof for the card visual generator/config loader.
 - `validation/card-visual-config-loader-build.log`: production build proof after moving card visual asset mapping into JSON config.
+- `validation/combat-slots-typecheck.log`: typecheck proof after promoting the combat slot runtime assets.
+- `validation/combat-slots-test-phaser-combat-asset.log`: focused Phaser asset test proof after combat slot promotion.
+- `validation/combat-slots-build.log`: production build proof after combat slot promotion.

@@ -1,0 +1,31 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_pet_command_glow_attempt_01\\combat_slot_pet_command_glow_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_pet_command_glow_attempt_01\\combat_slot_pet_command_glow_candidate_01_472.png",
+  "size": {
+    "width": 472,
+    "height": 472
+  },
+  "sourceVisibleBounds": {
+    "left": 45,
+    "top": 35,
+    "right": 1210,
+    "bottom": 1219
+  },
+  "fittedSize": {
+    "width": 441,
+    "height": 448
+  },
+  "finalVisibleBounds": {
+    "left": 15,
+    "top": 12,
+    "right": 456,
+    "bottom": 460
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

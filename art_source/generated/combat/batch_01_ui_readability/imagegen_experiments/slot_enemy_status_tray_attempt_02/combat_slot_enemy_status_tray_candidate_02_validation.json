@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_enemy_status_tray_attempt_02\\combat_slot_enemy_status_tray_alpha_full_attempt_02.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_enemy_status_tray_attempt_02\\combat_slot_enemy_status_tray_candidate_02_384x104.png",
+  "size": {
+    "width": 384,
+    "height": 104
+  },
+  "sourceVisibleBounds": {
+    "left": 39,
+    "top": 237,
+    "right": 1734,
+    "bottom": 648
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 376,
+    "height": 96
+  },
+  "finalVisibleBounds": {
+    "left": 4,
+    "top": 4,
+    "right": 380,
+    "bottom": 100
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}

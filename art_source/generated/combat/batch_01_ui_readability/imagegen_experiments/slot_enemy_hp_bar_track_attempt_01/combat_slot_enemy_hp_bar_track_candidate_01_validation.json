@@ -1,0 +1,32 @@
+{
+  "source": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_enemy_hp_bar_track_attempt_01\\combat_slot_enemy_hp_bar_track_alpha_full_attempt_01.png",
+  "output": "art_source\\generated\\combat\\batch_01_ui_readability\\imagegen_experiments\\slot_enemy_hp_bar_track_attempt_01\\combat_slot_enemy_hp_bar_track_candidate_01_512x96.png",
+  "size": {
+    "width": 512,
+    "height": 96
+  },
+  "sourceVisibleBounds": {
+    "left": 8,
+    "top": 271,
+    "right": 1664,
+    "bottom": 646
+  },
+  "fitMode": "stretch",
+  "fittedSize": {
+    "width": 508,
+    "height": 92
+  },
+  "finalVisibleBounds": {
+    "left": 2,
+    "top": 2,
+    "right": 510,
+    "bottom": 94
+  },
+  "cornerAlpha": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "hasTransparentCorners": true
+}
