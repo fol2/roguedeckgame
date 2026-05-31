@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "stage": {
+    "width": 1280,
+    "height": 720,
+    "coordinateMode": "top-left"
+  },
+  "view": {
+    "zoom": 0.7,
+    "showAssets": true,
+    "showWires": true,
+    "showText": true,
+    "assetOpacity": 0.9,
+    "wireOpacity": 0.86,
+    "textOpacity": 0.9
+  },
+  "zones": {
+    "clickBlockerTint": { "x": 0, "y": 0, "w": 1280, "h": 720, "colour": "#4d4d4d" },
+    "tooltipPanel": { "x": 780, "y": 96, "w": 282, "h": 102, "colour": "#ffd166" },
+    "detailPanel": { "x": 190, "y": 90, "w": 900, "h": 540, "colour": "#5f6f89" },
+    "cardDetailSidebar": { "x": 532, "y": 154, "w": 484, "h": 414, "colour": "#77d5ff" },
+    "cardDetailKeywordRow": { "x": 560, "y": 388, "w": 428, "h": 40, "colour": "#b58cff" },
+    "cardDetailTagTray": { "x": 560, "y": 436, "w": 428, "h": 58, "colour": "#72d6a3" },
+    "detailCloseButton": { "x": 1033, "y": 103, "w": 34, "h": 34, "colour": "#ff7d4d" },
+    "pausePanel": { "x": 460, "y": 250, "w": 360, "h": 220, "colour": "#d8872f" },
+    "eventLogPanel": { "x": 920, "y": 24, "w": 336, "h": 194, "colour": "#84c8ff" }
+  },
+  "engineText": {
+    "tooltipTitle": { "x": 792, "y": 108, "w": 206, "h": 20, "text": "Tooltip title" },
+    "tooltipBody": { "x": 792, "y": 132, "w": 246, "h": 48, "text": "Tooltip body stays engine-rendered." },
+    "detailTitle": { "x": 218, "y": 116, "w": 420, "h": 28, "text": "Detail title" },
+    "detailLines": { "x": 218, "y": 184, "w": 388, "h": 300, "text": "Line 1\nLine 2\nLine 3\nLine 4" },
+    "sidebarText": { "x": 560, "y": 180, "w": 420, "h": 184, "text": "Card detail sidebar text." },
+    "keywordRow": { "x": 568, "y": 396, "w": 384, "h": 24, "text": "Keyword chips" },
+    "tagTray": { "x": 568, "y": 446, "w": 384, "h": 34, "text": "Tag icons" },
+    "pauseText": { "x": 520, "y": 304, "w": 240, "h": 92, "text": "Paused\nCombat paused.\nResume" },
+    "eventLogText": { "x": 934, "y": 34, "w": 282, "h": 160, "text": "Event Log\nplayer drew a card\nenemy set intent\npet gained charge" },
+    "closeButton": { "x": 1038, "y": 108, "w": 24, "h": 24, "text": "x" }
+  }
+}
