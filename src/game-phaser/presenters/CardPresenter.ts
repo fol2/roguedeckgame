@@ -563,7 +563,7 @@ export class CardPresenter {
     }));
 
     const tagVisualEntries = [
-      ...cardVisual.tagVisuals.slice(0, COMBAT_UI_CAPS.maxCardVisibleTags),
+      ...cardVisual.tagVisuals.slice(0, visibleTagSlots),
       ...(hiddenTagCount > 0
         ? [{
             tag: "overflow",

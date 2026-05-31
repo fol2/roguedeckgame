@@ -109,15 +109,7 @@
     "passive": { "tag": "passive", "assetKey": "combat.icon.tag.fallback", "glyph": "PAS" },
     "skill": { "tag": "skill", "assetKey": "combat.icon.tag.fallback", "glyph": "SKL" }
   },
-  "artByCardId": {
-    "keepers_tap": "combat.cardArt.keepersTap",
-    "field_brace": "combat.cardArt.fieldBrace",
-    "read_the_ash": "combat.cardArt.readTheAsh",
-    "fox_bite": "combat.cardArt.foxBite",
-    "tailguard": "combat.cardArt.tailguard",
-    "kindle_mark": "combat.cardArt.kindleMark",
-    "fetch_signal": "combat.cardArt.fetchSignal"
-  },
+  "artByCardId": {},
   "paletteByFamily": {
     "pet-command": "petCommand",
     "pet-support": "petCommand",

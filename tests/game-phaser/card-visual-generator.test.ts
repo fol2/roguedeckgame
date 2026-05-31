@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cardId, cardInstanceId, type CombatantId } from "../../src/game-core";
 import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
+import { getCombatAssetDefinition } from "../../src/game-phaser/assets/combat-asset-registry";
 import { buildCardVisualSpec, getCardTagVisual } from "../../src/game-phaser/card-visuals/card-visual-generator";
 import rawCardVisualConfig from "../../src/game-phaser/card-visuals/card-visual-config.json";
 import { CARD_VISUAL_CONFIG, loadCardVisualConfig } from "../../src/game-phaser/card-visuals/card-visual-config-loader";
@@ -37,7 +38,7 @@ describe("card visual generator", () => {
     expect(visual.rarity.assetKey).toBe(CombatAssetKeys.cardRarityGems.starter);
     expect(visual.source.assetKey).toBe(CombatAssetKeys.cardSourceBadges.petBound);
     expect(visual.family.assetKey).toBe(CombatAssetKeys.cardFamilyBadges.petCommand);
-    expect(visual.artKey).toBe(CombatAssetKeys.cardArt.foxBite);
+    expect(visual.artKey).toBe(CombatAssetKeys.cardFrames.artWindowPlaceholder);
     expect(visual.usesPetCommandGrammar).toBe(true);
     expect(visual.tagVisuals.map((tag) => tag.assetKey)).toEqual(expect.arrayContaining([
       CombatAssetKeys.icons.tagPetCommand,
@@ -64,7 +65,7 @@ describe("card visual generator", () => {
     expect(visual.rarity.assetKey).toBe(CombatAssetKeys.cardRarityGems.rare);
     expect(visual.source.assetKey).toBe(CombatAssetKeys.cardSourceBadges.classBound);
     expect(visual.family.assetKey).toBe(CombatAssetKeys.cardFamilyBadges.keeperSignal);
-    expect(visual.artKey).toBe(CombatAssetKeys.cardArt.readTheAsh);
+    expect(visual.artKey).toBe(CombatAssetKeys.cardFrames.artWindowPlaceholder);
     expect(visual.usesPetCommandGrammar).toBe(false);
   });
 
@@ -105,7 +106,7 @@ describe("card visual generator", () => {
 
     expect(visual.frameKey).toBe(CombatAssetKeys.cardFrames.normal);
     expect(visual.family.assetKey).toBe(CombatAssetKeys.cardFamilyBadges.keeperAttack);
-    expect(visual.artKey).toBe(CombatAssetKeys.cardArt.keepersTap);
+    expect(visual.artKey).toBe(CombatAssetKeys.cardFrames.artWindowPlaceholder);
   });
 
   it("falls back to the manifest art-window placeholder for unknown card art", () => {
@@ -153,5 +154,13 @@ describe("card visual generator", () => {
     invalidConfig.tags.burn.assetKey = "combat.icon.tag.missing";
 
     expect(() => loadCardVisualConfig(invalidConfig)).toThrow(/unknown combat asset key/);
+  });
+
+  it("rejects JSON config entries that reference asset keys outside the runtime registry", () => {
+    const invalidConfig = structuredClone(rawCardVisualConfig);
+    (invalidConfig.artByCardId as Record<string, string>).keepers_tap = CombatAssetKeys.cardArt.keepersTap;
+
+    expect(getCombatAssetDefinition(CombatAssetKeys.cardArt.keepersTap)).toBeUndefined();
+    expect(() => loadCardVisualConfig(invalidConfig)).toThrow(/unregistered combat asset key/);
   });
 });

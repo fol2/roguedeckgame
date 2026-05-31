@@ -1,4 +1,5 @@
 import { getCombatAssetKeys, type CombatAssetKey } from "../assets/combat-asset-keys";
+import { getCombatAssetDefinition } from "../assets/combat-asset-registry";
 import rawCardVisualConfig from "./card-visual-config.json";
 
 export type CardVisualPalette = {
@@ -135,6 +136,10 @@ const assertAssetKey = (value: unknown, path: string): CombatAssetKey => {
   const key = assertString(value, path);
   if (!combatAssetKeys.has(key)) {
     throw new Error(`Invalid card visual config at ${path}: unknown combat asset key "${key}".`);
+  }
+
+  if (getCombatAssetDefinition(key as CombatAssetKey) === undefined) {
+    throw new Error(`Invalid card visual config at ${path}: unregistered combat asset key "${key}".`);
   }
 
   return key as CombatAssetKey;

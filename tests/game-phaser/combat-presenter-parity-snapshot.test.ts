@@ -3,6 +3,7 @@ import { combatantId, type CombatantId } from "../../src/game-core";
 import { CombatHudPresenter } from "../../src/game-phaser/presenters/CombatHudPresenter";
 import { MonsterPresenter } from "../../src/game-phaser/presenters/MonsterPresenter";
 import { CombatAssetKeys } from "../../src/game-phaser/assets/combat-asset-keys";
+import { DISCARD_PILE, DRAW_PILE } from "../../src/game-phaser/layout/combat-layout";
 import type { CombatViewModel, CombatantViewModel } from "../../src/game-phaser/view-models/combat-view-model";
 
 type Handler = (...args: unknown[]) => void;
@@ -27,6 +28,7 @@ const createChainableObject = <T extends Record<string, unknown>>(shape: T) => {
     },
     removeAllListeners: () => object,
     setInteractive: () => object,
+    setDisplaySize: () => object,
     setLineWidth: () => object,
     setOrigin: () => object,
     setSize: () => object,
@@ -36,8 +38,12 @@ const createChainableObject = <T extends Record<string, unknown>>(shape: T) => {
   return object;
 };
 
-const createSceneStub = (rewriteText: (text: string) => string = (text) => text) => {
+const createSceneStub = (
+  rewriteText: (text: string) => string = (text) => text,
+  textures: readonly string[] = []
+) => {
   const created: unknown[] = [];
+  const availableTextures = new Set(textures);
   const track = <T extends Record<string, unknown>>(object: T): T => {
     created.push(object);
     return object;
@@ -48,10 +54,15 @@ const createSceneStub = (rewriteText: (text: string) => string = (text) => text)
       container: (x = 0, y = 0) => track(createChainableObject({ kind: "container", x, y })),
       circle: (x = 0, y = 0) => track(createChainableObject({ kind: "circle", x, y })),
       ellipse: (x = 0, y = 0) => track(createChainableObject({ kind: "ellipse", x, y })),
+      image: (x = 0, y = 0, textureKey = "") => track(createChainableObject({ kind: "image", x, y, textureKey })),
       line: (x = 0, y = 0) => track(createChainableObject({ kind: "line", x, y })),
-      rectangle: (x = 0, y = 0) => track(createChainableObject({ kind: "rectangle", x, y })),
+      rectangle: (x = 0, y = 0, width = 0, height = 0, fillColour = 0, fillAlpha = 1) =>
+        track(createChainableObject({ kind: "rectangle", x, y, width, height, fillColour, fillAlpha })),
       triangle: (x = 0, y = 0) => track(createChainableObject({ kind: "triangle", x, y })),
       text: (x = 0, y = 0, text = "") => track(createChainableObject({ kind: "text", x, y, text: rewriteText(text) }))
+    },
+    textures: {
+      exists: (key: string) => availableTextures.has(key)
     }
   };
 
@@ -184,6 +195,38 @@ describe("combat presenter parity snapshots", () => {
         block: 4
       }
     }));
+  });
+
+  it("keeps generated pile textures above the code-rendered pile shadow", () => {
+    const scene = createSceneStub((text) => text, [
+      CombatAssetKeys.controls.drawPile,
+      CombatAssetKeys.controls.discardPile
+    ]) as unknown as { readonly created: readonly Record<string, unknown>[] };
+    const presenter = new CombatHudPresenter(scene as never, vi.fn());
+
+    presenter.render(createCombatViewModel(), false);
+
+    const rootContainer = scene.created.find((object) =>
+      object.kind === "container" && Array.isArray(object.children) && object.children.length > 3
+    ) as { readonly children: readonly Record<string, unknown>[] } | undefined;
+    const children = rootContainer?.children ?? [];
+    const drawImageIndex = children.findIndex((object) =>
+      object.kind === "image" && object.textureKey === CombatAssetKeys.controls.drawPile
+    );
+    const drawShadowIndex = children.findIndex((object) =>
+      object.kind === "rectangle" && object.x === DRAW_PILE.x + 6 && object.y === DRAW_PILE.y - 6
+    );
+    const discardImageIndex = children.findIndex((object) =>
+      object.kind === "image" && object.textureKey === CombatAssetKeys.controls.discardPile
+    );
+    const discardShadowIndex = children.findIndex((object) =>
+      object.kind === "rectangle" && object.x === DISCARD_PILE.x + 6 && object.y === DISCARD_PILE.y - 6
+    );
+
+    expect(drawShadowIndex).toBeGreaterThanOrEqual(0);
+    expect(drawImageIndex).toBeGreaterThan(drawShadowIndex);
+    expect(discardShadowIndex).toBeGreaterThanOrEqual(0);
+    expect(discardImageIndex).toBeGreaterThan(discardShadowIndex);
   });
 
   it("reads monster HP and block diagnostics from rendered text labels", () => {

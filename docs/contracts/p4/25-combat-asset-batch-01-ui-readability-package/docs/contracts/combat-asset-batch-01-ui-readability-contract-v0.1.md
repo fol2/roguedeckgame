@@ -120,7 +120,7 @@ These are 5:7 card frames. They must preserve blank zones for cost, art, title, 
 | `combat.cardFrame.temporary` | `public/assets/combat/cards/frames/combat_card_frame_temporary.png` | fading ash / temporary feel |
 | `combat.cardFrame.hoverOverlay` | `public/assets/combat/cards/frames/combat_card_frame_hover_overlay.png` | transparent hover glow |
 | `combat.cardFrame.selectedOverlay` | `public/assets/combat/cards/frames/combat_card_frame_selected_overlay.png` | transparent selected glow |
-| `combat.cardFrame.unplayableOverlay` | `public/assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png` | transparent disabled overlay |
+| `combat.cardFrame.unplayableOverlay` | `public/assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png` | superseded compatibility file; live unplayable presentation is engine-owned whole-card greying/dimming, not an image overlay |
 | `combat.cardFrame.artWindowPlaceholder` | `public/assets/combat/cards/frames/combat_card_art_window_placeholder.png` | blank art window fallback |
 
 Acceptance:
@@ -358,7 +358,7 @@ Acceptance:
 Batch 1 is done when:
 
 1. Runtime asset files exist at the specified paths.
-2. Raw image-generation files are archived under `art_source/generated/combat/batch_01_ui_readability/raw/`.
+2. Raw image-generation files are archived under `art_source/generated/combat/batch_01_ui_readability/raw/` for the original package sheet and under `art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/` for the approved one-by-one prompt workflow.
 3. Generated files have no text, logos, watermarks, signatures, or baked gameplay numbers.
 4. `CombatAssetKeys` still compiles and maps all used keys.
 5. A combat asset registry/loader maps every Batch 1 key to its runtime file.
@@ -383,4 +383,3 @@ npm run test:core -- --reporter=dot
 npm run test:cli -- --reporter=dot
 npm run test:scripts -- --reporter=dot
 ```
-

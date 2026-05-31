@@ -11,7 +11,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | Batch 01 registry entries | 112 | All entries loaded through `BATCH_01_COMBAT_ASSET_DEFINITIONS`. |
 | Image-generation assets already promoted to runtime | 111 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, all nineteen tag icons, all ten combat slot assets, all thirteen HUD/control assets, and all nine detail/pause/event panel assets. |
 | Registry entry intentionally not generated | 1 | `combat.cardFrame.unplayableOverlay`; unplayable state is engine-rendered grey/dim treatment. |
-| Outstanding image-generation assets | 0 | All contract-required image-generation assets have runtime PNGs, preserved sources, alpha/dimension validation, and proof sheets. |
+| Outstanding image-generation assets | 0 | All active image-generation requirements have runtime PNGs, preserved sources, alpha/dimension validation, and proof sheets. The sole skipped registry entry is the approved engine-owned unplayable state. |
 
 ## Shared Generation Rules
 

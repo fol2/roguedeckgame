@@ -7,8 +7,9 @@
 - `runtime-card-integration-dev.png`: Vite dev combat preview proving the approved image-generation card frames, rarity overlays, and card-specific layout metrics render in the live Phaser combat scene.
 - `runtime-card-integration-preview-map.png`: Vite preview production-build smoke for the default run-map route.
 - `runtime-card-integration-preview-combat-preview-param.png`: Vite preview proof that `combatPreview=1` is intentionally ignored outside dev mode.
-- `runtime-card-integration-validation.json`: dimensions and alpha summary for the 11 promoted image-generation runtime assets.
+- `runtime-card-integration-validation.json`: dimensions and alpha summary for the promoted card-frame, overlay, rarity, and art-window integration pass.
 - `outstanding-assets.md`: current Batch 01 outstanding inventory, generation rules, and one-by-one review list.
+- `no-baked-text-visual-audit.md`: visual audit record for the no text, no numbers, no labels, no watermark requirement.
 - `rarity-gems-runtime-sheet.png`: proof sheet for the complete six-rarity runtime gem set at 192 x 192 and 60 x 60 socket scale.
 - `rarity-gems-validation.json`: dimensions and alpha validation for the complete six-rarity runtime gem set.
 - `source-badges-runtime-sheet.png`: proof sheet for the complete eight-source runtime badge set at 192 x 192 and small UI scale.
@@ -52,8 +53,10 @@
 - `validation/mobile-simple-hud-controls-console-clean.log`: browser console proof after adding the HUD/control review entry.
 - `validation/mobile-simple-panels-browser-smoke.json`: browser DOM proof that the panel sheet loads on the mobile review page.
 - `validation/mobile-simple-panels-console-clean.log`: browser console proof after adding the panel review entry.
+- `validation/tailscale-panels-review-server-smoke.json`: Tailscale review-server proof that the mobile page and panel sheet are reachable remotely.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.
+- `validation/final-test-all.log`: final full repo Vitest pass after promoting the complete panel asset set.
 - `validation/vite-*-runtime-integration*.log`: local Vite server logs used for browser smoke evidence.
 - `validation/card-visual-config-loader-typecheck.log`: typecheck proof for the JSON-backed card visual config loader.
 - `validation/card-visual-config-loader-test-phaser.log`: focused Phaser test proof for the card visual generator/config loader.
@@ -67,3 +70,6 @@
 - `validation/panels-typecheck.log`: typecheck proof after promoting the panel runtime assets.
 - `validation/panels-test-phaser-combat-asset.log`: focused Phaser asset test proof after panel promotion.
 - `validation/panels-build.log`: production build proof after panel promotion.
+- `validation/reviewer-fixes-typecheck.log`: typecheck proof after resolving reviewer findings.
+- `validation/reviewer-fixes-test-phaser.log`: focused Phaser proof after resolving reviewer findings.
+- `validation/reviewer-fixes-build.log`: production build proof after resolving reviewer findings.

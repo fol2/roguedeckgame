@@ -348,7 +348,10 @@ const getCardTagTooltips = (tags: readonly string[]): readonly CombatTagTooltipV
   }));
 
 const getCardTagOverflowTooltip = (tags: readonly string[]): CombatTooltipCopyViewModel | undefined => {
-  const hiddenTags = tags.slice(COMBAT_UI_CAPS.maxCardVisibleTags);
+  const visibleTagSlots = tags.length > COMBAT_UI_CAPS.maxCardVisibleTags && COMBAT_UI_CAPS.maxCardVisibleTags > 0
+    ? COMBAT_UI_CAPS.maxCardVisibleTags - 1
+    : COMBAT_UI_CAPS.maxCardVisibleTags;
+  const hiddenTags = tags.slice(visibleTagSlots);
 
   return hiddenTags.length > 0
     ? {

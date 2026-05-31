@@ -421,9 +421,9 @@ export class CombatHudPresenter {
         this.onInspect(pileModel.detail);
       }
     });
-    this.container.add(pile);
     this.container.add(this.scene.add.rectangle(x + 6, y - 6, width, height, faceDown ? 0x1f3340 : 0x2f2618, 0.65)
       .setStrokeStyle(1, faceDown ? 0x5aaac9 : 0xc9904e));
+    this.container.add(pile);
     const countText = this.scene.add.text(x, y + height / 2 + 14, String(pileModel.count), {
       color: "#f6f1e8",
       fontFamily: "Inter, sans-serif",

@@ -11,7 +11,7 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 ## Delivered Assets
 
 - Runtime PNG root: `public/assets/combat/`
-- Raw image-generation archive: `art_source/generated/combat/batch_01_ui_readability/raw/combat_asset_batch_01_ui_readability_raw_sheet.png`
+- Raw image-generation archive: original package sheet at `art_source/generated/combat/batch_01_ui_readability/raw/combat_asset_batch_01_ui_readability_raw_sheet.png`; approved one-by-one prompt sources, rejected attempts, alpha sources, and validation files under `art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/`
 - Working export manifest: `art_source/generated/combat/batch_01_ui_readability/working/batch_01_generation_manifest.json`
 - Working export script: `art_source/generated/combat/batch_01_ui_readability/working/generate_batch_01_assets.py`
 - Working contact sheets: `art_source/generated/combat/batch_01_ui_readability/working/*_working_contact_sheet.png`
@@ -29,6 +29,7 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 - Combat slot validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/combat-slots-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/combat-slots-runtime-sheet.png`
 - HUD/control validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/hud-controls-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/hud-controls-runtime-sheet.png`
 - Detail/pause/event panel validation evidence: `docs/evidence/p4-25-combat-asset-batch-01/panels-validation.json` and `docs/evidence/p4-25-combat-asset-batch-01/panels-runtime-sheet.png`
+- No-baked-text visual audit: `docs/evidence/p4-25-combat-asset-batch-01/no-baked-text-visual-audit.md`
 
 ### `assets/combat/cards/family_badges/`
 - `combat.cardFamily.keeperAttack` -> `assets/combat/cards/family_badges/combat_card_family_keeper_attack.png` (192 x 192)
@@ -176,9 +177,9 @@ Batch 01 is integrated as modular Phaser-loaded PNG assets. Gameplay text, HP, b
 Required commands:
 
 - `npm run typecheck` - passed
-- `npm run test:phaser` - passed, 50 files / 295 tests
+- `npm run test:phaser` - passed, 50 files / 301 tests
 - `npm run build` - passed
-- `npm test` - passed, 114 files / 900 tests
+- `npm test` - passed, 114 files / 906 tests
 
 Recommended commands:
 
@@ -200,6 +201,7 @@ Command logs:
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-test-phaser.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-build.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/runtime-integration-test-all.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/final-test-all.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/combat-slots-typecheck.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/combat-slots-test-phaser-combat-asset.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/combat-slots-build.log`
@@ -209,6 +211,10 @@ Command logs:
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/panels-typecheck.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/panels-test-phaser-combat-asset.log`
 - `docs/evidence/p4-25-combat-asset-batch-01/validation/panels-build.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/tailscale-panels-review-server-smoke.json`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/reviewer-fixes-typecheck.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/reviewer-fixes-test-phaser.log`
+- `docs/evidence/p4-25-combat-asset-batch-01/validation/reviewer-fixes-build.log`
 
 Asset validation:
 
@@ -231,6 +237,8 @@ Production preview smoke:
 - Image-generation runtime integration screenshot: `docs/evidence/p4-25-combat-asset-batch-01/runtime-card-integration-dev.png`
 - Vite preview production route screenshot: `docs/evidence/p4-25-combat-asset-batch-01/runtime-card-integration-preview-map.png`
 - Served URL: `http://127.0.0.1:4173/` via `vite preview`
+- Tailscale review URL: `http://100.89.104.117:8787/docs/evidence/p4-25-combat-asset-batch-01/mobile-simple.html`
+- Tailscale review proof: `docs/evidence/p4-25-combat-asset-batch-01/validation/tailscale-panels-review-server-smoke.json`
 - Combat asset responses: 112
 - Failed combat asset responses: 0
 - Browser console warnings/errors: 0

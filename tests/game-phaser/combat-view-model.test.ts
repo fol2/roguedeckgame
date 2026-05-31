@@ -82,6 +82,16 @@ describe("Combat view model", () => {
     });
   });
 
+  it("describes hidden card tags from the overflow slot boundary", () => {
+    const viewModel = createCombatSandboxController("view-model-tag-overflow").getViewModel();
+    const card = viewModel.hand.find((candidate) => candidate.tags.length > 3);
+
+    expect(card?.tagOverflowTooltip).toMatchObject({
+      title: "More tags",
+      body: card?.tags.slice(2).join(", ")
+    });
+  });
+
   it("exposes rich status, player, pile, enemy, intent, and card detail copy", () => {
     const controller = createCombatSandboxController("view-model-detail-copy");
     const state = controller.getState();

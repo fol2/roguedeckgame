@@ -1,797 +1,905 @@
 {
-  "ok": true,
-  "url": "http://127.0.0.1:4173/",
-  "screenshotPath": "D:\\Coding\\roguedeckgame\\docs\\evidence\\p4-25-combat-asset-batch-01\\runtime-asset-gallery.png",
-  "registryAssetCount": 112,
-  "renderedAssetCount": 112,
-  "failedRenderedAssets": [],
-  "combatAssetResponseCount": 112,
-  "failedCombatAssetResponses": [],
-  "consoleMessages": [],
-  "dimensions": [
+  "generatedAtUtc": "2026-05-31T09:01:35.684Z",
+  "screenshotPath": "D:\\\\Coding\\\\roguedeckgame\\\\docs\\\\evidence\\\\p4-25-combat-asset-batch-01\\\\runtime-asset-gallery.png",
+  "assetCount": 112,
+  "passed": 112,
+  "failed": 0,
+  "assets": [
     {
-      "index": 1,
+      "keyExpr": "CombatAssetKeys.cardFrames.normal",
       "path": "assets/combat/cards/frames/combat_card_frame_normal.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 2,
+      "keyExpr": "CombatAssetKeys.cardFrames.petCommand",
       "path": "assets/combat/cards/frames/combat_card_frame_pet_command.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 3,
+      "keyExpr": "CombatAssetKeys.cardFrames.petSupport",
       "path": "assets/combat/cards/frames/combat_card_frame_pet_support.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 4,
+      "keyExpr": "CombatAssetKeys.cardFrames.keeperSignal",
       "path": "assets/combat/cards/frames/combat_card_frame_keeper_signal.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 5,
+      "keyExpr": "CombatAssetKeys.cardFrames.futurePower",
       "path": "assets/combat/cards/frames/combat_card_frame_future_power.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 6,
+      "keyExpr": "CombatAssetKeys.cardFrames.temporary",
       "path": "assets/combat/cards/frames/combat_card_frame_temporary.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 7,
+      "keyExpr": "CombatAssetKeys.cardFrames.hoverOverlay",
       "path": "assets/combat/cards/frames/combat_card_frame_hover_overlay.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 8,
+      "keyExpr": "CombatAssetKeys.cardFrames.selectedOverlay",
       "path": "assets/combat/cards/frames/combat_card_frame_selected_overlay.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 9,
+      "keyExpr": "CombatAssetKeys.cardFrames.unplayableOverlay",
       "path": "assets/combat/cards/frames/combat_card_frame_unplayable_overlay.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 536
+      "naturalHeight": 536,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 10,
+      "keyExpr": "CombatAssetKeys.cardFrames.artWindowPlaceholder",
       "path": "assets/combat/cards/frames/combat_card_art_window_placeholder.png",
-      "rendered": true,
-      "naturalWidth": 320,
-      "naturalHeight": 180
+      "naturalWidth": 287,
+      "naturalHeight": 265,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 11,
+      "keyExpr": "CombatAssetKeys.cardRarityGems.starter",
       "path": "assets/combat/cards/rarity/combat_card_rarity_starter.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 12,
+      "keyExpr": "CombatAssetKeys.cardRarityGems.common",
       "path": "assets/combat/cards/rarity/combat_card_rarity_common.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 13,
+      "keyExpr": "CombatAssetKeys.cardRarityGems.uncommon",
       "path": "assets/combat/cards/rarity/combat_card_rarity_uncommon.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 14,
+      "keyExpr": "CombatAssetKeys.cardRarityGems.rare",
       "path": "assets/combat/cards/rarity/combat_card_rarity_rare.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 15,
+      "keyExpr": "CombatAssetKeys.cardRarityGems.special",
       "path": "assets/combat/cards/rarity/combat_card_rarity_special.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 16,
+      "keyExpr": "CombatAssetKeys.cardRarityGems.unique",
       "path": "assets/combat/cards/rarity/combat_card_rarity_unique.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 17,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.universalPlayer",
       "path": "assets/combat/cards/source_badges/combat_card_source_universal_player.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 18,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.classBound",
       "path": "assets/combat/cards/source_badges/combat_card_source_class_bound.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 19,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.petBound",
       "path": "assets/combat/cards/source_badges/combat_card_source_pet_bound.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 20,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.petSupport",
       "path": "assets/combat/cards/source_badges/combat_card_source_pet_support.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 21,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.encounterReward",
       "path": "assets/combat/cards/source_badges/combat_card_source_encounter_reward.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 22,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.eventOnly",
       "path": "assets/combat/cards/source_badges/combat_card_source_event_only.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 23,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.temporary",
       "path": "assets/combat/cards/source_badges/combat_card_source_temporary.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 24,
+      "keyExpr": "CombatAssetKeys.cardSourceBadges.legacy",
       "path": "assets/combat/cards/source_badges/combat_card_source_legacy.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 25,
+      "keyExpr": "CombatAssetKeys.cardFamilyBadges.keeperAttack",
       "path": "assets/combat/cards/family_badges/combat_card_family_keeper_attack.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 26,
+      "keyExpr": "CombatAssetKeys.cardFamilyBadges.keeperSkill",
       "path": "assets/combat/cards/family_badges/combat_card_family_keeper_skill.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 27,
+      "keyExpr": "CombatAssetKeys.cardFamilyBadges.keeperSignal",
       "path": "assets/combat/cards/family_badges/combat_card_family_keeper_signal.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 28,
+      "keyExpr": "CombatAssetKeys.cardFamilyBadges.petCommand",
       "path": "assets/combat/cards/family_badges/combat_card_family_pet_command.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 29,
+      "keyExpr": "CombatAssetKeys.cardFamilyBadges.petSupport",
       "path": "assets/combat/cards/family_badges/combat_card_family_pet_support.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 30,
+      "keyExpr": "CombatAssetKeys.cardFamilyBadges.power",
       "path": "assets/combat/cards/family_badges/combat_card_family_power.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 31,
+      "keyExpr": "CombatAssetKeys.cardFamilyBadges.temporary",
       "path": "assets/combat/cards/family_badges/combat_card_family_temporary.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 32,
+      "keyExpr": "CombatAssetKeys.intentTokens.frame",
       "path": "assets/combat/icons/intent/combat_intent_token_frame.png",
-      "rendered": true,
       "naturalWidth": 280,
-      "naturalHeight": 184
+      "naturalHeight": 184,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 33,
+      "keyExpr": "CombatAssetKeys.icons.intentUnknown",
       "path": "assets/combat/icons/intent/combat_icon_intent_unknown.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 34,
+      "keyExpr": "CombatAssetKeys.icons.intentAttack",
       "path": "assets/combat/icons/intent/combat_icon_intent_attack.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 35,
+      "keyExpr": "CombatAssetKeys.icons.intentDefend",
       "path": "assets/combat/icons/intent/combat_icon_intent_defend.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 36,
+      "keyExpr": "CombatAssetKeys.icons.intentBuff",
       "path": "assets/combat/icons/intent/combat_icon_intent_buff.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 37,
+      "keyExpr": "CombatAssetKeys.icons.intentDebuff",
       "path": "assets/combat/icons/intent/combat_icon_intent_debuff.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 38,
+      "keyExpr": "CombatAssetKeys.icons.intentSpecial",
       "path": "assets/combat/icons/intent/combat_icon_intent_special.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 39,
+      "keyExpr": "CombatAssetKeys.icons.intentCharging",
       "path": "assets/combat/icons/intent/combat_icon_intent_charging.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 40,
+      "keyExpr": "CombatAssetKeys.icons.intentObscured",
       "path": "assets/combat/icons/intent/combat_icon_intent_obscured.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 41,
+      "keyExpr": "CombatAssetKeys.intentMarkers.scoped",
       "path": "assets/combat/icons/intent/combat_intent_marker_scoped.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 42,
+      "keyExpr": "CombatAssetKeys.intentMarkers.locked",
       "path": "assets/combat/icons/intent/combat_intent_marker_locked.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 43,
+      "keyExpr": "CombatAssetKeys.intentMarkers.adaptive",
       "path": "assets/combat/icons/intent/combat_intent_marker_adaptive.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 44,
+      "keyExpr": "CombatAssetKeys.intentMarkers.changedPulse",
       "path": "assets/combat/icons/intent/combat_intent_marker_changed_pulse.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 45,
+      "keyExpr": "CombatAssetKeys.intentMarkers.multiHit",
       "path": "assets/combat/icons/intent/combat_intent_marker_multi_hit.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 46,
+      "keyExpr": "CombatAssetKeys.intentMarkers.roughLow",
       "path": "assets/combat/icons/intent/combat_intent_marker_rough_low.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 47,
+      "keyExpr": "CombatAssetKeys.intentMarkers.roughMedium",
       "path": "assets/combat/icons/intent/combat_intent_marker_rough_medium.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 48,
+      "keyExpr": "CombatAssetKeys.intentMarkers.roughHigh",
       "path": "assets/combat/icons/intent/combat_intent_marker_rough_high.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 49,
+      "keyExpr": "CombatAssetKeys.icons.statusBurn",
       "path": "assets/combat/icons/status/combat_icon_status_burn.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 50,
+      "keyExpr": "CombatAssetKeys.icons.statusBlock",
       "path": "assets/combat/icons/status/combat_icon_status_block.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 51,
+      "keyExpr": "CombatAssetKeys.icons.statusGuard",
       "path": "assets/combat/icons/status/combat_icon_status_guard.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 52,
+      "keyExpr": "CombatAssetKeys.icons.statusEmpowered",
       "path": "assets/combat/icons/status/combat_icon_status_empowered.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 53,
+      "keyExpr": "CombatAssetKeys.icons.statusMarked",
       "path": "assets/combat/icons/status/combat_icon_status_marked.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 54,
+      "keyExpr": "CombatAssetKeys.icons.statusReady",
       "path": "assets/combat/icons/status/combat_icon_status_ready.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 55,
+      "keyExpr": "CombatAssetKeys.icons.statusCommanded",
       "path": "assets/combat/icons/status/combat_icon_status_commanded.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 56,
+      "keyExpr": "CombatAssetKeys.icons.statusObscured",
       "path": "assets/combat/icons/status/combat_icon_status_obscured.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 57,
+      "keyExpr": "CombatAssetKeys.icons.statusScoped",
       "path": "assets/combat/icons/status/combat_icon_status_scoped.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 58,
+      "keyExpr": "CombatAssetKeys.icons.statusRevealed",
       "path": "assets/combat/icons/status/combat_icon_status_revealed.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 59,
+      "keyExpr": "CombatAssetKeys.icons.statusBound",
       "path": "assets/combat/icons/status/combat_icon_status_bound.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 60,
+      "keyExpr": "CombatAssetKeys.icons.statusOverflow",
       "path": "assets/combat/icons/status/combat_icon_status_overflow.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 61,
+      "keyExpr": "CombatAssetKeys.icons.statusFallback",
       "path": "assets/combat/icons/status/combat_icon_status_fallback.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 62,
+      "keyExpr": "CombatAssetKeys.icons.tagPetCommand",
       "path": "assets/combat/icons/tags/combat_icon_tag_pet_command.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 63,
+      "keyExpr": "CombatAssetKeys.icons.tagFox",
       "path": "assets/combat/icons/tags/combat_icon_tag_fox.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 64,
+      "keyExpr": "CombatAssetKeys.icons.tagBurn",
       "path": "assets/combat/icons/tags/combat_icon_tag_burn.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 65,
+      "keyExpr": "CombatAssetKeys.icons.tagGuard",
       "path": "assets/combat/icons/tags/combat_icon_tag_guard.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 66,
+      "keyExpr": "CombatAssetKeys.icons.tagBlock",
       "path": "assets/combat/icons/tags/combat_icon_tag_block.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 67,
+      "keyExpr": "CombatAssetKeys.icons.tagDraw",
       "path": "assets/combat/icons/tags/combat_icon_tag_draw.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 68,
+      "keyExpr": "CombatAssetKeys.icons.tagMark",
       "path": "assets/combat/icons/tags/combat_icon_tag_mark.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 69,
+      "keyExpr": "CombatAssetKeys.icons.tagAttack",
       "path": "assets/combat/icons/tags/combat_icon_tag_attack.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 70,
+      "keyExpr": "CombatAssetKeys.icons.tagSetup",
       "path": "assets/combat/icons/tags/combat_icon_tag_setup.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 71,
+      "keyExpr": "CombatAssetKeys.icons.tagCombo",
       "path": "assets/combat/icons/tags/combat_icon_tag_combo.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 72,
+      "keyExpr": "CombatAssetKeys.icons.tagKeeper",
       "path": "assets/combat/icons/tags/combat_icon_tag_keeper.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 73,
+      "keyExpr": "CombatAssetKeys.icons.tagSignal",
       "path": "assets/combat/icons/tags/combat_icon_tag_signal.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 74,
+      "keyExpr": "CombatAssetKeys.icons.tagScout",
       "path": "assets/combat/icons/tags/combat_icon_tag_scout.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 75,
+      "keyExpr": "CombatAssetKeys.icons.tagFetch",
       "path": "assets/combat/icons/tags/combat_icon_tag_fetch.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 76,
+      "keyExpr": "CombatAssetKeys.icons.tagReveal",
       "path": "assets/combat/icons/tags/combat_icon_tag_reveal.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 77,
+      "keyExpr": "CombatAssetKeys.icons.tagScope",
       "path": "assets/combat/icons/tags/combat_icon_tag_scope.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 78,
+      "keyExpr": "CombatAssetKeys.icons.tagObscure",
       "path": "assets/combat/icons/tags/combat_icon_tag_obscure.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 79,
+      "keyExpr": "CombatAssetKeys.icons.tagRare",
       "path": "assets/combat/icons/tags/combat_icon_tag_rare.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 80,
+      "keyExpr": "CombatAssetKeys.icons.tagFallback",
       "path": "assets/combat/icons/tags/combat_icon_tag_fallback.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 81,
+      "keyExpr": "CombatAssetKeys.uiPanels.bottomHudPlate",
       "path": "assets/combat/ui/hud/combat_ui_bottom_hud_plate.png",
-      "rendered": true,
       "naturalWidth": 5120,
-      "naturalHeight": 640
+      "naturalHeight": 640,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 82,
+      "keyExpr": "CombatAssetKeys.uiPanels.playerHudFrame",
       "path": "assets/combat/ui/hud/combat_ui_player_hud_frame.png",
-      "rendered": true,
       "naturalWidth": 704,
-      "naturalHeight": 480
+      "naturalHeight": 480,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 83,
+      "keyExpr": "CombatAssetKeys.uiPanels.playerPortraitFrame",
       "path": "assets/combat/ui/hud/combat_ui_player_portrait_frame.png",
-      "rendered": true,
       "naturalWidth": 256,
-      "naturalHeight": 256
+      "naturalHeight": 256,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 84,
+      "keyExpr": "CombatAssetKeys.uiPanels.playerHpBarTrack",
       "path": "assets/combat/ui/hud/combat_ui_player_hp_bar_track.png",
-      "rendered": true,
       "naturalWidth": 512,
-      "naturalHeight": 96
+      "naturalHeight": 96,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 85,
+      "keyExpr": "CombatAssetKeys.uiPanels.playerHpBarFillMask",
       "path": "assets/combat/ui/hud/combat_ui_player_hp_bar_fill_mask.png",
-      "rendered": true,
       "naturalWidth": 512,
-      "naturalHeight": 96
+      "naturalHeight": 96,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 86,
+      "keyExpr": "CombatAssetKeys.uiPanels.playerBlockBadge",
       "path": "assets/combat/ui/hud/combat_ui_player_block_badge.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 87,
+      "keyExpr": "CombatAssetKeys.uiPanels.playerStatusTray",
       "path": "assets/combat/ui/hud/combat_ui_player_status_tray.png",
-      "rendered": true,
       "naturalWidth": 512,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 88,
+      "keyExpr": "CombatAssetKeys.uiPanels.playerHoverFrame",
       "path": "assets/combat/ui/hud/combat_ui_player_hover_frame.png",
-      "rendered": true,
       "naturalWidth": 704,
-      "naturalHeight": 480
+      "naturalHeight": 480,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 89,
+      "keyExpr": "CombatAssetKeys.uiPanels.tooltipPanel",
       "path": "assets/combat/ui/panels/combat_ui_tooltip_panel.png",
-      "rendered": true,
       "naturalWidth": 704,
-      "naturalHeight": 320
+      "naturalHeight": 320,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 90,
+      "keyExpr": "CombatAssetKeys.uiPanels.detailPanel",
       "path": "assets/combat/ui/panels/combat_ui_detail_panel.png",
-      "rendered": true,
       "naturalWidth": 1280,
-      "naturalHeight": 880
+      "naturalHeight": 880,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 91,
+      "keyExpr": "CombatAssetKeys.uiPanels.cardDetailSidebar",
       "path": "assets/combat/ui/panels/combat_ui_card_detail_sidebar.png",
-      "rendered": true,
       "naturalWidth": 512,
-      "naturalHeight": 880
+      "naturalHeight": 880,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 92,
+      "keyExpr": "CombatAssetKeys.uiPanels.cardDetailKeywordRow",
       "path": "assets/combat/ui/panels/combat_ui_card_detail_keyword_row.png",
-      "rendered": true,
       "naturalWidth": 640,
-      "naturalHeight": 96
+      "naturalHeight": 96,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 93,
+      "keyExpr": "CombatAssetKeys.uiPanels.cardDetailTagTray",
       "path": "assets/combat/ui/panels/combat_ui_card_detail_tag_tray.png",
-      "rendered": true,
       "naturalWidth": 640,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 94,
+      "keyExpr": "CombatAssetKeys.uiPanels.detailCloseButton",
       "path": "assets/combat/ui/panels/combat_ui_detail_close_button.png",
-      "rendered": true,
       "naturalWidth": 160,
-      "naturalHeight": 160
+      "naturalHeight": 160,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 95,
+      "keyExpr": "CombatAssetKeys.uiPanels.clickBlockerTint",
       "path": "assets/combat/ui/panels/combat_ui_click_blocker_tint.png",
-      "rendered": true,
       "naturalWidth": 64,
-      "naturalHeight": 64
+      "naturalHeight": 64,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 96,
+      "keyExpr": "CombatAssetKeys.uiPanels.pausePanel",
       "path": "assets/combat/ui/panels/combat_ui_pause_panel.png",
-      "rendered": true,
       "naturalWidth": 960,
-      "naturalHeight": 640
+      "naturalHeight": 640,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 97,
+      "keyExpr": "CombatAssetKeys.uiPanels.eventLogPanel",
       "path": "assets/combat/ui/panels/combat_ui_event_log_panel.png",
-      "rendered": true,
       "naturalWidth": 768,
-      "naturalHeight": 512
+      "naturalHeight": 512,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 98,
+      "keyExpr": "CombatAssetKeys.controls.energyOrb",
       "path": "assets/combat/ui/hud/combat_control_energy_orb.png",
-      "rendered": true,
       "naturalWidth": 320,
-      "naturalHeight": 320
+      "naturalHeight": 320,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 99,
+      "keyExpr": "CombatAssetKeys.controls.drawPile",
       "path": "assets/combat/ui/hud/combat_control_draw_pile.png",
-      "rendered": true,
       "naturalWidth": 232,
-      "naturalHeight": 328
+      "naturalHeight": 328,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 100,
+      "keyExpr": "CombatAssetKeys.controls.discardPile",
       "path": "assets/combat/ui/hud/combat_control_discard_pile.png",
-      "rendered": true,
       "naturalWidth": 232,
-      "naturalHeight": 328
+      "naturalHeight": 328,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 101,
+      "keyExpr": "CombatAssetKeys.controls.endTurnButton",
       "path": "assets/combat/ui/hud/combat_control_end_turn_button.png",
-      "rendered": true,
       "naturalWidth": 496,
-      "naturalHeight": 224
+      "naturalHeight": 224,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 102,
+      "keyExpr": "CombatAssetKeys.controls.menuButton",
       "path": "assets/combat/ui/hud/combat_control_menu_button.png",
-      "rendered": true,
       "naturalWidth": 160,
-      "naturalHeight": 160
+      "naturalHeight": 160,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 103,
+      "keyExpr": "CombatAssetKeys.slots.petRing",
       "path": "assets/combat/ui/slots/combat_slot_pet_ring.png",
-      "rendered": true,
       "naturalWidth": 472,
-      "naturalHeight": 472
+      "naturalHeight": 472,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 104,
+      "keyExpr": "CombatAssetKeys.slots.petCommandGlow",
       "path": "assets/combat/ui/slots/combat_slot_pet_command_glow.png",
-      "rendered": true,
       "naturalWidth": 472,
-      "naturalHeight": 472
+      "naturalHeight": 472,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 105,
+      "keyExpr": "CombatAssetKeys.slots.emberChargePip",
       "path": "assets/combat/ui/slots/combat_slot_ember_charge_pip.png",
-      "rendered": true,
       "naturalWidth": 128,
-      "naturalHeight": 128
+      "naturalHeight": 128,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 106,
+      "keyExpr": "CombatAssetKeys.slots.petStatusTray",
       "path": "assets/combat/ui/slots/combat_slot_pet_status_tray.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 104
+      "naturalHeight": 104,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 107,
+      "keyExpr": "CombatAssetKeys.slots.inactivePetSlot",
       "path": "assets/combat/ui/slots/combat_slot_inactive_pet_slot.png",
-      "rendered": true,
       "naturalWidth": 472,
-      "naturalHeight": 472
+      "naturalHeight": 472,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 108,
+      "keyExpr": "CombatAssetKeys.slots.enemyTargetRing",
       "path": "assets/combat/ui/slots/combat_slot_enemy_target_ring.png",
-      "rendered": true,
       "naturalWidth": 472,
-      "naturalHeight": 472
+      "naturalHeight": 472,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 109,
+      "keyExpr": "CombatAssetKeys.slots.enemyHpBarTrack",
       "path": "assets/combat/ui/slots/combat_slot_enemy_hp_bar_track.png",
-      "rendered": true,
       "naturalWidth": 512,
-      "naturalHeight": 96
+      "naturalHeight": 96,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 110,
+      "keyExpr": "CombatAssetKeys.slots.enemyHpBarFillMask",
       "path": "assets/combat/ui/slots/combat_slot_enemy_hp_bar_fill_mask.png",
-      "rendered": true,
       "naturalWidth": 512,
-      "naturalHeight": 96
+      "naturalHeight": 96,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 111,
+      "keyExpr": "CombatAssetKeys.slots.enemyBlockBadge",
       "path": "assets/combat/ui/slots/combat_slot_enemy_block_badge.png",
-      "rendered": true,
       "naturalWidth": 192,
-      "naturalHeight": 192
+      "naturalHeight": 192,
+      "complete": true,
+      "ok": true
     },
     {
-      "index": 112,
+      "keyExpr": "CombatAssetKeys.slots.enemyStatusTray",
       "path": "assets/combat/ui/slots/combat_slot_enemy_status_tray.png",
-      "rendered": true,
       "naturalWidth": 384,
-      "naturalHeight": 104
+      "naturalHeight": 104,
+      "complete": true,
+      "ok": true
     }
   ]
 }

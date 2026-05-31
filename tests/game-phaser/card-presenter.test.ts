@@ -313,7 +313,7 @@ describe("CardPresenter", () => {
     const { scene, records } = createSceneStub({
       textures: [
         CombatAssetKeys.cardFrames.normal,
-        CombatAssetKeys.cardArt.keepersTap,
+        CombatAssetKeys.cardFrames.artWindowPlaceholder,
         CombatAssetKeys.cardRarityGems.starter,
         CombatAssetKeys.cardSourceBadges.classBound,
         CombatAssetKeys.cardFamilyBadges.keeperAttack,
@@ -334,13 +334,43 @@ describe("CardPresenter", () => {
 
     expect(records.images.map((image) => image.textureKey)).toEqual(expect.arrayContaining([
       CombatAssetKeys.cardFrames.normal,
-      CombatAssetKeys.cardArt.keepersTap,
+      CombatAssetKeys.cardFrames.artWindowPlaceholder,
       CombatAssetKeys.cardRarityGems.starter,
       CombatAssetKeys.cardFrames.selectedOverlay,
       CombatAssetKeys.icons.tagKeeper,
       CombatAssetKeys.icons.tagAttack,
       CombatAssetKeys.icons.tagSignal
     ]));
+  });
+
+  it("uses the final tag slot for overflow when a card has more than three tags", () => {
+    const { scene, records } = createSceneStub();
+    const presenter = new CardPresenter(scene, vi.fn());
+    const firstCard = {
+      ...createCard("read_the_ash:1", "Read the Ash"),
+      cardId: cardId("read_the_ash"),
+      tags: ["keeper", "attack", "signal", "burn", "draw"],
+      tagTooltips: [
+        { tag: "keeper", title: "Keeper", body: "Keeper card." },
+        { tag: "attack", title: "Attack", body: "Attack card." },
+        { tag: "signal", title: "Signal", body: "Signal card." },
+        { tag: "burn", title: "Burn", body: "Burn card." },
+        { tag: "draw", title: "Draw", body: "Draw card." }
+      ],
+      tagOverflowTooltip: { title: "More tags", body: "signal, burn, draw" }
+    };
+
+    presenter.render([firstCard], false);
+
+    const cardContainer = records.containers.find((container) => container.startX !== 0 || container.startY !== 0) as {
+      readonly children?: readonly Record<string, unknown>[];
+    } | undefined;
+    const tagTexts = cardContainer?.children
+      ?.filter((child) => child.kind === "text")
+      .map((child) => child.text);
+
+    expect(tagTexts).toEqual(expect.arrayContaining(["KPR", "ATK", "+3"]));
+    expect(tagTexts).not.toContain("SIG");
   });
 
   it("composes hover assets and greys unplayable cards without an image overlay", () => {

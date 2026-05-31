@@ -1,7 +1,7 @@
 {
   "batch": "batch-01-ui-readability",
-  "rawSourceImage": "C:\\Users\\fol2h\\.codex\\generated_images\\019e7670-8fd5-7c23-8f40-6235f65c924d\\ig_0c85e053dd64c4c4016a1a3a2ea3108191af9e05a1f552e341.png",
-  "rawArchive": "D:\\Coding\\roguedeckgame\\art_source\\generated\\combat\\batch_01_ui_readability\\raw\\combat_asset_batch_01_ui_readability_raw_sheet.png",
+  "rawSourceImage": "art_source/generated/combat/batch_01_ui_readability/raw/combat_asset_batch_01_ui_readability_raw_sheet.png",
+  "rawArchive": "art_source/generated/combat/batch_01_ui_readability/raw/combat_asset_batch_01_ui_readability_raw_sheet.png",
   "assetCount": 112,
   "assets": [
     {
@@ -1127,6 +1127,8 @@
   ],
   "notes": [
     "Runtime assets are transparent PNGs with no baked gameplay text or numbers.",
-    "The imagegen raw sheet establishes the Ember Journal visual language; exported runtime assets are deterministic clean variants for contract-safe Phaser ingestion."
-  ]
+    "The original raw sheet established the Ember Journal visual language; the approved one-by-one image-generation workflow preserves raw chroma-key sources, alpha sources, rejected attempts, and promoted candidates under imagegen_experiments/.",
+    "Several original deterministic runtime exports have been replaced by approved image-generation PNGs while preserving exact contract dimensions."
+  ],
+  "imagegenExperimentArchive": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/"
 }
