@@ -9,9 +9,9 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | State | Count | Notes |
 |---|---:|---|
 | Batch 01 registry entries | 112 | All entries loaded through `BATCH_01_COMBAT_ASSET_DEFINITIONS`. |
-| Image-generation assets already promoted to runtime | 60 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, and all thirteen status icons. |
+| Image-generation assets already promoted to runtime | 79 | Six card frames, hover overlay, selected overlay, art-window placeholder, all six rarity gems, all eight card source badges, all seven card family badges, all seventeen Intent UI assets, all thirteen status icons, and all nineteen tag icons. |
 | Registry entry intentionally not generated | 1 | `combat.cardFrame.unplayableOverlay`; unplayable state is engine-rendered grey/dim treatment. |
-| Outstanding image-generation assets | 51 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
+| Outstanding image-generation assets | 32 | These still require image generation, alpha validation, visual approval, runtime promotion, and evidence. |
 
 ## Shared Generation Rules
 
@@ -33,7 +33,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | Card family badges | 0 | 192 x 192 | Complete seven-family runtime badge set is promoted and validated. |
 | Intent UI | 0 | 280 x 184, 192 x 192, 128 x 128 | Complete enemy intent token frame, intent category icon, and plan-state marker set is promoted and validated. All numeric intent values stay engine-rendered. |
 | Status icons | 0 | 128 x 128 | Complete combatant status icon set is promoted and validated. Stack counts and labels stay engine-rendered. |
-| Tag icons | 19 | 128 x 128 | Card tag icons displayed in the three bottom tag sockets. They must read at roughly 20.5 x 20.5 in hand-card display. |
+| Tag icons | 0 | 128 x 128 | Complete card tag icon set is promoted and validated. They are reviewed at roughly 20.5 x 20.5 hand-card display scale. |
 | HUD and controls | 13 | Mixed | Bottom HUD, player HUD parts, piles, energy orb, and menu/end-turn controls. Requires layout-editor collaboration before final promotion. |
 | Detail, pause, and event panels | 9 | Mixed | Tooltip/detail/pause/event surfaces with empty content zones for engine-rendered text. Requires layout-editor collaboration before final promotion. |
 | Combat slots | 10 | Mixed | Pet/enemy rings, glows, charge/status trays, HP tracks, and block badges. Requires layout-editor collaboration before final promotion. |
@@ -114,7 +114,7 @@ Authoritative registry: `src/game-phaser/assets/combat-asset-registry.ts`
 | `combat.icon.status.overflow` | `assets/combat/icons/status/combat_icon_status_overflow.png` | 128 x 128 | Overflow status. |
 | `combat.icon.status.fallback` | `assets/combat/icons/status/combat_icon_status_fallback.png` | 128 x 128 | Generic unknown status. |
 
-## Tag Icons - Outstanding 19
+## Tag Icons - Complete 19
 
 | Asset key | Runtime path | Dimensions | Description |
 |---|---|---:|---|

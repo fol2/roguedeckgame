@@ -1,0 +1,385 @@
+{
+  "assets": [
+    {
+      "slug": "pet_command",
+      "label": "Pet Command",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_pet_command.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10066,
+      "partialAlphaPixels": 2025,
+      "opaquePixels": 4293,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "fox",
+      "label": "Fox",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_fox.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9801,
+      "partialAlphaPixels": 1080,
+      "opaquePixels": 5503,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "burn",
+      "label": "Burn",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_burn.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11852,
+      "partialAlphaPixels": 971,
+      "opaquePixels": 3561,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "guard",
+      "label": "Guard",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_guard.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10928,
+      "partialAlphaPixels": 2070,
+      "opaquePixels": 3386,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "block",
+      "label": "Block",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_block.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9966,
+      "partialAlphaPixels": 922,
+      "opaquePixels": 5496,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "draw",
+      "label": "Draw",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_draw.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11638,
+      "partialAlphaPixels": 1025,
+      "opaquePixels": 3721,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "mark",
+      "label": "Mark",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_mark.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10412,
+      "partialAlphaPixels": 960,
+      "opaquePixels": 5012,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "attack",
+      "label": "Attack",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_attack.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9351,
+      "partialAlphaPixels": 1103,
+      "opaquePixels": 5930,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "setup",
+      "label": "Setup",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_setup.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9693,
+      "partialAlphaPixels": 1231,
+      "opaquePixels": 5460,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "combo",
+      "label": "Combo",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_combo.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 12288,
+      "partialAlphaPixels": 1309,
+      "opaquePixels": 2787,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "keeper",
+      "label": "Keeper",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_keeper.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 8181,
+      "partialAlphaPixels": 1043,
+      "opaquePixels": 7160,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "signal",
+      "label": "Signal",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_signal.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10630,
+      "partialAlphaPixels": 2120,
+      "opaquePixels": 3634,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "scout",
+      "label": "Scout",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_scout.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10075,
+      "partialAlphaPixels": 934,
+      "opaquePixels": 5375,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "fetch",
+      "label": "Fetch",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_fetch.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10409,
+      "partialAlphaPixels": 1916,
+      "opaquePixels": 4059,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "reveal",
+      "label": "Reveal",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_reveal.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 10736,
+      "partialAlphaPixels": 906,
+      "opaquePixels": 4742,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "scope",
+      "label": "Scope",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_scope.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9356,
+      "partialAlphaPixels": 1038,
+      "opaquePixels": 5990,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "obscure",
+      "label": "Obscure",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_obscure.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 9231,
+      "partialAlphaPixels": 1111,
+      "opaquePixels": 6042,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "rare",
+      "label": "Rare",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_rare.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11553,
+      "partialAlphaPixels": 1045,
+      "opaquePixels": 3786,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slug": "fallback",
+      "label": "Fallback",
+      "path": "public/assets/combat/icons/tags/combat_icon_tag_fallback.png",
+      "width": 128,
+      "height": 128,
+      "expectedWidth": 128,
+      "expectedHeight": 128,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "transparentPixels": 11074,
+      "partialAlphaPixels": 862,
+      "opaquePixels": 4448,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "problems": []
+}

@@ -1,0 +1,346 @@
+{
+  "assets": [
+    {
+      "slug": "pet_command",
+      "label": "Pet Command",
+      "attempt": "01",
+      "folder": "tag_icon_pet_command_attempt_01",
+      "chroma": "combat_icon_tag_pet_command_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_pet_command_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_pet_command_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_pet_command_attempt_01/combat_icon_tag_pet_command_candidate_01_128.png"
+    },
+    {
+      "slug": "fox",
+      "label": "Fox",
+      "attempt": "01",
+      "folder": "tag_icon_fox_attempt_01",
+      "chroma": "combat_icon_tag_fox_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_fox_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_fox_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_fox_attempt_01/combat_icon_tag_fox_candidate_01_128.png"
+    },
+    {
+      "slug": "burn",
+      "label": "Burn",
+      "attempt": "01",
+      "folder": "tag_icon_burn_attempt_01",
+      "chroma": "combat_icon_tag_burn_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_burn_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_burn_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_burn_attempt_01/combat_icon_tag_burn_candidate_01_128.png"
+    },
+    {
+      "slug": "guard",
+      "label": "Guard",
+      "attempt": "01",
+      "folder": "tag_icon_guard_attempt_01",
+      "chroma": "combat_icon_tag_guard_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_guard_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_guard_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_guard_attempt_01/combat_icon_tag_guard_candidate_01_128.png"
+    },
+    {
+      "slug": "block",
+      "label": "Block",
+      "attempt": "01",
+      "folder": "tag_icon_block_attempt_01",
+      "chroma": "combat_icon_tag_block_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_block_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_block_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_block_attempt_01/combat_icon_tag_block_candidate_01_128.png"
+    },
+    {
+      "slug": "draw",
+      "label": "Draw",
+      "attempt": "01",
+      "folder": "tag_icon_draw_attempt_01",
+      "chroma": "combat_icon_tag_draw_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_draw_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_draw_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_draw_attempt_01/combat_icon_tag_draw_candidate_01_128.png"
+    },
+    {
+      "slug": "mark",
+      "label": "Mark",
+      "attempt": "01",
+      "folder": "tag_icon_mark_attempt_01",
+      "chroma": "combat_icon_tag_mark_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_mark_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_mark_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_mark_attempt_01/combat_icon_tag_mark_candidate_01_128.png"
+    },
+    {
+      "slug": "attack",
+      "label": "Attack",
+      "attempt": "01",
+      "folder": "tag_icon_attack_attempt_01",
+      "chroma": "combat_icon_tag_attack_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_attack_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_attack_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_attack_attempt_01/combat_icon_tag_attack_candidate_01_128.png"
+    },
+    {
+      "slug": "setup",
+      "label": "Setup",
+      "attempt": "01",
+      "folder": "tag_icon_setup_attempt_01",
+      "chroma": "combat_icon_tag_setup_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_setup_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_setup_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_setup_attempt_01/combat_icon_tag_setup_candidate_01_128.png"
+    },
+    {
+      "slug": "combo",
+      "label": "Combo",
+      "attempt": "01",
+      "folder": "tag_icon_combo_attempt_01",
+      "chroma": "combat_icon_tag_combo_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_combo_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_combo_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_combo_attempt_01/combat_icon_tag_combo_candidate_01_128.png"
+    },
+    {
+      "slug": "keeper",
+      "label": "Keeper",
+      "attempt": "01",
+      "folder": "tag_icon_keeper_attempt_01",
+      "chroma": "combat_icon_tag_keeper_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_keeper_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_keeper_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_keeper_attempt_01/combat_icon_tag_keeper_candidate_01_128.png"
+    },
+    {
+      "slug": "signal",
+      "label": "Signal",
+      "attempt": "01",
+      "folder": "tag_icon_signal_attempt_01",
+      "chroma": "combat_icon_tag_signal_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_signal_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_signal_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_signal_attempt_01/combat_icon_tag_signal_candidate_01_128.png"
+    },
+    {
+      "slug": "scout",
+      "label": "Scout",
+      "attempt": "01",
+      "folder": "tag_icon_scout_attempt_01",
+      "chroma": "combat_icon_tag_scout_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_scout_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_scout_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_scout_attempt_01/combat_icon_tag_scout_candidate_01_128.png"
+    },
+    {
+      "slug": "fetch",
+      "label": "Fetch",
+      "attempt": "01",
+      "folder": "tag_icon_fetch_attempt_01",
+      "chroma": "combat_icon_tag_fetch_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_fetch_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_fetch_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_fetch_attempt_01/combat_icon_tag_fetch_candidate_01_128.png"
+    },
+    {
+      "slug": "reveal",
+      "label": "Reveal",
+      "attempt": "01",
+      "folder": "tag_icon_reveal_attempt_01",
+      "chroma": "combat_icon_tag_reveal_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_reveal_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_reveal_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_reveal_attempt_01/combat_icon_tag_reveal_candidate_01_128.png"
+    },
+    {
+      "slug": "scope",
+      "label": "Scope",
+      "attempt": "01",
+      "folder": "tag_icon_scope_attempt_01",
+      "chroma": "combat_icon_tag_scope_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_scope_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_scope_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_scope_attempt_01/combat_icon_tag_scope_candidate_01_128.png"
+    },
+    {
+      "slug": "obscure",
+      "label": "Obscure",
+      "attempt": "01",
+      "folder": "tag_icon_obscure_attempt_01",
+      "chroma": "combat_icon_tag_obscure_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_obscure_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_obscure_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_obscure_attempt_01/combat_icon_tag_obscure_candidate_01_128.png"
+    },
+    {
+      "slug": "rare",
+      "label": "Rare",
+      "attempt": "01",
+      "folder": "tag_icon_rare_attempt_01",
+      "chroma": "combat_icon_tag_rare_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_rare_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_rare_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_rare_attempt_01/combat_icon_tag_rare_candidate_01_128.png"
+    },
+    {
+      "slug": "fallback",
+      "label": "Fallback",
+      "attempt": "01",
+      "folder": "tag_icon_fallback_attempt_01",
+      "chroma": "combat_icon_tag_fallback_chroma_full_attempt_01.png",
+      "alpha": "combat_icon_tag_fallback_alpha_full_attempt_01.png",
+      "candidate": "combat_icon_tag_fallback_candidate_01_128.png",
+      "size": [
+        128,
+        128
+      ],
+      "small": [
+        21,
+        21
+      ],
+      "candidatePath": "art_source/generated/combat/batch_01_ui_readability/imagegen_experiments/tag_icon_fallback_attempt_01/combat_icon_tag_fallback_candidate_01_128.png"
+    }
+  ]
+}

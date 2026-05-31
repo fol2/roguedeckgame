@@ -23,6 +23,10 @@
 - `status-icons-validation.json`: dimensions and alpha validation for the complete status icon runtime set.
 - `status-icons-candidate-sheet.png`: preserved candidate proof sheet for the status icon image-generation pass.
 - `status-icons-candidates.json`: selected and rejected source-to-candidate mapping for the status icon promotion.
+- `tag-icons-runtime-sheet.png`: proof sheet for the complete nineteen-tag runtime icon set at 128 x 128 and 21 x 21 hand-card tag scale.
+- `tag-icons-validation.json`: dimensions and alpha validation for the complete tag icon runtime set.
+- `tag-icons-candidate-sheet.png`: preserved candidate proof sheet for the tag icon image-generation pass.
+- `tag-icons-candidates.json`: selected source-to-candidate mapping for the tag icon promotion.
 - `asset-png-validation.json`: runtime PNG count, dimensions, RGBA mode, and transparency validation.
 - `validation/runtime-integration-*.log`: captured typecheck, Phaser test, and production build output for the runtime integration pass.
 - `validation/runtime-integration-test-all.log`: full repo Vitest pass after reducing card tag slots to three.

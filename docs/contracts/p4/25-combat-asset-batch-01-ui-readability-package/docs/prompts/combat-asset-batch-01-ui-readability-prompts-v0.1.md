@@ -254,28 +254,28 @@ Negative prompt: use the Global Negative Prompt.
 ## 12. Prompt 09 — Card Tag Icons Sheet
 
 ```txt
-Create a cohesive transparent PNG icon sheet of nineteen small card tag icons for a pet-centered fantasy deckbuilder. Arrange icons in a clean grid with wide spacing, no labels, no text, no letters, no numbers. Icons must be simple and readable in a small card tag row.
+Create a cohesive transparent PNG icon sheet of nineteen small card tag icons for a pet-centred fantasy deckbuilder. Arrange icons in a clean grid with wide spacing, no labels, no text, no letters, no numbers. Icons must be simple and readable in a small card tag row.
 
 Order left to right, top to bottom:
-1 petCommand: paw-command rune
+1 petCommand: companion command whistle or side-mounted command ring, no paw print and no species-specific mark
 2 fox: fox head / fox tail symbol, not a wolf
 3 burn: small flame/coal
 4 guard: shield/guard arc
 5 block: block shield
 6 draw: card draw / pulled card silhouette without text
-7 mark: target mark rune
-8 attack: strike/claw
-9 setup: prepared rune/gear-like charm, not mechanical sci-fi
-10 combo: linked runes
+7 mark: target mark charm, no crosshair plus sign
+8 attack: strike slash, no creature claw dependence
+9 setup: prepared field-kit charm, no gear and no mechanical sci-fi
+10 combo: two linked charms, no letters
 11 keeper: Keeper bracer / traveler mark
-12 signal: hand signal / signal rune
-13 scout: small eye/pathfinder mark
-14 fetch: small fox-paw retrieving card-light
-15 reveal: clearing ash / open eye
+12 signal: field-signal lantern or signal charm, no speaker icon
+13 scout: pathfinder lens or trail mark, not an eye and not a scope reticle
+14 fetch: blank card retrieved by a motion trail, no fox-paw and no species-specific mark
+15 reveal: clearing ash around a warm oval light, no target reticle
 16 scope: lens / focused scout mark
 17 obscure: ash cloud / hidden plan
 18 rare: small rare-card bearer/scribe seal
-19 fallback: generic tag token
+19 fallback: generic blank ash-pebble tag token, no question mark
 
 Clean smooth strokes, field-journal fantasy UI, restrained decoration, transparent background.
 ```
